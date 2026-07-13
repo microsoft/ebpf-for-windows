@@ -975,6 +975,102 @@ send_traffic(IPPROTO protocol, bool is_ipv6)
     }
 }
 
+/**
+ * @brief Subset of the process information classes accepted by NtQueryInformationProcess.
+ */
+enum
+{
+    ProcessTelemetryIdInformation = 64
+};
+
+/**
+ * @brief Structure returned by NtQueryInformationProcess(ProcessTelemetryIdInformation).
+ *
+ * Per the official documentation this struct "has no associated import library or header file", so
+ * it must be declared locally; the same declaration is used by usersim (external/usersim/src/ps.cpp)
+ * to implement the kernel-mode PsGetProcessStartKey helper that backs
+ * bpf_get_current_process_start_key. The full layout is declared so the query receives the buffer
+ * size it expects; only ProcessStartKey is read.
+ * @see https://learn.microsoft.com/en-us/windows/win32/devnotes/process_telemetry_id_information_type
+ */
+typedef struct _PROCESS_TELEMETRY_ID_INFORMATION
+{
+    ULONG HeaderSize;
+    ULONG ProcessId;
+    ULONG64 ProcessStartKey; ///< Per-boot process start key; matches bpf_get_current_process_start_key.
+    ULONG64 CreateTime;
+    ULONG64 CreateInterruptTime;
+    ULONG64 CreateUnbiasedInterruptTime;
+    ULONG64 ProcessSequenceNumber;
+    ULONG64 SessionCreateTime;
+    ULONG SessionId;
+    ULONG BootId;
+    ULONG ImageChecksum;
+    ULONG ImageTimeDateStamp;
+    ULONG UserSidOffset;
+    ULONG ImagePathOffset;
+    ULONG PackageNameOffset;
+    ULONG RelativeAppNameOffset;
+    ULONG CommandLineOffset;
+} PROCESS_TELEMETRY_ID_INFORMATION;
+
+/**
+ * @brief Look up the process start key for a given PID, for comparison against the value reported by
+ * bpf_get_current_process_start_key (PsGetProcessStartKey in the kernel).
+ * @param[in] pid Process ID whose start key to query.
+ * @param[out] start_key On success, receives the process start key.
+ * @returns true if the start key was obtained; false (with a warning) if the process could not be
+ *  opened or queried.
+ */
+static bool
+try_get_process_start_key(uint32_t pid, uint64_t& start_key)
+{
+    HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+    if (process == nullptr) {
+        std::cout << "WARNING: OpenProcess(pid=" << pid << ") failed, err=" << GetLastError()
+                  << "; skipping process start-key consistency check\n";
+        return false;
+    }
+
+    typedef LONG(NTAPI * NtQueryInformationProcess_t)(HANDLE, ULONG, PVOID, ULONG, PULONG);
+    static NtQueryInformationProcess_t nt_query_information_process = reinterpret_cast<NtQueryInformationProcess_t>(
+        GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtQueryInformationProcess"));
+
+    bool succeeded = false;
+    if (nt_query_information_process == nullptr) {
+        std::cout << "WARNING: NtQueryInformationProcess not found; skipping process start-key check\n";
+    } else {
+        // ProcessTelemetryIdInformation returns the fixed struct followed by variable-length data
+        // (user SID, image path, package/app name, command line) referenced by the trailing *Offset
+        // fields, so the query needs a buffer larger than the struct itself. Start with headroom and
+        // grow once if the process reports it needs more.
+        std::vector<uint8_t> buffer(sizeof(PROCESS_TELEMETRY_ID_INFORMATION) + 1024);
+        ULONG return_length = 0;
+        LONG status = nt_query_information_process(
+            process, ProcessTelemetryIdInformation, buffer.data(), static_cast<ULONG>(buffer.size()), &return_length);
+        if (status < 0 && return_length > buffer.size()) {
+            buffer.resize(return_length);
+            status = nt_query_information_process(
+                process,
+                ProcessTelemetryIdInformation,
+                buffer.data(),
+                static_cast<ULONG>(buffer.size()),
+                &return_length);
+        }
+        if (status >= 0 && return_length >= sizeof(PROCESS_TELEMETRY_ID_INFORMATION)) {
+            start_key = reinterpret_cast<const PROCESS_TELEMETRY_ID_INFORMATION*>(buffer.data())->ProcessStartKey;
+            succeeded = true;
+        } else {
+            std::cout << "WARNING: NtQueryInformationProcess(ProcessTelemetryIdInformation) failed, status=0x"
+                      << std::hex << static_cast<unsigned long>(status) << std::dec
+                      << "; skipping process start-key consistency check\n";
+        }
+    }
+
+    CloseHandle(process);
+    return succeeded;
+}
+
 void
 run_process_start_key_test(IPPROTO protocol, bool is_ipv6)
 {
@@ -1023,15 +1119,17 @@ run_process_start_key_test(IPPROTO protocol, bool is_ipv6)
         std::cout << "bpf_map_delete_elem(process_start_key_map)\n";
         REQUIRE(bpf_map_delete_elem(bpf_map__fd(map), &key) == 0);
 
-        // Verify PID/Start Key values.
-        // We only validate that the start_key is not zero because
-        // otherwise this test case would need to take a dependency on NtQueryInformationProcess
-        // which per documentation can change at any time.
-        REQUIRE(0 < found_value.start_key);
-
-        // The WFP ALE_AUTH_CONNECT callout is not guaranteed to run on the caller's
-        // thread/process for either TCP or UDP, so only verify the captured PID is valid.
+        // Validate the captured (pid, start_key) pair for self-consistency: look up the captured
+        // PID's process and compare its ProcessStartKey (PsGetProcessStartKey in the kernel) to the
+        // helper-reported start_key. The WFP ALE_AUTH_CONNECT callout is not guaranteed to run on
+        // the caller's process, so we do NOT assume current_pid is ours — only that the reported
+        // pair is internally consistent.
         REQUIRE(found_value.current_pid > 0);
+        REQUIRE(0 < found_value.start_key);
+        uint64_t process_start_key = 0;
+        if (try_get_process_start_key(found_value.current_pid, process_start_key)) {
+            REQUIRE(process_start_key == found_value.start_key);
+        }
     }
 }
 
@@ -1083,10 +1181,25 @@ run_thread_start_time_test(IPPROTO protocol, bool is_ipv6)
         std::cout << "bpf_map_delete_elem(thread_start_time_map)\n";
         REQUIRE(bpf_map_delete_elem(bpf_map__fd(map), &key) == 0);
 
-        // The WFP ALE_AUTH_CONNECT callout is not guaranteed to run on the caller's
-        // thread for either TCP or UDP, so only verify the captured values are valid.
+        // Validate the captured (tid, start_time) pair for self-consistency: open the captured
+        // thread and compare its creation time to the helper-reported start_time
+        // (bpf_get_current_thread_create_time -> PsGetThreadCreateTime, which is FILETIME-compatible
+        // 100ns-since-1601 units). The WFP ALE_AUTH_CONNECT callout is not guaranteed to run on the
+        // caller's thread, so we do NOT assume current_tid is ours — only that the pair is consistent.
         REQUIRE(found_value.current_tid > 0);
         REQUIRE(found_value.start_time > 0);
+        HANDLE thread = OpenThread(THREAD_QUERY_LIMITED_INFORMATION, FALSE, found_value.current_tid);
+        if (thread == nullptr) {
+            std::cout << "WARNING: OpenThread(tid=" << found_value.current_tid << ") failed, err=" << GetLastError()
+                      << "; skipping thread create-time consistency check\n";
+        } else {
+            FILETIME creation_time, exit_time, kernel_time, user_time;
+            REQUIRE(GetThreadTimes(thread, &creation_time, &exit_time, &kernel_time, &user_time));
+            int64_t creation_time_100ns =
+                (static_cast<int64_t>(creation_time.dwHighDateTime) << 32) | creation_time.dwLowDateTime;
+            REQUIRE(creation_time_100ns == found_value.start_time);
+            CloseHandle(thread);
+        }
     }
 }
 
