@@ -2580,9 +2580,6 @@ ebpf_native_load_programs(
         instance.programs[i]->handle = ebpf_handle_invalid;
     }
 
-    instance.programs = NULL;
-    instance.program_count = 0;
-
 Done:
     if (native_lock_acquired) {
         ebpf_lock_unlock(&module->lock, module_state);
