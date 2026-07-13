@@ -89,6 +89,7 @@ _ring_record_get_ring(_In_ const ebpf_ring_buffer_record_t* record)
     }
     ebpf_lock_unlock(&_ebpf_ring_buffer_registry_lock, state);
     ebpf_assert(ring != NULL);
+    __analysis_assume(ring != NULL);
     return ring;
 }
 
