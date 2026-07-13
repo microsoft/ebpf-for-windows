@@ -12,7 +12,9 @@ typedef struct _ebpf_ring_section
 {
     HANDLE section_handle;
     void* section_object;
+    void* pageable_kernel_view;
     void* kernel_view;
+    MDL* locked_kernel_view_mdl;
     size_t view_size;
 } ebpf_ring_section_t;
 
@@ -52,8 +54,19 @@ static void
 _ebpf_ring_cleanup_section(_Inout_ ebpf_ring_section_t* section)
 {
     if (section->kernel_view != NULL) {
-        MmUnmapViewInSystemSpace(section->kernel_view);
+        MmUnmapLockedPages(section->kernel_view, section->locked_kernel_view_mdl);
         section->kernel_view = NULL;
+    }
+
+    if (section->locked_kernel_view_mdl != NULL) {
+        MmUnlockPages(section->locked_kernel_view_mdl);
+        IoFreeMdl(section->locked_kernel_view_mdl);
+        section->locked_kernel_view_mdl = NULL;
+    }
+
+    if (section->pageable_kernel_view != NULL) {
+        MmUnmapViewInSystemSpace(section->pageable_kernel_view);
+        section->pageable_kernel_view = NULL;
     }
 
     if (section->section_object != NULL) {
@@ -70,6 +83,42 @@ _ebpf_ring_cleanup_section(_Inout_ ebpf_ring_section_t* section)
 }
 
 static ebpf_result_t
+_ebpf_ring_lock_kernel_section_view(_Inout_ ebpf_ring_section_t* section)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    section->locked_kernel_view_mdl =
+        IoAllocateMdl(section->pageable_kernel_view, (ULONG)section->view_size, FALSE, FALSE, NULL);
+    if (section->locked_kernel_view_mdl == NULL) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, IoAllocateMdl, STATUS_NO_MEMORY);
+        return EBPF_NO_MEMORY;
+    }
+
+    __try {
+        MmProbeAndLockPages(section->locked_kernel_view_mdl, KernelMode, IoModifyAccess);
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+        status = GetExceptionCode();
+    }
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmProbeAndLockPages, status);
+        IoFreeMdl(section->locked_kernel_view_mdl);
+        section->locked_kernel_view_mdl = NULL;
+        return EBPF_NO_MEMORY;
+    }
+
+    section->kernel_view = MmMapLockedPagesSpecifyCache(
+        section->locked_kernel_view_mdl, KernelMode, MmCached, NULL, FALSE, NormalPagePriority | MdlMappingNoExecute);
+    if (section->kernel_view == NULL) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmMapLockedPagesSpecifyCache, STATUS_NO_MEMORY);
+        MmUnlockPages(section->locked_kernel_view_mdl);
+        IoFreeMdl(section->locked_kernel_view_mdl);
+        section->locked_kernel_view_mdl = NULL;
+        return EBPF_NO_MEMORY;
+    }
+
+    return EBPF_SUCCESS;
+}
+static ebpf_result_t
 _ebpf_ring_create_kernel_double_map(_Inout_ ebpf_ring_descriptor_t* ring_descriptor)
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -77,7 +126,7 @@ _ebpf_ring_create_kernel_double_map(_Inout_ ebpf_ring_descriptor_t* ring_descrip
     size_t pfn_array_size = sizeof(PFN_NUMBER) * page_count;
 
     ring_descriptor->data_source_mdl =
-        IoAllocateMdl(ring_descriptor->data.kernel_view, (ULONG)ring_descriptor->length, FALSE, FALSE, NULL);
+        IoAllocateMdl(ring_descriptor->data.pageable_kernel_view, (ULONG)ring_descriptor->length, FALSE, FALSE, NULL);
     if (ring_descriptor->data_source_mdl == NULL) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, IoAllocateMdl, STATUS_NO_MEMORY);
         return EBPF_NO_MEMORY;
@@ -160,7 +209,7 @@ _ebpf_ring_create_section(size_t size, _Inout_ ebpf_ring_section_t* section)
         return EBPF_NO_MEMORY;
     }
 
-    status = MmMapViewInSystemSpace(section->section_object, &section->kernel_view, &view_size);
+    status = MmMapViewInSystemSpace(section->section_object, &section->pageable_kernel_view, &view_size);
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmMapViewInSystemSpace, status);
         _ebpf_ring_cleanup_section(section);
@@ -209,7 +258,17 @@ ebpf_allocate_ring_buffer_memory(size_t length)
         goto Done;
     }
 
+    result = _ebpf_ring_lock_kernel_section_view(&ring_descriptor->consumer);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
     result = _ebpf_ring_create_section(PAGE_SIZE, &ring_descriptor->producer);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    result = _ebpf_ring_lock_kernel_section_view(&ring_descriptor->producer);
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
