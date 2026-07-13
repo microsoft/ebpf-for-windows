@@ -212,6 +212,13 @@ class _test_helper
     }
     ~_test_helper()
     {
+        GROUP_AFFINITY old_thread_affinity = {};
+        bool cleanup_cpu0_affinity_set = false;
+        if (platform_initiated && epoch_initiated) {
+            ebpf_assert_success(ebpf_set_current_thread_cpu_affinity(0, &old_thread_affinity));
+            cleanup_cpu0_affinity_set = true;
+        }
+
         if (state_initiated) {
             ebpf_state_terminate();
         }
@@ -224,6 +231,9 @@ class _test_helper
         if (epoch_initiated) {
             ebpf_epoch_synchronize();
             ebpf_epoch_terminate();
+        }
+        if (cleanup_cpu0_affinity_set) {
+            ebpf_restore_current_thread_cpu_affinity(&old_thread_affinity);
         }
         ebpf_random_terminate();
         if (platform_initiated) {
