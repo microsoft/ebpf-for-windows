@@ -299,6 +299,9 @@ ebpf_ring_open_user_section(
         return EBPF_INVALID_ARGUMENT;
     }
 
+    *handle = ebpf_handle_invalid;
+    *view_size = 0;
+
     switch (section) {
     case EBPF_RING_BUFFER_USER_SECTION_CONSUMER:
         source_section = (ebpf_ring_section_t*)&ring->consumer;
