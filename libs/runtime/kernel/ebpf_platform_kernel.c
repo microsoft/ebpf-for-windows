@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "ebpf_platform.h"
+#include "ebpf_error.h"
 #include "ebpf_ring_buffer.h"
 #include "ebpf_tracelog.h"
 
@@ -296,10 +297,11 @@ ebpf_ring_open_user_section(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    status = ObOpenObjectByPointer(source_section->section_object, 0, NULL, desired_access, NULL, UserMode, &user_handle);
+    status =
+        ObOpenObjectByPointer(source_section->section_object, 0, NULL, desired_access, NULL, KernelMode, &user_handle);
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, ObOpenObjectByPointer, status);
-        return EBPF_INVALID_ARGUMENT;
+        return _ntstatus_to_ebpf_result(status);
     }
 
     *handle = (ebpf_handle_t)user_handle;

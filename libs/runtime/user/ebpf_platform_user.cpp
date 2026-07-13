@@ -224,6 +224,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     descriptor->kernel_page =
         (ebpf_ring_buffer_kernel_page_t*)ebpf_allocate_with_tag(PAGE_SIZE, EBPF_POOL_TAG_DEFAULT);
     if (descriptor->kernel_page == nullptr) {
+        result = EBPF_NO_MEMORY;
         goto Exit;
     }
     memset(descriptor->kernel_page, 0, PAGE_SIZE);
