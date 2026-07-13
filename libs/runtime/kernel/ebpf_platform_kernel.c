@@ -1,8 +1,8 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
-#include "ebpf_platform.h"
 #include "ebpf_error.h"
+#include "ebpf_platform.h"
 #include "ebpf_ring_buffer.h"
 #include "ebpf_tracelog.h"
 
@@ -85,7 +85,9 @@ _ebpf_ring_create_kernel_double_map(_Inout_ ebpf_ring_descriptor_t* ring_descrip
     }
 
     memcpy(
-        MmGetMdlPfnArray(ring_descriptor->data_double_mdl), MmGetMdlPfnArray(ring_descriptor->data_source_mdl), pfn_array_size);
+        MmGetMdlPfnArray(ring_descriptor->data_double_mdl),
+        MmGetMdlPfnArray(ring_descriptor->data_source_mdl),
+        pfn_array_size);
     memcpy(
         MmGetMdlPfnArray(ring_descriptor->data_double_mdl) + page_count,
         MmGetMdlPfnArray(ring_descriptor->data_source_mdl),

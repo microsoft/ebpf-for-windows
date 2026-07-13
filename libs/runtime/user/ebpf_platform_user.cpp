@@ -214,15 +214,13 @@ ebpf_allocate_ring_buffer_memory(size_t length)
         return nullptr;
     }
 
-    descriptor =
-        (ebpf_ring_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_ring_descriptor_t), EBPF_POOL_TAG_DEFAULT);
+    descriptor = (ebpf_ring_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_ring_descriptor_t), EBPF_POOL_TAG_DEFAULT);
     if (!descriptor) {
         return nullptr;
     }
     memset(descriptor, 0, sizeof(*descriptor));
     descriptor->length = length;
-    descriptor->kernel_page =
-        (ebpf_ring_buffer_kernel_page_t*)ebpf_allocate_with_tag(PAGE_SIZE, EBPF_POOL_TAG_DEFAULT);
+    descriptor->kernel_page = (ebpf_ring_buffer_kernel_page_t*)ebpf_allocate_with_tag(PAGE_SIZE, EBPF_POOL_TAG_DEFAULT);
     if (descriptor->kernel_page == nullptr) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -247,7 +245,10 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     UnmapViewOfFile(descriptor->data.view);
     descriptor->data.view = nullptr;
     result = _ebpf_ring_create_double_map(
-        descriptor->data.section_handle, descriptor->data.view_size, &descriptor->data.view, &descriptor->data_secondary_view);
+        descriptor->data.section_handle,
+        descriptor->data.view_size,
+        &descriptor->data.view,
+        &descriptor->data_secondary_view);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
