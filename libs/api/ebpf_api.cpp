@@ -5000,14 +5000,19 @@ CATCH_NO_MEMORY_EBPF_RESULT
 typedef struct _ebpf_map_async_query_context
 {
     _ebpf_map_async_query_context()
-        : async_ioctl_failed(false), async_ioctl_completion(nullptr), buffer(nullptr), reply({}), cpu_id(0),
-          subscription(nullptr), lost_count_total(0), consumer_advance_posted(false)
+        : async_ioctl_failed(false), async_ioctl_completion(nullptr), map_fd(ebpf_fd_invalid), consumer_page(nullptr),
+          producer_page(nullptr), buffer(nullptr), reply({}), cpu_id(0), subscription(nullptr), lost_count_total(0),
+          consumer_advance_posted(false)
     {
     }
 
     ~_ebpf_map_async_query_context()
     {
         EBPF_LOG_ENTRY();
+
+        if (consumer_page != nullptr) {
+            (void)ebpf_ring_buffer_map_unmap_buffer_with_index(map_fd, cpu_id, consumer_page, producer_page, buffer);
+        }
 
         if (async_ioctl_completion != nullptr) {
             clean_up_async_ioctl_completion(async_ioctl_completion);
@@ -5017,7 +5022,10 @@ typedef struct _ebpf_map_async_query_context
     }
 
     std::mutex lock;
-    uint8_t* buffer;
+    fd_t map_fd;
+    ebpf_ring_buffer_consumer_page_t* consumer_page;
+    const ebpf_ring_buffer_producer_page_t* producer_page;
+    const uint8_t* buffer;
     uint32_t cpu_id;
     size_t lost_count_total;
     async_ioctl_completion_t* async_ioctl_completion;
@@ -5359,22 +5367,23 @@ ebpf_map_subscribe(
         for (size_t cpu_index = 0; cpu_index < cpu_id_count; cpu_index++) {
             ebpf_map_async_query_context_ptr local_async_query_context =
                 std::make_unique<ebpf_map_async_query_context_t>();
+            size_t data_size = 0;
+            uint64_t consumer_offset = 0;
 
-            // Get user-mode address to perf buffer shared data.
-            ebpf_operation_map_query_buffer_request_t query_buffer_request{
-                sizeof(query_buffer_request),
-                ebpf_operation_id_t::EBPF_OPERATION_MAP_QUERY_BUFFER,
-                local_subscription->map_handle,
-                cpu_ids[cpu_index]};
-            ebpf_operation_map_query_buffer_reply_t query_buffer_reply{};
-            result = win32_error_code_to_ebpf_result(invoke_ioctl(query_buffer_request, query_buffer_reply));
+            result = ebpf_ring_buffer_map_map_buffer_with_index(
+                map_fd,
+                cpu_ids[cpu_index],
+                reinterpret_cast<void**>(&local_async_query_context->consumer_page),
+                reinterpret_cast<const void**>(&local_async_query_context->producer_page),
+                &local_async_query_context->buffer,
+                &data_size);
             if (result != EBPF_SUCCESS) {
                 EBPF_RETURN_RESULT(result);
             }
-            ebpf_assert(query_buffer_reply.header.id == ebpf_operation_id_t::EBPF_OPERATION_MAP_QUERY_BUFFER);
-            // Initialize the async IOCTL operation.
-            local_async_query_context->buffer =
-                reinterpret_cast<uint8_t*>(static_cast<uintptr_t>(query_buffer_reply.buffer_address));
+            UNREFERENCED_PARAMETER(data_size);
+
+            consumer_offset = ReadULong64Acquire(&local_async_query_context->consumer_page->consumer_offset);
+            local_async_query_context->map_fd = map_fd;
             local_async_query_context->cpu_id = cpu_ids[cpu_index];
             local_async_query_context->subscription = local_subscription.get();
             memset(&local_async_query_context->reply, 0, sizeof(ebpf_operation_map_async_query_reply_t));
@@ -5393,7 +5402,7 @@ ebpf_map_subscribe(
                 ebpf_operation_id_t::EBPF_OPERATION_MAP_ASYNC_QUERY,
                 local_subscription->map_handle,
                 cpu_ids[cpu_index],
-                query_buffer_reply.consumer_offset};
+                consumer_offset};
             result = win32_error_code_to_ebpf_result(invoke_ioctl(
                 async_query_request,
                 local_async_query_context->reply,
@@ -6023,8 +6032,7 @@ CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_unmap_buffer(
-    fd_t map_fd, _In_opt_ void* consumer, _In_opt_ const void* producer, _In_opt_ const void* data)
-    NO_EXCEPT_TRY
+    fd_t map_fd, _In_opt_ void* consumer, _In_opt_ const void* producer, _In_opt_ const void* data) NO_EXCEPT_TRY
 {
     return ebpf_ring_buffer_map_unmap_buffer_with_index(map_fd, 0, consumer, producer, data);
 }
