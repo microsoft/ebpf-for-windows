@@ -66,6 +66,7 @@ typedef __declspec(align(EBPF_CACHE_LINE_SIZE)) struct _ebpf_epoch_cpu_entry
     int timer_armed : 1;                   ///< Set if the flush timer is armed.
     int rundown_in_progress : 1;           ///< Set if rundown is in progress.
     int epoch_computation_in_progress : 1; ///< Set if epoch computation is in progress.
+    int admitted : 1;                      ///< Set if this CPU's message queue was successfully created (schedulable).
     ebpf_timed_work_queue_t* work_queue;   ///< Work queue used to schedule work items.
 } ebpf_epoch_cpu_entry_t;
 
@@ -243,6 +244,49 @@ static _IRQL_requires_(DISPATCH_LEVEL) void _ebpf_epoch_arm_timer_if_needed(ebpf
 static void
 _ebpf_epoch_work_item_callback(_In_ cxplat_preemptible_work_item_t* preemptible_work_item, void* context);
 
+/**
+ * @brief Return the next admitted CPU after cpu_id in the per-CPU ring, wrapping around.
+ * Non-admitted CPUs (whose message queue could not be created at initialization time) are
+ * skipped. Because CPU 0 is always admitted (ebpf_epoch_initiate() fails otherwise), the walk
+ * always terminates. A return value of 0 signals that the ring has been fully traversed.
+ *
+ * @param[in] cpu_id CPU to start the search from.
+ * @return The next admitted CPU index, or 0 if the ring wraps back to the start.
+ */
+static uint32_t
+_ebpf_epoch_get_next_active_cpu(uint32_t cpu_id);
+
+/**
+ * @brief Fail fast if the supplied CPU is out of range or was not admitted at initialization time.
+ * A non-admitted CPU corresponds to a processor that could not be scheduled when the epoch module
+ * was initialized (e.g. an inactive/hot-add-capable slot). Touching its per-CPU state is a bug.
+ *
+ * @param[in] cpu_id CPU to validate.
+ */
+static void
+_ebpf_epoch_fail_fast_if_unadmitted_cpu(uint32_t cpu_id);
+
+static uint32_t
+_ebpf_epoch_get_next_active_cpu(uint32_t cpu_id)
+{
+    uint32_t next = (cpu_id + 1) % _ebpf_epoch_cpu_count;
+    while (next != 0) {
+        if (_ebpf_epoch_cpu_table[next].admitted) {
+            return next;
+        }
+        next = (next + 1) % _ebpf_epoch_cpu_count;
+    }
+    // The ring wrapped back to CPU 0 (which is always admitted). Signal ring completion.
+    return 0;
+}
+
+static void
+_ebpf_epoch_fail_fast_if_unadmitted_cpu(uint32_t cpu_id)
+{
+    EBPF_EPOCH_FAIL_FAST(
+        FAST_FAIL_INVALID_ARG, cpu_id < _ebpf_epoch_cpu_count && _ebpf_epoch_cpu_table[cpu_id].admitted);
+}
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_epoch_initiate()
 {
@@ -277,7 +321,14 @@ ebpf_epoch_initiate()
 
     _ebpf_epoch_published_current_epoch = 1;
 
-    // Initialize the message queue.
+    // Initialize the message queue for each CPU. On systems where the maximum processor count
+    // exceeds the set of processors that are actually schedulable (hot-add-capable firmware,
+    // BIOS-disabled cores, partial processor groups), ebpf_timed_work_queue_create() fails for
+    // the non-schedulable indices. Rather than failing the whole load, admit only the CPUs whose
+    // work queue could be created and mark the rest as not admitted. Non-admitted CPUs are skipped
+    // by the per-CPU ring walk and their per-CPU state must never be touched (fail fast otherwise).
+    // CPU 0 is required: if its work queue cannot be created, initialization fails.
+    uint32_t admitted_count = 0;
     for (uint32_t cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
         ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[cpu_id];
         LARGE_INTEGER interval;
@@ -285,10 +336,44 @@ ebpf_epoch_initiate()
 
         ebpf_result_t result = ebpf_timed_work_queue_create(
             &cpu_entry->work_queue, cpu_id, &interval, _ebpf_epoch_messenger_worker, cpu_entry);
-        if (result != EBPF_SUCCESS) {
+        if (result == EBPF_SUCCESS) {
+            cpu_entry->admitted = true;
+            admitted_count++;
+        } else if (result != EBPF_INVALID_ARGUMENT || cpu_id == 0) {
+            // Only a non-schedulable processor index is tolerated (ebpf_timed_work_queue_create
+            // returns EBPF_INVALID_ARGUMENT when KeGetProcessorNumberFromIndex or
+            // KeSetTargetProcessorDpcEx fails). Any other failure (e.g. EBPF_NO_MEMORY) is a real
+            // error, and CPU 0 is required regardless, so fail initialization.
             return_value = result;
             goto Error;
+        } else {
+            // This CPU is not schedulable. Leave work_queue == NULL and admitted == false, and
+            // continue. As long as this CPU is never brought online and used, everything works;
+            // if it is ever used, the fail-fast guards will trip instead of corrupting state.
+            cpu_entry->admitted = false;
+            EBPF_LOG_MESSAGE_UINT64(
+                EBPF_TRACELOG_LEVEL_WARNING,
+                EBPF_TRACELOG_KEYWORD_EPOCH,
+                "ebpf_epoch_initiate: skipping CPU that could not be admitted",
+                cpu_id);
         }
+    }
+
+    // Emit a summary only when some CPU was not admitted. KeQueryActiveProcessorCountEx is included
+    // for diagnostics only; it is NOT used to gate admission, since the systemwide processor index
+    // space is maximum-based with per-group gaps (schedulable CPUs are sparse in [0, max)).
+    if (admitted_count < _ebpf_epoch_cpu_count) {
+        EBPF_LOG_MESSAGE_UINT64_UINT64(
+            EBPF_TRACELOG_LEVEL_WARNING,
+            EBPF_TRACELOG_KEYWORD_EPOCH,
+            "ebpf_epoch_initiate initialized with a reduced set of admitted CPUs (admitted, max)",
+            admitted_count,
+            _ebpf_epoch_cpu_count);
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_WARNING,
+            EBPF_TRACELOG_KEYWORD_EPOCH,
+            "ebpf_epoch_initiate active processor count (informational)",
+            (uint64_t)KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS));
     }
 
     KeInitializeDpc(&_ebpf_epoch_timer_dpc, _ebpf_epoch_timer_worker, NULL);
@@ -333,9 +418,13 @@ ebpf_epoch_terminate()
 
     for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
         ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[cpu_id];
-        // Release all memory that is still in the free list.
-        _ebpf_epoch_release_free_list(cpu_entry, MAXINT64);
-        ebpf_assert(ebpf_list_is_empty(&cpu_entry->free_list));
+        // Non-admitted CPUs never had their free list used (the fail-fast guards prevent it), so
+        // skip releasing it for them. ebpf_timed_work_queue_destroy(NULL) is safe.
+        if (cpu_entry->admitted) {
+            // Release all memory that is still in the free list.
+            _ebpf_epoch_release_free_list(cpu_entry, MAXINT64);
+            ebpf_assert(ebpf_list_is_empty(&cpu_entry->free_list));
+        }
         ebpf_timed_work_queue_destroy(cpu_entry->work_queue);
     }
 
@@ -360,6 +449,8 @@ ebpf_epoch_enter(_Out_ ebpf_epoch_state_t* epoch_state)
     epoch_state->irql_at_enter = ebpf_raise_irql_to_dispatch_if_needed();
     epoch_state->cpu_id = ebpf_get_current_cpu();
 
+    _ebpf_epoch_fail_fast_if_unadmitted_cpu(epoch_state->cpu_id);
+
     ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[epoch_state->cpu_id];
     epoch_state->epoch = _ebpf_epoch_get_published_epoch();
     ebpf_list_insert_tail(&cpu_entry->epoch_state_list, &epoch_state->epoch_list_entry);
@@ -381,6 +472,8 @@ ebpf_epoch_exit(_In_ ebpf_epoch_state_t* epoch_state)
     ebpf_assert(old_irql == epoch_state->irql_at_enter);
 
     uint32_t cpu_id = ebpf_get_current_cpu();
+
+    _ebpf_epoch_fail_fast_if_unadmitted_cpu(cpu_id);
 
     // Special case: Thread has moved to a different CPU since entering the epoch.
     if (cpu_id != epoch_state->cpu_id) {
@@ -577,6 +670,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL) void ebpf_epoch_synchronize()
 bool
 ebpf_epoch_is_free_list_empty(uint32_t cpu_id)
 {
+    _ebpf_epoch_fail_fast_if_unadmitted_cpu(cpu_id);
+
     ebpf_epoch_cpu_message_t message = {0};
 
     message.message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_IS_FREE_LIST_EMPTY;
@@ -680,6 +775,7 @@ _ebpf_epoch_insert_in_free_list(_In_ ebpf_epoch_allocation_header_t* header)
 {
     KIRQL old_irql = ebpf_raise_irql_to_dispatch_if_needed();
     uint32_t cpu_id = ebpf_get_current_cpu();
+    _ebpf_epoch_fail_fast_if_unadmitted_cpu(cpu_id);
     ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[cpu_id];
 
     if (cpu_entry->rundown_in_progress) {
@@ -815,14 +911,12 @@ _ebpf_epoch_messenger_propose_release_epoch(
     // Set the proposed release epoch to the minimum epoch seen so far.
     message->message.propose_epoch.proposed_release_epoch = minimum_epoch;
 
-    // If this is the last CPU, then send a message to the first CPU to commit the release epoch.
-    if (current_cpu == _ebpf_epoch_cpu_count - 1) {
+    // If this is the last admitted CPU (the ring wraps back to CPU 0), send a message to the first
+    // CPU to commit the release epoch. Otherwise forward to the next admitted CPU.
+    next_cpu = _ebpf_epoch_get_next_active_cpu(current_cpu);
+    if (next_cpu == 0) {
         message->message.commit_epoch.released_epoch = minimum_epoch;
         message->message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_COMMIT_RELEASE_EPOCH;
-        next_cpu = 0;
-    } else {
-        // Send the message to the next CPU.
-        next_cpu = current_cpu + 1;
     }
 
     _ebpf_epoch_send_message_async(message, next_cpu);
@@ -854,13 +948,11 @@ _ebpf_epoch_messenger_commit_release_epoch(
     // Set the released_epoch to the value computed by the EBPF_EPOCH_CPU_MESSAGE_TYPE_PROPOSE_RELEASE_EPOCH message.
     cpu_entry->released_epoch = message->message.commit_epoch.released_epoch - 1;
 
-    // If this is the last CPU, send the message to the first CPU to complete the cycle.
-    if (current_cpu != _ebpf_epoch_cpu_count - 1) {
-        // Send the message to the next CPU.
-        next_cpu = current_cpu + 1;
-    } else {
+    // If this is the last admitted CPU (the ring wraps back to CPU 0), send the message to the
+    // first CPU to complete the cycle. Otherwise forward to the next admitted CPU.
+    next_cpu = _ebpf_epoch_get_next_active_cpu(current_cpu);
+    if (next_cpu == 0) {
         message->message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_PROPOSE_EPOCH_COMPLETE;
-        next_cpu = 0;
     }
 
     _ebpf_epoch_send_message_async(message, next_cpu);
@@ -931,15 +1023,12 @@ _ebpf_epoch_messenger_rundown_in_progress(
 {
     uint32_t next_cpu;
     cpu_entry->rundown_in_progress = true;
-    // If this is the last CPU, then stop.
-    if (current_cpu != _ebpf_epoch_cpu_count - 1) {
-        // Send the message to the next CPU.
-        next_cpu = current_cpu + 1;
-    } else {
+    // If this is the last admitted CPU (the ring wraps back to CPU 0), then stop. Otherwise forward
+    // to the next admitted CPU.
+    next_cpu = _ebpf_epoch_get_next_active_cpu(current_cpu);
+    if (next_cpu == 0) {
         // Signal the caller that rundown is complete.
         KeSetEvent(&message->completion_event, 0, FALSE);
-        // Set next_cpu to UINT32_MAX to make code analysis happy.
-        next_cpu = UINT32_MAX;
         return;
     }
 
@@ -1042,6 +1131,10 @@ _IRQL_requires_max_(APC_LEVEL) static void _ebpf_epoch_send_message_and_wait(
 static void
 _ebpf_epoch_send_message_async(_In_ ebpf_epoch_cpu_message_t* message, uint32_t cpu_id)
 {
+    // Async messages are only ever routed through the admitted-CPU ring, so the target is always
+    // admitted (and therefore has a valid work queue). Assert this defensively.
+    ebpf_assert(_ebpf_epoch_cpu_table[cpu_id].admitted);
+
     // Queue the message to the specified CPU.
     ebpf_timed_work_queue_insert(
         _ebpf_epoch_cpu_table[cpu_id].work_queue, &message->list_entry, message->wake_behavior);
