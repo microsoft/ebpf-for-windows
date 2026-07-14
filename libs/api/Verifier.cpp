@@ -481,6 +481,7 @@ load_byte_code(
 
         std::stringstream elf_stream(std::string(elf_data.begin(), elf_data.end()));
 
+        clear_program_info_cache();
         _preprocess_btf_resolved_functions(elf_stream, object_name.c_str());
 
         raw_programs = read_elf(elf_stream, object_name, section_name_string, "", verifier_options, platform);
