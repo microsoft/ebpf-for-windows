@@ -2258,6 +2258,25 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
         0);
     SAFE_REQUIRE(result == 0);
 
+    ZeroMemory(&program_info, program_info_size);
+    SAFE_REQUIRE(
+        bpf_obj_get_info_by_fd(
+            bpf_program__fd(const_cast<const bpf_program*>(connect6_program)), &program_info, &program_info_size) == 0);
+    SAFE_REQUIRE(program_info.link_count == 1);
+    SAFE_REQUIRE(program_info.map_ids == 0);
+
+    result = bpf_prog_detach2(
+        bpf_program__fd(const_cast<const bpf_program*>(connect6_program)),
+        DEFAULT_COMPARTMENT_ID,
+        BPF_CGROUP_INET6_CONNECT);
+    SAFE_REQUIRE(result == 0);
+
+    ZeroMemory(&program_info, program_info_size);
+    SAFE_REQUIRE(
+        bpf_obj_get_info_by_fd(
+            bpf_program__fd(const_cast<const bpf_program*>(connect6_program)), &program_info, &program_info_size) == 0);
+    SAFE_REQUIRE(program_info.link_count == 0);
+
     bpf_program* recv_accept6_program = bpf_object__find_program_by_name(object, "authorize_recv_accept6");
     SAFE_REQUIRE(recv_accept6_program != nullptr);
 
@@ -2267,6 +2286,27 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
         BPF_CGROUP_INET6_RECV_ACCEPT,
         0);
     SAFE_REQUIRE(result == 0);
+
+    ZeroMemory(&program_info, program_info_size);
+    SAFE_REQUIRE(
+        bpf_obj_get_info_by_fd(
+            bpf_program__fd(const_cast<const bpf_program*>(recv_accept6_program)), &program_info, &program_info_size) ==
+        0);
+    SAFE_REQUIRE(program_info.link_count == 1);
+    SAFE_REQUIRE(program_info.map_ids == 0);
+
+    result = bpf_prog_detach2(
+        bpf_program__fd(const_cast<const bpf_program*>(recv_accept6_program)),
+        DEFAULT_COMPARTMENT_ID,
+        BPF_CGROUP_INET6_RECV_ACCEPT);
+    SAFE_REQUIRE(result == 0);
+
+    ZeroMemory(&program_info, program_info_size);
+    SAFE_REQUIRE(
+        bpf_obj_get_info_by_fd(
+            bpf_program__fd(const_cast<const bpf_program*>(recv_accept6_program)), &program_info, &program_info_size) ==
+        0);
+    SAFE_REQUIRE(program_info.link_count == 0);
 }
 
 void
