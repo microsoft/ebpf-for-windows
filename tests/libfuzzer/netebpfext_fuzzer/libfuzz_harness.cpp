@@ -104,7 +104,9 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
             BPF_CGROUP_INET4_CONNECT_AUTHORIZATION,
             BPF_CGROUP_INET6_CONNECT_AUTHORIZATION,
             BPF_CGROUP_INET4_BIND,
-            BPF_CGROUP_INET6_BIND};
+            BPF_CGROUP_INET6_BIND,
+            BPF_CGROUP_INET4_LISTEN,
+            BPF_CGROUP_INET6_LISTEN};
         break;
     case BPF_PROG_TYPE_SOCK_OPS:
         client_context.base.desired_attach_types = {BPF_CGROUP_SOCK_OPS};
