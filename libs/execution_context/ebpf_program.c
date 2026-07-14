@@ -2194,11 +2194,13 @@ ebpf_program_get_info(
                 }
             }
 
-            if (result == EBPF_SUCCESS) {
+            if (result == EBPF_SUCCESS && local_map_ids != NULL) {
                 for (uint32_t i = 0; i < copied_map_count; i++) {
                     ebpf_map_t* map = program->maps[i];
                     local_map_ids[i] = ebpf_map_get_id(map);
                 }
+            } else if (result == EBPF_SUCCESS && copied_map_count > 0) {
+                result = EBPF_NO_MEMORY;
             }
         } __finally {
             ebpf_lock_unlock(&((ebpf_program_t*)program)->lock, state);
