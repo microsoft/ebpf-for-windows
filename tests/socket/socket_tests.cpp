@@ -1344,6 +1344,10 @@ sock_addr_bind_unknown_verdict_test(ADDRESS_FAMILY address_family, IPPROTO proto
     int rc = bind(sock, reinterpret_cast<sockaddr*>(&bind_addr), sizeof(bind_addr));
     int err = (rc == 0) ? 0 : WSAGetLastError();
     closesocket(sock);
+
+    // Detach the program before unloading to avoid leaving stale legacy links.
+    bpf_prog_detach2(bpf_program__fd(const_cast<const bpf_program*>(program)), 0, attach_type);
+
     SAFE_REQUIRE(rc != 0);
     SAFE_REQUIRE(err == WSAEACCES);
 }
@@ -1493,6 +1497,10 @@ bind_helper_functions_validation_test(ADDRESS_FAMILY address_family)
     SAFE_REQUIRE(results.socket_cookie == 0);
 
     closesocket(sock);
+
+    // Detach the program before unloading to avoid leaving stale legacy links.
+    bpf_prog_detach2(bpf_program__fd(const_cast<const bpf_program*>(bind_program)), 0, attach_type);
+
     printf(
         "Bind helper functions validation test completed successfully for %s\n",
         (address_family == AF_INET) ? "IPv4" : "IPv6");
@@ -2309,6 +2317,12 @@ helper_functions_validation_test(
     printf(
         "Helper functions validation test completed successfully for %s\n",
         (address_family == AF_INET) ? "IPv4" : "IPv6");
+
+    // Detach the program before unloading to avoid leaving stale legacy links.
+    bpf_prog_detach2(
+        bpf_program__fd(const_cast<const bpf_program*>(connect_authorization_program)),
+        0,
+        connect_authorization_attach_type);
 }
 
 TEST_CASE("connect_authorization_helper_functions_validation_tcp_v4", "[sock_addr_tests][helper_validation]")
@@ -2384,6 +2398,12 @@ TEST_CASE(
         // For loopback, tunnel count should typically be 0.
         SAFE_REQUIRE(tunnel_count == 0);
     }
+
+    // Detach the program before unloading to avoid leaving stale legacy links.
+    bpf_prog_detach2(
+        bpf_program__fd(const_cast<const bpf_program*>(conditional_program)),
+        0,
+        BPF_CGROUP_INET4_CONNECT_AUTHORIZATION);
 
     printf("Conditional policy validation test completed successfully\n");
 }
@@ -2839,6 +2859,10 @@ TEST_CASE("listen_helper_functions_validation_tcp_v4", "[sock_addr_tests][helper
     SAFE_REQUIRE(results.socket_cookie == 0);
 
     closesocket(sock);
+
+    // Detach the program before unloading to avoid leaving stale legacy links.
+    bpf_prog_detach2(bpf_program__fd(const_cast<const bpf_program*>(listen_program)), 0, BPF_CGROUP_INET4_LISTEN);
+
     printf("Listen helper functions validation test completed successfully for IPv4\n");
 }
 
@@ -2940,6 +2964,10 @@ TEST_CASE("listen_helper_functions_validation_tcp_v6", "[sock_addr_tests][helper
     SAFE_REQUIRE(results.socket_cookie == 0);
 
     closesocket(sock);
+
+    // Detach the program before unloading to avoid leaving stale legacy links.
+    bpf_prog_detach2(bpf_program__fd(const_cast<const bpf_program*>(listen_program)), 0, BPF_CGROUP_INET6_LISTEN);
+
     printf("Listen helper functions validation test completed successfully for IPv6\n");
 }
 
@@ -3334,6 +3362,9 @@ connection_monitor_test(
 
     // Unsubscribe.
     context->unsubscribe();
+
+    // Detach the program before unloading to avoid leaving stale legacy links.
+    bpf_prog_detach2(bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS);
 }
 
 TEST_CASE("connection_monitor_test_udp_v4", "[sock_ops_tests]")
@@ -3412,6 +3443,9 @@ TEST_CASE("attach_sockops_programs", "[sock_ops_tests]")
 
     int result = bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS, 0);
     SAFE_REQUIRE(result == 0);
+
+    // Detach the program before unloading to avoid leaving stale legacy links.
+    bpf_prog_detach2(bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS);
 }
 
 // Custom event handler for flow ID validation
@@ -3555,6 +3589,9 @@ TEST_CASE("sock_ops_flow_id_helper_test", "[sock_ops_tests]")
     // Verify we get a non-zero flow ID.
     REQUIRE(result == 0);
     REQUIRE(stored_flow_id != 0);
+
+    // Detach the program before unloading to avoid leaving stale legacy links.
+    bpf_prog_detach2(bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS);
 }
 
 // This function populates map policies for multi-attach tests.
@@ -3870,6 +3907,15 @@ multi_attach_test(uint32_t compartment_id, socket_family_t family, ADDRESS_FAMIL
     // Validate that the connection is allowed.
     validate_connection_multi_attach(
         family, address_family, SOCKET_TEST_PORT, SOCKET_TEST_PORT, protocol, RESULT_ALLOW);
+
+    // Detach all programs before unloading to avoid leaving stale legacy links.
+    for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
+        bpf_program* prog = bpf_object__find_program_by_name(objects[i], connect_program_name);
+        if (prog != nullptr) {
+            bpf_prog_detach2(bpf_program__fd(const_cast<const bpf_program*>(prog)), compartment_id, attach_type);
+        }
+    }
+    bpf_prog_detach2(bpf_program__fd(const_cast<const bpf_program*>(connect_program)), compartment_id + 2, attach_type);
 }
 
 void
@@ -4037,6 +4083,14 @@ multi_attach_test_redirection(
     // For each program, detach and re-attach it, and validate the connection.
     for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
         validate_program_redirection(i);
+    }
+
+    // Detach all programs before unloading to avoid leaving stale legacy links.
+    for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
+        bpf_program* program = bpf_object__find_program_by_name(objects[i], connect_program_name);
+        if (program != nullptr) {
+            bpf_prog_detach2(bpf_program__fd(const_cast<const bpf_program*>(program)), compartment_id, attach_type);
+        }
     }
 }
 
@@ -4243,6 +4297,17 @@ test_multi_attach_combined(socket_family_t family, ADDRESS_FAMILY address_family
 
         if (should_break) {
             break;
+        }
+    }
+
+    // Detach all programs before unloading to avoid leaving stale legacy links.
+    for (uint32_t i = 0; i < program_count_per_hook * 2; i++) {
+        bpf_program* connect_program = bpf_object__find_program_by_name(objects[i], connect_program_name);
+        if (connect_program != nullptr) {
+            bpf_prog_detach2(
+                bpf_program__fd(const_cast<const bpf_program*>(connect_program)),
+                i < program_count_per_hook ? 1 : UNSPECIFIED_COMPARTMENT_ID,
+                attach_type);
         }
     }
 }
@@ -4517,6 +4582,12 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
     // Since the specific program is now detached, the connection should be correctly redirected by wildcard program.
     validate_connection_multi_attach(
         family, address_family, SOCKET_TEST_PORT, destination_port, IPPROTO_TCP, RESULT_ALLOW);
+
+    // Detach the wildcard program before unloading to avoid leaving stale legacy links.
+    bpf_prog_detach2(
+        bpf_program__fd(const_cast<const bpf_program*>(connect_program_wildcard)),
+        UNSPECIFIED_COMPARTMENT_ID,
+        attach_type);
 }
 
 /**
@@ -4585,7 +4656,6 @@ thread_function_attach_detach(std::stop_token token, uint32_t compartment_id, ui
         map_fd, address_family, htons(destination_port), htons(destination_port), IPPROTO_UDP, true);
 
     fd_t prog_fd = bpf_program__fd(const_cast<const bpf_program*>(connect_program));
-    bool attached = false;
 
     while (!token.stop_requested()) {
         // Attach and detach the program in a loop.
@@ -4645,6 +4715,7 @@ thread_function_allow_block_connection(
     SAFE_REQUIRE(bpf_object__load(object) == 0);
 
     fd_t prog_fd = bpf_program__fd(const_cast<const bpf_program*>(connect_program));
+    bool attached = false;
 
     // Attach the program at BPF_CGROUP_INET4_CONNECT / BPF_CGROUP_INET6_CONNECT.
     int result = bpf_prog_attach(prog_fd, compartment_id, attach_type, 0);
