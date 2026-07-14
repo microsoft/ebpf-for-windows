@@ -2178,53 +2178,52 @@ ebpf_program_get_info(
     if ((input_info->map_ids != 0) && (input_info->nr_map_ids > 0)) {
         // Fill in map ids before we overwrite the info buffer.
         uint32_t max_nr_map_ids = input_info->nr_map_ids;
-        size_t length = 0;
-        result = ebpf_safe_size_t_multiply(max_nr_map_ids, sizeof(ebpf_id_t), &length);
-        if (result != EBPF_SUCCESS) {
-            goto Done;
-        }
-
-        local_map_ids = ebpf_allocate_with_tag(length, EBPF_POOL_TAG_PROGRAM);
-        if (local_map_ids == NULL) {
-            result = EBPF_NO_MEMORY;
-            goto Done;
-        }
-
-        // Probe must be done before acquiring the lock (requires IRQL < DISPATCH_LEVEL).
-        __try {
-            ebpf_probe_for_write(map_ids, length, sizeof(ebpf_id_t));
-        } __except (EXCEPTION_EXECUTE_HANDLER) {
-            EBPF_LOG_MESSAGE_UINT64(
-                EBPF_TRACELOG_LEVEL_ERROR,
-                EBPF_TRACELOG_KEYWORD_PROGRAM,
-                "User mode map_ids buffer invalid or too small.",
-                (uint64_t)((uintptr_t)map_ids));
-            result = EBPF_INVALID_POINTER;
-            goto Done;
-        }
-
         uint32_t copied_map_count = 0;
+        size_t copied_length = 0;
 
         // Snapshot the map IDs under the lock, then copy them to user memory after the lock is released.
         ebpf_lock_state_t state = ebpf_lock_lock(&((ebpf_program_t*)program)->lock);
         __try {
             map_count = program->count_of_maps;
             copied_map_count = min(map_count, max_nr_map_ids);
-            for (uint32_t i = 0; i < copied_map_count; i++) {
-                ebpf_map_t* map = program->maps[i];
-                local_map_ids[i] = ebpf_map_get_id(map);
+            result = ebpf_safe_size_t_multiply(copied_map_count, sizeof(ebpf_id_t), &copied_length);
+            if (result == EBPF_SUCCESS && copied_length > 0) {
+                local_map_ids = ebpf_allocate_with_tag(copied_length, EBPF_POOL_TAG_PROGRAM);
+                if (local_map_ids == NULL) {
+                    result = EBPF_NO_MEMORY;
+                }
+            }
+
+            if (result == EBPF_SUCCESS) {
+                for (uint32_t i = 0; i < copied_map_count; i++) {
+                    ebpf_map_t* map = program->maps[i];
+                    local_map_ids[i] = ebpf_map_get_id(map);
+                }
             }
         } __finally {
             ebpf_lock_unlock(&((ebpf_program_t*)program)->lock, state);
         }
 
-        __try {
-            size_t copied_length = 0;
-            result = ebpf_safe_size_t_multiply(copied_map_count, sizeof(ebpf_id_t), &copied_length);
-            if (result != EBPF_SUCCESS) {
+        if (result != EBPF_SUCCESS) {
+            goto Done;
+        }
+
+        if (copied_length > 0) {
+            // Probe only the bytes that will actually be written.
+            __try {
+                ebpf_probe_for_write(map_ids, copied_length, sizeof(ebpf_id_t));
+            } __except (EXCEPTION_EXECUTE_HANDLER) {
+                EBPF_LOG_MESSAGE_UINT64(
+                    EBPF_TRACELOG_LEVEL_ERROR,
+                    EBPF_TRACELOG_KEYWORD_PROGRAM,
+                    "User mode map_ids buffer invalid or too small.",
+                    (uint64_t)((uintptr_t)map_ids));
+                result = EBPF_INVALID_POINTER;
                 goto Done;
             }
+        }
 
+        __try {
             if (copied_length > 0) {
                 for (uint32_t i = 0; i < copied_map_count; i++) {
                     // Volatile user mode pointer.
