@@ -191,8 +191,6 @@ get_async_ioctl_operation_overlapped(_In_ const async_ioctl_completion_t* async_
 _Must_inspect_result_ ebpf_result_t
 get_async_ioctl_result(_In_ const async_ioctl_completion_t* ioctl_completion)
 {
-    EBPF_LOG_ENTRY();
-
     ebpf_result_t result = EBPF_SUCCESS;
     unsigned long dummy;
     if (!GetOverlappedResult(
@@ -212,8 +210,6 @@ initialize_async_ioctl_operation(
     _In_ const async_ioctl_completion_callback_t callback,
     _Outptr_ async_ioctl_completion_t** async_ioctl_completion)
 {
-    EBPF_LOG_ENTRY();
-
     ebpf_result_t result = EBPF_SUCCESS;
     uint32_t win32_error = ERROR_SUCCESS;
     *async_ioctl_completion = nullptr;

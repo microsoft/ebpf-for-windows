@@ -17,6 +17,7 @@ struct _ebpf_ring_descriptor
     void* base_address;
     // User-mode mapping state: captures the process and addresses returned from MmMapLockedPagesSpecifyCache.
     PEPROCESS user_process;
+    uint64_t user_pid;
     void* user_consumer_address;
     void* user_producer_address;
 };
@@ -238,7 +239,8 @@ ebpf_ring_map_user(
 
     // Check if already mapped.
     if (ring->user_consumer_address != NULL) {
-        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "Ring already mapped to user mode");
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "Ring already mapped to user mode", ring->user_pid);
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -279,6 +281,7 @@ ebpf_ring_map_user(
     // Capture process reference and addresses for secure unmapping.
     ring->user_process = PsGetCurrentProcess();
     ObReferenceObject(ring->user_process);
+    ring->user_pid = (uint64_t)(uintptr_t)PsGetCurrentProcessId();
     ring->user_consumer_address = *consumer;
     ring->user_producer_address = *producer;
 
