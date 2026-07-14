@@ -54,8 +54,16 @@ _ebpf_epoch_get_published_epoch()
 #pragma warning(disable : 4324) // Structure was padded due to alignment specifier.
 /**
  * @brief Per-CPU state.
- * Each entry is only accessed by the CPU that owns it and only at IRQL >= DISPATCH_LEVEL.
- * This ensures that no locks are required to access the per CPU state.
+ * During steady-state operation, each entry's mutable state (epoch state list, free list, epoch
+ * counters, and the timer_armed / rundown_in_progress / epoch_computation_in_progress flags) is
+ * accessed only by the owning CPU at IRQL >= DISPATCH_LEVEL, so no locks are required for it.
+ * The admitted and work_queue fields are the exception: they are set once during
+ * ebpf_epoch_initiate() and never modified afterward, and are read by other CPUs while routing
+ * inter-CPU messages (admitted while walking the active-CPU ring; work_queue when queuing to the
+ * target CPU). Because both are established before any CPU processes an epoch message and are
+ * immutable thereafter, those cross-CPU reads observe a stable value without locking.
+ * Initialization and rundown/teardown also touch entries across all CPUs while no owner CPU is
+ * concurrently running.
  */
 typedef __declspec(align(EBPF_CACHE_LINE_SIZE)) struct _ebpf_epoch_cpu_entry
 {
@@ -315,6 +323,8 @@ ebpf_epoch_initiate()
     for (uint32_t cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
         ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[cpu_id];
         cpu_entry->current_epoch = 1;
+        cpu_entry->work_queue = NULL; // Unadmitted CPUs must have a NULL work queue.
+        cpu_entry->admitted = false;  // Explicit default; set true on successful admission below.
         ebpf_list_initialize(&cpu_entry->epoch_state_list);
         ebpf_list_initialize(&cpu_entry->free_list);
     }
