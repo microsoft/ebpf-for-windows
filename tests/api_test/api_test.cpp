@@ -1438,14 +1438,14 @@ TEST_CASE("ioctl_stress", "[stress]")
 
     std::atomic<size_t> failure_count = 0;
     std::vector<std::jthread> threads;
-    std::atomic<bool> stop_requested;
+    std::atomic<bool> stop_requested = false;
     for (DWORD i = 0; i < sysinfo.dwNumberOfProcessors; i++) {
         for (int j = 0; j < 4; j++) {
             threads.emplace_back([&]() {
                 while (!stop_requested) {
                     int test_case = rand() % 4;
                     uint32_t key = 0;
-                    uint32_t value;
+                    uint32_t value = 0;
                     bpf_test_run_opts opts = {};
                     struct
                     {

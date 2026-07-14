@@ -5780,6 +5780,7 @@ _ebpf_ring_buffer_map_double_view(
     uint8_t* placeholder2 = nullptr;
     void* view1 = nullptr;
     void* view2 = nullptr;
+    ebpf_result_t result = EBPF_SUCCESS;
 
     placeholder1 = reinterpret_cast<uint8_t*>(VirtualAlloc2(
         nullptr, nullptr, view_size * 2, MEM_RESERVE | MEM_RESERVE_PLACEHOLDER, PAGE_NOACCESS, nullptr, 0));
@@ -5793,8 +5794,8 @@ _ebpf_ring_buffer_map_double_view(
 #pragma warning(disable : 28160)
     if (!VirtualFree(placeholder1, view_size, MEM_RELEASE | MEM_PRESERVE_PLACEHOLDER)) {
         EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, VirtualFree);
-        VirtualFree(placeholder1, 0, MEM_RELEASE);
-        return win32_error_code_to_ebpf_result(GetLastError());
+        result = win32_error_code_to_ebpf_result(GetLastError());
+        goto Exit;
     }
 #pragma warning(pop)
     placeholder2 = placeholder1 + view_size;
@@ -5803,8 +5804,8 @@ _ebpf_ring_buffer_map_double_view(
         section_handle, nullptr, placeholder1, 0, view_size, MEM_REPLACE_PLACEHOLDER, PAGE_READONLY, nullptr, 0);
     if (view1 == nullptr) {
         EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, MapViewOfFile3);
-        VirtualFree(placeholder1, 0, MEM_RELEASE);
-        return win32_error_code_to_ebpf_result(GetLastError());
+        result = win32_error_code_to_ebpf_result(GetLastError());
+        goto Exit;
     }
 
     placeholder1 = nullptr;
@@ -5812,14 +5813,31 @@ _ebpf_ring_buffer_map_double_view(
         section_handle, nullptr, placeholder2, 0, view_size, MEM_REPLACE_PLACEHOLDER, PAGE_READONLY, nullptr, 0);
     if (view2 == nullptr) {
         EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, MapViewOfFile3);
-        UnmapViewOfFileEx(view1, 0);
-        VirtualFree(placeholder2, 0, MEM_RELEASE);
-        return win32_error_code_to_ebpf_result(GetLastError());
+        result = win32_error_code_to_ebpf_result(GetLastError());
+        goto Exit;
     }
 
     *first_view = view1;
     *second_view = view2;
+    view1 = nullptr;
+    view2 = nullptr;
+    placeholder2 = nullptr;
     return EBPF_SUCCESS;
+
+Exit:
+    if (placeholder1 != nullptr) {
+        VirtualFree(placeholder1, 0, MEM_RELEASE);
+    }
+    if (placeholder2 != nullptr) {
+        VirtualFree(placeholder2, 0, MEM_RELEASE);
+    }
+    if (view1 != nullptr) {
+        UnmapViewOfFileEx(view1, 0);
+    }
+    if (view2 != nullptr) {
+        UnmapViewOfFileEx(view2, 0);
+    }
+    return result;
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
