@@ -299,11 +299,27 @@ jobs:
         run: |
           ..\..\scripts\check_binary_dependencies.ps1 -BuildArtifact "${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}}" -VsToolsPath "${{env.msvc_tools_path}}"
 
+      - name: Start ETW tracing for MSI validation
+        if: steps.skip_check.outputs.should_skip != 'true' && ((inputs.build_artifact == 'Build-x64' && matrix.configurations == 'Debug') || (inputs.build_artifact == 'Build-x64-native-only' && matrix.configurations == 'NativeOnlyRelease'))
+        working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        shell: cmd
+        run: |
+          mkdir TestLogs
+          wpr.exe -start ebpfforwindows.wprp -filemode
+
       - name: Test the MSI
         if: steps.skip_check.outputs.should_skip != 'true' && ((inputs.build_artifact == 'Build-x64' && matrix.configurations == 'Debug') || (inputs.build_artifact == 'Build-x64-native-only' && matrix.configurations == 'NativeOnlyRelease'))
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
         run: |
           ..\..\scripts\check_msi_installation.ps1 -BuildArtifact "${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}}" -MsiPath "ebpf-for-windows.msi"
+
+      - name: Stop ETW tracing for MSI validation
+        if: always() && (steps.skip_check.outputs.should_skip != 'true') && ((inputs.build_artifact == 'Build-x64' && matrix.configurations == 'Debug') || (inputs.build_artifact == 'Build-x64-native-only' && matrix.configurations == 'NativeOnlyRelease'))
+        working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        shell: cmd
+        run: |
+          wpr.exe -stop TestLogs\ebpfforwindows.etl
+          if exist *.log copy *.log TestLogs
 
       - name: Copy LLVM libs for Fuzzing & Address Sanitizing
         if: steps.skip_check.outputs.should_skip != 'true'
@@ -421,6 +437,21 @@ jobs:
         with:
           name: build-binlog-${{env.BUILD_ARTIFACT_NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
           path: out.binlog
+
+      - name: Check for MSI validation logs
+        if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && ((inputs.build_artifact == 'Build-x64' && matrix.configurations == 'Debug') || (inputs.build_artifact == 'Build-x64-native-only' && matrix.configurations == 'NativeOnlyRelease'))
+        uses: andstor/file-existence-action@076e0072799f4942c8bc574a82233e1e4d13e9d6
+        id: check_msi_logs
+        with:
+          files: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/TestLogs/*
+
+      - name: Upload MSI validation logs
+        if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && (steps.check_msi_logs.outputs.files_exists == 'true') && ((inputs.build_artifact == 'Build-x64' && matrix.configurations == 'Debug') || (inputs.build_artifact == 'Build-x64-native-only' && matrix.configurations == 'NativeOnlyRelease'))
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        with:
+          name: MSI-Validation-Logs-${{env.BUILD_ARTIFACT_NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
+          path: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/TestLogs
+          retention-days: 10
 
       - name: Check for crash dumps
         # Check for crash dumps even if the workflow failed.
