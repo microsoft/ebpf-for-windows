@@ -373,7 +373,8 @@ typedef class _epoch_hot_add_synchronize_scope
 
     ~_epoch_hot_add_synchronize_scope() { _cleanup(); }
 
-    template <typename rep, typename period> std::future_status
+    template <typename rep, typename period>
+    std::future_status
     wait_for(const std::chrono::duration<rep, period>& timeout)
     {
         return _future.wait_for(timeout);
