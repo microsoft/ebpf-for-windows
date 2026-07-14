@@ -867,7 +867,12 @@ TEST_CASE("epoch_test_hot_add_cpu_admission", "[platform]")
     {
         ebpf_epoch_scope_t epoch_scope;
         void* memory = ebpf_epoch_allocate(32);
-        REQUIRE(memory != nullptr);
+        if (memory == nullptr) {
+            REQUIRE(NT_SUCCESS(usersim_notify_processor_add_failure(hot_add_cpu)));
+            REQUIRE(synchronize_future.wait_for(std::chrono::seconds(30)) == std::future_status::ready);
+            synchronize_future.get();
+            FAIL("ebpf_epoch_allocate failed before hot-add admission completed");
+        }
         ebpf_epoch_free(memory);
         epoch_scope.exit();
     }
