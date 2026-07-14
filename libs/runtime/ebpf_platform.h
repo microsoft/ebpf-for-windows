@@ -700,7 +700,7 @@ extern "C"
     typedef struct _ebpf_program_info ebpf_program_info_t;
 
     /**
-     * @brief Check if the user associated with the current thread is granted
+     * @brief Check if the user associated with the current user-mode thread is granted
      *  the rights requested.
      *
      * @param[in] security_descriptor Security descriptor representing the
