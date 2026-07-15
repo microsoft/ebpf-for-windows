@@ -524,6 +524,7 @@ _Requires_lock_held_(program->lock) static ebpf_result_t
     for (size_t function_index = 0; function_index < program->btf_resolved_function_count; function_index++) {
         const btf_resolved_function_entry_t* function_entry = &program->btf_resolved_functions[function_index];
         bool provider_found = false;
+        ebpf_program_btf_provider_t* local_provider = NULL;
 
         if (_ebpf_program_is_unused_btf_resolved_function_entry(function_entry)) {
             continue;
@@ -540,15 +541,15 @@ _Requires_lock_held_(program->lock) static ebpf_result_t
             continue;
         }
 
-        local_providers[provider_count] =
-            ebpf_allocate_with_tag(sizeof(*local_providers[provider_count]), EBPF_POOL_TAG_PROGRAM);
-        if (local_providers[provider_count] == NULL) {
+        local_provider = ebpf_allocate_with_tag(sizeof(*local_provider), EBPF_POOL_TAG_PROGRAM);
+        if (local_provider == NULL) {
             result = EBPF_NO_MEMORY;
             goto Exit;
         }
-        memset(local_providers[provider_count], 0, sizeof(*local_providers[provider_count]));
-        local_providers[provider_count]->program = program;
-        local_providers[provider_count]->module_guid = function_entry->module_guid;
+        memset(local_provider, 0, sizeof(*local_provider));
+        local_provider->program = program;
+        local_provider->module_guid = function_entry->module_guid;
+        local_providers[provider_count] = local_provider;
         provider_count++;
     }
 
@@ -613,6 +614,13 @@ _ebpf_program_register_btf_provider_client(_Inout_ ebpf_program_t* program)
     }
 
     NTSTATUS status = NmrRegisterClient(&program->btf_client_characteristics, program, &program->btf_nmr_client_handle);
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_MESSAGE_NTSTATUS(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
+            "NmrRegisterClient failed for BTF provider client.",
+            status);
+    }
     return NT_SUCCESS(status) ? EBPF_SUCCESS : EBPF_EXTENSION_FAILED_TO_LOAD;
 }
 
@@ -666,6 +674,11 @@ _ebpf_program_btf_provider_attach_callback(
     }
 
     if (provider->attached) {
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
+            "BTF provider already attached.",
+            &provider->module_guid);
         status = STATUS_INVALID_DEVICE_STATE;
         goto Done;
     }
@@ -678,6 +691,11 @@ _ebpf_program_btf_provider_attach_callback(
     status = NmrClientAttachProvider(nmr_binding_handle, provider, NULL, &provider_binding_context, &provider_dispatch);
 #pragma warning(pop)
     if (!NT_SUCCESS(status)) {
+        EBPF_LOG_MESSAGE_NTSTATUS(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
+            "NmrClientAttachProvider failed for BTF provider.",
+            status);
         goto Done;
     }
 
