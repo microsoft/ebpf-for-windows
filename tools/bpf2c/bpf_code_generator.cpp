@@ -2444,7 +2444,6 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                 bool used = transitive_dependency_keys.count(
                                 _btf_resolved_function_key(function.module_guid, function.name.raw())) > 0;
                 output_stream << INDENT "{" << std::endl;
-                output_stream << INDENT " 0," << std::endl;
                 output_stream << INDENT " {" << EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION << ", "
                               << EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_SIZE << ", "
                               << EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE << "},"
@@ -2478,7 +2477,6 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                     throw bpf_code_generator_exception("BTF-resolved function index is not dense");
                 }
                 output_stream << INDENT "{" << std::endl;
-                output_stream << INDENT " 0," << std::endl;
                 output_stream << INDENT " {" << EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION << ", "
                               << EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_SIZE << ", "
                               << EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE << "},"
