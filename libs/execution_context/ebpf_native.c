@@ -1956,8 +1956,7 @@ _ebpf_native_initialize_programs(_Inout_ ebpf_native_module_instance_t* instance
         _ebpf_copy_program_entry(&native_program->program_entry, entry, program_entry_size);
         entry = NULL;
 
-        // Make a deep copy of each versioned sub-struct. Currently, helper info is the only
-        // versioned sub-struct.
+        // Make a deep copy of each versioned sub-struct.
         if (native_program->program_entry.helper_count > 0) {
             const helper_function_entry_t* helper_info = native_program->program_entry.helpers;
             size_t helper_info_length = 0;
