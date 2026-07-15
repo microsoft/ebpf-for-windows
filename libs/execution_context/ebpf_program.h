@@ -483,12 +483,6 @@ extern "C"
     void
     ebpf_program_dereference_providers(_Inout_ ebpf_program_t* program);
 
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_program_reference_btf_providers(_Inout_ ebpf_program_t* program);
-
-    void
-    ebpf_program_dereference_btf_providers(_Inout_ ebpf_program_t* program);
-
     /**
      * @brief Get the ebpf_state index assigned to the program module.
      *
