@@ -592,15 +592,14 @@ typedef struct _ebpf_operation_ring_buffer_map_map_buffer_request
     struct _ebpf_operation_header header;
     ebpf_handle_t map_handle;
     uint64_t index;
+    uint32_t section;
 } ebpf_operation_ring_buffer_map_map_buffer_request_t;
 
 typedef struct _ebpf_operation_ring_buffer_map_map_buffer_reply
 {
     struct _ebpf_operation_header header;
-    uint64_t consumer_address;
-    uint64_t producer_address;
-    uint64_t data_address;
-    size_t data_size;
+    uint64_t section_handle;
+    size_t view_size;
 } ebpf_operation_ring_buffer_map_map_buffer_reply_t;
 
 typedef struct _ebpf_operation_ring_buffer_map_unmap_buffer_request

@@ -1134,6 +1134,36 @@ TEST_CASE("ring buffer memory mapping APIs", "[libbpf][ring_buffer]")
         REQUIRE(result == EBPF_SUCCESS);
     }
 
+    SECTION("ebpf_ring_buffer_map_map_buffer should preserve region protections across repeated mappings")
+    {
+        void* consumer1 = nullptr;
+        const void* producer1 = nullptr;
+        const uint8_t* data1 = nullptr;
+        size_t data_size1 = 0;
+        void* consumer2 = nullptr;
+        const void* producer2 = nullptr;
+        const uint8_t* data2 = nullptr;
+        size_t data_size2 = 0;
+        MEMORY_BASIC_INFORMATION producer_info = {};
+        MEMORY_BASIC_INFORMATION data_info = {};
+
+        REQUIRE(ebpf_ring_buffer_map_map_buffer(map_fd, &consumer1, &producer1, &data1, &data_size1) == EBPF_SUCCESS);
+        REQUIRE(ebpf_ring_buffer_map_map_buffer(map_fd, &consumer2, &producer2, &data2, &data_size2) == EBPF_SUCCESS);
+
+        REQUIRE(consumer1 != consumer2);
+        REQUIRE(producer1 != producer2);
+        REQUIRE(data1 != data2);
+        REQUIRE(data_size1 == data_size2);
+
+        REQUIRE(VirtualQuery(producer1, &producer_info, sizeof(producer_info)) == sizeof(producer_info));
+        REQUIRE(VirtualQuery(data1, &data_info, sizeof(data_info)) == sizeof(data_info));
+        REQUIRE((producer_info.Protect & PAGE_READONLY) == PAGE_READONLY);
+        REQUIRE((data_info.Protect & PAGE_READONLY) == PAGE_READONLY);
+
+        REQUIRE(ebpf_ring_buffer_map_unmap_buffer(map_fd, consumer1, producer1, data1) == EBPF_SUCCESS);
+        REQUIRE(ebpf_ring_buffer_map_unmap_buffer(map_fd, consumer2, producer2, data2) == EBPF_SUCCESS);
+    }
+
     SECTION("ebpf_ring_buffer_map_map_buffer with invalid fd should fail")
     {
         void* consumer = nullptr;

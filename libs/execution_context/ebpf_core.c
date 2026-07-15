@@ -2591,30 +2591,21 @@ _ebpf_core_protocol_ring_buffer_map_map_buffer(
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_map_t* map = NULL;
-    void* consumer = NULL;
-    void* producer = NULL;
-    uint8_t* data = NULL;
-    size_t data_size = 0;
+    ebpf_handle_t handle = ebpf_handle_invalid;
+    size_t view_size = 0;
 
     result = EBPF_OBJECT_REFERENCE_BY_HANDLE(request->map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
     if (result != EBPF_SUCCESS) {
         return result;
     }
 
-    // Get the consumer and producer pointers to the mapped ring buffer memory.
-    result = ebpf_ring_buffer_map_map_user(map, request->index, &consumer, &producer, &data, &data_size);
-    if (result != EBPF_SUCCESS) {
-        EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
-        return result;
-    }
-
-    reply->consumer_address = (uint64_t)consumer;
-    reply->producer_address = (uint64_t)producer;
-    reply->data_address = (uint64_t)data;
-    reply->data_size = data_size;
+    result = ebpf_map_get_user_mapping_handle(
+        map, request->index, (ebpf_ring_buffer_user_section_t)request->section, &handle, &view_size);
+    reply->section_handle = (uint64_t)handle;
+    reply->view_size = view_size;
 
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
-    return EBPF_SUCCESS;
+    return result;
 }
 
 static ebpf_result_t

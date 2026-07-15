@@ -644,7 +644,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_ring_buffer_map_unmap_buffer(
-        fd_t map_fd, _In_ void* consumer, _In_ const void* producer, _In_ const void* data) EBPF_NO_EXCEPT;
+        fd_t map_fd, _In_opt_ void* consumer, _In_opt_ const void* producer, _In_opt_ const void* data) EBPF_NO_EXCEPT;
 
     /**
      * @brief Set the wait handle that will be signaled for new data.

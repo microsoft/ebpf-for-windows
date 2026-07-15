@@ -598,6 +598,13 @@ TEST_CASE("ring_buffer_mmap_consumer", "[ring_buffer]")
     REQUIRE(consumer_ptr != nullptr);
     REQUIRE(data != nullptr);
 
+    MEMORY_BASIC_INFORMATION producer_info = {};
+    MEMORY_BASIC_INFORMATION data_info = {};
+    REQUIRE(VirtualQuery((const void*)producer_ptr, &producer_info, sizeof(producer_info)) == sizeof(producer_info));
+    REQUIRE(VirtualQuery(data, &data_info, sizeof(data_info)) == sizeof(data_info));
+    REQUIRE((producer_info.Protect & PAGE_READONLY) == PAGE_READONLY);
+    REQUIRE((data_info.Protect & PAGE_READONLY) == PAGE_READONLY);
+
     // Initialize offsets.
     uint64_t producer_offset = ReadAcquire64(producer_ptr);
     uint64_t consumer_offset = ReadNoFence64(consumer_ptr);
@@ -668,6 +675,18 @@ TEST_CASE("ring_buffer_mmap_consumer", "[ring_buffer]")
     // Clean up.
     REQUIRE(
         ebpf_ring_buffer_map_unmap_buffer(map_fd, (void*)consumer_ptr, (void*)producer_ptr, (void*)data) ==
+        EBPF_SUCCESS);
+
+    const volatile LONG64* producer_ptr2 = nullptr;
+    volatile LONG64* consumer_ptr2 = nullptr;
+    const uint8_t* data2 = nullptr;
+    size_t data_size2 = 0;
+    REQUIRE(
+        ebpf_ring_buffer_map_map_buffer(map_fd, (void**)&consumer_ptr2, (const void**)&producer_ptr2, &data2, &data_size2) ==
+        EBPF_SUCCESS);
+    REQUIRE(data_size2 == data_size);
+    REQUIRE(
+        ebpf_ring_buffer_map_unmap_buffer(map_fd, (void*)consumer_ptr2, (void*)producer_ptr2, (void*)data2) ==
         EBPF_SUCCESS);
     CloseHandle(wait_handle);
     _close(map_fd);
@@ -1419,14 +1438,14 @@ TEST_CASE("ioctl_stress", "[stress]")
 
     std::atomic<size_t> failure_count = 0;
     std::vector<std::jthread> threads;
-    std::atomic<bool> stop_requested;
+    std::atomic<bool> stop_requested = false;
     for (DWORD i = 0; i < sysinfo.dwNumberOfProcessors; i++) {
         for (int j = 0; j < 4; j++) {
             threads.emplace_back([&]() {
                 while (!stop_requested) {
                     int test_case = rand() % 4;
                     uint32_t key = 0;
-                    uint32_t value;
+                    uint32_t value = 0;
                     bpf_test_run_opts opts = {};
                     struct
                     {
