@@ -699,6 +699,51 @@ TEST_CASE("sock_addr_bind_context_v6", "[netebpfext][bind][sock_addr]")
     REQUIRE(_captured_bind_context.msg_src_port == 0);
 }
 
+TEST_CASE("sock_addr_bind_callout_disambiguation", "[netebpfext][bind][sock_addr]")
+{
+    // Regression for the shared-WFP-layer bind ambiguity: the legacy bind hook
+    // (BPF_ATTACH_TYPE_BIND) and the CGROUP_SOCK_ADDR bind hook (BPF_CGROUP_INET4/6_BIND) both
+    // register filters at FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4/V6 with the default sublayer.
+    // Here we co-register BOTH (by including BPF_ATTACH_TYPE_BIND in desired_attach_types) so both
+    // filters are present, then verify test_cgroup_inet4/6_bind() -- which selects the filter by
+    // the CGROUP_SOCK_ADDR bind callout key -- dispatches to the sock_addr bind callout and NOT the
+    // legacy bind callout. If the wrong (legacy) callout ran, the captured context would be a
+    // bind_md_t reinterpreted as bpf_sock_addr_t and the field assertions below would fail.
+    ebpf_extension_data_t npi_specific_characteristics = {
+        .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
+    };
+    test_sock_addr_client_context_header_t client_context_header = {0};
+    client_context_header.context.base.desired_attach_types = {
+        BPF_ATTACH_TYPE_BIND, BPF_CGROUP_INET4_BIND, BPF_CGROUP_INET6_BIND};
+    test_sock_addr_client_context_t* client_context = &client_context_header.context;
+    fwp_classify_parameters_t parameters = {};
+
+    netebpf_ext_helper_t helper(
+        &npi_specific_characteristics,
+        (_ebpf_extension_dispatch_function)netebpfext_unit_capture_sock_addr_bind_program,
+        (netebpfext_helper_base_client_context_t*)client_context);
+
+    netebpfext_initialize_fwp_classify_parameters(&parameters);
+
+    // IPv4: must dispatch to the CGROUP_SOCK_ADDR bind callout (valid bpf_sock_addr_t contents).
+    _captured_bind_invoked = false;
+    REQUIRE(helper.test_cgroup_inet4_bind(&parameters) == FWP_ACTION_PERMIT);
+    REQUIRE(_captured_bind_invoked);
+    REQUIRE(_captured_bind_context.family == AF_INET);
+    REQUIRE(_captured_bind_context.user_ip4 == htonl(0x01020304));
+    REQUIRE(_captured_bind_context.user_port == htons(1235));
+    REQUIRE(_captured_bind_context.msg_src_ip4 == 0);
+
+    // IPv6: must dispatch to the CGROUP_SOCK_ADDR bind V6 callout.
+    _captured_bind_invoked = false;
+    REQUIRE(helper.test_cgroup_inet6_bind(&parameters) == FWP_ACTION_PERMIT);
+    REQUIRE(_captured_bind_invoked);
+    REQUIRE(_captured_bind_context.family == AF_INET6);
+    REQUIRE(_captured_bind_context.user_port == htons(1235));
+    REQUIRE(_captured_bind_context.msg_src_ip6[0] == 0);
+    REQUIRE(_captured_bind_context.msg_src_port == 0);
+}
+
 TEST_CASE("sock_addr_bind_get_network_context", "[netebpfext][bind][sock_addr]")
 {
     // Verifies bpf_sock_addr_get_network_context succeeds for bind hook IDs (returns 0)
