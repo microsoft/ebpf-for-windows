@@ -97,7 +97,6 @@ extern "C"
 
     typedef struct _btf_resolved_function_entry
     {
-        uint64_t zero_marker;
         ebpf_native_module_header_t header;
         const char* name;
         GUID module_guid;
@@ -291,7 +290,7 @@ extern "C"
      EBPF_NATIVE_HELPER_FUNCTION_DATA_CURRENT_VERSION_SIZE, \
      EBPF_NATIVE_HELPER_FUNCTION_DATA_CURRENT_VERSION_TOTAL_SIZE}
 
-#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION 1
+#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION 2
 #define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_SIZE \
     EBPF_SIZE_INCLUDING_FIELD(btf_resolved_function_entry_t, module_guid)
 #define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE sizeof(btf_resolved_function_entry_t)

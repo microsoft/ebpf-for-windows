@@ -294,7 +294,6 @@ static void
 _ebpf_copy_btf_resolved_function_entry(
     _Out_ btf_resolved_function_entry_t* destination, _In_ const btf_resolved_function_entry_t* source)
 {
-    destination->zero_marker = source->zero_marker;
     destination->header = (ebpf_native_module_header_t)EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_HEADER;
     destination->name = source->name;
     destination->module_guid = source->module_guid;
