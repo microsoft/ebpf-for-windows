@@ -3,17 +3,12 @@
 
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 
-#include "..\..\libs\shared\ebpf_shared_framework.h"
-#include "..\..\libs\store_helper\user\ebpf_registry_helper.h"
+#include "btf_test_shared.hpp"
 #include "catch_wrapper.hpp"
 #include "export_program_info.cpp"
 
 #include <cstring>
 #include <string>
-
-#ifndef __CGUID_H__
-static const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
-#endif
 
 static const GUID _btf_test_module_guid = {
     0x9bf4af4c, 0xe7d5, 0x4fd9, {0x92, 0x55, 0x20, 0x06, 0x6c, 0x61, 0xaf, 0xe3}};
@@ -48,35 +43,12 @@ static const ebpf_btf_resolved_function_provider_info_t _btf_test_provider_info 
 static const uint64_t _btf_test_function_addresses[] = {1, 2};
 
 static std::wstring
-_get_btf_store_relative_path()
-{
-    return std::wstring(ebpf_store_root_sub_key) + L"\\" + EBPF_PROVIDERS_REGISTRY_KEY + L"\\" +
-           EBPF_BTF_RESOLVED_FUNCTIONS_REGISTRY_KEY;
-}
-
-static std::wstring
 _get_btf_provider_relative_path()
 {
     wchar_t guid_string[GUID_STRING_LENGTH + 1] = {};
     REQUIRE(ebpf_convert_guid_to_string(&_btf_test_module_guid, guid_string, GUID_STRING_LENGTH + 1) == EBPF_SUCCESS);
 
-    return _get_btf_store_relative_path() + L"\\" + guid_string;
-}
-
-static ebpf_result_t
-_clear_btf_store()
-{
-    ebpf_result_t result = ebpf_delete_registry_tree(ebpf_store_hkcu_root_key, _get_btf_store_relative_path().c_str());
-    if (result != EBPF_SUCCESS && result != EBPF_FILE_NOT_FOUND) {
-        return result;
-    }
-
-    result = ebpf_delete_registry_tree(ebpf_store_hklm_root_key, _get_btf_store_relative_path().c_str());
-    if (result == EBPF_ACCESS_DENIED || result == EBPF_FILE_NOT_FOUND) {
-        result = EBPF_SUCCESS;
-    }
-
-    return result;
+    return btf_test::get_store_relative_path() + L"\\" + guid_string;
 }
 
 static ebpf_store_key_t
@@ -155,7 +127,7 @@ TEST_CASE("export_btf_resolved_function_provider_information", "[store_helper]")
     uint32_t version = MAXUINT32;
     uint32_t size = MAXUINT32;
 
-    REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
+    REQUIRE(btf_test::clear_store() == EBPF_SUCCESS);
     REQUIRE(ebpf_store_update_btf_resolved_function_provider_information(&_btf_test_provider_info) == EBPF_SUCCESS);
 
     provider_key = _open_registry_key_or_require_success(ebpf_store_hkcu_root_key, _get_btf_provider_relative_path());
@@ -172,12 +144,12 @@ TEST_CASE("export_btf_resolved_function_provider_information", "[store_helper]")
 
     ebpf_close_registry_key(function_collection_key);
     ebpf_close_registry_key(provider_key);
-    REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
+    REQUIRE(btf_test::clear_store() == EBPF_SUCCESS);
 }
 
 TEST_CASE("delete_btf_resolved_function_provider_information", "[store_helper]")
 {
-    REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
+    REQUIRE(btf_test::clear_store() == EBPF_SUCCESS);
     REQUIRE(ebpf_store_update_btf_resolved_function_provider_information(&_btf_test_provider_info) == EBPF_SUCCESS);
 
     REQUIRE(ebpf_store_delete_btf_resolved_function_provider_information(&_btf_test_provider_info) == EBPF_SUCCESS);
@@ -188,7 +160,7 @@ TEST_CASE("delete_btf_resolved_function_provider_information", "[store_helper]")
             ebpf_store_hkcu_root_key, _get_btf_provider_relative_path().c_str(), KEY_READ, &provider_key) ==
         EBPF_FILE_NOT_FOUND);
 
-    REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
+    REQUIRE(btf_test::clear_store() == EBPF_SUCCESS);
 }
 
 TEST_CASE("export_btf_resolved_function_provider_information removes stale deleted functions", "[store_helper]")
@@ -197,7 +169,7 @@ TEST_CASE("export_btf_resolved_function_provider_information removes stale delet
     ebpf_store_key_t function_collection_key = nullptr;
     ebpf_btf_resolved_function_provider_info_t updated_provider_info = _btf_test_provider_info;
 
-    REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
+    REQUIRE(btf_test::clear_store() == EBPF_SUCCESS);
     REQUIRE(ebpf_store_update_btf_resolved_function_provider_information(&_btf_test_provider_info) == EBPF_SUCCESS);
 
     updated_provider_info.btf_resolved_function_count = 1;
@@ -212,7 +184,7 @@ TEST_CASE("export_btf_resolved_function_provider_information removes stale delet
 
     ebpf_close_registry_key(function_collection_key);
     ebpf_close_registry_key(provider_key);
-    REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
+    REQUIRE(btf_test::clear_store() == EBPF_SUCCESS);
 }
 TEST_CASE("export_btf_resolved_function_provider_information rejects invalid input", "[store_helper]")
 {
@@ -233,7 +205,7 @@ TEST_CASE("export_btf_resolved_function_provider_information rejects invalid inp
     REQUIRE(ebpf_store_update_btf_resolved_function_provider_information(&provider_info) == EBPF_INVALID_ARGUMENT);
     provider_info.btf_resolved_function_prototypes = function_prototypes;
 
-    provider_info.module_guid = GUID_NULL;
+    provider_info.module_guid = btf_test::guid_null;
     REQUIRE(ebpf_store_update_btf_resolved_function_provider_information(&provider_info) == EBPF_INVALID_ARGUMENT);
     provider_info.module_guid = _btf_test_module_guid;
 

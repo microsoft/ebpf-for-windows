@@ -2693,8 +2693,8 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             output_stream << INDENT INDENT << helper_array_name.c_str() << "," << std::endl;
             output_stream << INDENT INDENT << helper_count << "," << std::endl;
             output_stream << INDENT INDENT << program.output_instructions.size() << "," << std::endl;
-            output_stream << INDENT INDENT << "&" << program_type_guid_name << "," << std::endl;
-            output_stream << INDENT INDENT << "&" << attach_type_guid_name << "," << std::endl;
+            output_stream << INDENT INDENT "&" << program_type_guid_name << "," << std::endl;
+            output_stream << INDENT INDENT "&" << attach_type_guid_name << "," << std::endl;
             if (program.program_info_hash.has_value()) {
                 output_stream << INDENT INDENT << program_info_hash_name << "," << std::endl;
                 output_stream << INDENT INDENT << program.program_info_hash.value().size() << "," << std::endl;
