@@ -2950,6 +2950,12 @@ _test_bpf_prog_attach(ebpf_execution_type_t execution_type)
     // Verify we can't use an illegal program fd.
     REQUIRE(bpf_prog_attach(ebpf_fd_invalid, 0, BPF_CGROUP_INET4_CONNECT, 0) == -EBADF);
 
+    // The legacy bind hook has no per-target attach parameter, so a non-zero
+    // attachable_fd must be rejected rather than silently treated as the
+    // wildcard attachment.
+    REQUIRE(bpf_prog_attach(program_fd, 1, BPF_ATTACH_TYPE_BIND, 0) == -EINVAL);
+    REQUIRE(bpf_prog_detach2(program_fd, 1, BPF_ATTACH_TYPE_BIND) == -EINVAL);
+
     // TODO (issue #1028): Currently one can pass an invalid attachable fd and bpf_prog_attach
     // will succeed because it's temporarily just treated as a compartment id. The following
     // should instead return errors.
