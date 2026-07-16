@@ -104,7 +104,8 @@ typedef struct _ebpf_native_module_instance
 } ebpf_native_module_instance_t;
 
 static void
-_ebpf_copy_program_entry(_Out_ program_entry_t* destination, _In_ const void* source, size_t source_size)
+_ebpf_copy_program_entry(
+    _Out_ program_entry_t* destination, _In_reads_bytes_(source_size) const void* source, size_t source_size)
 {
     memset(destination, 0, sizeof(*destination));
     memcpy(destination, source, min(source_size, sizeof(*destination)));

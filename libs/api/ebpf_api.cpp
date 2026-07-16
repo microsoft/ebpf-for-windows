@@ -2971,7 +2971,8 @@ typedef struct _ebpf_pe_context
 } ebpf_pe_context_t;
 
 static void
-_ebpf_pe_copy_program_entry(_Out_ program_entry_t* destination, _In_ const void* source, size_t source_size) noexcept
+_ebpf_pe_copy_program_entry(
+    _Out_ program_entry_t* destination, _In_reads_bytes_(source_size) const void* source, size_t source_size) noexcept
 {
     memset(destination, 0, sizeof(*destination));
     size_t program_copy_size = (source_size < sizeof(*destination)) ? source_size : sizeof(*destination);
