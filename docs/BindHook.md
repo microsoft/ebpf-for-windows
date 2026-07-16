@@ -182,6 +182,11 @@ The accumulated verdict then interacts with WFP:
   so no subsequent WFP filter can override.
 - `REJECT`: bind is denied (returns `WSAEACCES` / `EACCES`).
 
+The "no subsequent WFP filter can override" guarantee for `PROCEED_HARD` applies
+only to WFP filters. Among eBPF programs the most-restrictive verdict wins, so a
+later program returning `REJECT` still denies a bind that another program
+permitted.
+
 ### Multi-Attach Test Coverage
 
 The following scenarios are exercised in `tests/socket/socket_tests.cpp`
@@ -194,7 +199,7 @@ The following scenarios are exercised in `tests/socket/socket_tests.cpp`
 | First program rejects (short-circuit) | `REJECT` + `PROCEED_SOFT` | Bind denied |
 | Soft + hard mix | `PROCEED_SOFT` + `PROCEED_HARD` | Bind allowed (hard priority) |
 | Soft permits blocked by WFP | 2× `PROCEED_SOFT` + WFP block | Bind denied |
-| Hard overrides WFP | `PROCEED_SOFT` + `PROCEED_HARD` + WFP block | Bind allowed |
+| Hard overrides WFP | 2 programs (one returns `PROCEED_HARD`) + WFP block | Bind allowed |
 | Detach middle program | 3 programs → detach REJECT middle | Bind recovers |
 | Detach and reattach | Detach + reattach with new verdict | Verdict updates |
 | Three soft permits | 3× `PROCEED_SOFT` | Bind allowed |
