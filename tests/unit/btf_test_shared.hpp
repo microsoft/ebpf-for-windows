@@ -8,8 +8,7 @@
 
 #include <string>
 
-namespace btf_test
-{
+namespace btf_test {
 inline constexpr GUID guid_null = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 
 inline std::wstring
