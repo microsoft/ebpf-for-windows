@@ -189,7 +189,7 @@ struct connection_test_params
     // Expected outcome.
     connection_test_result expected_result{connection_test_result::block};
 
-    // --- Legacy single-program shorthand (unchanged for existing callers) ---
+    // Legacy single-program shorthand (unchanged for existing callers).
     std::optional<uint32_t> egress_verdict{};  ///< Egress verdict for connect hook.
     std::optional<uint32_t> ingress_verdict{}; ///< Ingress verdict for recv_accept hook.
     std::optional<uint32_t> listen_verdict{};  ///< Listen verdict for listen enforcement (sock_addr).
@@ -383,7 +383,7 @@ execute_connection_attempt(
  * This function orchestrates a complete connection test scenario including:
  * - Loading eBPF modules and programs from object files
  * - Creating WFP filters if specified
- * - Retrieving policy maps (sock_addr and bind) — both per-module and legacy global
+ * - Retrieving policy maps (sock_addr and bind) -- both per-module and legacy global
  * - Attaching eBPF programs to their respective attach points
  * - Processing dynamic attach/detach steps per test
  * - Applying per-module policy updates for multi-program scenarios
@@ -558,7 +558,7 @@ execute_connection_test(_In_ const connection_test_case& test_case)
         if (!lp.attached) {
             return;
         }
-        // Use bpf_prog_detach2 uniformly — it works for both attach paths.
+        // Use bpf_prog_detach2 uniformly -- it works for both attach paths.
         // For ebpf_program_attach with NULL (wildcard), compartment 0 matches.
         int rc = ::bpf_prog_detach2(bpf_program__fd(lp.program), 0, lp.spec.attach_type);
         SAFE_REQUIRE(rc == 0);
@@ -819,7 +819,7 @@ using udp_v6_params =
 //
 // These reduce boilerplate in multi-program test cases without hiding the
 // important parts (expected verdicts, expected results). Each test case still
-// explicitly declares its connection_test_case — these helpers just produce
+// explicitly declares its connection_test_case -- these helpers just produce
 // the repetitive hook-specific pieces.
 // ---------------------------------------------------------------------------
 
@@ -1502,7 +1502,7 @@ TEST_CASE("bind_helper_functions_validation_tcp_v6", "[bind_tests][helper_valida
 // instances of cgroup_sock_addr_bind, each with its own bind_verdict_map.
 // ===========================================================================
 
-// Two programs both return PROCEED_SOFT → accumulated verdict is PROCEED_SOFT → bind allowed.
+// Two programs both return PROCEED_SOFT -> accumulated verdict is PROCEED_SOFT -> bind allowed.
 TEMPLATE_TEST_CASE("sock_addr_bind_multi_all_soft", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
 {
     constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
@@ -1523,7 +1523,7 @@ TEMPLATE_TEST_CASE("sock_addr_bind_multi_all_soft", "[bind_tests][multi_attach]"
     });
 }
 
-// First program PROCEED_SOFT, second program REJECT → accumulated verdict is REJECT → bind denied.
+// First program PROCEED_SOFT, second program REJECT -> accumulated verdict is REJECT -> bind denied.
 TEMPLATE_TEST_CASE("sock_addr_bind_multi_second_rejects", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
 {
     constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
@@ -1544,7 +1544,7 @@ TEMPLATE_TEST_CASE("sock_addr_bind_multi_second_rejects", "[bind_tests][multi_at
     });
 }
 
-// First program REJECT → short-circuit, second program never contributes → bind denied.
+// First program REJECT -> short-circuit, second program never contributes -> bind denied.
 // Verifies that a leading REJECT terminates the accumulation loop.
 TEMPLATE_TEST_CASE("sock_addr_bind_multi_first_rejects", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
 {
@@ -1566,7 +1566,7 @@ TEMPLATE_TEST_CASE("sock_addr_bind_multi_first_rejects", "[bind_tests][multi_att
     });
 }
 
-// Mix of PROCEED_SOFT + PROCEED_HARD → accumulated verdict is PROCEED_HARD (higher priority) → bind allowed.
+// Mix of PROCEED_SOFT + PROCEED_HARD -> accumulated verdict is PROCEED_HARD (higher priority) -> bind allowed.
 TEMPLATE_TEST_CASE("sock_addr_bind_multi_soft_hard_mix", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
 {
     constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
@@ -1587,7 +1587,7 @@ TEMPLATE_TEST_CASE("sock_addr_bind_multi_soft_hard_mix", "[bind_tests][multi_att
     });
 }
 
-// Multi-program with WFP block: both programs return PROCEED_SOFT → WFP block overrides → bind denied.
+// Multi-program with WFP block: both programs return PROCEED_SOFT -> WFP block overrides -> bind denied.
 TEMPLATE_TEST_CASE("sock_addr_bind_multi_soft_blocked_by_wfp", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
 {
     constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
@@ -1612,7 +1612,7 @@ TEMPLATE_TEST_CASE("sock_addr_bind_multi_soft_blocked_by_wfp", "[bind_tests][mul
     });
 }
 
-// Multi-program with WFP block: one PROCEED_HARD → hard permit overrides WFP → bind allowed.
+// Multi-program with WFP block: one PROCEED_HARD -> hard permit overrides WFP -> bind allowed.
 TEMPLATE_TEST_CASE("sock_addr_bind_multi_hard_overrides_wfp", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
 {
     constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
@@ -1637,8 +1637,8 @@ TEMPLATE_TEST_CASE("sock_addr_bind_multi_hard_overrides_wfp", "[bind_tests][mult
     });
 }
 
-// Detach middle program: start with 3 programs (SOFT, REJECT, SOFT). The middle program's REJECT
-// should deny bind. After detaching the middle program, only the two SOFT programs remain and bind
+// Detach middle program: start with 3 programs (PROCEED_SOFT, REJECT, PROCEED_SOFT). The middle program's REJECT
+// should deny bind. After detaching the middle program, only the two PROCEED_SOFT programs remain and bind
 // should succeed.
 TEMPLATE_TEST_CASE("sock_addr_bind_multi_detach_middle", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
 {
@@ -1676,7 +1676,7 @@ TEMPLATE_TEST_CASE("sock_addr_bind_multi_detach_middle", "[bind_tests][multi_att
     });
 }
 
-// Detach and reattach: start with 2 programs (both SOFT → allow). Detach program 1, change its
+// Detach and reattach: start with 2 programs (both PROCEED_SOFT -> allow). Detach program 1, change its
 // verdict to REJECT, reattach. Bind should now be denied.
 TEMPLATE_TEST_CASE("sock_addr_bind_multi_detach_reattach", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
 {
@@ -1712,7 +1712,7 @@ TEMPLATE_TEST_CASE("sock_addr_bind_multi_detach_reattach", "[bind_tests][multi_a
     });
 }
 
-// Three programs all PROCEED_SOFT → bind allowed. Tests accumulation across more than 2 programs.
+// Three programs all PROCEED_SOFT -> bind allowed. Tests accumulation across more than 2 programs.
 TEMPLATE_TEST_CASE("sock_addr_bind_multi_three_soft", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
 {
     constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
@@ -1738,7 +1738,7 @@ TEMPLATE_TEST_CASE("sock_addr_bind_multi_three_soft", "[bind_tests][multi_attach
     });
 }
 
-// HARD first, SOFT second, with WFP block → HARD wins, bind allowed.
+// PROCEED_HARD first, PROCEED_SOFT second, with WFP block -> PROCEED_HARD wins, bind allowed.
 // Validates that HARD is accumulated regardless of program ordering (not just last-wins).
 TEMPLATE_TEST_CASE(
     "sock_addr_bind_multi_hard_first_overrides_wfp", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
@@ -1755,7 +1755,7 @@ TEMPLATE_TEST_CASE(
             .local_port = static_cast<uint16_t>(SOCKET_TEST_PORT),
         }},
         .tests{{
-            .description = "Hard permit first, soft second, WFP block → bind allowed",
+            .description = "Hard permit first, soft second, WFP block -> bind allowed",
             .expected_result = connection_test_result::allow,
             .program_policies{
                 sock_addr_bind_verdict(0, BPF_SOCK_ADDR_VERDICT_PROCEED_HARD),
@@ -1765,7 +1765,7 @@ TEMPLATE_TEST_CASE(
     });
 }
 
-// REJECT + HARD → REJECT wins (higher priority). Validates that HARD cannot override REJECT.
+// REJECT + PROCEED_HARD -> REJECT wins (higher priority). Validates that PROCEED_HARD cannot override REJECT.
 TEMPLATE_TEST_CASE("sock_addr_bind_multi_reject_beats_hard", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
 {
     constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
@@ -1786,7 +1786,7 @@ TEMPLATE_TEST_CASE("sock_addr_bind_multi_reject_beats_hard", "[bind_tests][multi
     });
 }
 
-// HARD + REJECT (reversed) → REJECT wins. Tests that REJECT short-circuits even after HARD.
+// PROCEED_HARD + REJECT (reversed) -> REJECT wins. Tests that REJECT short-circuits even after PROCEED_HARD.
 TEMPLATE_TEST_CASE("sock_addr_bind_multi_hard_then_reject", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
 {
     constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
@@ -1797,7 +1797,7 @@ TEMPLATE_TEST_CASE("sock_addr_bind_multi_hard_then_reject", "[bind_tests][multi_
         .protocol = protocol,
         .modules{sock_addr_bind_module(family), sock_addr_bind_module(family)},
         .tests{{
-            .description = "Hard permit then reject → reject wins",
+            .description = "Hard permit then reject -> reject wins",
             .expected_server_bind_error = WSAEACCES,
             .program_policies{
                 sock_addr_bind_verdict(0, BPF_SOCK_ADDR_VERDICT_PROCEED_HARD),
@@ -1807,7 +1807,7 @@ TEMPLATE_TEST_CASE("sock_addr_bind_multi_hard_then_reject", "[bind_tests][multi_
     });
 }
 
-// Third program is decisive: two SOFT then one REJECT → bind denied.
+// Third program is decisive: two PROCEED_SOFT then one REJECT -> bind denied.
 // Validates that the accumulator processes all N programs, not just the first two.
 TEMPLATE_TEST_CASE("sock_addr_bind_multi_third_rejects", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
 {
@@ -1834,8 +1834,8 @@ TEMPLATE_TEST_CASE("sock_addr_bind_multi_third_rejects", "[bind_tests][multi_att
     });
 }
 
-// Third program provides decisive HARD permit with WFP block → bind allowed.
-// Validates accumulator reaches the third program and HARD overrides WFP.
+// Third program provides decisive PROCEED_HARD permit with WFP block -> bind allowed.
+// Validates accumulator reaches the third program and PROCEED_HARD overrides WFP.
 TEMPLATE_TEST_CASE(
     "sock_addr_bind_multi_third_hard_overrides_wfp", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
 {
@@ -1866,7 +1866,7 @@ TEMPLATE_TEST_CASE(
     });
 }
 
-// Detach first program: 3 programs with first=REJECT → denied. Detach first → two SOFTs remain → allowed.
+// Detach first program: 3 programs with first=REJECT -> denied. Detach first -> two PROCEED_SOFTs remain -> allowed.
 TEMPLATE_TEST_CASE("sock_addr_bind_multi_detach_first", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
 {
     constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
@@ -1903,7 +1903,7 @@ TEMPLATE_TEST_CASE("sock_addr_bind_multi_detach_first", "[bind_tests][multi_atta
     });
 }
 
-// Detach last program: 3 programs with last=REJECT → denied. Detach last → two SOFTs remain → allowed.
+// Detach last program: 3 programs with last=REJECT -> denied. Detach last -> two PROCEED_SOFTs remain -> allowed.
 TEMPLATE_TEST_CASE("sock_addr_bind_multi_detach_last", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
 {
     constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
