@@ -736,11 +736,11 @@ _ebpf_program_btf_provider_detach_callback(_In_ void* client_binding_context)
     _ebpf_program_update_btf_provider_state_under_lock(program);
     ebpf_lock_unlock(&program->lock, state);
 
-    (void)_ebpf_program_notify_btf_resolved_function_changes(program);
-
     if (program->object.id != 0) {
         ebpf_epoch_synchronize();
     }
+
+    (void)_ebpf_program_notify_btf_resolved_function_changes(program);
 
     return STATUS_SUCCESS;
 }
@@ -2133,7 +2133,8 @@ ebpf_program_reference_providers(_Inout_ ebpf_program_t* program)
 static bool
 _ebpf_program_are_btf_providers_ready(_In_ const ebpf_program_t* program)
 {
-    // Detach callbacks clear this flag, update native call targets, and then quiesce the current epoch.
+    // Detach callbacks clear this flag before quiescing the current epoch so new invocations fail
+    // before the native BTF-resolved function pointers are rewritten.
     return program->btf_provider_count == 0 ||
            ReadNoFence8((volatile const char*)&program->btf_resolved_function_providers_ready) != 0;
 }
