@@ -509,8 +509,37 @@ _Requires_lock_held_(program->lock) static ebpf_result_t
     ebpf_program_btf_provider_t** local_providers = NULL;
     size_t provider_count = 0;
     size_t providers_length = 0;
-    ebpf_result_t result =
-        ebpf_safe_size_t_multiply(program->btf_resolved_function_count, sizeof(*local_providers), &providers_length);
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    for (size_t function_index = 0; function_index < program->btf_resolved_function_count; function_index++) {
+        const btf_resolved_function_entry_t* function_entry = &program->btf_resolved_functions[function_index];
+        bool provider_found = false;
+
+        if (_ebpf_program_is_unused_btf_resolved_function_entry(function_entry)) {
+            continue;
+        }
+
+        for (size_t previous_index = 0; previous_index < function_index; previous_index++) {
+            if (_ebpf_program_is_unused_btf_resolved_function_entry(&program->btf_resolved_functions[previous_index])) {
+                continue;
+            }
+            if (IsEqualGUID(
+                    &program->btf_resolved_functions[previous_index].module_guid, &function_entry->module_guid)) {
+                provider_found = true;
+                break;
+            }
+        }
+
+        if (!provider_found) {
+            provider_count++;
+        }
+    }
+
+    if (provider_count == 0) {
+        return EBPF_SUCCESS;
+    }
+
+    result = ebpf_safe_size_t_multiply(provider_count, sizeof(*local_providers), &providers_length);
     if (result != EBPF_SUCCESS) {
         return result;
     }
@@ -521,6 +550,7 @@ _Requires_lock_held_(program->lock) static ebpf_result_t
     }
     memset(local_providers, 0, providers_length);
 
+    provider_count = 0;
     for (size_t function_index = 0; function_index < program->btf_resolved_function_count; function_index++) {
         const btf_resolved_function_entry_t* function_entry = &program->btf_resolved_functions[function_index];
         bool provider_found = false;
@@ -551,11 +581,6 @@ _Requires_lock_held_(program->lock) static ebpf_result_t
         local_provider->module_guid = function_entry->module_guid;
         local_providers[provider_count] = local_provider;
         provider_count++;
-    }
-
-    if (provider_count == 0) {
-        ebpf_free(local_providers);
-        return EBPF_SUCCESS;
     }
 
     program->btf_providers = local_providers;
