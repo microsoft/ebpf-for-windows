@@ -500,7 +500,7 @@ _ebpf_program_clear_btf_provider_bindings(_Inout_ ebpf_program_t* program)
     ebpf_free(program->btf_providers);
     program->btf_providers = NULL;
     program->btf_provider_count = 0;
-    program->btf_resolved_function_providers_ready = false;
+    program->btf_resolved_function_providers_ready = (char)false;
 }
 
 _Requires_lock_held_(program->lock) static ebpf_result_t

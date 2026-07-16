@@ -1,7 +1,7 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
-#include "..\..\libs\store_helper\user\ebpf_registry_helper.h"
+#include "btf_test_shared.hpp"
 #include "catch_wrapper.hpp"
 #include "ebpf_store_helper.h"
 #include "platform.hpp"
@@ -17,10 +17,6 @@
 #include <limits>
 #include <string>
 #include <vector>
-
-#ifndef __CGUID_H__
-static const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
-#endif
 
 static const GUID _btf_test_module_guid = {
     0x12345678, 0x1234, 0x1234, {0x12, 0x34, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc}};
@@ -55,29 +51,6 @@ typedef struct _btf_test_function_definition
     const char* module_tag;
     bool add_decl_tag;
 } btf_test_function_definition_t;
-
-static std::wstring
-_get_btf_store_relative_path()
-{
-    return std::wstring(ebpf_store_root_sub_key) + L"\\" + EBPF_PROVIDERS_REGISTRY_KEY + L"\\" +
-           EBPF_BTF_RESOLVED_FUNCTIONS_REGISTRY_KEY;
-}
-
-static ebpf_result_t
-_clear_btf_store()
-{
-    ebpf_result_t result = ebpf_delete_registry_tree(ebpf_store_hkcu_root_key, _get_btf_store_relative_path().c_str());
-    if (result != EBPF_SUCCESS && result != EBPF_FILE_NOT_FOUND) {
-        return result;
-    }
-
-    result = ebpf_delete_registry_tree(ebpf_store_hklm_root_key, _get_btf_store_relative_path().c_str());
-    if (result == EBPF_ACCESS_DENIED || result == EBPF_FILE_NOT_FOUND) {
-        result = EBPF_SUCCESS;
-    }
-
-    return result;
-}
 
 static std::string
 _wide_to_utf8(_In_z_ const wchar_t* string)
@@ -156,7 +129,7 @@ TEST_CASE("btf verifier resolves published function metadata", "[verifier][btf]"
     prevail::EbpfProgramType program_type = _create_test_program_type();
     std::string why_not;
 
-    REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
+    REQUIRE(btf_test::clear_store() == EBPF_SUCCESS);
     clear_program_info_cache();
     _publish_btf_provider(&_btf_test_module_guid, &_supported_btf_function, 1);
 
@@ -181,7 +154,7 @@ TEST_CASE("btf verifier resolves published function metadata", "[verifier][btf]"
     REQUIRE(resolved_call->contract.pairs[0].kind == prevail::ArgPair::Kind::PTR_TO_WRITABLE_MEM);
 
     clear_program_info_cache();
-    REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
+    REQUIRE(btf_test::clear_store() == EBPF_SUCCESS);
 }
 
 TEST_CASE("btf verifier rejects published function flags without verifier semantics", "[verifier][btf]")
@@ -194,7 +167,7 @@ TEST_CASE("btf verifier rejects published function flags without verifier semant
 
     prototype.flags = 1;
 
-    REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
+    REQUIRE(btf_test::clear_store() == EBPF_SUCCESS);
     clear_program_info_cache();
     _publish_btf_provider(&_btf_test_module_guid, &prototype, 1);
 
@@ -208,7 +181,7 @@ TEST_CASE("btf verifier rejects published function flags without verifier semant
     REQUIRE(why_not.find("unsupported flags") != std::string::npos);
 
     clear_program_info_cache();
-    REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
+    REQUIRE(btf_test::clear_store() == EBPF_SUCCESS);
 }
 
 TEST_CASE("btf verifier keeps unresolved symbols when published metadata is missing", "[verifier][btf]")
@@ -219,7 +192,7 @@ TEST_CASE("btf verifier keeps unresolved symbols when published metadata is miss
     prevail::EbpfProgramType program_type = _create_test_program_type();
     std::string why_not;
 
-    REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
+    REQUIRE(btf_test::clear_store() == EBPF_SUCCESS);
     clear_program_info_cache();
 
     REQUIRE_NOTHROW(cache_btf_resolved_functions(btf_data));
@@ -231,7 +204,7 @@ TEST_CASE("btf verifier keeps unresolved symbols when published metadata is miss
     REQUIRE(why_not.find("prototype lookup failed") != std::string::npos);
 
     clear_program_info_cache();
-    REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
+    REQUIRE(btf_test::clear_store() == EBPF_SUCCESS);
 }
 
 TEST_CASE("btf verifier preprocessing requires module decl tags for .ksyms functions", "[verifier][btf]")
@@ -274,7 +247,7 @@ TEST_CASE(
     const ebpf_btf_resolved_function_info_t* function_info = nullptr;
     std::string why_not;
 
-    REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
+    REQUIRE(btf_test::clear_store() == EBPF_SUCCESS);
     _publish_btf_provider(&_btf_test_module_guid, &_supported_btf_function, 1);
     _publish_btf_provider(&_btf_test_module_guid_2, &_supported_btf_function_with_context, 1);
 
@@ -317,7 +290,7 @@ TEST_CASE(
     REQUIRE(resolved_call_2->contract.pairs.empty());
 
     clear_program_info_cache();
-    REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
+    REQUIRE(btf_test::clear_store() == EBPF_SUCCESS);
 }
 TEST_CASE("btf verifier preprocessing ignores unrelated top-level decl tags", "[verifier][btf]")
 {
@@ -329,7 +302,7 @@ TEST_CASE("btf verifier preprocessing ignores unrelated top-level decl tags", "[
 
     btf_data.append(libbtf::btf_kind_decl_tag{"preserve_access_index", 1, std::numeric_limits<uint32_t>::max()});
 
-    REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
+    REQUIRE(btf_test::clear_store() == EBPF_SUCCESS);
     clear_program_info_cache();
     _publish_btf_provider(&_btf_test_module_guid, &_supported_btf_function, 1);
 
@@ -344,5 +317,5 @@ TEST_CASE("btf verifier preprocessing ignores unrelated top-level decl tags", "[
     REQUIRE(why_not.empty());
 
     clear_program_info_cache();
-    REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
+    REQUIRE(btf_test::clear_store() == EBPF_SUCCESS);
 }
