@@ -6149,15 +6149,24 @@ ebpf_perf_buffer_new_internal(
     _In_opt_ void* ctx,
     _In_opt_ const struct ebpf_perf_buffer_opts* opts) EBPF_NO_EXCEPT
 {
+    EBPF_LOG_ENTRY();
+
     ebpf_result_t result = EBPF_SUCCESS;
+    uint32_t win32_error = ERROR_SUCCESS;
     struct perf_buffer* local_perf_buffer = nullptr;
 
     if ((sample_cb == nullptr) || (lost_cb == nullptr)) {
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_API,
+            "perf_buffer__new requires both sample and lost callbacks");
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
 
     if (page_cnt != 0) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_API, "perf_buffer__new page count must be zero", page_cnt);
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -6197,8 +6206,9 @@ ebpf_perf_buffer_new_internal(
 
             HANDLE wait_handle = CreateEvent(nullptr, TRUE, FALSE, nullptr);
             if (wait_handle == nullptr) {
-                result = EBPF_NO_MEMORY;
-                goto Exit;
+                win32_error = GetLastError();
+                result = win32_error_code_to_ebpf_result(win32_error);
+                EBPF_BAIL_ON_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, CreateEvent, win32_error, Exit);
             }
             perf_buffer->wait_handle = reinterpret_cast<ebpf_handle_t>(wait_handle);
 

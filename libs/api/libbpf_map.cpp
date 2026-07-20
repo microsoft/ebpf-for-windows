@@ -646,9 +646,13 @@ perf_buffer__new(
     void* ctx,
     const struct perf_buffer_opts* opts)
 {
+    EBPF_LOG_ENTRY();
+
     // Convert Linux opts to Windows opts with default synchronous behavior.
     auto ebpf_opts = _convert_to_ebpf_perf_opts(opts);
-    return ebpf_perf_buffer_new_internal(map_fd, page_cnt, sample_cb, lost_cb, ctx, &ebpf_opts);
+    struct perf_buffer* perf_buffer =
+        ebpf_perf_buffer_new_internal(map_fd, page_cnt, sample_cb, lost_cb, ctx, &ebpf_opts);
+    EBPF_RETURN_POINTER(struct perf_buffer*, perf_buffer);
 }
 
 void
