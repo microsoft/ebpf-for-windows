@@ -17,6 +17,7 @@ struct _ebpf_ring_descriptor
     void* base_address;
     // User-mode mapping state: captures the process and addresses returned from MmMapLockedPagesSpecifyCache.
     PEPROCESS user_process;
+    uint64_t user_pid;
     void* user_consumer_address;
     void* user_producer_address;
 };
@@ -222,8 +223,14 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_ring_map_user(
     _In_ ebpf_ring_descriptor_t* ring, _Outptr_ void** consumer, _Outptr_ void** producer, _Outptr_ uint8_t** data)
 {
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
+
     if (!ring || !consumer || !producer || !data) {
-        return EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "Invalid ring map user arguments");
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
     }
 
     *consumer = NULL;
@@ -232,39 +239,57 @@ ebpf_ring_map_user(
 
     // Check if already mapped.
     if (ring->user_consumer_address != NULL) {
-        return EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "Ring already mapped to user mode", ring->user_pid);
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
     }
 
     __try {
         *consumer =
             MmMapLockedPagesSpecifyCache(ring->user_mdl_consumer, UserMode, MmCached, NULL, FALSE, NormalPagePriority);
     } __except (EXCEPTION_EXECUTE_HANDLER) {
+        status = GetExceptionCode();
         *consumer = NULL;
     }
     if (!*consumer) {
-        return EBPF_INVALID_ARGUMENT;
+        if (NT_SUCCESS(status)) {
+            status = STATUS_NO_MEMORY;
+        }
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_BAIL_ON_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmMapLockedPagesSpecifyCache, status, Exit);
     }
 
+    status = STATUS_SUCCESS;
     __try {
         *producer = MmMapLockedPagesSpecifyCache(
             ring->user_mdl_producer, UserMode, MmCached, NULL, FALSE, NormalPagePriority | MdlMappingNoWrite);
     } __except (EXCEPTION_EXECUTE_HANDLER) {
+        status = GetExceptionCode();
         *producer = NULL;
     }
     if (!*producer) {
         MmUnmapLockedPages(*consumer, ring->user_mdl_consumer);
         *consumer = NULL;
-        return EBPF_INVALID_ARGUMENT;
+        if (NT_SUCCESS(status)) {
+            status = STATUS_NO_MEMORY;
+        }
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_BAIL_ON_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmMapLockedPagesSpecifyCache, status, Exit);
     }
 
     // Capture process reference and addresses for secure unmapping.
     ring->user_process = PsGetCurrentProcess();
     ObReferenceObject(ring->user_process);
+    ring->user_pid = (uint64_t)(uintptr_t)PsGetCurrentProcessId();
     ring->user_consumer_address = *consumer;
     ring->user_producer_address = *producer;
 
     *data = (uint8_t*)*producer + PAGE_SIZE;
-    return EBPF_SUCCESS;
+    result = EBPF_SUCCESS;
+
+Exit:
+    EBPF_RETURN_RESULT(result);
 }
 
 _Must_inspect_result_ ebpf_result_t
