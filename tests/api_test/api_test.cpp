@@ -1025,6 +1025,16 @@ typedef struct _PROCESS_TELEMETRY_ID_INFORMATION
 static bool
 try_get_process_start_key(uint32_t pid, uint64_t& start_key)
 {
+    // NtQueryInformationProcess is only declared by <winternl.h>, which cannot be included here: it
+    // redefines _STRING/UNICODE_STRING already provided by <ntsecapi.h> (used elsewhere in this file),
+    // producing C2011. Declare the prototype locally and resolve it at runtime via GetProcAddress to
+    // avoid an ntdll.lib link dependency.
+    // See https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess
+    typedef NTSTATUS(NTAPI * NtQueryInformationProcess_t)(HANDLE, ULONG, PVOID, ULONG, PULONG);
+    static NtQueryInformationProcess_t nt_query_information_process = reinterpret_cast<NtQueryInformationProcess_t>(
+        GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtQueryInformationProcess"));
+    REQUIRE(nt_query_information_process != nullptr);
+
     HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
     if (process == nullptr) {
         std::cout << "WARNING: OpenProcess(pid=" << pid << ") failed, err=" << GetLastError()
@@ -1032,39 +1042,27 @@ try_get_process_start_key(uint32_t pid, uint64_t& start_key)
         return false;
     }
 
-    typedef LONG(NTAPI * NtQueryInformationProcess_t)(HANDLE, ULONG, PVOID, ULONG, PULONG);
-    static NtQueryInformationProcess_t nt_query_information_process = reinterpret_cast<NtQueryInformationProcess_t>(
-        GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtQueryInformationProcess"));
-
     bool succeeded = false;
-    if (nt_query_information_process == nullptr) {
-        std::cout << "WARNING: NtQueryInformationProcess not found; skipping process start-key check\n";
-    } else {
-        // ProcessTelemetryIdInformation returns the fixed struct followed by variable-length data
-        // (user SID, image path, package/app name, command line) referenced by the trailing *Offset
-        // fields, so the query needs a buffer larger than the struct itself. Start with headroom and
-        // grow once if the process reports it needs more.
-        std::vector<uint8_t> buffer(sizeof(PROCESS_TELEMETRY_ID_INFORMATION) + 1024);
-        ULONG return_length = 0;
-        LONG status = nt_query_information_process(
+    // ProcessTelemetryIdInformation returns the fixed struct followed by variable-length data
+    // (user SID, image path, package/app name, command line) referenced by the trailing *Offset
+    // fields, so the query needs a buffer larger than the struct itself. Start with headroom and
+    // grow once if the process reports it needs more.
+    std::vector<uint8_t> buffer(sizeof(PROCESS_TELEMETRY_ID_INFORMATION) + 1024);
+    ULONG return_length = 0;
+    NTSTATUS status = nt_query_information_process(
+        process, ProcessTelemetryIdInformation, buffer.data(), static_cast<ULONG>(buffer.size()), &return_length);
+    if (status != STATUS_SUCCESS && return_length > buffer.size()) {
+        buffer.resize(return_length);
+        status = nt_query_information_process(
             process, ProcessTelemetryIdInformation, buffer.data(), static_cast<ULONG>(buffer.size()), &return_length);
-        if (status < 0 && return_length > buffer.size()) {
-            buffer.resize(return_length);
-            status = nt_query_information_process(
-                process,
-                ProcessTelemetryIdInformation,
-                buffer.data(),
-                static_cast<ULONG>(buffer.size()),
-                &return_length);
-        }
-        if (status >= 0 && return_length >= sizeof(PROCESS_TELEMETRY_ID_INFORMATION)) {
-            start_key = reinterpret_cast<const PROCESS_TELEMETRY_ID_INFORMATION*>(buffer.data())->ProcessStartKey;
-            succeeded = true;
-        } else {
-            std::cout << "WARNING: NtQueryInformationProcess(ProcessTelemetryIdInformation) failed, status=0x"
-                      << std::hex << static_cast<unsigned long>(status) << std::dec
-                      << "; skipping process start-key consistency check\n";
-        }
+    }
+    if (status == STATUS_SUCCESS && return_length >= sizeof(PROCESS_TELEMETRY_ID_INFORMATION)) {
+        start_key = reinterpret_cast<const PROCESS_TELEMETRY_ID_INFORMATION*>(buffer.data())->ProcessStartKey;
+        succeeded = true;
+    } else {
+        std::cout << "WARNING: NtQueryInformationProcess(ProcessTelemetryIdInformation) failed, status=0x" << std::hex
+                  << static_cast<unsigned long>(status) << std::dec
+                  << "; skipping process start-key consistency check\n";
     }
 
     CloseHandle(process);
