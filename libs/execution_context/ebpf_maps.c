@@ -3007,15 +3007,22 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_map_query_buffer(
     _In_ const ebpf_map_t* map, uint64_t index, _Outptr_ uint8_t** buffer, _Out_ size_t* consumer_offset)
 {
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+
     if ((map->properties == NULL) || (map->properties->query_buffer == NULL)) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
             "ebpf_map_query_buffer not supported on map",
             map->ebpf_map_definition.type);
-        return EBPF_OPERATION_NOT_SUPPORTED;
+        result = EBPF_OPERATION_NOT_SUPPORTED;
+        goto Exit;
     }
-    return map->properties->query_buffer(map, index, buffer, consumer_offset);
+    result = map->properties->query_buffer(map, index, buffer, consumer_offset);
+
+Exit:
+    EBPF_RETURN_RESULT(result);
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -3027,40 +3034,62 @@ ebpf_ring_buffer_map_map_user(
     _Outptr_result_buffer_(*data_size) const uint8_t** data,
     _Out_ size_t* data_size)
 {
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+
     if ((map->properties == NULL) || (map->properties->map_ring_buffer == NULL)) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
             "ebpf_ring_buffer_map_map_user not supported on map",
             map->ebpf_map_definition.type);
-        return EBPF_OPERATION_NOT_SUPPORTED;
+        result = EBPF_OPERATION_NOT_SUPPORTED;
+        goto Exit;
     }
 
-    return map->properties->map_ring_buffer(map, index, consumer, producer, data, data_size);
+    result = map->properties->map_ring_buffer(map, index, consumer, producer, data, data_size);
+
+Exit:
+    EBPF_RETURN_RESULT(result);
 }
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_unmap_user(_In_ const ebpf_map_t* map, uint64_t index)
 {
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+
     if ((map->properties == NULL) || (map->properties->unmap_ring_buffer == NULL)) {
-        return EBPF_INVALID_ARGUMENT;
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
     }
 
-    return map->properties->unmap_ring_buffer((const ebpf_core_map_t*)map, index);
+    result = map->properties->unmap_ring_buffer((const ebpf_core_map_t*)map, index);
+
+Exit:
+    EBPF_RETURN_RESULT(result);
 }
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_set_wait_handle_internal(_In_ const ebpf_map_t* map, uint64_t index, ebpf_handle_t wait_handle, uint64_t flags)
 {
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+
     if ((map->properties == NULL) || (map->properties->set_wait_handle == NULL)) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
             "ebpf_map_set_wait_handle_internal not supported on map",
             map->ebpf_map_definition.type);
-        return EBPF_OPERATION_NOT_SUPPORTED;
+        result = EBPF_OPERATION_NOT_SUPPORTED;
+        goto Exit;
     }
-    return map->properties->set_wait_handle(map, index, wait_handle, flags);
+
+    result = map->properties->set_wait_handle(map, index, wait_handle, flags);
+
+Exit:
+    EBPF_RETURN_RESULT(result);
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -3070,15 +3099,23 @@ ebpf_map_async_query(
     _Inout_ ebpf_map_async_query_result_t* async_query_result,
     _Inout_ void* async_context)
 {
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+
     if ((map->properties == NULL) || (map->properties->async_query == NULL)) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
             "ebpf_map_async_query not supported on map",
             map->ebpf_map_definition.type);
-        return EBPF_OPERATION_NOT_SUPPORTED;
+        result = EBPF_OPERATION_NOT_SUPPORTED;
+        goto Exit;
     }
-    return map->properties->async_query(map, index, async_query_result, async_context);
+
+    result = map->properties->async_query(map, index, async_query_result, async_context);
+
+Exit:
+    EBPF_RETURN_RESULT(result);
 }
 
 _Must_inspect_result_ ebpf_result_t
