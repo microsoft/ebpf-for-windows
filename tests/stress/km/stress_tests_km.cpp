@@ -133,94 +133,49 @@ _km_test_init()
     }
 }
 
-enum class service_state_type : uint32_t
-{
-    STOP,
-    START
-};
-
 static bool
-_set_extension_state(SC_HANDLE service_handle, service_state_type service_state, uint32_t timeout)
+_query_service_state(_In_ SC_HANDLE service_handle, _Out_ SERVICE_STATUS_PROCESS& service_status_process)
 {
-    std::string ss = (service_state == service_state_type::STOP ? "STOP" : "START");
-    using sc = std::chrono::steady_clock;
-    auto endtime = sc::now() + std::chrono::seconds(timeout);
-    while (sc::now() < endtime) {
-
-        LOG_VERBOSE("--> Requested state: {}", ss.c_str());
-        LOG_VERBOSE("Querying driver state...");
-        SERVICE_STATUS_PROCESS service_status_process{};
-        uint32_t bytes_needed{};
-        if (!QueryServiceStatusEx(
-                service_handle,
-                SC_STATUS_PROCESS_INFO,
-                (uint8_t*)&service_status_process,
-                sizeof(SERVICE_STATUS_PROCESS),
-                (unsigned long*)&bytes_needed)) {
-            LOG_ERROR("FATAL_ERROR. Polled QueryServiceStatusEx({}) failed. Error: {}", ss.c_str(), GetLastError());
-            return false;
-        }
-
-        if (service_state == service_state_type::STOP) {
-            if (service_status_process.dwCurrentState == SERVICE_STOPPED) {
-                LOG_VERBOSE("extension STOPPED");
-                return true;
-            }
-
-            // If the service is in the process of stopping, sleep for a bit before checking again.
-            if (service_status_process.dwCurrentState == SERVICE_STOP_PENDING) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(250));
-                LOG_VERBOSE("extension STOP pending");
-                continue;
-            }
-
-            // Service is not in the expected state(s) so (re)send a stop code to the service.
-            LOG_VERBOSE("Issuing extension STOP...");
-            SERVICE_STATUS service_status{};
-
-            // We ignore the return status here as this API returns an error if the driver is actually stopping or
-            // already in a stopped state which is basically a no-op for us. This can happen if the driver goes into a
-            // 'stopping/stopped' state _after_ the QueryServiceStatusEx above returns.
-            (void)ControlService(service_handle, SERVICE_CONTROL_STOP, &service_status);
-            LOG_VERBOSE("Issued extension STOP");
-
-            // Sleep for a bit to let the SCM process our command.
-            std::this_thread::sleep_for(std::chrono::milliseconds(250));
-            continue;
-        }
-
-        // If we get here, we're trying to start the extension.
-        if (service_status_process.dwCurrentState == SERVICE_RUNNING) {
-            LOG_VERBOSE("extension RUNNING");
-            return true;
-        }
-
-        // If the service is in the process of starting, sleep for a bit before checking again.
-        if (service_status_process.dwCurrentState == SERVICE_START_PENDING) {
-            LOG_VERBOSE("extension START pending");
-            std::this_thread::sleep_for(std::chrono::milliseconds(250));
-            continue;
-        }
-
-        // Service is not in the expected state(s) so attempt to (re)start the service.
-        LOG_VERBOSE("Issuing extension START...");
-
-        // We ignore the return status here as this API returns an error if the driver is actually starting or is
-        // already running which is a no-op for us. This can happen if the driver goes into a 'start pending/running'
-        // state _after_ the QueryServiceStatusEx above returns.
-        (void)system("net start NetEbpfExt >NUL 2>&1");
-        LOG_VERBOSE("Issued extension START");
-
-        // Sleep for a bit to let the SCM process our command.
-        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+    DWORD bytes_needed{};
+    if (!QueryServiceStatusEx(
+            service_handle,
+            SC_STATUS_PROCESS_INFO,
+            reinterpret_cast<LPBYTE>(&service_status_process),
+            sizeof(SERVICE_STATUS_PROCESS),
+            &bytes_needed)) {
+        LOG_ERROR("FATAL ERROR: QueryServiceStatusEx failed. Error: {}", GetLastError());
+        return false;
     }
     return true;
 }
 
 static bool
+_wait_for_service_state(
+    _In_ SC_HANDLE service_handle, const std::string& service_name, DWORD desired_state, uint32_t timeout_seconds)
+{
+    using steady_clock = std::chrono::steady_clock;
+    auto deadline = steady_clock::now() + std::chrono::seconds(timeout_seconds);
+    while (steady_clock::now() < deadline) {
+        SERVICE_STATUS_PROCESS service_status_process{};
+        if (!_query_service_state(service_handle, service_status_process)) {
+            return false;
+        }
+        if (service_status_process.dwCurrentState == desired_state) {
+            return true;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    }
+
+    const char* desired_state_name = desired_state == SERVICE_RUNNING ? "RUNNING" : "STOPPED";
+    LOG_ERROR(
+        "FATAL ERROR: Timed out waiting for service {} to reach {} state.", service_name.c_str(), desired_state_name);
+    return false;
+}
+
+static bool
 _restart_extension(const std::string& extension_name, uint32_t timeout)
 {
-    bool status{false};
+    bool status = false;
     SC_HANDLE scm_handle = nullptr;
     SC_HANDLE service_handle = nullptr;
 
@@ -230,7 +185,7 @@ _restart_extension(const std::string& extension_name, uint32_t timeout)
     }
 
     // Get a handle to the SCM database.
-    scm_handle = OpenSCManager(nullptr, nullptr, SC_MANAGER_ALL_ACCESS);
+    scm_handle = OpenSCManager(nullptr, nullptr, SC_MANAGER_CONNECT);
     if (scm_handle == nullptr) {
         LOG_ERROR("FATAL ERROR: OpenSCManager failed. Error: {}", GetLastError());
         return false;
@@ -238,22 +193,59 @@ _restart_extension(const std::string& extension_name, uint32_t timeout)
 
     // Get a handle to the extension.
     std::wstring ws_extension_name(extension_name.begin(), extension_name.end());
-    service_handle = OpenService(
-        scm_handle, ws_extension_name.c_str(), (SERVICE_STOP | SERVICE_QUERY_STATUS | SERVICE_ENUMERATE_DEPENDENTS));
+    service_handle =
+        OpenService(scm_handle, ws_extension_name.c_str(), (SERVICE_STOP | SERVICE_START | SERVICE_QUERY_STATUS));
     if (service_handle == nullptr) {
         LOG_ERROR("FATAL ERROR: OpenService failed. Service:{}, Error: {}", extension_name, GetLastError());
-        CloseServiceHandle(scm_handle);
-        status = false;
         goto exit;
     }
 
-    // Toggle extension state (stop and restart).
-    if (_set_extension_state(service_handle, service_state_type::STOP, timeout)) {
-        if (_set_extension_state(service_handle, service_state_type::START, timeout)) {
-            status = true;
+    // Stop phase.
+    {
+        SERVICE_STATUS_PROCESS service_status_process{};
+        if (!_query_service_state(service_handle, service_status_process)) {
             goto exit;
         }
+        if (service_status_process.dwCurrentState != SERVICE_STOPPED) {
+            if (service_status_process.dwCurrentState != SERVICE_STOP_PENDING) {
+                SERVICE_STATUS service_status{};
+                if (!ControlService(service_handle, SERVICE_CONTROL_STOP, &service_status)) {
+                    auto error = GetLastError();
+                    if (error != ERROR_SERVICE_NOT_ACTIVE) {
+                        LOG_ERROR("FATAL ERROR: ControlService(STOP) failed for {}. Error: {}", extension_name, error);
+                        goto exit;
+                    }
+                }
+            }
+            if (!_wait_for_service_state(service_handle, extension_name, SERVICE_STOPPED, timeout)) {
+                goto exit;
+            }
+        }
     }
+
+    // Start phase.
+    {
+        SERVICE_STATUS_PROCESS service_status_process{};
+        if (!_query_service_state(service_handle, service_status_process)) {
+            goto exit;
+        }
+        if (service_status_process.dwCurrentState != SERVICE_RUNNING) {
+            if (service_status_process.dwCurrentState != SERVICE_START_PENDING) {
+                if (!StartService(service_handle, 0, nullptr)) {
+                    auto error = GetLastError();
+                    if (error != ERROR_SERVICE_ALREADY_RUNNING) {
+                        LOG_ERROR("FATAL ERROR: StartService failed for {}. Error: {}", extension_name, error);
+                        goto exit;
+                    }
+                }
+            }
+            if (!_wait_for_service_state(service_handle, extension_name, SERVICE_RUNNING, timeout)) {
+                goto exit;
+            }
+        }
+    }
+
+    status = true;
 
 exit:
     if (!status) {
@@ -1057,7 +1049,19 @@ TEST_CASE("sample_attach_invoke_detach_race_km", "[stress_km]")
         test_control.threads_count == 0 ? default_km_invoke_thread_count() : test_control.threads_count;
     uint32_t attach_detach_delay_ms =
         test_control.attach_detach_delay_ms == 0 ? DEFAULT_ATTACH_DETACH_DELAY_MS : test_control.attach_detach_delay_ms;
-
+    bool extension_restart_enabled = test_control.extension_restart_enabled;
+    // For sample attach/invoke/detach race tests, the default restart period is 10x attach/detach delay.
+    uint32_t extension_restart_delay_ms = test_control.extension_restart_delay_ms == 0
+                                              ? (attach_detach_delay_ms * 10)
+                                              : test_control.extension_restart_delay_ms;
+    if (extension_restart_enabled &&
+        (static_cast<uint64_t>(extension_restart_delay_ms) < static_cast<uint64_t>(attach_detach_delay_ms) * 2)) {
+        LOG_ERROR(
+            "Invalid extension restart delay: {} ms. For race tests with -er, -erd must be at least 2x -ad ({} ms).",
+            extension_restart_delay_ms,
+            attach_detach_delay_ms);
+        REQUIRE(false);
+    }
     std::vector<uint32_t> attach_data(invoke_thread_count);
     for (uint32_t i = 0; i < invoke_thread_count; i++) {
         attach_data[i] = i;
@@ -1069,30 +1073,49 @@ TEST_CASE("sample_attach_invoke_detach_race_km", "[stress_km]")
     std::atomic<uint64_t> attach_failure_count{0};
     auto invoke_routine = [&]() {
         thread_local const uint32_t worker_id = next_worker_id.fetch_add(1);
-        thread_local _sample_extension_helper invoke_extension(false);
+        // One per invoke thread: client used to issue invocation requests through the sample extension path.
+        thread_local _sample_extension_helper sample_extension_client(false);
         thread_local std::vector<char> input_buffer = {'r', 'a', 'i', 'n', 'y'};
         thread_local std::vector<char> output_buffer(256);
         uint32_t attach_value = attach_data[worker_id % invoke_thread_count];
-        (void)invoke_extension.try_invoke_by_attach_parameter(
+        (void)sample_extension_client.try_invoke_by_attach_parameter(
             &attach_value, sizeof(attach_value), input_buffer, output_buffer);
     };
-    auto detach_routine = [&]() {
+    auto detach_routine = [&](bool extension_restarting) {
         for (uint32_t i = 0; i < invoke_thread_count; i++) {
             if (hook.detach(program_fd, &attach_data[i], sizeof(attach_data[i])) != EBPF_SUCCESS) {
-                ++detach_failure_count;
+                // During restart windows, attach/detach failures are expected and should not count as test failures.
+                if (!extension_restarting) {
+                    ++detach_failure_count;
+                }
             }
         }
     };
-    auto attach_routine = [&]() {
+    auto attach_routine = [&](bool extension_restarting) {
         for (uint32_t i = 0; i < invoke_thread_count; i++) {
             if (hook.attach(program, &attach_data[i], sizeof(attach_data[i])) == nullptr) {
-                ++attach_failure_count;
+                // During restart windows, attach/detach failures are expected and should not count as test failures.
+                if (!extension_restarting) {
+                    ++attach_failure_count;
+                }
             }
         }
     };
+    auto extension_restart_routine = [&]() -> bool {
+        constexpr uint32_t RESTART_TIMEOUT_SECONDS = 10;
+        return _restart_extension("SampleEbpfExt", RESTART_TIMEOUT_SECONDS);
+    };
 
-    run_attach_invoke_detach_race(
-        invoke_routine, detach_routine, attach_routine, duration_minutes, invoke_thread_count, attach_detach_delay_ms);
+    REQUIRE(run_attach_invoke_detach_race(
+        invoke_routine,
+        detach_routine,
+        attach_routine,
+        duration_minutes,
+        invoke_thread_count,
+        attach_detach_delay_ms,
+        extension_restart_enabled,
+        extension_restart_delay_ms,
+        extension_restart_routine));
     LOG_INFO(
         "Race attach/detach failures: detach_failures={}, attach_failures={}",
         detach_failure_count.load(),
