@@ -67,6 +67,8 @@ Sample command line invocations:
 This race test loads the sample native program and uses a multi-threaded invoke loop in parallel with a detach/reattach
 churn thread. Each invoke worker uses a stable attach key so the test exercises repeated attach-point transitions while
 invocations continue. If `-tt` is not specified, this test uses the CPU count as the invoke thread count.
+If extension restart is enabled (`-er=true`), `-erd` controls restart period and must be at least 2x `-ad`; when `-erd`
+is omitted, this test uses a default of 10x `-ad`.
 
 ### 1.3.1. `ebpf_stress_tests_km.exe sample_attach_invoke_detach_race_km`
 - Uses default values for all supported options.
@@ -101,6 +103,8 @@ This application provides the following tests:
 This race test loads the sample user-mode test program and runs invoke workers in parallel with a detach/reattach churn
 thread. Invoke workers are keyed by attach data to match the multi-attach behavior used in the kernel-mode variant. If
 `-tt` is not specified, this test uses 4 invoke threads by default.
+If extension restart is enabled (`-er=true`), `-erd` controls restart period and must be at least 2x `-ad`; when `-erd`
+is omitted, this test uses a default of 10x `-ad`.
 
 ### 2.1.1. `ebpf_stress_tests_um.exe sample_attach_invoke_detach_race_um`
 - Uses default values for all supported options.

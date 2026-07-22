@@ -513,7 +513,7 @@ function Invoke-CICDStressTests
     if ($RestartExtension -eq $false) {
         $TestArguments = "-td=5"
     } else {
-        $TestArguments = "-td=5 -erd=1000 -er=1"
+        $TestArguments = "-td=5 -er=1"
     }
 
     Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -TracingProfileName "EbpfForWindowsProvider"

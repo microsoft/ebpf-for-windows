@@ -125,11 +125,14 @@ test_process_cleanup();
 
 // Common 2-thread race pattern used by UM and KM stress tests.
 // Invoke worker thread(s) continuously invoke the program while one thread repeatedly detaches and reattaches it.
-void
+bool
 run_attach_invoke_detach_race(
     const std::function<void()>& invoke_routine,
-    const std::function<void()>& detach_routine,
-    const std::function<void()>& attach_routine,
+    const std::function<void(bool extension_restarting)>& detach_routine,
+    const std::function<void(bool extension_restarting)>& attach_routine,
     uint32_t duration_minutes,
     uint32_t invoke_thread_count,
-    uint32_t attach_detach_delay_ms);
+    uint32_t attach_detach_delay_ms,
+    bool extension_restart_enabled = false,
+    uint32_t extension_restart_delay_ms = 0,
+    const std::function<bool()>& extension_restart_routine = {});
