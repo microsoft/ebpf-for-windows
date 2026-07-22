@@ -320,7 +320,8 @@ _ebpf_program_update_hash_with_btf_resolved_function(
 
 static void
 _ebpf_program_free_btf_hash_entries(
-    _In_ size_t btf_hash_entry_count, _Frees_ptr_opt_ ebpf_program_btf_hash_entry_t* btf_hash_entries)
+    _In_ size_t btf_hash_entry_count,
+    _In_reads_opt_(btf_hash_entry_count) _Frees_ptr_opt_ ebpf_program_btf_hash_entry_t* btf_hash_entries)
 {
     if (btf_hash_entries == NULL) {
         return;
@@ -596,6 +597,7 @@ Exit:
     ebpf_free(local_providers);
     return result;
 }
+
 _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_program_information_hash(
     _In_ const uint32_t* actual_helper_ids,
     size_t count_of_actual_helper_ids,
@@ -2718,6 +2720,7 @@ ebpf_program_clear_btf_resolved_function_entries(_Inout_ ebpf_program_t* program
     state = ebpf_lock_lock(&program->lock);
     _ebpf_program_clear_btf_resolved_function_entries(program);
     ebpf_lock_unlock(&program->lock, state);
+    EBPF_LOG_EXIT();
 }
 
 _Must_inspect_result_ ebpf_result_t

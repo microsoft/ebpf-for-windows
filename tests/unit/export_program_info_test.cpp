@@ -239,6 +239,15 @@ TEST_CASE("validate_btf_resolved_function_provider_data", "[shared]")
     invalid_prototypes[0].name = nullptr;
     REQUIRE_FALSE(
         ebpf_validate_btf_resolved_function_prototype_array(invalid_prototypes, EBPF_COUNT_OF(invalid_prototypes)));
+    invalid_prototypes[0].name = _btf_test_function_prototypes[0].name;
+
+    invalid_prototypes[0].header.total_size = 0;
+    REQUIRE_FALSE(
+        ebpf_validate_btf_resolved_function_prototype_array(invalid_prototypes, EBPF_COUNT_OF(invalid_prototypes)));
+    invalid_prototypes[0].header.total_size = EBPF_BTF_RESOLVED_FUNCTION_PROTOTYPE_CURRENT_VERSION_TOTAL_SIZE + 1;
+    REQUIRE_FALSE(
+        ebpf_validate_btf_resolved_function_prototype_array(invalid_prototypes, EBPF_COUNT_OF(invalid_prototypes)));
+    invalid_prototypes[0].header.total_size = 0;
 
     provider_data.btf_resolved_function_prototypes = invalid_prototypes;
     REQUIRE_FALSE(ebpf_validate_btf_resolved_function_provider_data(&provider_data));

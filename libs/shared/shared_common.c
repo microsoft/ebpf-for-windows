@@ -228,6 +228,7 @@ _ebpf_validate_btf_resolved_function_prototype(_In_ const ebpf_btf_resolved_func
     return (
         (function_prototype != NULL) &&
         _ebpf_validate_extension_object_header(EBPF_BTF_RESOLVED_FUNCTION_PROTOTYPE, &function_prototype->header) &&
+        (function_prototype->header.total_size == EBPF_BTF_RESOLVED_FUNCTION_PROTOTYPE_CURRENT_VERSION_TOTAL_SIZE) &&
         (function_prototype->name != NULL));
 }
 
@@ -246,6 +247,10 @@ ebpf_validate_btf_resolved_function_prototype_array(
 {
     if (count > 0) {
         if (function_prototype_array == NULL) {
+            return false;
+        }
+
+        if (!_ebpf_validate_btf_resolved_function_prototype(function_prototype_array)) {
             return false;
         }
 
