@@ -66,6 +66,9 @@ net_ebpf_extension_hook_provider_unregister(
  * @param[in] dispatch Pointer to dispatch table.
  * @param[in] attach_capability Capability of the hook provider to attach clients.
  * @param[in] custom_data (Optional) Opaque pointer to hook-specific custom data.
+ * @param[in] deprecated If true, attaching clients will trigger a deprecation warning trace.
+ * @param[in] deprecation_message Human-readable message directing users to the replacement
+ *            (NULL if deprecated is false).
  * @param[in, out] provider_context Pointer to the provider context being registered.
  *
  * @retval STATUS_SUCCESS Operation succeeded.
@@ -77,6 +80,8 @@ net_ebpf_extension_hook_provider_register(
     _In_ const net_ebpf_extension_hook_provider_dispatch_table_t* dispatch,
     net_ebpf_extension_hook_attach_capability_t attach_capability,
     _In_opt_ const void* custom_data,
+    bool deprecated,
+    _In_opt_z_ const char* deprecation_message,
     _Outptr_ net_ebpf_extension_hook_provider_t** provider_context);
 
 /**

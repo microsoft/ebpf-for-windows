@@ -3843,6 +3843,16 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static ebpf_result_t
         load_info.execution_context = execution_context_kernel_mode;
         load_info.map_count = (uint32_t)object->maps.size();
 
+        // Emit deprecation warning for legacy bind program type.
+        if (IsEqualGUID(program->program_type, EBPF_PROGRAM_TYPE_BIND)) {
+            EBPF_LOG_MESSAGE_STRING(
+                EBPF_TRACELOG_LEVEL_WARNING,
+                EBPF_TRACELOG_KEYWORD_API,
+                "Loading deprecated program type BPF_PROG_TYPE_BIND. "
+                "Migrate to BPF_PROG_TYPE_CGROUP_SOCK_ADDR with BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND.",
+                program->section_name ? program->section_name : "");
+        }
+
         if (load_info.map_count > 0) {
             for (auto& map : object->maps) {
                 ebpf_id_t inner_map_id = (map->inner_map) ? map->inner_map->map_id : EBPF_ID_NONE;

@@ -1495,6 +1495,8 @@ net_ebpf_ext_sock_addr_register_providers()
             dispatch_table,
             attach_capability,
             &_net_ebpf_extension_sock_addr_wfp_filter_parameters[i],
+            false,
+            NULL,
             &_ebpf_sock_addr_hook_provider_context[i]);
         if (!NT_SUCCESS(status)) {
             EBPF_EXT_LOG_MESSAGE_NTSTATUS(
