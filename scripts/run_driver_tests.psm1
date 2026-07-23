@@ -343,7 +343,8 @@ function New-TestTuple {
 function Invoke-CICDTests
 {
     param([parameter(Mandatory = $true)][bool] $VerboseLogs,
-          [parameter(Mandatory = $true)][bool] $ExecuteSystemTests)
+          [parameter(Mandatory = $true)][bool] $ExecuteSystemTests,
+          [parameter(Mandatory = $false)][bool] $ProofOfVerification = $false)
 
 
     Push-Location $WorkingDirectory
@@ -353,8 +354,15 @@ function Invoke-CICDTests
     # load_native_program_invalid4 has been deleted from the test list, but 0.17 tests still have this test.
     # That causes the regression test to fail. So, we are skipping this test for now.
 
+    # By default, exclude proof_of_verification tests (requires production-signed binaries).
+    # Pass -ProofOfVerification $true to include them.
+    $ExcludeProofOfVerification = ""
+    if (-not $ProofOfVerification) {
+        $ExcludeProofOfVerification = "~[proof_of_verification]"
+    }
+
     $TestList = @(
-        (New-TestTuple -Test "api_test.exe" -Arguments "~`"load_native_program_invalid4`" ~pinned_map_enum" -Timeout 600),
+        (New-TestTuple -Test "api_test.exe" -Arguments "~`"load_native_program_invalid4`" ~pinned_map_enum $ExcludeProofOfVerification" -Timeout 600),
         (New-TestTuple -Test "bpftool_tests.exe" -Arguments "~`"prog load map_in_map`" ~`"prog prog run`""),
         (New-TestTuple -Test "sample_ext_app.exe"),
         (New-TestTuple -Test "socket_tests.exe" -Timeout 1800)
@@ -366,11 +374,11 @@ function Invoke-CICDTests
 
     # Now run the system tests.
 
-    $SystemTestList = @((New-TestTuple -Test "api_test.exe"))
+    $SystemTestList = @((New-TestTuple -Test "api_test.exe" -Arguments "$ExcludeProofOfVerification"))
     if ($ExecuteSystemTests) {
         foreach ($Test in $SystemTestList) {
             $TestCommand = "PsExec64.exe"
-            $TestArguments = "-accepteula -nobanner -s -w `"$pwd`" `"$pwd\$($Test.Test) $($Test.Arguments)`" `"-d yes`""
+            $TestArguments = "-accepteula -nobanner -s -w `"$pwd`" `"$pwd\$($Test.Test)`" $($Test.Arguments) `"-d yes`""
             Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -InnerTestName $($Test.Test)  -VerboseLogs $VerboseLogs -TestHangTimeout $($Test.Timeout) -TraceFileName "$($Test.Test)_System"
         }
     }

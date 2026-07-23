@@ -28,6 +28,9 @@ CXPLAT_EXTERN_C_BEGIN
 #define EBPF_SYMBOLIC_DEVICE_NAME L"\\GLOBAL??\\EbpfIoDevice"
 #define EBPF_DEVICE_WIN32_NAME L"\\\\.\\EbpfIoDevice"
 
+#define EBPF_PARAMETERS_REGISTRY_PATH L"Software\\eBPF\\Parameters"
+#define EBPF_PROOF_OF_VERIFICATION_REGISTRY_VALUE L"ProofOfVerification"
+
 #define ebpf_assert_assume(x) \
     ebpf_assert(x);           \
     __analysis_assume(x);
