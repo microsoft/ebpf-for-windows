@@ -112,7 +112,7 @@ cgroup_load_test(
 
     uint32_t compartment_id = 0;
     REQUIRE(hook.attach(program, &compartment_id, sizeof(compartment_id)) == EBPF_SUCCESS);
-    REQUIRE(hook.detach(ebpf_fd_invalid, &compartment_id, sizeof(compartment_id)) == EBPF_SUCCESS);
+    REQUIRE(hook.detach(program_fd, &compartment_id, sizeof(compartment_id)) == EBPF_SUCCESS);
 
     compartment_id = 1;
     REQUIRE(hook.attach(program, &compartment_id, sizeof(compartment_id)) == EBPF_SUCCESS);
@@ -549,7 +549,8 @@ test_invalid_bpf_get_socket_cookie(ebpf_execution_type_t execution_type)
     REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
     const char* file_name =
-        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_invalid_socket_cookie.dll" : "test_sample_invalid_socket_cookie.o");
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_invalid_socket_cookie.dll"
+                                                 : "test_sample_invalid_socket_cookie.o");
     result =
         ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
 

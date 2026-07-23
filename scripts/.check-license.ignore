@@ -24,6 +24,7 @@ Doxyfile
 \.clang-format
 \.gitattributes
 \.github/CODEOWNERS
+\.github/renovate.json
 \.github/workflows/build.yml
 \.gitignore
 \.gitmodules

@@ -7,8 +7,12 @@
 #include "ebpf_result.h"
 #include "ebpf_shared_framework.h"
 #include "ebpf_verifier_wrapper.hpp"
+#include "ir/call_resolver.hpp"
 #include "map_descriptors.hpp"
+#include "windows_platform_common.hpp"
 
+#include <deque>
+#include <stdexcept>
 #include <stdint.h>
 #include <string>
 #include <vector>
@@ -16,11 +20,25 @@
 thread_local static const ebpf_program_type_t* _global_program_type = nullptr;
 thread_local static const ebpf_attach_type_t* _global_attach_type = nullptr;
 
+// Per-instruction map annotations from the most recent verification.
+// Strings in _map_annotation_names are owned by this deque; the ebpf_verifier_map_info_t
+// entries in _map_annotations hold c_str() pointers into them.
+// A deque is used (instead of vector) because push_back never invalidates
+// references or pointers to existing elements.
+thread_local static std::deque<std::string> _map_annotation_names;
+thread_local static std::vector<ebpf_verifier_map_info_t> _map_annotations;
+
 const char*
 allocate_string(const std::string& string, uint32_t* length) noexcept
 {
     char* new_string;
-    size_t string_length = string.size() + 1;
+    size_t string_length = 0;
+    if (ebpf_safe_size_t_add(string.size(), 1, &string_length) != EBPF_SUCCESS) {
+        return nullptr;
+    }
+    if ((length != nullptr) && (string_length > UINT32_MAX)) {
+        return nullptr;
+    }
     new_string = (char*)ebpf_allocate_with_tag(string_length, EBPF_POOL_TAG_DEFAULT);
     if (new_string != nullptr) {
         strcpy_s(new_string, string_length, string.c_str());
@@ -31,12 +49,19 @@ allocate_string(const std::string& string, uint32_t* length) noexcept
     return new_string;
 }
 
-std::vector<uint8_t>
-convert_ebpf_program_to_bytes(const std::vector<ebpf_inst>& instructions)
+ebpf_result_t
+convert_ebpf_program_to_bytes(const std::vector<ebpf_inst>& instructions, std::vector<uint8_t>& byte_code)
 {
-    return {
+    size_t byte_count = 0;
+    ebpf_result_t result = ebpf_safe_size_t_multiply(instructions.size(), sizeof(ebpf_inst), &byte_count);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    byte_code = {
         reinterpret_cast<const uint8_t*>(instructions.data()),
-        reinterpret_cast<const uint8_t*>(instructions.data()) + instructions.size() * sizeof(ebpf_inst)};
+        reinterpret_cast<const uint8_t*>(instructions.data()) + byte_count};
+    return EBPF_SUCCESS;
 }
 
 int
@@ -62,6 +87,10 @@ ebpf_object_get_info(
     _Out_opt_ ebpf_object_type_t* type) noexcept
 {
     EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+    size_t request_buffer_length = 0;
+    size_t reply_buffer_length = 0;
+    size_t returned_info_size = 0;
 
     if (info != nullptr && (info_size == nullptr || *info_size == 0)) {
         return EBPF_INVALID_ARGUMENT;
@@ -76,27 +105,47 @@ ebpf_object_get_info(
         request_info_size = *info_size;
     }
 
-    ebpf_protocol_buffer_t request_buffer(
-        EBPF_OFFSET_OF(ebpf_operation_get_object_info_request_t, info) + request_info_size);
-    ebpf_protocol_buffer_t reply_buffer(
-        EBPF_OFFSET_OF(ebpf_operation_get_object_info_reply_t, info) + request_info_size);
+    result = ebpf_safe_size_t_add(
+        EBPF_OFFSET_OF(ebpf_operation_get_object_info_request_t, info), request_info_size, &request_buffer_length);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
+
+    result = ebpf_safe_size_t_add(
+        EBPF_OFFSET_OF(ebpf_operation_get_object_info_reply_t, info), request_info_size, &reply_buffer_length);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
+
+    ebpf_protocol_buffer_t request_buffer(request_buffer_length);
+    ebpf_protocol_buffer_t reply_buffer(reply_buffer_length);
     auto request = reinterpret_cast<ebpf_operation_get_object_info_request_t*>(request_buffer.data());
     auto reply = reinterpret_cast<ebpf_operation_get_object_info_reply_t*>(reply_buffer.data());
 
-    request->header.length = static_cast<uint16_t>(request_buffer.size());
+    result = ebpf_safe_size_t_to_uint16(request_buffer.size(), &request->header.length);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
     request->header.id = ebpf_operation_id_t::EBPF_OPERATION_GET_OBJECT_INFO;
     request->handle = handle;
     if (info != nullptr) {
         memcpy(request->info, info, *info_size);
     }
 
-    ebpf_result_t result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer, reply_buffer));
+    result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer, reply_buffer));
     if (result == EBPF_SUCCESS) {
         if (type != nullptr) {
             *type = reply->type;
         }
         if (info != nullptr) {
-            *info_size = reply->header.length - EBPF_OFFSET_OF(ebpf_operation_get_object_info_reply_t, info);
+            result = ebpf_safe_size_t_subtract(
+                static_cast<size_t>(reply->header.length),
+                EBPF_OFFSET_OF(ebpf_operation_get_object_info_reply_t, info),
+                &returned_info_size);
+            if (result != EBPF_SUCCESS) {
+                EBPF_RETURN_RESULT(result);
+            }
+            *info_size = static_cast<uint32_t>(returned_info_size);
             memcpy(info, reply->info, *info_size);
         }
     }
@@ -160,7 +209,10 @@ ebpf_clear_thread_local_storage() noexcept
     clear_map_descriptors();
     clear_program_info_cache();
     set_program_under_verification(ebpf_handle_invalid);
+    set_verification_program_type(nullptr);
     clean_up_sync_device_handle();
+    _map_annotations.clear();
+    _map_annotation_names.clear();
 }
 
 // Returned value is true if the program passes verification.
@@ -169,7 +221,7 @@ ebpf_verify_program(
     std::ostream& os,
     _In_ const prevail::InstructionSeq& instruction_sequence,
     _In_ const prevail::ProgramInfo& info,
-    _In_ const prevail::ebpf_verifier_options_t& options,
+    _In_ const prevail::VerifierOptions& options,
     _Out_ ebpf_api_verifier_stats_t* stats)
 {
     stats->total_unreachable = 0;
@@ -181,26 +233,98 @@ ebpf_verify_program(
         if (info.type.platform_specific_data == (uintptr_t)&EBPF_PROGRAM_TYPE_UNSPECIFIED) {
             throw std::runtime_error("Unspecified program type.");
         }
-        const auto program = prevail::Program::from_sequence(instruction_sequence, info, options);
-        auto analysis_result = prevail::analyze(program);
+        set_verification_program_type(&info.type);
+        auto program = prevail::Program::from_sequence(instruction_sequence, info, options);
+        prevail::AnalysisContext context{std::move(program), options};
+        auto analysis_result = prevail::analyze(context);
+
+        // Extract per-instruction map annotations using the verifier's abstract domain.
+        // For each map helper call, query the pre-state to determine which map r1 holds.
+        _map_annotations.clear();
+        _map_annotation_names.clear();
+        if (!analysis_result.failed) {
+            // Pre-build fd → descriptor index lookup table to avoid linear scans.
+            std::unordered_map<int32_t, size_t> fd_to_descriptor_index;
+            for (size_t i = 0; i < info.map_descriptors.size(); i++) {
+                fd_to_descriptor_index[info.map_descriptors[i].original_fd] = i;
+            }
+
+            for (const auto& [label, inv_pair] : analysis_result.invariants) {
+                if (label.isjump() || !label.stack_frame_prefix.empty() || !label.special_label.empty()) {
+                    continue;
+                }
+                const auto& inst = context.program.instruction_at(label);
+                const auto* call = std::get_if<prevail::Call>(&inst);
+                if (!call || !prevail::resolve(*call, info).contract.is_map_lookup) {
+                    continue;
+                }
+
+                // Use the verifier's abstract domain to query r1's map identity.
+                const prevail::EbpfDomain& pre = inv_pair.pre;
+                if (pre.is_bottom()) {
+                    continue;
+                }
+
+                int32_t start_fd = 0, end_fd = 0;
+                if (!pre.get_map_fd_range(prevail::Reg{1}, &start_fd, &end_fd) || start_fd != end_fd) {
+                    continue; // Ambiguous map — skip annotation.
+                }
+
+                auto map_type = pre.get_map_type(prevail::Reg{1}, context);
+                if (!map_type.has_value()) {
+                    continue; // Ambiguous type — skip annotation.
+                }
+
+                // Look up the map descriptor to get name, value_size, max_entries.
+                const std::string* map_name = nullptr;
+                uint32_t value_size = 0;
+                uint32_t max_entries = 0;
+                bool is_inner_map_template = false;
+                auto fd_it = fd_to_descriptor_index.find(start_fd);
+                if (fd_it != fd_to_descriptor_index.end()) {
+                    const auto& desc = info.map_descriptors[fd_it->second];
+                    if (!desc.name.empty()) {
+                        _map_annotation_names.push_back(desc.name);
+                        map_name = &_map_annotation_names.back();
+                    }
+                    value_size = desc.value_size;
+                    max_entries = desc.max_entries;
+                    is_inner_map_template = desc.is_inner_map_template;
+                }
+
+                if (map_name == nullptr) {
+                    continue; // No name — can't match to bpf2c's map_definitions.
+                }
+
+                ebpf_verifier_map_info_t ann = {};
+                ann.instruction_offset = (uint32_t)label.from;
+                ann.helper_id = call->func;
+                ann.map_name = map_name->c_str();
+                ann.map_type = *map_type;
+                ann.value_size = value_size;
+                ann.max_entries = max_entries;
+                ann.is_inner_map_template = is_inner_map_template;
+                _map_annotations.push_back(ann);
+            }
+        }
+
         if (options.verbosity_opts.print_invariants) {
-            print_invariants(os, program, options.verbosity_opts.simplify, analysis_result);
+            print_invariants(os, context.program, analysis_result, options.verbosity_opts);
         }
         bool pass = !analysis_result.failed;
         if (options.verbosity_opts.print_failures) {
-            prevail::thread_local_options.verbosity_opts.print_line_info = true;
             if (auto verification_error = analysis_result.find_first_error()) {
-                print_error(os, *verification_error);
+                print_error(os, *verification_error, context.program, options.verbosity_opts);
             }
         }
         // Count unreachable labels reported by the analysis result.
-        stats->total_unreachable = (int)analysis_result.find_unreachable(program).size();
+        stats->total_unreachable = (int)analysis_result.find_unreachable(context.program).size();
         // Handle failure slice output when collect_instruction_deps is enabled.
         if (options.verbosity_opts.collect_instruction_deps && analysis_result.failed) {
             // Limit to 1 slice to keep diagnostic output concise for the API consumer.
             prevail::AnalysisResult::SliceParams slice_params{.max_slices = 1};
-            auto slices = analysis_result.compute_failure_slices(program, slice_params);
-            print_failure_slices(os, program, options.verbosity_opts.simplify, analysis_result, slices);
+            auto slices = analysis_result.compute_failure_slices(slice_params, context);
+            print_failure_slices(os, context.program, analysis_result, slices, options.verbosity_opts);
         }
         // Get the warning count by counting invariants with errors.
         stats->total_warnings = 0;
@@ -217,22 +341,31 @@ ebpf_verify_program(
     }
 }
 
-prevail::ebpf_verifier_options_t
+prevail::VerifierOptions
 ebpf_get_default_verifier_options(ebpf_verification_verbosity_t verbosity)
 {
-    prevail::ebpf_verifier_options_t verifier_options{};
-    verifier_options.cfg_opts.check_for_termination = true;
-    verifier_options.cfg_opts.must_have_exit = true;
+    prevail::VerifierOptions verifier_options{};
+    verifier_options.runtime.check_for_termination = true;
+    verifier_options.must_have_exit = true;
     verifier_options.verbosity_opts.print_invariants = (verbosity >= EBPF_VERIFICATION_VERBOSITY_VERBOSE);
     verifier_options.verbosity_opts.print_line_info = true;
     verifier_options.mock_map_fds = true;
-    verifier_options.strict = false;
-    verifier_options.allow_division_by_zero = true;
-    verifier_options.setup_constraints = true;
-    verifier_options.big_endian = false;
+    verifier_options.runtime.strict = false;
+    verifier_options.runtime.allow_division_by_zero = true;
+    verifier_options.runtime.setup_constraints = true;
+    verifier_options.runtime.big_endian = false;
     if (verbosity == EBPF_VERIFICATION_VERBOSITY_INFORMATIONAL) {
         verifier_options.verbosity_opts.collect_instruction_deps = true;
         verifier_options.verbosity_opts.simplify = false;
     }
     return verifier_options;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_get_map_annotations_from_verifier(
+    _Outptr_result_buffer_maybenull_(*count) const ebpf_verifier_map_info_t** annotations, _Out_ size_t* count) noexcept
+{
+    *count = _map_annotations.size();
+    *annotations = (*count > 0) ? _map_annotations.data() : nullptr;
+    return EBPF_SUCCESS;
 }

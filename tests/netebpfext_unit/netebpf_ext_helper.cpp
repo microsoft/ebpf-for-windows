@@ -1,6 +1,7 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_platform.h"
 #include "net_ebpf_ext_sock_addr.h"
 #include "netebpf_ext_helper.h"
 
@@ -54,7 +55,7 @@ _netebpf_ext_helper::_netebpf_ext_helper(
     // Do not use REQUIRE() in this constructor or the destructor will never be called
     // to clean up any state allocated before the REQUIRE.
 
-    if (!NT_SUCCESS(net_ebpf_ext_trace_initiate())) {
+    if (!NT_SUCCESS(ebpf_ext_trace_initiate())) {
         return;
     }
     trace_initiated = true;
@@ -124,7 +125,7 @@ _netebpf_ext_helper::~_netebpf_ext_helper()
     }
 
     if (trace_initiated) {
-        net_ebpf_ext_trace_terminate();
+        ebpf_ext_trace_terminate();
     }
 }
 
@@ -206,8 +207,9 @@ _netebpf_ext_helper::_hook_client_attach_provider(
     const ebpf_extension_dispatch_table_t client_dispatch_table = {
         .version = 1, .count = 1, .function = base_client_context->helper->hook_invoke_function};
     auto provider_data = (const ebpf_attach_provider_data_t*)provider_registration_instance->NpiSpecificCharacteristics;
-    if (base_client_context->desired_attach_type != BPF_ATTACH_TYPE_UNSPEC &&
-        provider_data->bpf_attach_type != base_client_context->desired_attach_type) {
+    if (!base_client_context->desired_attach_types.empty() &&
+        base_client_context->desired_attach_types.find(provider_data->bpf_attach_type) ==
+            base_client_context->desired_attach_types.end()) {
         return STATUS_ACCESS_DENIED;
     }
 

@@ -64,6 +64,8 @@ The release manager must download the relevant artifacts from the build pipeline
 
 1.  Check the "`Set as a pre-release`" checkbox, unless the release is production-signed.
 1.  Once the uploads are complete, click "`Publish release`". Github will automatically upload the zipped up source code file.
+1.  Update any regression test release references so tests that validate backward compatibility now use the release that just became N-1.
+    This keeps the regression tests pointed at the previous release after the new release is published.
 
 ## Publishing the Release to NuGet.org
 
@@ -130,8 +132,3 @@ version.
     ```
 
 1. Verify all the changes then commit all in the working branch.
-    >NOTE: The formatting rules may complain about the formatting of the generated `.c` files from the script above. In this case,
-    override them with the following (so they'll work with the `bpf2c_tests` verifying their content):
-    >```bash
-    >git commit --no-verify -a -m "update version to X.Y.Z".
-    >```

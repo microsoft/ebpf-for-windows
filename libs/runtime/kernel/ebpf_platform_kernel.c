@@ -15,6 +15,11 @@ struct _ebpf_ring_descriptor
     MDL* user_mdl_producer;
     MDL* memory;
     void* base_address;
+    // User-mode mapping state: captures the process and addresses returned from MmMapLockedPagesSpecifyCache.
+    PEPROCESS user_process;
+    uint64_t user_pid;
+    void* user_consumer_address;
+    void* user_producer_address;
 };
 typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
 
@@ -26,6 +31,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
 {
     EBPF_LOG_ENTRY();
     NTSTATUS status;
+    ebpf_result_t result;
 
     ebpf_ring_descriptor_t* ring_descriptor =
         ebpf_allocate_with_tag(sizeof(ebpf_ring_descriptor_t), EBPF_POOL_TAG_DEFAULT);
@@ -39,7 +45,15 @@ ebpf_allocate_ring_buffer_memory(size_t length)
 
     const size_t kernel_pages = 1;
     const size_t user_pages = 2; // consumer, producer
-    if (length % PAGE_SIZE != 0 || length > (MAXUINT32 / 2 - (kernel_pages + user_pages) * PAGE_SIZE)) {
+    size_t requested_page_count = 0;
+    size_t mapped_memory_length = 0;
+    size_t data_mapped_length = 0;
+    size_t header_page_count = 0;
+    size_t header_mapped_length = 0;
+    size_t total_mapped_size = 0;
+    size_t user_mdl_producer_length = 0;
+
+    if (length % PAGE_SIZE != 0) {
         status = STATUS_NO_MEMORY;
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
@@ -50,9 +64,29 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     }
 
     size_t data_pages = length / PAGE_SIZE;
-    size_t requested_page_count = kernel_pages + user_pages + data_pages;
-
-    if (requested_page_count < data_pages) {
+    result = ebpf_safe_size_t_add(kernel_pages, user_pages, &requested_page_count);
+    if (result == EBPF_SUCCESS) {
+        result = ebpf_safe_size_t_add(requested_page_count, data_pages, &requested_page_count);
+    }
+    if (result == EBPF_SUCCESS) {
+        result = ebpf_safe_size_t_multiply(requested_page_count, PAGE_SIZE, &mapped_memory_length);
+    }
+    if (result == EBPF_SUCCESS) {
+        result = ebpf_safe_size_t_multiply(length, 2, &data_mapped_length);
+    }
+    if (result == EBPF_SUCCESS) {
+        result = ebpf_safe_size_t_add(kernel_pages, user_pages, &header_page_count);
+    }
+    if (result == EBPF_SUCCESS) {
+        result = ebpf_safe_size_t_multiply(header_page_count, PAGE_SIZE, &header_mapped_length);
+    }
+    if (result == EBPF_SUCCESS) {
+        result = ebpf_safe_size_t_add(header_mapped_length, data_mapped_length, &total_mapped_size);
+    }
+    if (result == EBPF_SUCCESS) {
+        result = ebpf_safe_size_t_add(PAGE_SIZE, data_mapped_length, &user_mdl_producer_length);
+    }
+    if ((result != EBPF_SUCCESS) || (total_mapped_size > MAXULONG) || (user_mdl_producer_length > MAXULONG)) {
         status = STATUS_NO_MEMORY;
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "Ring buffer length is too large", length);
@@ -60,7 +94,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     }
 
     // Allocate pages using ebpf_map_memory.
-    ring_descriptor->memory = ebpf_map_memory(requested_page_count * PAGE_SIZE);
+    ring_descriptor->memory = ebpf_map_memory(mapped_memory_length);
     if (!ring_descriptor->memory) {
         status = STATUS_NO_MEMORY;
         goto Done;
@@ -68,8 +102,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     source_mdl = ring_descriptor->memory;
 
     // Create a MDL big enough to include the header and double-mapped pages.
-    uint32_t total_mapped_size = (uint32_t)((kernel_pages + user_pages) * PAGE_SIZE + length * 2);
-    ring_descriptor->kernel_mdl = IoAllocateMdl(NULL, total_mapped_size, FALSE, FALSE, NULL);
+    ring_descriptor->kernel_mdl = IoAllocateMdl(NULL, (ULONG)total_mapped_size, FALSE, FALSE, NULL);
     if (!ring_descriptor->kernel_mdl) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, IoAllocateMdl, STATUS_NO_MEMORY);
         status = STATUS_NO_MEMORY;
@@ -84,7 +117,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
         goto Done;
     }
 
-    ring_descriptor->user_mdl_producer = IoAllocateMdl(NULL, PAGE_SIZE + ((ULONG)length * 2), FALSE, FALSE, NULL);
+    ring_descriptor->user_mdl_producer = IoAllocateMdl(NULL, (ULONG)user_mdl_producer_length, FALSE, FALSE, NULL);
     if (!ring_descriptor->user_mdl_producer) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, IoAllocateMdl, STATUS_NO_MEMORY);
         status = STATUS_NO_MEMORY;
@@ -162,6 +195,14 @@ ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
         EBPF_RETURN_VOID();
     }
 
+    // Release process reference if still held (user never called unmap).
+    // False positive: ring is allocated via ebpf_allocate_with_tag/cxplat_allocate and is zero-initialized.
+#pragma warning(suppress : 6001)
+    if (ring->user_process != NULL) {
+        ObDereferenceObject(ring->user_process);
+        ring->user_process = NULL;
+    }
+
     IoFreeMdl(ring->user_mdl_consumer);
     IoFreeMdl(ring->user_mdl_producer);
 
@@ -182,48 +223,97 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_ring_map_user(
     _In_ ebpf_ring_descriptor_t* ring, _Outptr_ void** consumer, _Outptr_ void** producer, _Outptr_ uint8_t** data)
 {
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS;
+
     if (!ring || !consumer || !producer || !data) {
-        return EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "Invalid ring map user arguments");
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
     }
 
     *consumer = NULL;
     *producer = NULL;
     *data = NULL;
 
+    // Check if already mapped.
+    if (ring->user_consumer_address != NULL) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "Ring already mapped to user mode", ring->user_pid);
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
     __try {
         *consumer =
             MmMapLockedPagesSpecifyCache(ring->user_mdl_consumer, UserMode, MmCached, NULL, FALSE, NormalPagePriority);
     } __except (EXCEPTION_EXECUTE_HANDLER) {
+        status = GetExceptionCode();
         *consumer = NULL;
     }
     if (!*consumer) {
-        return EBPF_INVALID_ARGUMENT;
+        if (NT_SUCCESS(status)) {
+            status = STATUS_NO_MEMORY;
+        }
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_BAIL_ON_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmMapLockedPagesSpecifyCache, status, Exit);
     }
 
+    status = STATUS_SUCCESS;
     __try {
         *producer = MmMapLockedPagesSpecifyCache(
             ring->user_mdl_producer, UserMode, MmCached, NULL, FALSE, NormalPagePriority | MdlMappingNoWrite);
     } __except (EXCEPTION_EXECUTE_HANDLER) {
+        status = GetExceptionCode();
         *producer = NULL;
     }
     if (!*producer) {
         MmUnmapLockedPages(*consumer, ring->user_mdl_consumer);
         *consumer = NULL;
-        return EBPF_INVALID_ARGUMENT;
+        if (NT_SUCCESS(status)) {
+            status = STATUS_NO_MEMORY;
+        }
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_BAIL_ON_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmMapLockedPagesSpecifyCache, status, Exit);
     }
 
+    // Capture process reference and addresses for secure unmapping.
+    ring->user_process = PsGetCurrentProcess();
+    ObReferenceObject(ring->user_process);
+    ring->user_pid = (uint64_t)(uintptr_t)PsGetCurrentProcessId();
+    ring->user_consumer_address = *consumer;
+    ring->user_producer_address = *producer;
+
     *data = (uint8_t*)*producer + PAGE_SIZE;
-    return EBPF_SUCCESS;
+    result = EBPF_SUCCESS;
+
+Exit:
+    EBPF_RETURN_RESULT(result);
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_ring_unmap_user(
-    _In_ ebpf_ring_descriptor_t* ring, _In_ const void* consumer, _In_ const void* producer, _In_ const void* data)
+ebpf_ring_unmap_user(_In_ ebpf_ring_descriptor_t* ring)
 {
-    UNREFERENCED_PARAMETER(data);
-    MmUnmapLockedPages((void*)consumer, ring->user_mdl_consumer);
-    MmUnmapLockedPages((void*)producer, ring->user_mdl_producer);
-    // No-op for data, as it's part of the same mapping.
+    // Verify that the ring was mapped to user mode.
+    if (ring->user_consumer_address == NULL) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    // Verify the call is from the same process that mapped the ring.
+    if (PsGetCurrentProcess() != ring->user_process) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    // Use the stored addresses, not the user-provided ones.
+    MmUnmapLockedPages(ring->user_consumer_address, ring->user_mdl_consumer);
+    MmUnmapLockedPages(ring->user_producer_address, ring->user_mdl_producer);
+
+    ObDereferenceObject(ring->user_process);
+    ring->user_process = NULL;
+    ring->user_consumer_address = NULL;
+    ring->user_producer_address = NULL;
+
     return EBPF_SUCCESS;
 }
 
@@ -298,7 +388,7 @@ ebpf_access_check(
             0,
             NULL,
             (ebpf_security_generic_mapping_t*)generic_mapping,
-            KernelMode,
+            UserMode,
             &granted_access,
             &status)) {
         result = EBPF_ACCESS_DENIED;
@@ -307,6 +397,7 @@ ebpf_access_check(
     }
 
     SeUnlockSubjectContext(&subject_context);
+    SeReleaseSubjectContext(&subject_context);
     return result;
 }
 
@@ -346,6 +437,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
     if (access_token == NULL) {
         EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "SeQuerySubjectContextToken failed");
 
+        SeReleaseSubjectContext(&context);
         return EBPF_FAILED;
     }
 
@@ -354,11 +446,13 @@ _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, SeQueryAuthenticationIdToken, status);
 
+        SeReleaseSubjectContext(&context);
         return EBPF_FAILED;
     }
 
     *authentication_id = *(uint64_t*)&local_authentication_id;
 
+    SeReleaseSubjectContext(&context);
     return EBPF_SUCCESS;
 }
 
@@ -397,7 +491,16 @@ _convert_utf8_string_to_unicode_string(
     }
 
     // Add space for null terminator.
-    ULONG required_bytes = bytes_in_unicode_string + sizeof(wchar_t);
+    uint32_t required_bytes = 0;
+    if (cxplat_safe_uint32_t_add(bytes_in_unicode_string, sizeof(wchar_t), &required_bytes) != CXPLAT_STATUS_SUCCESS) {
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_BASE,
+            "_convert_utf8_string_to_unicode_string: File path too long");
+        goto Done;
+    }
+
     if (required_bytes > USHORT_MAX) {
         result = EBPF_INVALID_ARGUMENT;
         EBPF_LOG_MESSAGE(

@@ -33,6 +33,7 @@ typedef enum bpf_map_type
     BPF_MAP_TYPE_RINGBUF = 13,          ///< Ring buffer.
     BPF_MAP_TYPE_PERF_EVENT_ARRAY = 14, ///< Perf event array.
     BPF_MAP_TYPE_SAMPLE_HASH_MAP = 15,  ///< Sample hash map type.
+    BPF_MAP_TYPE_XSKMAP = 16,           ///< AF_XDP socket (XSK) map.
     BPF_MAP_TYPE_MAX                    ///< Maximum value for map types.
 } ebpf_map_type_t;
 
@@ -56,6 +57,8 @@ static const char* const _ebpf_map_type_names[] = {
     BPF_ENUM_TO_STRING(BPF_MAP_TYPE_STACK),
     BPF_ENUM_TO_STRING(BPF_MAP_TYPE_RINGBUF),
     BPF_ENUM_TO_STRING(BPF_MAP_TYPE_PERF_EVENT_ARRAY),
+    BPF_ENUM_TO_STRING(BPF_MAP_TYPE_SAMPLE_HASH_MAP),
+    BPF_ENUM_TO_STRING(BPF_MAP_TYPE_XSKMAP),
 };
 
 static const char* const _ebpf_map_display_names[] = {
@@ -74,6 +77,8 @@ static const char* const _ebpf_map_display_names[] = {
     "stack",
     "ringbuf",
     "perf_event_array",
+    "sample_hash_map",
+    "xskmap",
 };
 
 typedef enum ebpf_map_option
@@ -175,6 +180,7 @@ typedef enum
     BPF_FUNC_perf_event_output = 32,              ///< \ref bpf_perf_event_output
     BPF_FUNC_get_current_process_start_key = 33,  ///< \ref bpf_get_current_process_start_key
     BPF_FUNC_get_current_thread_create_time = 34, ///< \ref bpf_get_current_thread_create_time
+    BPF_FUNC_redirect_map = 35,                   ///< \ref bpf_redirect_map
 } ebpf_helper_id_t;
 
 // Cross-platform BPF program types.
@@ -192,7 +198,7 @@ enum bpf_prog_type
      */
     BPF_PROG_TYPE_XDP,
 
-    /** @brief Program type for handling socket bind() requests.
+    /** @brief Program type for handling socket bind operations.
      *
      * **eBPF program prototype:** \ref bind_hook_t
      *
@@ -200,7 +206,7 @@ enum bpf_prog_type
      *
      * **Helpers available:** all helpers defined in bpf_helpers.h
      */
-    BPF_PROG_TYPE_BIND, // TODO(#333): replace with cross-platform program type
+    BPF_PROG_TYPE_BIND, // TODO(#333): replace with cross-platform program type.
 
     /** @brief Program type for handling various socket operations such as connect(), accept() etc.
      *
@@ -211,6 +217,10 @@ enum bpf_prog_type
      *  \ref BPF_CGROUP_INET6_CONNECT
      *  \ref BPF_CGROUP_INET4_RECV_ACCEPT
      *  \ref BPF_CGROUP_INET6_RECV_ACCEPT
+     *  \ref BPF_CGROUP_INET4_CONNECT_AUTHORIZATION
+     *  \ref BPF_CGROUP_INET6_CONNECT_AUTHORIZATION
+     *  \ref BPF_CGROUP_INET4_BIND
+     *  \ref BPF_CGROUP_INET6_BIND
      *
      * **Helpers available:** all helpers defined in bpf_helpers.h
      */
@@ -289,7 +299,7 @@ enum bpf_attach_type
      */
     BPF_XDP,
 
-    /** @brief Attach type for handling socket bind() requests.
+    /** @brief Attach type for handling socket bind operations.
      *
      * **Program type:** \ref BPF_PROG_TYPE_BIND
      */
@@ -346,6 +356,44 @@ enum bpf_attach_type
      * **Program type:** \ref BPF_PROG_TYPE_PROCESS
      */
     BPF_ATTACH_TYPE_PROCESS = 11,
+
+    /** @brief Attach type for handling IPv4 TCP connect() or UDP send
+     * authorization (before connection is authorized).
+     *
+     * **Program type:** \ref BPF_PROG_TYPE_CGROUP_SOCK_ADDR
+     */
+    BPF_CGROUP_INET4_CONNECT_AUTHORIZATION,
+
+    /** @brief Attach type for handling IPv6 TCP connect() or UDP send
+     * authorization (before connection is authorized).
+     *
+     * **Program type:** \ref BPF_PROG_TYPE_CGROUP_SOCK_ADDR
+     */
+    BPF_CGROUP_INET6_CONNECT_AUTHORIZATION,
+
+    /** @brief Attach type for handling IPv4 socket bind operations.
+     *
+     * **Program type:** \ref BPF_PROG_TYPE_CGROUP_SOCK_ADDR
+     */
+    BPF_CGROUP_INET4_BIND,
+
+    /** @brief Attach type for handling IPv6 socket bind operations.
+     *
+     * **Program type:** \ref BPF_PROG_TYPE_CGROUP_SOCK_ADDR
+     */
+    BPF_CGROUP_INET6_BIND,
+
+    /** @brief Attach type for handling IPv4 socket listen() operations.
+     *
+     * **Program type:** \ref BPF_PROG_TYPE_CGROUP_SOCK_ADDR
+     */
+    BPF_CGROUP_INET4_LISTEN,
+
+    /** @brief Attach type for handling IPv6 socket listen() operations.
+     *
+     * **Program type:** \ref BPF_PROG_TYPE_CGROUP_SOCK_ADDR
+     */
+    BPF_CGROUP_INET6_LISTEN,
 
     __MAX_BPF_ATTACH_TYPE,
 };

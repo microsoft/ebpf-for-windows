@@ -103,7 +103,8 @@ size_t _ebpf_native_helper_function_data_supported_size[] = {EBPF_NATIVE_HELPER_
 size_t _ebpf_native_map_entry_supported_size[] = {EBPF_NATIVE_MAP_ENTRY_SIZE_0};
 
 #define EBPF_NATIVE_MAP_DATA_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(map_data_t, address)
-size_t _ebpf_native_map_data_supported_size[] = {EBPF_NATIVE_MAP_DATA_SIZE_0};
+#define EBPF_NATIVE_MAP_DATA_SIZE_1 EBPF_SIZE_INCLUDING_FIELD(map_data_t, array_data)
+size_t _ebpf_native_map_data_supported_size[] = {EBPF_NATIVE_MAP_DATA_SIZE_0, EBPF_NATIVE_MAP_DATA_SIZE_1};
 
 #define EBPF_NATIVE_PROGRAM_ENTRY_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(program_entry_t, program_info_hash_type)
 size_t _ebpf_native_program_entry_supported_size[] = {EBPF_NATIVE_PROGRAM_ENTRY_SIZE_0};
@@ -131,7 +132,10 @@ size_t _ebpf_map_client_data_supported_size[] = {EBPF_MAP_CLIENT_DATA_SIZE_0};
 
 #define EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_SIZE_0 \
     EBPF_SIZE_INCLUDING_FIELD(ebpf_base_map_provider_dispatch_table_t, preprocess_map_delete_element)
-size_t _ebpf_map_provider_dispatch_table_supported_size[] = {EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_SIZE_0};
+#define EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_SIZE_1 \
+    EBPF_SIZE_INCLUDING_FIELD(ebpf_base_map_provider_dispatch_table_t, postprocess_map_delete_element)
+size_t _ebpf_map_provider_dispatch_table_supported_size[] = {
+    EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_SIZE_0, EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_SIZE_1};
 
 #define EBPF_BASE_MAP_PROVIDER_PROPERTIES_SIZE_0 \
     EBPF_SIZE_INCLUDING_FIELD(ebpf_base_map_provider_properties_t, updates_original_value)
@@ -440,8 +444,13 @@ _duplicate_helper_function_prototype_array(
     // The ebpf_helper_function_prototype_t struct gets padded at arguments[5] field.
     helper_prototype_size = EBPF_PAD_8(helper_prototype_array[0].header.size);
 
-    local_helper_prototype_array = (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(
-        count * sizeof(ebpf_helper_function_prototype_t), EBPF_POOL_TAG_DEFAULT);
+    size_t helper_array_length = 0;
+    result = ebpf_safe_size_t_multiply(count, sizeof(ebpf_helper_function_prototype_t), &helper_array_length);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+    local_helper_prototype_array =
+        (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(helper_array_length, EBPF_POOL_TAG_DEFAULT);
     if (local_helper_prototype_array == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -827,9 +836,21 @@ _ebpf_validate_map_provider_dispatch_table(_In_ const ebpf_base_map_provider_dis
         min(dispatch_table->header.size, sizeof(ebpf_base_map_provider_dispatch_table_t)));
 
     if (local_dispatch_table.header.version == EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_CURRENT_VERSION) {
-        if (local_dispatch_table.header.size == EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_CURRENT_VERSION_SIZE) {
-            if (local_dispatch_table.preprocess_map_create == NULL || local_dispatch_table.postprocess_map_delete == NULL ||
+        if (local_dispatch_table.header.size == EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_SIZE_0 ||
+            local_dispatch_table.header.size == EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_SIZE_1) {
+            if (local_dispatch_table.preprocess_map_create == NULL ||
+                local_dispatch_table.postprocess_map_delete == NULL ||
                 local_dispatch_table.preprocess_associate_program_type == NULL) {
+                return false;
+            }
+            // Validate that exactly one of preprocess_map_delete_element (deprecated) or
+            // postprocess_map_delete_element (new) is set, not both.
+            bool has_preprocess = (local_dispatch_table.header.size >= EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_SIZE_0) &&
+                                  (local_dispatch_table.preprocess_map_delete_element != NULL);
+            bool has_postprocess = (local_dispatch_table.header.size >= EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_SIZE_1) &&
+                                   (local_dispatch_table.postprocess_map_delete_element != NULL);
+            if (has_preprocess && has_postprocess) {
+                // Both set — not allowed.
                 return false;
             }
         } else {

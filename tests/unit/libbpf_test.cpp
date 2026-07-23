@@ -2096,6 +2096,48 @@ TEST_CASE("good_tail_call_same_section-native", "[libbpf]")
     ebpf_test_tail_call("tail_call_same_section_um.dll", 42);
 }
 
+static void
+_test_multi_prog_same_section(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    program_info_provider_t bind_program_info;
+    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "multi_prog_same_section_um.dll" : "multi_prog_same_section.o");
+    struct bpf_object* object = bpf_object__open(file_name);
+    REQUIRE(object != nullptr);
+
+    // Verify both programs are found by name.
+    struct bpf_program* prog1 = bpf_object__find_program_by_name(object, "prog1");
+    REQUIRE(prog1 != nullptr);
+    struct bpf_program* prog2 = bpf_object__find_program_by_name(object, "prog2");
+    REQUIRE(prog2 != nullptr);
+
+    // Both programs should be in the "bind" section.
+    REQUIRE(strcmp(bpf_program__section_name(prog1), "bind") == 0);
+    REQUIRE(strcmp(bpf_program__section_name(prog2), "bind") == 0);
+
+    // Verify program names.
+    REQUIRE(strcmp(bpf_program__name(prog1), "prog1") == 0);
+    REQUIRE(strcmp(bpf_program__name(prog2), "prog2") == 0);
+
+    // Verify programs are distinct.
+    REQUIRE(prog1 != prog2);
+
+    // Load the programs.
+    REQUIRE(bpf_object__load(object) == 0);
+
+    // Verify both programs were loaded successfully.
+    REQUIRE(bpf_program__fd(const_cast<const bpf_program*>(prog1)) > 0);
+    REQUIRE(bpf_program__fd(const_cast<const bpf_program*>(prog2)) > 0);
+
+    bpf_object__close(object);
+}
+
+DECLARE_ALL_TEST_CASES("multi_prog_same_section", "[libbpf]", _test_multi_prog_same_section);
+
 TEST_CASE("bad_tail_call-native", "[libbpf]")
 {
     ebpf_test_tail_call("tail_call_bad_um.dll", (uint32_t)(-EBPF_INVALID_ARGUMENT));
@@ -2840,7 +2882,7 @@ _test_enumerate_link_IDs_with_bpf(ebpf_execution_type_t execution_type)
     // Pin the detached link.
     memset(&attr, 0, sizeof(attr));
     attr.obj_pin.bpf_fd = fd1;
-    attr.obj_pin.pathname = (uintptr_t) "MyPath";
+    attr.obj_pin.pathname = (uintptr_t)"MyPath";
     REQUIRE(bpf(BPF_OBJ_PIN, &attr, sizeof(attr)) == 0);
 
     // Verify that bpf_fd must be 0 when calling BPF_OBJ_GET.
@@ -3591,9 +3633,9 @@ TEST_CASE("Map and program information", "[libbpf][bpf]")
     union bpf_attr attr = {};
     attr.info.bpf_fd = map_fd;
     attr.info.info = (uintptr_t)&map_info;
-    attr.info.info_len = offsetof(map_info, key_size);
+    attr.info.info_len = offsetof(sys_bpf_map_info_t, key_size);
     REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
-    REQUIRE(attr.info.info_len == offsetof(map_info, key_size));
+    REQUIRE(attr.info.info_len == offsetof(sys_bpf_map_info_t, key_size));
     REQUIRE(map_info.type == map_create.map_type);
     REQUIRE(map_info.id != 0);
     REQUIRE(map_info.key_size == 0);
@@ -3639,9 +3681,9 @@ TEST_CASE("Map and program information", "[libbpf][bpf]")
     attr = {};
     attr.info.bpf_fd = program_fd;
     attr.info.info = (uintptr_t)&program_info;
-    attr.info.info_len = offsetof(program_info, tag);
+    attr.info.info_len = offsetof(sys_bpf_prog_info_t, tag);
     REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
-    REQUIRE(attr.info.info_len == offsetof(program_info, tag));
+    REQUIRE(attr.info.info_len == offsetof(sys_bpf_prog_info_t, tag));
     REQUIRE(program_info.id != 0);
     REQUIRE(program_info.nr_map_ids == 0);
     REQUIRE(strnlen(program_info.name, sizeof(program_info.name)) == 0);

@@ -26,8 +26,11 @@
 
 #include <chrono>
 #include <future>
+#include <ifdef.h>
 #include <iostream>
+#include <ipifcons.h>
 #include <memory>
+#include <random>
 #include <sstream>
 #include <tuple>
 #include <variant>
@@ -55,8 +58,8 @@ _change_egress_policy_test_ingress_block(
     // Send the packet. It should be dropped by the receive/accept program.
     sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
     receiver_socket.complete_async_receive(true);
-    // Cancel send operation.
-    sender_socket.cancel_send_message();
+    // Cancel pending I/O on the sender socket.
+    sender_socket.cancel_pending_io();
 }
 
 /**
@@ -98,14 +101,33 @@ struct connection_test_params
     // Expected bind error for server socket (0 = expect success).
     std::optional<int> expected_server_bind_error{};
 
+    // Expected listen error for server socket (0 = expect success).
+    std::optional<int> expected_listen_error{};
+
     // Expected outcome.
     connection_test_result expected_result{connection_test_result::block};
 
     std::optional<uint32_t> egress_verdict{};  ///< Egress verdict for connect hook.
     std::optional<uint32_t> ingress_verdict{}; ///< Ingress verdict for recv_accept hook.
+    std::optional<uint32_t> listen_verdict{};  ///< Listen verdict for listen enforcement (sock_addr).
     std::optional<bind_policy> bind_policy{};  ///< Bind policy to apply for this test.
     std::optional<bind_action_t>
         bind_verdict{}; ///< Simplified bind policy (uses current process, test port, test protocol).
+    std::optional<ebpf_sock_addr_verdict_t> sock_addr_bind_verdict{}; ///< Verdict for the sock_addr-aligned bind hook
+                                                                      ///< (uses test port, test protocol).
+};
+
+/**
+ * @brief Program attach method for the connection test framework.
+ *
+ * Selects which user-mode API is used to attach the program. Both ultimately
+ * invoke the same kernel attach IOCTL, but they pass different attach
+ * parameters and exercise different libbpf-compat translation paths.
+ */
+enum class attach_method_t
+{
+    ebpf_program_attach, ///< Native API with NULL attach parameter (wildcard / no compartment).
+    bpf_prog_attach,     ///< libbpf-compat API with 4-byte attach parameter containing compartment_id=0.
 };
 
 /**
@@ -113,8 +135,9 @@ struct connection_test_params
  */
 struct program_spec
 {
-    std::string_view program_name; ///< Name of the program.
-    bpf_attach_type attach_type;   ///< Attach type for the program.
+    std::string_view program_name;                                       ///< Name of the program.
+    bpf_attach_type attach_type;                                         ///< Attach type for the program.
+    attach_method_t attach_method{attach_method_t::ebpf_program_attach}; ///< Which API to use for attachment.
 };
 
 /**
@@ -145,6 +168,12 @@ struct connection_test_case
 
     std::vector<wfp_test_filter_spec> wfp_filters{}; ///< WFP filters to apply before the tests.
     std::vector<connection_test_params> tests{};     ///< Individual test parameters to execute in order.
+
+    /// Server-side bind address. If unset, the framework chooses a family-appropriate wildcard
+    /// (INADDR_ANY for IPv4-only listen tests, dual-stack/unspecified for other cases). When set,
+    /// the server socket binds to this address and the listen-policy map key uses it for
+    /// `local_ip`. The address family must match `address_family`.
+    std::optional<sockaddr_storage> server_bind_address{};
 };
 
 /**
@@ -193,6 +222,59 @@ _update_bind_policy_map_entry(
 }
 
 /**
+ * @brief Update or delete an entry in the sock_addr-aligned bind verdict map for testing.
+ *
+ * Companion to `_update_bind_policy_map_entry` for the cgroup_sock_addr_bind sample program.
+ * Drives the new `cgroup/bind4` / `cgroup/bind6` hooks by writing a sock_addr verdict
+ * (REJECT / PROCEED_SOFT / PROCEED_HARD) into the bind_verdict_map keyed by
+ * (port, protocol).
+ *
+ * @param[in] map_fd File descriptor of the bind_verdict_map.
+ * @param[in] port Port number (network byte order).
+ * @param[in] protocol IP protocol (e.g., IPPROTO_TCP).
+ * @param[in] verdict Sock_addr verdict to return from the program.
+ * @param[in] add True to add/update entry, false to delete entry.
+ */
+void
+_update_sock_addr_bind_verdict_map_entry(
+    fd_t map_fd, uint16_t port, uint8_t protocol, ebpf_sock_addr_verdict_t verdict, bool add = true)
+{
+#pragma pack(push, 1)
+    struct
+    {
+        uint16_t port;
+        uint8_t protocol;
+        uint8_t pad;
+    } key = {port, protocol, 0};
+#pragma pack(pop)
+    uint32_t value = static_cast<uint32_t>(verdict);
+
+    if (add) {
+        SAFE_REQUIRE(bpf_map_update_elem(map_fd, &key, &value, 0) == 0);
+    } else {
+        bpf_map_delete_elem(map_fd, &key);
+    }
+}
+
+// Raw-value variant of _update_sock_addr_bind_verdict_map_entry for tests that need to
+// inject an out-of-range value (e.g. a verdict bit pattern that is not a valid
+// ebpf_sock_addr_verdict_t enumerator) to exercise contract corner cases such as the
+// "any unknown return value is treated as REJECT" rule.
+void
+_update_sock_addr_bind_verdict_map_entry_raw(fd_t map_fd, uint16_t port, uint8_t protocol, uint32_t raw_value)
+{
+#pragma pack(push, 1)
+    struct
+    {
+        uint16_t port;
+        uint8_t protocol;
+        uint8_t pad;
+    } key = {port, protocol, 0};
+#pragma pack(pop)
+    SAFE_REQUIRE(bpf_map_update_elem(map_fd, &key, &raw_value, 0) == 0);
+}
+
+/**
  * @brief Execute a connection attempt and validate the result.
  *
  * This function sends a test message from the client to the server on the specified port
@@ -225,7 +307,7 @@ execute_connection_attempt(
 
     if (expected_result == connection_test_result::block) {
         server->complete_async_receive(true);
-        client->cancel_send_message();
+        client->cancel_pending_io();
     } else if (expected_result == connection_test_result::allow) {
         client->complete_async_send(1000, expected_result_t::SUCCESS);
         server->complete_async_receive(false);
@@ -298,10 +380,13 @@ execute_connection_test(_In_ const connection_test_case& test_case)
         }
     }
 
-    // Get policy maps (sock_addr or bind).
+    // Get policy maps (sock_addr, bind, or sockops).
     bpf_map* ingress_map = nullptr;
     bpf_map* egress_map = nullptr;
     bpf_map* bind_policy_map = nullptr;
+    bpf_map* connection_map = nullptr;
+    bpf_map* listen_map = nullptr;
+    bpf_map* bind_verdict_map = nullptr;
 
     for (const auto& mod : loaded_modules) {
         if (!ingress_map) {
@@ -312,6 +397,15 @@ execute_connection_test(_In_ const connection_test_case& test_case)
         }
         if (!bind_policy_map) {
             bind_policy_map = bpf_object__find_map_by_name(mod.object.get(), "bind_policy_map");
+        }
+        if (!connection_map) {
+            connection_map = bpf_object__find_map_by_name(mod.object.get(), "connection_map");
+        }
+        if (!listen_map) {
+            listen_map = bpf_object__find_map_by_name(mod.object.get(), "listen_connection_policy_map");
+        }
+        if (!bind_verdict_map) {
+            bind_verdict_map = bpf_object__find_map_by_name(mod.object.get(), "bind_verdict_map");
         }
     }
 
@@ -334,6 +428,17 @@ execute_connection_test(_In_ const connection_test_case& test_case)
         SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(egress_map), &tuple, &sock_addr_reject_verdict, EBPF_ANY) == 0);
     }
 
+    // Determine server socket family. For listen enforcement tests, the server socket must use the
+    // test's address family so that listen() triggers the correct WFP layer (V4 or V6). When the
+    // caller specifies an explicit server_bind_address, also restrict to the test's family (the
+    // server is binding a specific address and shouldn't accept the other family). For all other
+    // tests (connect, recv_accept, bind), dual-stack is correct because the server needs to
+    // accept connections from both V4 and V6 clients.
+    bool is_listen_test = std::any_of(
+        test_case.tests.begin(), test_case.tests.end(), [](const auto& t) { return t.listen_verdict.has_value(); });
+    bool use_specific_family = is_listen_test || test_case.server_bind_address.has_value();
+    socket_family_t server_family = use_specific_family ? (test_case.address_family == AF_INET ? IPv4 : IPv6) : Dual;
+
     // Attach all programs before executing tests.
     for (auto& mod : loaded_modules) {
         CAPTURE(mod.helper.get_file_name());
@@ -343,9 +448,17 @@ execute_connection_test(_In_ const connection_test_case& test_case)
                 std::string(loaded_program.spec.program_name),
                 loaded_program.spec.attach_type,
                 bpf_program__fd(loaded_program.program));
-            ebpf_attach_type_t attach_type_guid{};
-            SAFE_REQUIRE(ebpf_get_ebpf_attach_type(loaded_program.spec.attach_type, &attach_type_guid) == EBPF_SUCCESS);
-            SAFE_REQUIRE(ebpf_program_attach(program, &attach_type_guid, nullptr, 0, nullptr) == EBPF_SUCCESS);
+            if (loaded_program.spec.attach_method == attach_method_t::bpf_prog_attach) {
+                // libbpf-compat path: passes a 4-byte attach parameter containing compartment_id=0.
+                int rc = ::bpf_prog_attach(bpf_program__fd(program), 0, loaded_program.spec.attach_type, 0);
+                SAFE_REQUIRE(rc == 0);
+            } else {
+                // Native API path: passes NULL attach parameter (wildcard / unspecified compartment).
+                ebpf_attach_type_t attach_type_guid{};
+                SAFE_REQUIRE(
+                    ebpf_get_ebpf_attach_type(loaded_program.spec.attach_type, &attach_type_guid) == EBPF_SUCCESS);
+                SAFE_REQUIRE(ebpf_program_attach(program, &attach_type_guid, nullptr, 0, nullptr) == EBPF_SUCCESS);
+            }
         }
     }
 
@@ -386,29 +499,65 @@ execute_connection_test(_In_ const connection_test_case& test_case)
                 static_cast<uint8_t>(test_case.protocol),
                 *test.bind_verdict);
         }
+        if (test.listen_verdict) {
+            SAFE_REQUIRE(listen_map != nullptr);
+            // Setup tuple for listen operation — key uses local address/port.
+            // When server_bind_address is provided, populate local_ip from it; otherwise the
+            // server binds to INADDR_ANY and WFP reports local_ip as zero.
+            connection_tuple_t listen_tuple = {0};
+            if (test_case.server_bind_address) {
+                if (test_case.address_family == AF_INET) {
+                    const sockaddr_in* addr4 = reinterpret_cast<const sockaddr_in*>(&(*test_case.server_bind_address));
+                    listen_tuple.local_ip.ipv4 = addr4->sin_addr.s_addr;
+                } else {
+                    const sockaddr_in6* addr6 =
+                        reinterpret_cast<const sockaddr_in6*>(&(*test_case.server_bind_address));
+                    memcpy(listen_tuple.local_ip.ipv6, &addr6->sin6_addr, sizeof(listen_tuple.local_ip.ipv6));
+                }
+            }
+            listen_tuple.local_port = htons(SOCKET_TEST_PORT);
+            listen_tuple.protocol = tuple.protocol;
+            SAFE_REQUIRE(
+                bpf_map_update_elem(bpf_map__fd(listen_map), &listen_tuple, &(*test.listen_verdict), EBPF_ANY) == 0);
+        }
+        if (test.sock_addr_bind_verdict) {
+            SAFE_REQUIRE(bind_verdict_map != nullptr);
+            _update_sock_addr_bind_verdict_map_entry(
+                bpf_map__fd(bind_verdict_map),
+                htons(static_cast<uint16_t>(SOCKET_TEST_PORT)),
+                static_cast<uint8_t>(test_case.protocol),
+                *test.sock_addr_bind_verdict);
+        }
 
         // Create sockets on init or after reset.
         if (!server) {
             int server_bind_error = test.expected_server_bind_error.value_or(0);
+            int server_listen_error = test.expected_listen_error.value_or(0);
+
+            // Honor explicit server bind address when provided; otherwise pass an empty sockaddr_storage
+            // which the socket helper interprets as wildcard (INADDR_ANY / dual-stack-as-applicable).
+            sockaddr_storage server_local = test_case.server_bind_address.value_or(sockaddr_storage{});
 
             if (test_case.protocol == IPPROTO_TCP) {
                 server = std::make_unique<stream_server_socket_t>(
                     static_cast<uint16_t>(SOCK_STREAM),
                     IPPROTO_TCP,
                     static_cast<uint16_t>(SOCKET_TEST_PORT),
-                    sockaddr_storage{},
-                    server_bind_error);
+                    server_local,
+                    server_bind_error,
+                    server_listen_error,
+                    server_family);
             } else if (test_case.protocol == IPPROTO_UDP) {
                 server = std::make_unique<datagram_server_socket_t>(
                     static_cast<uint16_t>(SOCK_DGRAM),
                     IPPROTO_UDP,
                     static_cast<uint16_t>(SOCKET_TEST_PORT),
-                    sockaddr_storage{},
+                    server_local,
                     server_bind_error);
             }
 
-            // If bind was expected to fail, skip connection testing.
-            if (server_bind_error != 0) {
+            // If bind or listen was expected to fail, skip connection testing.
+            if (server_bind_error != 0 || server_listen_error != 0) {
                 server.reset();
                 client.reset();
                 continue;
@@ -432,11 +581,12 @@ execute_connection_test(_In_ const connection_test_case& test_case)
         // Connection test (sock_addr).
         execute_connection_attempt(client, server, test_case.address_family, test.expected_result, SOCKET_TEST_PORT);
 
-        if (test.expected_result == connection_test_result::allow) {
-            // Reset sockets for next test after allow.
-            client.reset();
-            server.reset();
-        }
+        // Reset sockets after each sub-test. For TCP, a canceled ConnectEx leaves the socket
+        // in an indeterminate state (e.g., SYN_SENT if the SYN was transmitted before the WFP
+        // block). CancelIoEx does not wait for completion, so reusing the socket/OVERLAPPED for
+        // a subsequent ConnectEx is unreliable.
+        client.reset();
+        server.reset();
 
         ++test_index;
     }
@@ -644,6 +794,97 @@ TEMPLATE_TEST_CASE("connection_test_connect_hard_permit", "[sock_addr_tests]", A
          }});
 }
 
+// connect_authorization tests - using CONNECT_AUTHORIZATION attach type for egress filtering.
+TEMPLATE_TEST_CASE("connection_test_connect_authorization", "[sock_addr_tests]", ALL_CONNECTION_TEST_PARAMS)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test(
+        {.name = "connection_test_connect_authorization",
+         .address_family = family,
+         .protocol = protocol,
+         .modules{
+             {{.object_file = "cgroup_sock_addr",
+               .programs{
+                   {{(family == AF_INET) ? "connect_authorization4" : "connect_authorization6",
+                     (family == AF_INET) ? BPF_CGROUP_INET4_CONNECT_AUTHORIZATION
+                                         : BPF_CGROUP_INET6_CONNECT_AUTHORIZATION},
+                    {(family == AF_INET) ? "authorize_recv_accept4" : "authorize_recv_accept6",
+                     (family == AF_INET) ? BPF_CGROUP_INET4_RECV_ACCEPT : BPF_CGROUP_INET6_RECV_ACCEPT}}}}}},
+         .tests{
+             {
+                 .description = "Initial reject egress+ingress",
+             },
+             {
+                 .description = "Hard permit egress, reject ingress",
+                 .egress_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_HARD,
+             },
+             {
+                 .description = "Soft permit egress, reject ingress",
+                 .egress_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT,
+             },
+             {
+                 .description = "Soft permit egress+ingress",
+                 .expected_result = connection_test_result::allow,
+                 .ingress_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT,
+             },
+         }});
+}
+
+// Regression test for the documented ABI contract in include/ebpf_nethooks.h: any return
+// value from a cgroup_sock_addr program that is not one of {REJECT, PROCEED_SOFT,
+// PROCEED_HARD} must be treated as REJECT. The shared sock_addr process_verdict callback
+// (used by CONNECT, CONNECT_AUTHORIZATION, and RECV_ACCEPT chains) normalizes unknown
+// verdicts to REJECT before priority comparison. Without normalization, the chain would
+// keep the cached redirect-layer verdict and the connection would incorrectly succeed.
+TEMPLATE_TEST_CASE(
+    "connection_test_connect_authorization_unknown_verdict", "[sock_addr_tests]", ALL_CONNECTION_TEST_PARAMS)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test(
+        {.name = "connection_test_connect_authorization_unknown_verdict",
+         .address_family = family,
+         .protocol = protocol,
+         .modules{{{
+             .object_file = "cgroup_sock_addr",
+             .programs{
+                 {(family == AF_INET) ? "connect_authorization4" : "connect_authorization6",
+                  (family == AF_INET) ? BPF_CGROUP_INET4_CONNECT_AUTHORIZATION
+                                      : BPF_CGROUP_INET6_CONNECT_AUTHORIZATION},
+             },
+         }}},
+         .tests{
+             {
+                 .description = "Unknown verdict 0xAAAAAAAA from connect_authorization must be treated as REJECT",
+                 .egress_verdict = 0xAAAAAAAAu,
+             },
+         }});
+}
+
+TEMPLATE_TEST_CASE(
+    "connection_test_connect_authorization_readonly_context", "[sock_addr_tests]", ALL_CONNECTION_TEST_PARAMS)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test(
+        {.name = "connection_test_connect_authorization_readonly_context",
+         .address_family = family,
+         .protocol = protocol,
+         .modules{
+             {{.object_file = "cgroup_connect_authorization_readonly",
+               .programs{
+                   {(family == AF_INET) ? "mutate_connect_authorization4" : "mutate_connect_authorization6",
+                    (family == AF_INET) ? BPF_CGROUP_INET4_CONNECT_AUTHORIZATION
+                                        : BPF_CGROUP_INET6_CONNECT_AUTHORIZATION}}}}},
+         .tests{
+             {
+                 .description = "Context mutation at CONNECT_AUTHORIZATION is silently ignored",
+                 .expected_result = connection_test_result::allow,
+             },
+         }});
+}
+
 // Bind policy basic functionality tests.
 TEMPLATE_TEST_CASE("bind_policy_basic", "[bind_tests]", ALL_CONNECTION_TEST_PARAMS)
 {
@@ -705,6 +946,1194 @@ TEMPLATE_TEST_CASE("bind_policy_hard_permit_wfp", "[bind_tests]", ALL_CONNECTION
                 .bind_verdict = BIND_PERMIT_HARD,
             },
         },
+    });
+}
+
+// Sock_addr-aligned bind hook (cgroup/bind4 / cgroup/bind6) basic functionality tests.
+// Covers each valid sock_addr verdict (REJECT, PROCEED_SOFT, PROCEED_HARD).
+TEMPLATE_TEST_CASE("sock_addr_bind_basic", "[bind_tests]", ALL_CONNECTION_TEST_PARAMS)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test({
+        .name = "sock_addr_bind_basic",
+        .address_family = family,
+        .protocol = protocol,
+        .modules{{{
+            .object_file = "cgroup_sock_addr_bind",
+            .programs{
+                {(family == AF_INET) ? "authorize_bind4" : "authorize_bind6",
+                 (family == AF_INET) ? BPF_CGROUP_INET4_BIND : BPF_CGROUP_INET6_BIND},
+            },
+        }}},
+        .tests{
+            {
+                .description = "Bind denied with REJECT verdict",
+                .expected_server_bind_error = WSAEACCES,
+                .sock_addr_bind_verdict = BPF_SOCK_ADDR_VERDICT_REJECT,
+            },
+            {
+                .description = "Bind allowed with PROCEED_SOFT verdict",
+                .expected_result = connection_test_result::allow,
+                .sock_addr_bind_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT,
+            },
+            {
+                .description = "Bind allowed with PROCEED_HARD verdict",
+                .expected_result = connection_test_result::allow,
+                .sock_addr_bind_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_HARD,
+            },
+        },
+    });
+}
+
+// Sock_addr-aligned bind hook hard permit with WFP filter: a PROCEED_HARD verdict
+// must override a WFP filter blocking bind at FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4/V6.
+TEMPLATE_TEST_CASE("sock_addr_bind_hard_permit_wfp", "[bind_tests]", ALL_CONNECTION_TEST_PARAMS)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test({
+        .name = "sock_addr_bind_hard_permit_wfp",
+        .address_family = family,
+        .protocol = protocol,
+        .modules{{{
+            .object_file = "cgroup_sock_addr_bind",
+            .programs{
+                {(family == AF_INET) ? "authorize_bind4" : "authorize_bind6",
+                 (family == AF_INET) ? BPF_CGROUP_INET4_BIND : BPF_CGROUP_INET6_BIND},
+            },
+        }}},
+        .wfp_filters{
+            {
+                .layer =
+                    (family == AF_INET) ? FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4 : FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V6,
+                .local_port = static_cast<uint16_t>(SOCKET_TEST_PORT),
+            },
+        },
+        .tests{
+            {
+                .description = "Soft permit blocked by WFP filter",
+                .expected_server_bind_error = WSAEACCES,
+                .sock_addr_bind_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT,
+            },
+            {
+                .description = "Hard permit overrides WFP filter",
+                .expected_result = connection_test_result::allow,
+                .sock_addr_bind_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_HARD,
+            },
+        },
+    });
+}
+
+// Regression test for the documented ABI contract in include/ebpf_nethooks.h: any return
+// value from a cgroup_sock_addr program that is not one of {REJECT, PROCEED_SOFT,
+// PROCEED_HARD} must be treated as REJECT. The bind hook's process_verdict callback
+// normalizes unknown verdicts to REJECT before the priority comparison.
+//
+// Writes a deliberately invalid value (0xAAAAAAAA) into bind_verdict_map via the raw
+// helper, attaches a bind program, and verifies the bind is denied.
+static void
+sock_addr_bind_unknown_verdict_test(ADDRESS_FAMILY address_family, IPPROTO protocol)
+{
+    native_module_helper_t helper;
+    helper.initialize("cgroup_sock_addr_bind", _is_main_thread);
+    bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
+    bpf_object_ptr object_ptr(object);
+    SAFE_REQUIRE(object != nullptr);
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
+
+    bpf_map* verdict_map = bpf_object__find_map_by_name(object, "bind_verdict_map");
+    SAFE_REQUIRE(verdict_map != nullptr);
+
+    bpf_attach_type attach_type = (address_family == AF_INET) ? BPF_CGROUP_INET4_BIND : BPF_CGROUP_INET6_BIND;
+    const char* program_name = (address_family == AF_INET) ? "authorize_bind4" : "authorize_bind6";
+    bpf_program* program = bpf_object__find_program_by_name(object, program_name);
+    SAFE_REQUIRE(program != nullptr);
+    SAFE_REQUIRE(bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(program)), 0, attach_type, 0) == 0);
+
+    // Inject a bit pattern that is not a valid ebpf_sock_addr_verdict_t enumerator. The kernel
+    // bind hook must treat this as REJECT (per the documented contract) and block the bind.
+    _update_sock_addr_bind_verdict_map_entry_raw(
+        bpf_map__fd(verdict_map),
+        htons(static_cast<uint16_t>(SOCKET_TEST_PORT)),
+        static_cast<uint8_t>(protocol),
+        0xAAAAAAAAu);
+
+    int sock_type = (protocol == IPPROTO_TCP) ? SOCK_STREAM : SOCK_DGRAM;
+    SOCKET sock = WSASocketW(AF_INET6, sock_type, protocol, nullptr, 0, 0);
+    SAFE_REQUIRE(sock != INVALID_SOCKET);
+    DWORD v6only = 0;
+    SAFE_REQUIRE(
+        setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&v6only), sizeof(v6only)) == 0);
+
+    sockaddr_in6 bind_addr = {};
+    if (address_family == AF_INET) {
+        IN6ADDR_SETV4MAPPED(&bind_addr, &in4addr_loopback, scopeid_unspecified, htons(SOCKET_TEST_PORT));
+    } else {
+        IN6ADDR_SETLOOPBACK(&bind_addr);
+        bind_addr.sin6_port = htons(SOCKET_TEST_PORT);
+    }
+
+    int rc = bind(sock, reinterpret_cast<sockaddr*>(&bind_addr), sizeof(bind_addr));
+    int err = (rc == 0) ? 0 : WSAGetLastError();
+    closesocket(sock);
+    SAFE_REQUIRE(rc != 0);
+    SAFE_REQUIRE(err == WSAEACCES);
+}
+
+TEMPLATE_TEST_CASE("sock_addr_bind_unknown_verdict", "[bind_tests]", ALL_CONNECTION_TEST_PARAMS)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+    sock_addr_bind_unknown_verdict_test(family, protocol);
+}
+
+// Bind hook helper functions validation: validates that bpf_sock_addr_get_network_context
+// returns valid interface_type and tunnel_type at the bind (ALE_RESOURCE_ASSIGNMENT) layer,
+// and that the other bind-supported helpers (bpf_get_current_pid_tgid,
+// bpf_get_current_logon_id, bpf_is_current_admin, bpf_get_socket_cookie,
+// bpf_sock_addr_set_redirect_context) are callable and return sensible values.
+static void
+bind_helper_functions_validation_test(ADDRESS_FAMILY address_family)
+{
+    native_module_helper_t helper;
+    helper.initialize("cgroup_sock_addr_helpers", _is_main_thread);
+
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
+    bpf_object_ptr object_ptr(object);
+    SAFE_REQUIRE(object != nullptr);
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
+
+    const char* program_name = (address_family == AF_INET) ? "test_bind_helpers_v4" : "test_bind_helpers_v6";
+    bpf_program* bind_program = bpf_object__find_program_by_name(object, program_name);
+    SAFE_REQUIRE(bind_program != nullptr);
+
+    bpf_map* network_context_map = bpf_object__find_map_by_name(object, "network_context_map");
+    SAFE_REQUIRE(network_context_map != nullptr);
+    bpf_map* connection_count_map = bpf_object__find_map_by_name(object, "connection_count_map");
+    SAFE_REQUIRE(connection_count_map != nullptr);
+    bpf_map* sock_addr_helper_results_map = bpf_object__find_map_by_name(object, "sock_addr_helper_results_map");
+    SAFE_REQUIRE(sock_addr_helper_results_map != nullptr);
+
+    // Attach at the appropriate BIND layer.
+    bpf_attach_type attach_type = (address_family == AF_INET) ? BPF_CGROUP_INET4_BIND : BPF_CGROUP_INET6_BIND;
+    int result = bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(bind_program)), 0, attach_type, 0);
+    SAFE_REQUIRE(result == 0);
+
+    // Dual-stack AF_INET6 socket; the bound address selects the V4 vs V6 WFP layer.
+    SOCKET sock = WSASocketW(AF_INET6, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, 0);
+    SAFE_REQUIRE(sock != INVALID_SOCKET);
+    DWORD v6only = 0;
+    SAFE_REQUIRE(
+        setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&v6only), sizeof(v6only)) == 0);
+
+    sockaddr_in6 bind_addr = {};
+    uint32_t connection_id;
+    if (address_family == AF_INET) {
+        IN6ADDR_SETV4MAPPED(&bind_addr, &in4addr_loopback, scopeid_unspecified, htons(SOCKET_TEST_PORT));
+        connection_id = htonl(INADDR_LOOPBACK) ^ (htons(SOCKET_TEST_PORT) << 16);
+    } else {
+        IN6ADDR_SETLOOPBACK(&bind_addr);
+        bind_addr.sin6_port = htons(SOCKET_TEST_PORT);
+        const uint32_t* ip6_dwords = reinterpret_cast<const uint32_t*>(&in6addr_loopback);
+        connection_id = (ip6_dwords[0] ^ ip6_dwords[3]) ^ (htons(SOCKET_TEST_PORT) << 16);
+    }
+    result = bind(sock, reinterpret_cast<sockaddr*>(&bind_addr), sizeof(bind_addr));
+    SAFE_REQUIRE(result == 0);
+
+    // Verify network context was populated.
+    bpf_sock_addr_network_context_t net_ctx = {0};
+    result = bpf_map_lookup_elem(bpf_map__fd(network_context_map), &connection_id, &net_ctx);
+    SAFE_REQUIRE(result == 0);
+
+    printf(
+        "Bind network context - Version: %u, Interface: %u, Tunnel: %u\n",
+        net_ctx.version,
+        net_ctx.interface_type,
+        net_ctx.tunnel_type);
+
+    SAFE_REQUIRE(net_ctx.version == BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION);
+
+    // Interface type should be a valid IANA-assigned value.
+    bool valid_interface_type =
+        (net_ctx.interface_type == 0 || net_ctx.interface_type == IF_TYPE_ETHERNET_CSMACD ||
+         net_ctx.interface_type == IF_TYPE_SOFTWARE_LOOPBACK || net_ctx.interface_type == IF_TYPE_IEEE80211 ||
+         net_ctx.interface_type == IF_TYPE_TUNNEL);
+    SAFE_REQUIRE(valid_interface_type);
+
+    // Tunnel type should be valid.
+    bool valid_tunnel_type =
+        (net_ctx.tunnel_type == TUNNEL_TYPE_NONE || net_ctx.tunnel_type == TUNNEL_TYPE_OTHER ||
+         net_ctx.tunnel_type == TUNNEL_TYPE_DIRECT || net_ctx.tunnel_type == TUNNEL_TYPE_6TO4 ||
+         net_ctx.tunnel_type == TUNNEL_TYPE_ISATAP || net_ctx.tunnel_type == TUNNEL_TYPE_TEREDO ||
+         net_ctx.tunnel_type == TUNNEL_TYPE_IPHTTPS);
+    SAFE_REQUIRE(valid_tunnel_type);
+
+    // next_hop_interface_luid and sub_interface_index are not available at the bind layer
+    // (no route selected yet); the helper returns them as their unspecified defaults (zero).
+    SAFE_REQUIRE(net_ctx.next_hop_interface_luid == 0);
+    SAFE_REQUIRE(net_ctx.sub_interface_index == 0);
+
+    // Verify the per-program connection counter was updated (counter key 4 for bind4, 5 for bind6).
+    uint32_t counter_key = (address_family == AF_INET) ? 4u : 5u;
+    uint64_t counter_value = 0;
+    SAFE_REQUIRE(bpf_map_lookup_elem(bpf_map__fd(connection_count_map), &counter_key, &counter_value) == 0);
+    SAFE_REQUIRE(counter_value >= 1);
+
+    // Verify the other bind-supported helpers are callable and return sensible values.
+    // sock_addr_helper_results_map is keyed by family (4 or 6).
+    uint32_t results_key = (address_family == AF_INET) ? 4u : 6u;
+    struct
+    {
+        uint64_t pid_tgid;
+        uint64_t logon_id;
+        int32_t is_admin;
+        int32_t set_redirect_context;
+        int64_t socket_cookie;
+    } results = {0};
+    SAFE_REQUIRE(bpf_map_lookup_elem(bpf_map__fd(sock_addr_helper_results_map), &results_key, &results) == 0);
+
+    printf(
+        "Bind helper results - pid_tgid=0x%llx logon_id=0x%llx is_admin=%d "
+        "set_redirect_context=%d socket_cookie=0x%llx\n",
+        static_cast<unsigned long long>(results.pid_tgid),
+        static_cast<unsigned long long>(results.logon_id),
+        results.is_admin,
+        results.set_redirect_context,
+        static_cast<long long>(results.socket_cookie));
+
+    // bpf_get_current_pid_tgid: upper 32 bits hold the bind caller's process ID. The WFP
+    // ALE_RESOURCE_ASSIGNMENT callout runs synchronously in the binding process's context,
+    // so this matches GetCurrentProcessId().
+    uint32_t pid_from_helper = static_cast<uint32_t>(results.pid_tgid >> 32);
+    SAFE_REQUIRE(pid_from_helper == GetCurrentProcessId());
+
+    // bpf_get_current_logon_id: non-zero for any real user logon.
+    SAFE_REQUIRE(results.logon_id != 0);
+
+    // bpf_is_current_admin: returns 1 (admin) or 0 (not admin) for any caller with a user token;
+    // returns -1 if admin status cannot be determined (no user token). The user-mode test process
+    // always has a token, so the value must be 0 or 1 — exact value depends on test runner elevation.
+    SAFE_REQUIRE(results.is_admin >= 0);
+    SAFE_REQUIRE(results.is_admin <= 1);
+
+    // bpf_sock_addr_set_redirect_context is documented as not supported at the bind layer and
+    // returns -1.
+    SAFE_REQUIRE(results.set_redirect_context == -1);
+
+    // bpf_get_socket_cookie returns 0 at the bind layer — the WFP transport endpoint is
+    // not yet allocated at ALE_RESOURCE_ASSIGNMENT.
+    SAFE_REQUIRE(results.socket_cookie == 0);
+
+    closesocket(sock);
+    printf(
+        "Bind helper functions validation test completed successfully for %s\n",
+        (address_family == AF_INET) ? "IPv4" : "IPv6");
+}
+
+TEST_CASE("bind_helper_functions_validation_tcp_v4", "[bind_tests][helper_validation]")
+{
+    bind_helper_functions_validation_test(AF_INET);
+}
+
+TEST_CASE("bind_helper_functions_validation_tcp_v6", "[bind_tests][helper_validation]")
+{
+    bind_helper_functions_validation_test(AF_INET6);
+}
+
+void
+helper_functions_validation_test(
+    ADDRESS_FAMILY address_family,
+    _Inout_ client_socket_t& sender_socket,
+    _Inout_ receiver_socket_t& receiver_socket,
+    uint32_t protocol)
+{
+    UNREFERENCED_PARAMETER(protocol);
+
+    native_module_helper_t helper;
+    helper.initialize("cgroup_sock_addr_helpers", _is_main_thread);
+
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
+    bpf_object_ptr object_ptr(object);
+
+    SAFE_REQUIRE(object != nullptr);
+    // Load the programs.
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
+
+    const char* connect_authorization_program_name =
+        (address_family == AF_INET) ? "test_sock_addr_helpers_v4" : "test_sock_addr_helpers_v6";
+    bpf_program* connect_authorization_program =
+        bpf_object__find_program_by_name(object, connect_authorization_program_name);
+    SAFE_REQUIRE(connect_authorization_program != nullptr);
+
+    // Get maps to retrieve helper function results.
+    bpf_map* network_context_map = bpf_object__find_map_by_name(object, "network_context_map");
+    SAFE_REQUIRE(network_context_map != nullptr);
+    bpf_map* connection_count_map = bpf_object__find_map_by_name(object, "connection_count_map");
+    SAFE_REQUIRE(connection_count_map != nullptr);
+
+    // Attach the connect authorization program at the appropriate CONNECT_AUTHORIZATION layer.
+    bpf_attach_type connect_authorization_attach_type =
+        (address_family == AF_INET) ? BPF_CGROUP_INET4_CONNECT_AUTHORIZATION : BPF_CGROUP_INET6_CONNECT_AUTHORIZATION;
+    int result = bpf_prog_attach(
+        bpf_program__fd(const_cast<const bpf_program*>(connect_authorization_program)),
+        0,
+        connect_authorization_attach_type,
+        0);
+    SAFE_REQUIRE(result == 0);
+
+    // Post an asynchronous receive on the receiver socket.
+    receiver_socket.post_async_receive();
+
+    // Send message to trigger the CONNECT_AUTHORIZATION program.
+    const char* message = CLIENT_MESSAGE;
+    sockaddr_storage destination_address{};
+    if (address_family == AF_INET) {
+        IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
+    } else {
+        IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&destination_address);
+    }
+    sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
+
+    // Complete the connection to ensure CONNECT_AUTHORIZATION program was invoked.
+    receiver_socket.complete_async_receive();
+
+    // Calculate connection ID (same as in the eBPF program).
+    uint32_t connection_id = 0;
+    if (address_family == AF_INET) {
+        connection_id = htonl(INADDR_LOOPBACK) ^ (htons(SOCKET_TEST_PORT) << 16);
+    } else {
+        // For IPv6, use simplified hash based on loopback address.
+        // Must use 32-bit dwords to match the eBPF program's user_ip6[0] ^ user_ip6[3].
+        const uint32_t* ip6_dwords = reinterpret_cast<const uint32_t*>(&in6addr_loopback);
+        connection_id = (ip6_dwords[0] ^ ip6_dwords[3]) ^ (htons(SOCKET_TEST_PORT) << 16);
+    }
+
+    // Validate that the network context helper returned reasonable values.
+    bpf_sock_addr_network_context_t net_ctx = {0};
+    result = bpf_map_lookup_elem(bpf_map__fd(network_context_map), &connection_id, &net_ctx);
+    SAFE_REQUIRE(result == 0);
+    printf(
+        "Network context - Version: %u, Interface: %u, Tunnel: %u, Next-hop: %llu, SubInterface: %u\n",
+        net_ctx.version,
+        net_ctx.interface_type,
+        net_ctx.tunnel_type,
+        net_ctx.next_hop_interface_luid,
+        net_ctx.sub_interface_index);
+
+    // Version should be 1.
+    SAFE_REQUIRE(net_ctx.version == BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION);
+
+    // Interface type should be a valid IANA-assigned value or 0 (unspecified).
+    bool valid_interface_type =
+        (net_ctx.interface_type == 0 || net_ctx.interface_type == IF_TYPE_ETHERNET_CSMACD ||
+         net_ctx.interface_type == IF_TYPE_SOFTWARE_LOOPBACK || net_ctx.interface_type == IF_TYPE_IEEE80211 ||
+         net_ctx.interface_type == IF_TYPE_TUNNEL);
+    SAFE_REQUIRE(valid_interface_type);
+
+    // Tunnel type should be TUNNEL_TYPE_NONE (no tunnel) or a valid IANA tunnel type.
+    bool valid_tunnel_type =
+        (net_ctx.tunnel_type == TUNNEL_TYPE_NONE || net_ctx.tunnel_type == TUNNEL_TYPE_OTHER ||
+         net_ctx.tunnel_type == TUNNEL_TYPE_DIRECT || net_ctx.tunnel_type == TUNNEL_TYPE_6TO4 ||
+         net_ctx.tunnel_type == TUNNEL_TYPE_ISATAP || net_ctx.tunnel_type == TUNNEL_TYPE_TEREDO ||
+         net_ctx.tunnel_type == TUNNEL_TYPE_IPHTTPS);
+    SAFE_REQUIRE(valid_tunnel_type);
+
+    // Validate that at least some network context is available.
+    bool has_network_context = (net_ctx.interface_type != 0) ||
+                               (net_ctx.next_hop_interface_luid != NET_IFLUID_UNSPECIFIED) ||
+                               (net_ctx.sub_interface_index != NET_IFINDEX_UNSPECIFIED);
+    SAFE_REQUIRE(has_network_context);
+
+    printf(
+        "Helper functions validation test completed successfully for %s\n",
+        (address_family == AF_INET) ? "IPv4" : "IPv6");
+}
+
+TEST_CASE("connect_authorization_helper_functions_validation_tcp_v4", "[sock_addr_tests][helper_validation]")
+{
+    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+
+    helper_functions_validation_test(AF_INET, stream_client_socket, stream_server_socket, IPPROTO_TCP);
+}
+
+TEST_CASE("connect_authorization_helper_functions_validation_tcp_v6", "[sock_addr_tests][helper_validation]")
+{
+    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+
+    helper_functions_validation_test(AF_INET6, stream_client_socket, stream_server_socket, IPPROTO_TCP);
+}
+
+TEST_CASE(
+    "connect_authorization_conditional_policy_validation_tcp_v4",
+    "[sock_addr_tests][helper_validation][conditional_policy]")
+{
+    native_module_helper_t helper;
+    helper.initialize("cgroup_sock_addr_helpers", _is_main_thread);
+
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
+    bpf_object_ptr object_ptr(object);
+
+    SAFE_REQUIRE(object != nullptr);
+    // Load the programs.
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
+
+    // Use the conditional authorization program that makes policy decisions.
+    bpf_program* conditional_program = bpf_object__find_program_by_name(object, "conditional_authorization_v4");
+    SAFE_REQUIRE(conditional_program != nullptr);
+
+    // Get the connection count map to verify tunnel connection tracking.
+    bpf_map* connection_count_map = bpf_object__find_map_by_name(object, "connection_count_map");
+    SAFE_REQUIRE(connection_count_map != nullptr);
+
+    // Attach the conditional authorization program.
+    int result = bpf_prog_attach(
+        bpf_program__fd(const_cast<const bpf_program*>(conditional_program)),
+        0,
+        BPF_CGROUP_INET4_CONNECT_AUTHORIZATION,
+        0);
+    SAFE_REQUIRE(result == 0);
+
+    // Create test sockets.
+    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+
+    // Post an asynchronous receive on the receiver socket.
+    stream_server_socket.post_async_receive();
+
+    // Send message to trigger the conditional CONNECT_AUTHORIZATION program.
+    const char* message = CLIENT_MESSAGE;
+    sockaddr_storage destination_address{};
+    IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
+    stream_client_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
+
+    // Complete the connection.
+    stream_server_socket.complete_async_receive();
+
+    // Check if tunnel connections were tracked (key 100 is used for tunnel connections).
+    uint32_t tunnel_key = 100;
+    uint64_t tunnel_count = 0;
+    result = bpf_map_lookup_elem(bpf_map__fd(connection_count_map), &tunnel_key, &tunnel_count);
+
+    // For loopback connections, we don't expect tunnels, so tunnel_count should be 0 or entry not found.
+    if (result == 0) {
+        printf("Tunnel connection count: %llu\n", tunnel_count);
+        // For loopback, tunnel count should typically be 0.
+        SAFE_REQUIRE(tunnel_count == 0);
+    }
+
+    printf("Conditional policy validation test completed successfully\n");
+}
+
+TEST_CASE(
+    "connect_authorization_conditional_policy_prog_run_v4", "[sock_addr_tests][helper_validation][conditional_policy]")
+{
+    native_module_helper_t helper;
+    helper.initialize("cgroup_sock_addr_helpers", _is_main_thread);
+
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
+    bpf_object_ptr object_ptr(object);
+
+    SAFE_REQUIRE(object != nullptr);
+    // Load the programs.
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
+
+    // Use the conditional authorization program that makes policy decisions.
+    bpf_program* conditional_program = bpf_object__find_program_by_name(object, "conditional_authorization_v4");
+    SAFE_REQUIRE(conditional_program != nullptr);
+
+    // Get the connection count map to verify tunnel connection tracking.
+    bpf_map* connection_count_map = bpf_object__find_map_by_name(object, "connection_count_map");
+    SAFE_REQUIRE(connection_count_map != nullptr);
+
+    int prog_fd = bpf_program__fd(conditional_program);
+    SAFE_REQUIRE(prog_fd >= 0);
+
+    int map_fd = bpf_map__fd(connection_count_map);
+    SAFE_REQUIRE(map_fd >= 0);
+
+    // key 100 is used for tunnel connections.
+    constexpr uint32_t tunnel_key = 100;
+    constexpr uint32_t max_luid_index = (1 << 24) - 1;
+    uint64_t tunnel_count = 0;
+    bpf_test_run_opts opts{.repeat = 1};
+
+    union
+    {
+        bpf_sock_addr_t context;
+        bpf_sock_addr_test_context_t test_context;
+        char buffer[sizeof(bpf_sock_addr_test_context_t) + 1];
+    } buffer_in{}, buffer_out{};
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<uint32_t> dist(1u, max_luid_index);
+
+    // Test data.
+    constexpr struct
+    {
+        const uint32_t ctx_size_in;                              ///< Size of the input context.
+        const uint32_t ctx_size_out;                             ///< Size of the output context.
+        IPPROTO protocol{IPPROTO_TCP};                           ///< The protocol to test.
+        uint32_t version{BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION}; ///< The version of the network context.
+        uint32_t interface_type{0};                              ///< The type of the interface.
+        uint32_t tunnel_type{0};                                 ///< The type of the tunnel.
+        bool expect_success{true}; ///< Whether the bpf_prog_test_run_opts() is expected to succeed.
+        ebpf_sock_addr_verdict_t verdict{static_cast<ebpf_sock_addr_verdict_t>(
+            -1)}; ///< The verdict of the test program. Ignored if expect_success is false.
+    } test_data[] = {
+        // invalid input context.
+        {.ctx_size_in = 0u, .ctx_size_out = sizeof(bpf_sock_addr_test_context_t), .expect_success = false},
+        // invalid input context.
+        {.ctx_size_in = sizeof(bpf_sock_addr_t) - 1,
+         .ctx_size_out = sizeof(bpf_sock_addr_test_context_t),
+         .expect_success = false},
+        // invalid input context.
+        {.ctx_size_in = sizeof(bpf_sock_addr_t) - 1,
+         .ctx_size_out = sizeof(bpf_sock_addr_test_context_t),
+         .expect_success = false},
+        // bpf_sock_addr_t input context, protocol mismatch. bpf_sock_addr_get_network_context() is not invoked by the
+        // program.
+        {.ctx_size_in = sizeof(bpf_sock_addr_t),
+         .ctx_size_out = sizeof(bpf_sock_addr_test_context_t),
+         .protocol = IPPROTO_UDP,
+         .verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+        // bpf_sock_addr_t input context, protocol mismatch. bpf_sock_addr_get_network_context() is not invoked by the
+        // program.
+        {.ctx_size_in = sizeof(bpf_sock_addr_t),
+         .ctx_size_out = sizeof(bpf_sock_addr_t),
+         .protocol = IPPROTO_UDP,
+         .verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+        // input context larger than bpf_sock_addr_t, but smaller than bpf_sock_addr_test_context_t. Protocol mismatch.
+        // bpf_sock_addr_get_network_context() is not invoked by the program.
+        {.ctx_size_in = sizeof(bpf_sock_addr_t) + 1,
+         .ctx_size_out = sizeof(bpf_sock_addr_test_context_t),
+         .protocol = IPPROTO_UDP,
+         .verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+        // bpf_sock_addr_t input context. Protocol match. bpf_sock_addr_get_network_context() fails.
+        {.ctx_size_in = sizeof(bpf_sock_addr_t),
+         .ctx_size_out = sizeof(bpf_sock_addr_test_context_t),
+         .verdict = BPF_SOCK_ADDR_VERDICT_REJECT},
+        // input context larger than bpf_sock_addr_t, but smaller than bpf_sock_addr_test_context_t.
+        // Protocol match. bpf_sock_addr_get_network_context() fails.
+        {.ctx_size_in = sizeof(bpf_sock_addr_test_context_t) - 1,
+         .ctx_size_out = sizeof(bpf_sock_addr_test_context_t) - 1,
+         .verdict = BPF_SOCK_ADDR_VERDICT_REJECT},
+        // bpf_sock_addr_test_context_t input context. Protocol match. bpf_sock_addr_get_network_context() succeeds.
+        {.ctx_size_in = sizeof(bpf_sock_addr_test_context_t),
+         .ctx_size_out = sizeof(bpf_sock_addr_test_context_t),
+         .verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+        // bpf_sock_addr_test_context_t input context. Protocol match. bpf_sock_addr_get_network_context() succeeds.
+        // Interface type is PPP, which is rejected.
+        {.ctx_size_in = sizeof(bpf_sock_addr_test_context_t),
+         .ctx_size_out = sizeof(bpf_sock_addr_test_context_t),
+         .interface_type = IF_TYPE_PPP,
+         .verdict = BPF_SOCK_ADDR_VERDICT_REJECT},
+        // bpf_sock_addr_test_context_t input context. Protocol match. bpf_sock_addr_get_network_context() succeeds.
+        // Map is updated.
+        {.ctx_size_in = sizeof(bpf_sock_addr_test_context_t),
+         .ctx_size_out = sizeof(bpf_sock_addr_test_context_t),
+         .interface_type = IF_TYPE_TUNNEL,
+         .tunnel_type = TUNNEL_TYPE_6TO4,
+         .verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+        // input context context is larger than bpf_sock_addr_test_context_t. Output context is smaller than input
+        // context.
+        // bpf_prog_test_run_opts() fails. See issue 4441 - https://github.com/microsoft/ebpf-for-windows/issues/4441.
+        {.ctx_size_in = sizeof(buffer_in),
+         .ctx_size_out = sizeof(bpf_sock_addr_test_context_t),
+         .interface_type = IF_TYPE_TUNNEL,
+         .tunnel_type = TUNNEL_TYPE_6TO4,
+         .expect_success = false},
+        // bpf_sock_addr_test_context_t input context. Output context larger than bpf_sock_addr_test_context_t.
+        // Protocol match. bpf_sock_addr_get_network_context() succeeds.
+        // Map is updated.
+        {.ctx_size_in = sizeof(bpf_sock_addr_test_context_t),
+         .ctx_size_out = sizeof(buffer_out),
+         .interface_type = IF_TYPE_TUNNEL,
+         .tunnel_type = TUNNEL_TYPE_6TO4,
+         .verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+        // input context context is larger than bpf_sock_addr_test_context_t. Output context larger than
+        // bpf_sock_addr_test_context_t.
+        // Protocol match. bpf_sock_addr_get_network_context() succeeds. Map is updated.
+        {.ctx_size_in = sizeof(buffer_in),
+         .ctx_size_out = sizeof(buffer_out),
+         .interface_type = IF_TYPE_TUNNEL,
+         .tunnel_type = TUNNEL_TYPE_6TO4,
+         .verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+        // bpf_sock_addr_test_context_t input context. Invalid network context version.
+        {.ctx_size_in = sizeof(bpf_sock_addr_test_context_t),
+         .ctx_size_out = sizeof(bpf_sock_addr_test_context_t),
+         .version = 0,
+         .expect_success = false},
+        // bpf_sock_addr_test_context_t input context. Output context is smaller than input context.
+        // bpf_prog_test_run_opts() fails. See issue 4441 - https://github.com/microsoft/ebpf-for-windows/issues/4441.
+        {.ctx_size_in = sizeof(bpf_sock_addr_test_context_t),
+         .ctx_size_out = sizeof(bpf_sock_addr_t),
+         .expect_success = false},
+        // bpf_sock_addr_test_context_t in context. Output context is smaller than input context.
+        // bpf_prog_test_run_opts() fails. See issue 4441 - https://github.com/microsoft/ebpf-for-windows/issues/4441.
+        {.ctx_size_in = sizeof(bpf_sock_addr_test_context_t),
+         .ctx_size_out = sizeof(bpf_sock_addr_t) - 1,
+         .expect_success = false},
+    };
+
+    for (const auto& data : test_data) {
+        CAPTURE(data.ctx_size_in);
+        CAPTURE(data.ctx_size_out);
+        CAPTURE(data.protocol);
+        CAPTURE(data.version);
+        CAPTURE(data.interface_type);
+        CAPTURE(data.tunnel_type);
+        CAPTURE(data.verdict);
+
+        memset(&buffer_in, 0, sizeof(buffer_in));
+        memset(&buffer_out, 0, sizeof(buffer_out));
+
+        NET_LUID luid{};
+
+        luid.Info.NetLuidIndex = dist(gen);
+        luid.Info.IfType = data.interface_type;
+
+        bpf_sock_addr_t* sock_addr_in = nullptr;
+        bpf_sock_addr_test_context_t* test_context_in = nullptr;
+        bpf_sock_addr_t* sock_addr_out = nullptr;
+        bpf_sock_addr_test_context_t* test_context_out = nullptr;
+
+        if (data.ctx_size_in < sizeof(bpf_sock_addr_test_context_t)) {
+            sock_addr_in = &buffer_in.context;
+            opts.ctx_in = sock_addr_in;
+        } else {
+            test_context_in = &buffer_in.test_context;
+            sock_addr_in = &test_context_in->context;
+            opts.ctx_in = test_context_in;
+
+            test_context_in->header = BPF_SOCK_ADDR_TEST_CONTEXT_HEADER_VERSION;
+
+            test_context_in->network_context.version = data.version;
+            test_context_in->network_context.interface_type = data.interface_type;
+            test_context_in->network_context.tunnel_type = data.tunnel_type;
+            test_context_in->network_context.next_hop_interface_luid = luid.Value;
+            test_context_in->network_context.sub_interface_index = dist(gen);
+        }
+
+        luid.Info.NetLuidIndex = dist(gen);
+
+        sock_addr_in->family = AF_INET;
+        sock_addr_in->protocol = static_cast<uint32_t>(data.protocol);
+        sock_addr_in->compartment_id = dist(gen);
+        sock_addr_in->interface_luid = luid.Value;
+
+        opts.ctx_out = &buffer_out;
+
+        opts.ctx_size_in = data.ctx_size_in;
+        opts.ctx_size_out = data.ctx_size_out;
+
+        if (!data.expect_success) {
+            SAFE_REQUIRE(bpf_prog_test_run_opts(prog_fd, &opts) < 0);
+            continue;
+        }
+
+        SAFE_REQUIRE(bpf_prog_test_run_opts(prog_fd, &opts) == 0);
+        SAFE_REQUIRE(opts.retval == static_cast<uint32_t>(data.verdict));
+
+        // Map is populated only when verdict is BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, protocol is TCP , and tunnel type
+        // is not 0.
+        if (data.verdict != BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT || data.protocol != IPPROTO_TCP ||
+            (test_context_in != nullptr && test_context_in->network_context.tunnel_type == 0)) {
+            SAFE_REQUIRE(bpf_map_lookup_elem(map_fd, &tunnel_key, &tunnel_count) < 0);
+        } else {
+            SAFE_REQUIRE(bpf_map_lookup_elem(map_fd, &tunnel_key, &tunnel_count) == 0);
+            SAFE_REQUIRE(tunnel_count == 1);
+            SAFE_REQUIRE(bpf_map_delete_elem(map_fd, &tunnel_key) == 0);
+        }
+
+        // bpf_prog_test_run_opts() assumes that output context size is the same as
+        // input context size. See issue 4441 - https://github.com/microsoft/ebpf-for-windows/issues/4441.
+        const uint32_t ctx_size_out = data.ctx_size_in < sizeof(bpf_sock_addr_test_context_t)
+                                          ? sizeof(bpf_sock_addr_t)
+                                          : sizeof(bpf_sock_addr_test_context_t);
+        SAFE_REQUIRE(opts.ctx_size_out == ctx_size_out);
+
+        if (data.ctx_size_in < data.ctx_size_out) {
+            // If the output context is larger than the input context, output context is not correctly populated.
+            // See issue 4441 - https://github.com/microsoft/ebpf-for-windows/issues/4441.
+            continue;
+        }
+
+        if (ctx_size_out == sizeof(bpf_sock_addr_test_context_t)) {
+            sock_addr_out = &buffer_out.test_context.context;
+            test_context_out = &buffer_out.test_context;
+        } else {
+            sock_addr_out = &buffer_out.context;
+        }
+
+        SAFE_REQUIRE(sock_addr_out->family == sock_addr_in->family);
+        SAFE_REQUIRE(sock_addr_out->protocol == sock_addr_in->protocol);
+        SAFE_REQUIRE(sock_addr_out->compartment_id == sock_addr_in->compartment_id);
+        SAFE_REQUIRE(sock_addr_out->interface_luid == sock_addr_in->interface_luid);
+
+        if (test_context_out == nullptr) {
+            continue;
+        }
+
+        // bpf_sock_addr_get_network_context() is not invoked by program if protocol is not TCP.
+        // bpf_sock_addr_get_network_context() fails if the context is not a bpf_sock_addr_test_context_t.
+        if (data.protocol != IPPROTO_TCP) {
+            SAFE_REQUIRE(test_context_out->network_context.version == 0);
+            SAFE_REQUIRE(test_context_out->network_context.interface_type == 0u);
+            SAFE_REQUIRE(test_context_out->network_context.tunnel_type == 0u);
+            SAFE_REQUIRE(test_context_out->network_context.next_hop_interface_luid == 0ui64);
+            SAFE_REQUIRE(test_context_out->network_context.sub_interface_index == 0u);
+        } else {
+            SAFE_REQUIRE(test_context_out->network_context.version == BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION);
+            SAFE_REQUIRE(test_context_out->network_context.interface_type == data.interface_type);
+            SAFE_REQUIRE(test_context_out->network_context.tunnel_type == data.tunnel_type);
+
+            SAFE_REQUIRE(test_context_in != nullptr);
+            SAFE_REQUIRE(
+                test_context_out->network_context.next_hop_interface_luid ==
+                test_context_in->network_context.next_hop_interface_luid);
+            SAFE_REQUIRE(
+                test_context_out->network_context.sub_interface_index ==
+                test_context_in->network_context.sub_interface_index);
+        }
+    }
+
+    // Test invalid header
+    memset(&buffer_in, 0, sizeof(buffer_in));
+    opts.ctx_in = &buffer_in.test_context;
+    opts.ctx_size_in = sizeof(buffer_in.test_context);
+    opts.ctx_out = &buffer_out.test_context;
+    opts.ctx_size_out = sizeof(buffer_out.test_context);
+
+    bpf_sock_addr_test_context_header_t headers[] = {
+        // invalid version
+        {.version = 0,
+         .size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE,
+         .total_size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE},
+        // invalid version
+        {.version = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION + 1,
+         .size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE,
+         .total_size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE},
+        // invalid version
+        {.version = UINT16_MAX,
+         .size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE,
+         .total_size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE},
+        // invalid size
+        {.version = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION,
+         .size = 0,
+         .total_size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE},
+        // invalid size
+        {.version = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION,
+         .size = 1,
+         .total_size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE},
+        // invalid size
+        {.version = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION,
+         .size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE - 1,
+         .total_size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE},
+        // invalid size
+        {.version = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION,
+         .size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE + 1,
+         .total_size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE},
+        // invalid total size
+        {.version = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION,
+         .size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE,
+         .total_size = 0},
+        // invalid total size
+        {.version = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION,
+         .size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE,
+         .total_size = 1},
+        // invalid total size
+        {.version = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION,
+         .size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE,
+         .total_size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE - 1},
+        // invalid total size
+        {.version = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION,
+         .size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE,
+         .total_size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE + 1},
+    };
+
+    for (const auto& header : headers) {
+        buffer_in.test_context.header = header;
+
+        SAFE_REQUIRE(bpf_prog_test_run_opts(prog_fd, &opts) < 0);
+    }
+
+    printf("Conditional policy validation test (prog_run) completed successfully\n");
+}
+
+// Listen hook helper functions validation: validates that bpf_sock_addr_get_network_context
+// returns valid interface_type and tunnel_type at the listen (ALE_AUTH_LISTEN) layer.
+TEST_CASE("listen_helper_functions_validation_tcp_v4", "[sock_addr_tests][helper_validation]")
+{
+    native_module_helper_t helper;
+    helper.initialize("cgroup_sock_addr_helpers", _is_main_thread);
+
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
+    bpf_object_ptr object_ptr(object);
+    SAFE_REQUIRE(object != nullptr);
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
+
+    bpf_program* listen_program = bpf_object__find_program_by_name(object, "test_listen_helpers_v4");
+    SAFE_REQUIRE(listen_program != nullptr);
+
+    bpf_map* network_context_map = bpf_object__find_map_by_name(object, "network_context_map");
+    SAFE_REQUIRE(network_context_map != nullptr);
+
+    bpf_map* sock_addr_helper_results_map = bpf_object__find_map_by_name(object, "sock_addr_helper_results_map");
+    SAFE_REQUIRE(sock_addr_helper_results_map != nullptr);
+
+    // Attach at INET4_LISTEN.
+    int result =
+        bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(listen_program)), 0, BPF_CGROUP_INET4_LISTEN, 0);
+    SAFE_REQUIRE(result == 0);
+
+    // Trigger listen by creating, binding, and calling listen() on a TCP socket.
+    SOCKET sock = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, 0);
+    SAFE_REQUIRE(sock != INVALID_SOCKET);
+    sockaddr_in bind_addr = {};
+    bind_addr.sin_family = AF_INET;
+    bind_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    bind_addr.sin_port = htons(SOCKET_TEST_PORT);
+    result = bind(sock, reinterpret_cast<sockaddr*>(&bind_addr), sizeof(bind_addr));
+    SAFE_REQUIRE(result == 0);
+    result = listen(sock, SOMAXCONN);
+    SAFE_REQUIRE(result == 0);
+
+    // Calculate the connection ID the BPF program used.
+    uint32_t connection_id = htonl(INADDR_LOOPBACK) ^ (htons(SOCKET_TEST_PORT) << 16);
+
+    // Verify network context was populated.
+    bpf_sock_addr_network_context_t net_ctx = {0};
+    result = bpf_map_lookup_elem(bpf_map__fd(network_context_map), &connection_id, &net_ctx);
+    SAFE_REQUIRE(result == 0);
+
+    printf(
+        "Listen network context - Version: %u, Interface: %u, Tunnel: %u\n",
+        net_ctx.version,
+        net_ctx.interface_type,
+        net_ctx.tunnel_type);
+
+    SAFE_REQUIRE(net_ctx.version == BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION);
+
+    bool valid_interface_type =
+        (net_ctx.interface_type == 0 || net_ctx.interface_type == IF_TYPE_ETHERNET_CSMACD ||
+         net_ctx.interface_type == IF_TYPE_SOFTWARE_LOOPBACK || net_ctx.interface_type == IF_TYPE_IEEE80211 ||
+         net_ctx.interface_type == IF_TYPE_TUNNEL);
+    SAFE_REQUIRE(valid_interface_type);
+
+    bool valid_tunnel_type =
+        (net_ctx.tunnel_type == TUNNEL_TYPE_NONE || net_ctx.tunnel_type == TUNNEL_TYPE_OTHER ||
+         net_ctx.tunnel_type == TUNNEL_TYPE_DIRECT || net_ctx.tunnel_type == TUNNEL_TYPE_6TO4 ||
+         net_ctx.tunnel_type == TUNNEL_TYPE_ISATAP || net_ctx.tunnel_type == TUNNEL_TYPE_TEREDO ||
+         net_ctx.tunnel_type == TUNNEL_TYPE_IPHTTPS);
+    SAFE_REQUIRE(valid_tunnel_type);
+
+    // Verify the other sock_addr helpers are callable at the listen layer and return the
+    // expected values. sock_addr_helper_results_map[8] holds the listen4 program's captures.
+    uint32_t results_key = 8;
+    struct
+    {
+        uint64_t pid_tgid;
+        uint64_t logon_id;
+        int32_t is_admin;
+        int32_t set_redirect_context;
+        int64_t socket_cookie;
+    } results = {0};
+    SAFE_REQUIRE(bpf_map_lookup_elem(bpf_map__fd(sock_addr_helper_results_map), &results_key, &results) == 0);
+
+    printf(
+        "Listen helper results - pid_tgid=0x%llx logon_id=0x%llx is_admin=%d "
+        "set_redirect_context=%d socket_cookie=0x%llx\n",
+        static_cast<unsigned long long>(results.pid_tgid),
+        static_cast<unsigned long long>(results.logon_id),
+        results.is_admin,
+        results.set_redirect_context,
+        static_cast<long long>(results.socket_cookie));
+
+    // bpf_get_current_pid_tgid: upper 32 bits hold the listening process ID. The WFP
+    // ALE_AUTH_LISTEN callout runs synchronously in the listening process's context, so
+    // this matches GetCurrentProcessId().
+    uint32_t pid_from_helper = static_cast<uint32_t>(results.pid_tgid >> 32);
+    SAFE_REQUIRE(pid_from_helper == GetCurrentProcessId());
+
+    // bpf_get_current_logon_id: non-zero for any real user logon.
+    SAFE_REQUIRE(results.logon_id != 0);
+
+    // bpf_is_current_admin: returns 1 (admin) or 0 (not admin) for any caller with a user
+    // token; returns -1 if admin status cannot be determined (no user token). The user-mode
+    // test process always has a token, so the value must be 0 or 1 — exact value depends on
+    // test runner elevation.
+    SAFE_REQUIRE(results.is_admin >= 0);
+    SAFE_REQUIRE(results.is_admin <= 1);
+
+    // bpf_sock_addr_set_redirect_context is documented as not supported at the listen layer
+    // and returns -1.
+    SAFE_REQUIRE(results.set_redirect_context == -1);
+
+    // bpf_get_socket_cookie returns 0 at the listen layer — the WFP transport_endpoint_handle
+    // is not exposed at ALE_AUTH_LISTEN and is explicitly zeroed by the classify callback.
+    SAFE_REQUIRE(results.socket_cookie == 0);
+
+    closesocket(sock);
+    printf("Listen helper functions validation test completed successfully for IPv4\n");
+}
+
+TEST_CASE("listen_helper_functions_validation_tcp_v6", "[sock_addr_tests][helper_validation]")
+{
+    native_module_helper_t helper;
+    helper.initialize("cgroup_sock_addr_helpers", _is_main_thread);
+
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
+    bpf_object_ptr object_ptr(object);
+    SAFE_REQUIRE(object != nullptr);
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
+
+    bpf_program* listen_program = bpf_object__find_program_by_name(object, "test_listen_helpers_v6");
+    SAFE_REQUIRE(listen_program != nullptr);
+
+    bpf_map* network_context_map = bpf_object__find_map_by_name(object, "network_context_map");
+    SAFE_REQUIRE(network_context_map != nullptr);
+
+    bpf_map* sock_addr_helper_results_map = bpf_object__find_map_by_name(object, "sock_addr_helper_results_map");
+    SAFE_REQUIRE(sock_addr_helper_results_map != nullptr);
+
+    // Attach at INET6_LISTEN.
+    int result =
+        bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(listen_program)), 0, BPF_CGROUP_INET6_LISTEN, 0);
+    SAFE_REQUIRE(result == 0);
+
+    // Trigger listen.
+    SOCKET sock = WSASocketW(AF_INET6, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, 0);
+    SAFE_REQUIRE(sock != INVALID_SOCKET);
+    sockaddr_in6 bind_addr = {};
+    bind_addr.sin6_family = AF_INET6;
+    bind_addr.sin6_addr = in6addr_loopback;
+    bind_addr.sin6_port = htons(SOCKET_TEST_PORT);
+    result = bind(sock, reinterpret_cast<sockaddr*>(&bind_addr), sizeof(bind_addr));
+    SAFE_REQUIRE(result == 0);
+    result = listen(sock, SOMAXCONN);
+    SAFE_REQUIRE(result == 0);
+
+    // Calculate the connection ID.
+    const uint32_t* ip6_dwords = reinterpret_cast<const uint32_t*>(&in6addr_loopback);
+    uint32_t connection_id = (ip6_dwords[0] ^ ip6_dwords[3]) ^ (htons(SOCKET_TEST_PORT) << 16);
+
+    // Verify network context was populated.
+    bpf_sock_addr_network_context_t net_ctx = {0};
+    result = bpf_map_lookup_elem(bpf_map__fd(network_context_map), &connection_id, &net_ctx);
+    SAFE_REQUIRE(result == 0);
+
+    printf(
+        "Listen network context - Version: %u, Interface: %u, Tunnel: %u\n",
+        net_ctx.version,
+        net_ctx.interface_type,
+        net_ctx.tunnel_type);
+
+    SAFE_REQUIRE(net_ctx.version == BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION);
+
+    bool valid_interface_type =
+        (net_ctx.interface_type == 0 || net_ctx.interface_type == IF_TYPE_ETHERNET_CSMACD ||
+         net_ctx.interface_type == IF_TYPE_SOFTWARE_LOOPBACK || net_ctx.interface_type == IF_TYPE_IEEE80211 ||
+         net_ctx.interface_type == IF_TYPE_TUNNEL);
+    SAFE_REQUIRE(valid_interface_type);
+
+    bool valid_tunnel_type =
+        (net_ctx.tunnel_type == TUNNEL_TYPE_NONE || net_ctx.tunnel_type == TUNNEL_TYPE_OTHER ||
+         net_ctx.tunnel_type == TUNNEL_TYPE_DIRECT || net_ctx.tunnel_type == TUNNEL_TYPE_6TO4 ||
+         net_ctx.tunnel_type == TUNNEL_TYPE_ISATAP || net_ctx.tunnel_type == TUNNEL_TYPE_TEREDO ||
+         net_ctx.tunnel_type == TUNNEL_TYPE_IPHTTPS);
+    SAFE_REQUIRE(valid_tunnel_type);
+
+    // Verify the other sock_addr helpers at the listen layer. sock_addr_helper_results_map[9]
+    // holds the listen6 program's captures. See listen_helper_functions_validation_tcp_v4
+    // for the assertion rationale.
+    uint32_t results_key = 9;
+    struct
+    {
+        uint64_t pid_tgid;
+        uint64_t logon_id;
+        int32_t is_admin;
+        int32_t set_redirect_context;
+        int64_t socket_cookie;
+    } results = {0};
+    SAFE_REQUIRE(bpf_map_lookup_elem(bpf_map__fd(sock_addr_helper_results_map), &results_key, &results) == 0);
+
+    printf(
+        "Listen helper results - pid_tgid=0x%llx logon_id=0x%llx is_admin=%d "
+        "set_redirect_context=%d socket_cookie=0x%llx\n",
+        static_cast<unsigned long long>(results.pid_tgid),
+        static_cast<unsigned long long>(results.logon_id),
+        results.is_admin,
+        results.set_redirect_context,
+        static_cast<long long>(results.socket_cookie));
+
+    uint32_t pid_from_helper = static_cast<uint32_t>(results.pid_tgid >> 32);
+    SAFE_REQUIRE(pid_from_helper == GetCurrentProcessId());
+    SAFE_REQUIRE(results.logon_id != 0);
+    SAFE_REQUIRE(results.is_admin >= 0);
+    SAFE_REQUIRE(results.is_admin <= 1);
+    SAFE_REQUIRE(results.set_redirect_context == -1);
+    SAFE_REQUIRE(results.socket_cookie == 0);
+
+    closesocket(sock);
+    printf("Listen helper functions validation test completed successfully for IPv6\n");
+}
+
+// Test listen hook enforcement using bpf_prog_attach (libbpf-compat path).
+// This exercises a different attach API than the native ebpf_program_attach path:
+// bpf_prog_attach passes a 4-byte attach parameter containing compartment_id=0, while
+// ebpf_program_attach with NULL parameter passes no attach parameter at all. The two
+// paths produce different filter contexts on the kernel side.
+//
+// Also binds the server socket to INADDR_LOOPBACK explicitly (rather than INADDR_ANY)
+// to exercise the non-zero local-address branch of _copy_wfp_listen_fields.
+TEMPLATE_TEST_CASE("listen_enforcement_libbpf", "[sock_addr_tests]", tcp_v4_params, tcp_v6_params)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+
+    constexpr auto listen_type = (family == AF_INET) ? BPF_CGROUP_INET4_LISTEN : BPF_CGROUP_INET6_LISTEN;
+    const char* listen_program = (family == AF_INET) ? "authorize_listen4" : "authorize_listen6";
+
+    // Build a loopback bind address for the server side.
+    sockaddr_storage loopback_address{};
+    if constexpr (family == AF_INET) {
+        sockaddr_in* addr4 = reinterpret_cast<sockaddr_in*>(&loopback_address);
+        addr4->sin_family = AF_INET;
+        addr4->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+        addr4->sin_port = htons(SOCKET_TEST_PORT);
+    } else {
+        sockaddr_in6* addr6 = reinterpret_cast<sockaddr_in6*>(&loopback_address);
+        addr6->sin6_family = AF_INET6;
+        addr6->sin6_addr = in6addr_loopback;
+        addr6->sin6_port = htons(SOCKET_TEST_PORT);
+    }
+
+    execute_connection_test({
+        .name = "listen_enforcement_libbpf",
+        .address_family = family,
+        .protocol = protocol,
+        .modules =
+            {
+                {
+                    .object_file = "cgroup_sock_addr",
+                    .programs =
+                        {
+                            {.program_name = listen_program,
+                             .attach_type = listen_type,
+                             .attach_method = attach_method_t::bpf_prog_attach},
+                        },
+                },
+            },
+        .tests =
+            {
+                {
+                    .description = "listen via bpf_prog_attach should be blocked by eBPF program",
+                    .expected_listen_error = WSAEACCES,
+                    .expected_result = connection_test_result::block,
+                    .listen_verdict = BPF_SOCK_ADDR_VERDICT_REJECT,
+                },
+                {
+                    .description = "listen via bpf_prog_attach should be allowed by eBPF program",
+                    .expected_result = connection_test_result::allow,
+                    .listen_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT,
+                },
+            },
+        .server_bind_address = loopback_address,
+    });
+}
+// Test listen hook enforcement via the execute_connection_test framework.
+// This exercises the wildcard (no compartment) WFP filter path using the framework's
+// dual-stack-aware server socket creation.
+TEMPLATE_TEST_CASE("listen_hook_enforcement_framework", "[sock_addr_tests]", tcp_v4_params, tcp_v6_params)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+
+    constexpr auto listen_type = (family == AF_INET) ? BPF_CGROUP_INET4_LISTEN : BPF_CGROUP_INET6_LISTEN;
+    const char* listen_program = (family == AF_INET) ? "authorize_listen4" : "authorize_listen6";
+
+    execute_connection_test({
+        .name = "listen_hook_enforcement_framework",
+        .address_family = family,
+        .protocol = protocol,
+        .modules =
+            {
+                {
+                    .object_file = "cgroup_sock_addr",
+                    .programs =
+                        {
+                            {.program_name = listen_program, .attach_type = listen_type},
+                        },
+                },
+            },
+        .tests =
+            {
+                {
+                    .description = "listen operation should be blocked by eBPF program",
+                    .expected_listen_error = WSAEACCES,
+                    .expected_result = connection_test_result::block,
+                    .listen_verdict = BPF_SOCK_ADDR_VERDICT_REJECT,
+                },
+                {
+                    .description = "listen operation should be allowed by eBPF program",
+                    .expected_result = connection_test_result::allow,
+                    .listen_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT,
+                },
+            },
+    });
+}
+
+// Test that BPF_SOCK_ADDR_VERDICT_PROCEED_HARD on listen overrides a same-layer
+// terminating WFP block filter. Mirrors the connect/recv_accept hard-permit
+// pattern: install a block filter at the LISTEN layer for the test port; soft
+// permit gets blocked by the filter, hard permit clears FWPS_RIGHT_ACTION_WRITE
+// and bypasses it.
+TEMPLATE_TEST_CASE("connection_test_listen_hard_permit", "[sock_addr_tests]", tcp_v4_params, tcp_v6_params)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+
+    constexpr auto listen_type = (family == AF_INET) ? BPF_CGROUP_INET4_LISTEN : BPF_CGROUP_INET6_LISTEN;
+    const char* listen_program = (family == AF_INET) ? "authorize_listen4" : "authorize_listen6";
+
+    execute_connection_test({
+        .name = "connection_test_listen_hard_permit",
+        .address_family = family,
+        .protocol = protocol,
+        .modules =
+            {
+                {
+                    .object_file = "cgroup_sock_addr",
+                    .programs =
+                        {
+                            {.program_name = listen_program, .attach_type = listen_type},
+                        },
+                },
+            },
+        .wfp_filters =
+            {
+                {
+                    .layer = (family == AF_INET) ? FWPM_LAYER_ALE_AUTH_LISTEN_V4 : FWPM_LAYER_ALE_AUTH_LISTEN_V6,
+                    .local_port = static_cast<uint16_t>(SOCKET_TEST_PORT),
+                },
+            },
+        .tests =
+            {
+                {
+                    .description = "Soft permit blocked by WFP",
+                    .expected_listen_error = WSAEACCES,
+                    .listen_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT,
+                },
+                {
+                    .description = "Hard permit overrides WFP block",
+                    .expected_result = connection_test_result::allow,
+                    .listen_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_HARD,
+                },
+            },
     });
 }
 
@@ -935,7 +2364,7 @@ connection_monitor_test(
         receiver_socket.close();
     }
 
-    // Wait for event handler getting notifications for all connection audit events.
+    // Wait for event handler to get notifications for all connection audit events.
     SAFE_REQUIRE(ring_buffer_event_callback.wait_for(1s) == std::future_status::ready);
 
     // Mark the event context as canceled, such that the event callback stops processing events.
@@ -1290,8 +2719,8 @@ validate_connection_multi_attach(
     if (expected_result == RESULT_DROP) {
         // The packet should be blocked.
         receiver_socket->complete_async_receive(true);
-        // Cancel send operation.
-        sender_socket->cancel_send_message();
+        // Cancel pending I/O on the sender socket.
+        sender_socket->cancel_pending_io();
     } else if (expected_result == RESULT_ALLOW) {
         // The packet should be allowed by the connect program.
         receiver_socket->complete_async_receive();
@@ -2425,7 +3854,7 @@ multi_attach_test_thread_function2(
 
 TEST_CASE("multi_attach_concurrency_test2", "[multi_attach_tests][concurrent_tests]")
 {
-    // This test case stresses the code path where 2 program -- one of type wildcard and other of specific attach
+    // This test case stresses the code path where 2 programs -- one of type wildcard and another of specific attach
     // types are attaching and detaching in parallel, and a third thread invokes the hook by sending packets.
     //
     // Thread 0,1: Invokes connections in a loop.

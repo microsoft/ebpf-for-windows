@@ -1553,7 +1553,7 @@ bitmap_test()
     std::vector<uint8_t> data(ebpf_bitmap_size(bit_count));
 
     ebpf_bitmap_t* bitmap = reinterpret_cast<ebpf_bitmap_t*>(data.data());
-    ebpf_bitmap_initialize(bitmap, bit_count);
+    REQUIRE(ebpf_bitmap_initialize(bitmap, bit_count) == EBPF_SUCCESS);
 
     // Set every bit.
     for (size_t i = 0; i < bit_count; i++) {

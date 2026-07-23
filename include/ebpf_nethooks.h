@@ -1,6 +1,8 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 #pragma once
+#include "ebpf_windows.h"
+
 #include <stdint.h>
 
 // This file contains APIs for hooks and helpers that are
@@ -10,7 +12,7 @@
 #define EBPF_HELPER(return_type, name, args) typedef return_type(*const name##_t) args
 #endif
 
-// BIND hook
+// BIND hook.
 
 typedef enum _bind_operation
 {
@@ -75,7 +77,7 @@ typedef enum _bind_action
 } bind_action_t;
 
 /**
- * @brief Handle IPv4 and IPv6 socket bind() requests.
+ * @brief Handle IPv4 and IPv6 socket bind operations.
  *
  * This function type defines the signature for eBPF programs that handle socket bind operations.
  * The program is called before the bind operation completes and can inspect the socket metadata
@@ -155,6 +157,7 @@ typedef enum
 {
     BPF_FUNC_sock_addr_get_current_pid_tgid = SOCK_ADDR_EXT_HELPER_FN_BASE + 1,
     BPF_FUNC_sock_addr_set_redirect_context = SOCK_ADDR_EXT_HELPER_FN_BASE + 2,
+    BPF_FUNC_sock_addr_get_network_context = SOCK_ADDR_EXT_HELPER_FN_BASE + 3,
 } ebpf_sock_addr_helper_id_t;
 
 /**
@@ -175,6 +178,70 @@ EBPF_HELPER(int, bpf_sock_addr_set_redirect_context, (bpf_sock_addr_t * ctx, voi
 #endif
 
 /**
+ * @brief Network context information for the connection.
+ * Available for CONNECT_AUTHORIZATION, RECV_ACCEPT, BIND, and LISTEN attach types.
+ */
+typedef struct _bpf_sock_addr_network_context
+{
+    uint32_t version;                 ///< Struct version (currently 1).
+    uint32_t interface_type;          ///< IANA interface type, or UINT32_MAX if not available.
+    uint32_t tunnel_type;             ///< IANA tunnel type; 0 if not a tunnel, or UINT32_MAX if not available.
+    uint64_t next_hop_interface_luid; ///< Next-hop interface LUID, or 0 if not available; unspecified at BIND.
+    uint32_t sub_interface_index;     ///< Sub-interface index, or 0 if not available; unspecified at BIND.
+} bpf_sock_addr_network_context_t;
+
+#define BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION 1
+
+/**
+ * @brief Header of an eBPF sock_addr test context structure.
+ * @see bpf_sock_addr_test_context_t.
+ * Every eBPF sock_addr test context structure must start with this header.
+ * New fields can be added to the end of the data structure without breaking
+ * backward compatibility. The version field must be updated only if the new
+ * data structure is not backward compatible.
+ * @note Original bpf_sock_addr_t context does not have the header.
+ * @see bpf_sock_addr_t.
+ */
+typedef ebpf_extension_header_t bpf_sock_addr_test_context_header_t;
+
+/**
+ * @brief Extended test context for for BPF_PROG_TYPE_CGROUP_SOCK_ADDR program type.
+ * This context can be used for testing eBPF programs that call \ref bpf_sock_addr_get_network_context helper function.
+ * eBPF programs that do not call \ref bpf_sock_addr_get_network_context helper function, can use \ref bpf_sock_addr_t
+ * context.
+ */
+typedef struct _bpf_sock_addr_test_context
+{
+    bpf_sock_addr_test_context_header_t header;      ///< Standard versioning header.
+    bpf_sock_addr_t context;                         ///< Socket address context.
+    bpf_sock_addr_network_context_t network_context; ///< Network context.
+} bpf_sock_addr_test_context_t;
+
+#define BPF_SOCK_ADDR_TEST_CONTEXT_VERSION 1
+
+#define BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(bpf_sock_addr_test_context_t, network_context)
+#define BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE sizeof(bpf_sock_addr_test_context_t)
+#define BPF_SOCK_ADDR_TEST_CONTEXT_HEADER_VERSION \
+    {BPF_SOCK_ADDR_TEST_CONTEXT_VERSION,          \
+     BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE,     \
+     BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE}
+
+/**
+ * @brief Get the network context for the connection (CONNECT_AUTHORIZATION, RECV_ACCEPT, BIND, and LISTEN).
+ *
+ * @param[in] ctx Pointer to bpf_sock_addr_t context.
+ * @param[out] context_ptr Pointer to bpf_sock_addr_network_context_t struct to be filled.
+ * @param[in] context_size Size of the struct (used for version management).
+ *
+ * @retval 0 The operation was successful.
+ * @retval <0 A failure occurred (e.g., network context unavailable at current attach layer).
+ */
+EBPF_HELPER(int, bpf_sock_addr_get_network_context, (bpf_sock_addr_t * ctx, void* context_ptr, uint32_t context_size));
+#ifndef __doxygen
+#define bpf_sock_addr_get_network_context ((bpf_sock_addr_get_network_context_t)BPF_FUNC_sock_addr_get_network_context)
+#endif
+
+/**
  * @brief Handle socket operation. Currently supports ingress/egress connection initialization.
  *
  * Program type: \ref EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR
@@ -184,6 +251,10 @@ EBPF_HELPER(int, bpf_sock_addr_set_redirect_context, (bpf_sock_addr_t * ctx, voi
  *  \ref EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT
  *  \ref EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT
  *  \ref EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT
+ *  \ref EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION
+ *  \ref EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION
+ *  \ref EBPF_ATTACH_TYPE_CGROUP_INET4_BIND
+ *  \ref EBPF_ATTACH_TYPE_CGROUP_INET6_BIND
  *
  * @param[in] context \ref bpf_sock_addr_t
  * @retval BPF_SOCK_ADDR_VERDICT_REJECT Block the socket operation. Maps to a hard block in WFP.

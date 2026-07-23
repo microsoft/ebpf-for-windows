@@ -8,9 +8,10 @@
 #include "ebpf_api.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_program_types.h"
-#include "ebpf_store_helper.h"
 #include "ebpf_shared_framework.h"
+#include "ebpf_store_helper.h"
 #include "xdp_hooks.h"
+
 #include <iostream>
 #include <stdexcept>
 
@@ -70,18 +71,18 @@ class xdp_program_info_guard
         }
     }
 
-    ~xdp_program_info_guard()
-    {
-        unregister_xdp_program_information();
-    }
+    ~xdp_program_info_guard() { unregister_xdp_program_information(); }
 
     // Delete copy constructor and assignment operator
     xdp_program_info_guard(const xdp_program_info_guard&) = delete;
-    xdp_program_info_guard& operator=(const xdp_program_info_guard&) = delete;
+    xdp_program_info_guard&
+    operator=(const xdp_program_info_guard&) = delete;
 
   private:
-    static uint32_t register_xdp_program_information();
-    static void unregister_xdp_program_information();
+    static uint32_t
+    register_xdp_program_information();
+    static void
+    unregister_xdp_program_information();
     static bool g_xdp_registered;
 };
 

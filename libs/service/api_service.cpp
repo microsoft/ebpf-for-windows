@@ -20,6 +20,7 @@ extern "C"
 #include "Verifier.h"
 #include "verifier_service.h"
 #include "windows_platform.hpp"
+#include "windows_platform_common.hpp"
 
 #include <format>
 #include <map>
@@ -63,12 +64,28 @@ _resolve_helper_functions(
         helper_id_to_address[instruction.imm] = {0};
     }
 
-    ebpf_protocol_buffer_t request_buffer(
-        offsetof(ebpf_operation_resolve_helper_request_t, helper_id) + sizeof(uint32_t) * helper_id_to_address.size());
+    size_t helper_id_array_length = 0;
+    size_t request_buffer_length = 0;
+    size_t reply_address_array_length = 0;
+    size_t reply_buffer_length = 0;
+    if ((ebpf_safe_size_t_multiply(helper_id_to_address.size(), sizeof(uint32_t), &helper_id_array_length) !=
+         EBPF_SUCCESS) ||
+        (ebpf_safe_size_t_add(
+             offsetof(ebpf_operation_resolve_helper_request_t, helper_id),
+             helper_id_array_length,
+             &request_buffer_length) != EBPF_SUCCESS) ||
+        (ebpf_safe_size_t_multiply(
+             helper_id_to_address.size(), sizeof(helper_function_address_t), &reply_address_array_length) !=
+         EBPF_SUCCESS) ||
+        (ebpf_safe_size_t_add(
+             offsetof(ebpf_operation_resolve_helper_reply_t, address),
+             reply_address_array_length,
+             &reply_buffer_length) != EBPF_SUCCESS)) {
+        return EBPF_ARITHMETIC_OVERFLOW;
+    }
 
-    ebpf_protocol_buffer_t reply_buffer(
-        offsetof(ebpf_operation_resolve_helper_reply_t, address) +
-        sizeof(helper_function_address_t) * helper_id_to_address.size());
+    ebpf_protocol_buffer_t request_buffer(request_buffer_length);
+    ebpf_protocol_buffer_t reply_buffer(reply_buffer_length);
 
     auto request = reinterpret_cast<ebpf_operation_resolve_helper_request_t*>(request_buffer.data());
     auto reply = reinterpret_cast<ebpf_operation_resolve_helper_reply_t*>(reply_buffer.data());
@@ -100,6 +117,7 @@ _build_helper_id_to_address_map(
     _In_reads_(instruction_count) ebpf_inst* instructions,
     uint32_t instruction_count,
     const std::map<uint32_t, helper_function_address_t>& helper_id_to_address,
+    const prevail::EbpfProgramType& program_type,
     uint32_t& unwind_index)
 {
     // Note:
@@ -129,10 +147,15 @@ _build_helper_id_to_address_map(
         if (instruction.opcode != prevail::INST_OP_CALL) {
             continue;
         }
+        // Skip calls other than static helper calls — their imm field is a relative offset
+        // to the callee, not a helper ID.
+        if (instruction.src != prevail::INST_CALL_STATIC_HELPER) {
+            continue;
+        }
         instruction.imm = helper_id_mapping[instruction.imm];
     }
     for (auto& [old_helper_id, new_helper_id] : helper_id_mapping) {
-        if (get_helper_prototype_windows(old_helper_id).return_type !=
+        if (get_helper_prototype_windows(old_helper_id, program_type).return_type !=
             EBPF_RETURN_TYPE_INTEGER_OR_NO_RETURN_IF_SUCCEED) {
             continue;
         }
@@ -196,11 +219,24 @@ _resolve_maps_in_byte_code(
         return EBPF_SUCCESS;
     }
 
-    ebpf_protocol_buffer_t request_buffer(
-        offsetof(ebpf_operation_resolve_map_request_t, map_handle) + sizeof(uint64_t) * map_fds.size());
+    size_t map_handle_array_length = 0;
+    size_t request_buffer_length = 0;
+    size_t reply_address_array_length = 0;
+    size_t reply_buffer_length = 0;
+    if ((ebpf_safe_size_t_multiply(map_fds.size(), sizeof(uint64_t), &map_handle_array_length) != EBPF_SUCCESS) ||
+        (ebpf_safe_size_t_add(
+             offsetof(ebpf_operation_resolve_map_request_t, map_handle),
+             map_handle_array_length,
+             &request_buffer_length) != EBPF_SUCCESS) ||
+        (ebpf_safe_size_t_multiply(map_fds.size(), sizeof(uint64_t), &reply_address_array_length) != EBPF_SUCCESS) ||
+        (ebpf_safe_size_t_add(
+             offsetof(ebpf_operation_resolve_map_reply_t, address), reply_address_array_length, &reply_buffer_length) !=
+         EBPF_SUCCESS)) {
+        return EBPF_ARITHMETIC_OVERFLOW;
+    }
 
-    ebpf_protocol_buffer_t reply_buffer(
-        offsetof(ebpf_operation_resolve_map_reply_t, address) + sizeof(uint64_t) * map_fds.size());
+    ebpf_protocol_buffer_t request_buffer(request_buffer_length);
+    ebpf_protocol_buffer_t reply_buffer(reply_buffer_length);
 
     auto request = reinterpret_cast<ebpf_operation_resolve_map_request_t*>(request_buffer.data());
     auto reply = reinterpret_cast<ebpf_operation_resolve_map_reply_t*>(reply_buffer.data());
@@ -350,7 +386,13 @@ ebpf_verify_and_load_program(
         }
 
         uint32_t unwind_index;
-        result = _build_helper_id_to_address_map(instructions, instruction_count, helper_id_to_address, unwind_index);
+        const prevail::EbpfProgramType* ebpf_program_type = get_program_type_windows(*program_type);
+        if (ebpf_program_type == nullptr) {
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
+        result = _build_helper_id_to_address_map(
+            instructions, instruction_count, helper_id_to_address, *ebpf_program_type, unwind_index);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }

@@ -34,7 +34,7 @@ typedef struct _sample_hash_map_entry
     uint32_t value;
 } sample_hash_map_entry_t;
 
-static ebpf_result_t
+static void
 _sample_object_hash_map_delete_entry_common(
     ebpf_base_map_client_dispatch_table_t* client_dispatch_table,
     size_t value_size,
@@ -42,7 +42,7 @@ _sample_object_hash_map_delete_entry_common(
     uint32_t flags)
 {
     if (flags & EBPF_MAP_OPERATION_HELPER) {
-        return EBPF_OPERATION_NOT_SUPPORTED;
+        return;
     }
 
     UNREFERENCED_PARAMETER(value_size);
@@ -51,13 +51,11 @@ _sample_object_hash_map_delete_entry_common(
     sample_hash_map_entry_t* entry = (sample_hash_map_entry_t*)ReadULong64NoFence((volatile const uint64_t*)value);
 
     if (entry == NULL) {
-        return EBPF_KEY_NOT_FOUND;
+        return;
     }
 
     // Free the object.
     client_dispatch_table->epoch_free(entry);
-
-    return EBPF_SUCCESS;
 }
 
 static ebpf_result_t

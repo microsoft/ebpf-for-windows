@@ -1,25 +1,11 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_ext_rundown.h"
 #include "ebpf_extension_uuids.h"
 #include "net_ebpf_ext_hook_provider.h"
 
 #define NET_EBPF_EXT_STACK_EXPANSION_SIZE 1024 * 16
-
-/**
- * @brief Initialize the hook rundown state.
- *
- * @param[in, out] rundown Pointer to the rundown object to initialize.
- */
-static void
-_ebpf_ext_init_hook_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
-{
-    ASSERT(rundown->rundown_initialized == FALSE);
-
-    ExInitializeRundownProtection(&rundown->protection);
-    rundown->rundown_occurred = FALSE;
-    rundown->rundown_initialized = TRUE;
-}
 
 /**
  * @brief Initialize the hook client rundown state.
@@ -33,9 +19,9 @@ static NTSTATUS
 _ebpf_ext_attach_init_rundown(net_ebpf_extension_hook_client_t* hook_client)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    net_ebpf_ext_hook_rundown_t* rundown = &hook_client->rundown;
+    ebpf_ext_hook_rundown_t* rundown = &hook_client->rundown;
 
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
 
     //
     // Allocate work item for client detach processing.
@@ -43,33 +29,15 @@ _ebpf_ext_attach_init_rundown(net_ebpf_extension_hook_client_t* hook_client)
     hook_client->detach_work_item = IoAllocateWorkItem(_net_ebpf_ext_driver_device_object);
     if (hook_client->detach_work_item == NULL) {
         status = STATUS_INSUFFICIENT_RESOURCES;
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "IoAllocateWorkItem", status);
+        EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "IoAllocateWorkItem", status);
         goto Exit;
     }
 
     // Initialize the rundown and disable new references.
-    _ebpf_ext_init_hook_rundown(rundown);
+    ebpf_ext_init_rundown(rundown);
 
 Exit:
-    NET_EBPF_EXT_RETURN_NTSTATUS(status);
-}
-
-/**
- * @brief Block execution of the thread until all invocations are completed.
- *
- * @param[in, out] rundown Rundown object to wait for.
- *
- */
-void
-_ebpf_ext_wait_for_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
-{
-    NET_EBPF_EXT_LOG_ENTRY();
-
-    ASSERT(rundown->rundown_initialized == TRUE);
-    ExWaitForRundownProtectionRelease(&rundown->protection);
-    rundown->rundown_occurred = TRUE;
-
-    NET_EBPF_EXT_LOG_EXIT();
+    EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 IO_WORKITEM_ROUTINE _net_ebpf_extension_detach_client_completion;
@@ -93,7 +61,7 @@ _net_ebpf_extension_detach_client_completion(_In_ DEVICE_OBJECT* device_object, 
     PAGED_CODE();
     UNREFERENCED_PARAMETER(device_object);
 
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
 
     ASSERT(hook_client != NULL);
     _Analysis_assume_(hook_client != NULL);
@@ -105,52 +73,38 @@ _net_ebpf_extension_detach_client_completion(_In_ DEVICE_OBJECT* device_object, 
     // Issue: https://github.com/microsoft/ebpf-for-windows/issues/1854
 
     // Wait for any in progress callbacks to complete.
-    _ebpf_ext_wait_for_rundown(&hook_client->rundown);
+    ebpf_ext_wait_for_rundown(&hook_client->rundown);
 
     IoFreeWorkItem(work_item);
 
     // Note: This frees the provider binding context (hook_client).
     NmrProviderDetachClientComplete(hook_client->nmr_binding_handle);
 
-    NET_EBPF_EXT_LOG_EXIT();
-}
-
-_Must_inspect_result_ bool
-_net_ebpf_ext_enter_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
-{
-    ASSERT(rundown->rundown_initialized == TRUE);
-    return ExAcquireRundownProtection(&rundown->protection);
-}
-
-void
-_net_ebpf_ext_leave_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
-{
-    ASSERT(rundown->rundown_initialized == TRUE);
-    ExReleaseRundownProtection(&rundown->protection);
+    EBPF_EXT_LOG_EXIT();
 }
 
 _Must_inspect_result_ bool
 net_ebpf_extension_hook_client_enter_rundown(_Inout_ net_ebpf_extension_hook_client_t* hook_client)
 {
-    return _net_ebpf_ext_enter_rundown(&hook_client->rundown);
+    return ebpf_ext_enter_rundown(&hook_client->rundown);
 }
 
 void
 net_ebpf_extension_hook_client_leave_rundown(_Inout_ net_ebpf_extension_hook_client_t* hook_client)
 {
-    _net_ebpf_ext_leave_rundown(&hook_client->rundown);
+    ebpf_ext_leave_rundown(&hook_client->rundown);
 }
 
 _Must_inspect_result_ bool
 net_ebpf_extension_hook_provider_enter_rundown(_Inout_ net_ebpf_extension_hook_provider_t* provider_context)
 {
-    return _net_ebpf_ext_enter_rundown(&provider_context->rundown);
+    return ebpf_ext_enter_rundown(&provider_context->rundown);
 }
 
 void
 net_ebpf_extension_hook_provider_leave_rundown(_Inout_ net_ebpf_extension_hook_provider_t* provider_context)
 {
-    _net_ebpf_ext_leave_rundown(&provider_context->rundown);
+    ebpf_ext_leave_rundown(&provider_context->rundown);
 }
 
 const ebpf_extension_data_t*
@@ -210,6 +164,17 @@ ebpf_result_t
 net_ebpf_extension_hook_invoke_programs(
     _Inout_ void* program_context, _In_ net_ebpf_extension_wfp_filter_context_t* filter_context, _Out_ uint32_t* result)
 {
+    return net_ebpf_extension_hook_invoke_filtered_programs(
+        program_context, filter_context, result, NULL /*filter_function*/);
+}
+
+ebpf_result_t
+net_ebpf_extension_hook_invoke_filtered_programs(
+    _Inout_ void* program_context,
+    _In_ net_ebpf_extension_wfp_filter_context_t* filter_context,
+    _Out_ uint32_t* result,
+    _In_opt_ bool (*filter_function)(_In_ const net_ebpf_extension_hook_client_t* hook_client))
+{
     ebpf_result_t program_result = EBPF_SUCCESS;
     KIRQL old_irql = PASSIVE_LEVEL;
     bool lock_acquired = FALSE;
@@ -231,9 +196,9 @@ net_ebpf_extension_hook_invoke_programs(
         // from the list of clients in the filter context. So we should not expect any failure in acquiring rundown
         // here. If acquiring rundown fails, bail.
         if (!net_ebpf_extension_hook_client_enter_rundown(filter_context->client_contexts[i])) {
-            NET_EBPF_EXT_LOG_MESSAGE(
-                NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            EBPF_EXT_LOG_MESSAGE(
+                EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
                 "net_ebpf_extension_hook_invoke_programs: Rundown failed for client");
             goto Exit;
         }
@@ -251,6 +216,12 @@ net_ebpf_extension_hook_invoke_programs(
     for (uint32_t i = 0; i < client_count; i++) {
         ASSERT(clients[i] != NULL);
 
+        if (filter_function != NULL) {
+            // If a filter function is provided, invoke it to see if we should invoke this program.
+            if (!filter_function(clients[i])) {
+                continue;
+            }
+        }
         program_result = _net_ebpf_extension_hook_invoke_single_program(clients[i], program_context, result);
         if (program_result != EBPF_SUCCESS) {
             // If we failed to invoke an eBPF program, stop processing and return the error code.
@@ -280,8 +251,8 @@ _Function_class_(EXPAND_STACK_CALLOUT) static void _net_ebpf_extension_invoke_pr
     net_ebpf_extension_invoke_programs_parameters_t* parameters =
         (net_ebpf_extension_invoke_programs_parameters_t*)context;
 
-    ebpf_result_t result = net_ebpf_extension_hook_invoke_programs(
-        parameters->program_context, parameters->filter_context, &parameters->verdict);
+    ebpf_result_t result = net_ebpf_extension_hook_invoke_filtered_programs(
+        parameters->program_context, parameters->filter_context, &parameters->verdict, parameters->filter_function);
 
     parameters->result = result;
 }
@@ -292,10 +263,22 @@ net_ebpf_extension_hook_expand_stack_and_invoke_programs(
     _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
     _Out_ uint32_t* result)
 {
+    return net_ebpf_extension_hook_expand_stack_and_invoke_filtered_programs(
+        program_context, filter_context, result, NULL);
+}
+
+ebpf_result_t
+net_ebpf_extension_hook_expand_stack_and_invoke_filtered_programs(
+    _Inout_ void* program_context,
+    _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
+    _Out_ uint32_t* result,
+    _In_opt_ bool (*filter_function)(_In_ const net_ebpf_extension_hook_client_t* hook_client))
+{
     NTSTATUS status = STATUS_SUCCESS;
     net_ebpf_extension_invoke_programs_parameters_t invoke_parameters = {0};
     invoke_parameters.filter_context = filter_context;
     invoke_parameters.program_context = (void*)program_context;
+    invoke_parameters.filter_function = filter_function;
 
 #pragma warning(push)
 #pragma warning(disable : 28160) //  Error annotation: DISPATCH_LEVEL is only supported on Windows 7 or later.
@@ -307,13 +290,16 @@ net_ebpf_extension_hook_expand_stack_and_invoke_programs(
         FALSE,
         NULL);
     if (status != STATUS_SUCCESS) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "KeExpandKernelStackAndCalloutEx", status);
+        EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+            EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "KeExpandKernelStackAndCalloutEx", status);
         return EBPF_FAILED;
     }
 #pragma warning(pop)
 
-    *result = invoke_parameters.verdict;
+    if (invoke_parameters.result == EBPF_SUCCESS) {
+        // If the call succeeded, return the verdict.
+        *result = invoke_parameters.verdict;
+    }
 
     return invoke_parameters.result;
 }
@@ -326,7 +312,7 @@ _Requires_lock_held_(provider_context->lock)
 {
     net_ebpf_extension_wfp_filter_context_t* matching_context = NULL;
 
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
 
     LIST_ENTRY* link = provider_context->filter_context_list.Flink;
     while (link != &provider_context->filter_context_list) {
@@ -353,7 +339,7 @@ _Requires_lock_held_(provider_context->lock)
         link = link->Flink;
     }
 
-    NET_EBPF_EXT_RETURN_POINTER(net_ebpf_extension_wfp_filter_context_t*, matching_context);
+    EBPF_EXT_RETURN_POINTER(net_ebpf_extension_wfp_filter_context_t*, matching_context);
 }
 
 void
@@ -403,12 +389,12 @@ _net_ebpf_extension_hook_provider_attach_client(
     net_ebpf_extension_wfp_filter_context_t* new_filter_context = NULL;
     bool rundown_acquired = FALSE;
 
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
 
     if ((provider_binding_context == NULL) || (provider_dispatch == NULL) || (local_provider_context == NULL)) {
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
             "Unexpected NULL argument(s). Attach attempt rejected.");
         status = STATUS_INVALID_PARAMETER;
         goto Exit;
@@ -421,9 +407,9 @@ _net_ebpf_extension_hook_provider_attach_client(
     client_data = (ebpf_extension_data_t*)client_registration_instance->NpiSpecificCharacteristics;
     result = local_provider_context->dispatch.validate_client_data(client_data, &is_wild_card_attach_parameter);
     if (result != EBPF_SUCCESS) {
-        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+        EBPF_EXT_LOG_MESSAGE_UINT32(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
             "validate_client_data failed. Attach attempt rejected.",
             result);
         status = STATUS_INVALID_PARAMETER;
@@ -432,8 +418,7 @@ _net_ebpf_extension_hook_provider_attach_client(
 
     hook_client = (net_ebpf_extension_hook_client_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(net_ebpf_extension_hook_client_t), NET_EBPF_EXTENSION_POOL_TAG);
-    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_STATUS(
-        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, hook_client, "hook_client", status);
+    EBPF_EXT_BAIL_ON_ALLOC_FAILURE_STATUS(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, hook_client, "hook_client", status);
 
     memset(hook_client, 0, sizeof(net_ebpf_extension_hook_client_t));
 
@@ -442,12 +427,13 @@ _net_ebpf_extension_hook_provider_attach_client(
     hook_client->client_module_id = client_registration_instance->ModuleId->Guid;
     hook_client->client_binding_context = client_binding_context;
     hook_client->client_data = client_data;
+    hook_client->attach_type = local_provider_context->attach_type;
     client_dispatch_table = (ebpf_extension_program_dispatch_table_t*)client_dispatch;
     if (client_dispatch_table == NULL) {
         status = STATUS_INVALID_PARAMETER;
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
             "client_dispatch_table is NULL. Attach attempt rejected.");
         goto Exit;
     }
@@ -455,9 +441,9 @@ _net_ebpf_extension_hook_provider_attach_client(
 
     status = _ebpf_ext_attach_init_rundown(hook_client);
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
             "_ebpf_ext_attach_init_rundown failed. Attach attempt rejected.",
             status);
         goto Exit;
@@ -470,9 +456,9 @@ _net_ebpf_extension_hook_provider_attach_client(
     if (local_provider_context->attach_capability == ATTACH_CAPABILITY_SINGLE_ATTACH) {
         // Single attach capability. Only one client can be attached.
         if (!IsListEmpty(&local_provider_context->filter_context_list)) {
-            NET_EBPF_EXT_LOG_MESSAGE(
-                NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            EBPF_EXT_LOG_MESSAGE(
+                EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
                 "Single attach capability. Attach attempt rejected.");
             status = STATUS_ACCESS_DENIED;
             goto Exit;
@@ -487,9 +473,9 @@ _net_ebpf_extension_hook_provider_attach_client(
             // Insert the new client in the filter context.
             result = net_ebpf_ext_add_client_context(matching_context, hook_client);
             if (result != EBPF_SUCCESS) {
-                NET_EBPF_EXT_LOG_MESSAGE_UINT32(
-                    NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                EBPF_EXT_LOG_MESSAGE_UINT32(
+                    EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                    EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
                     "net_ebpf_ext_add_client_context failed. Attach attempt rejected.",
                     result);
                 status = STATUS_ACCESS_DENIED;
@@ -504,9 +490,9 @@ _net_ebpf_extension_hook_provider_attach_client(
         // In case of wildcard attach parameter, only one client can be attached overall.
         if (is_wild_card_attach_parameter) {
             if (!IsListEmpty(&local_provider_context->filter_context_list)) {
-                NET_EBPF_EXT_LOG_MESSAGE(
-                    NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                EBPF_EXT_LOG_MESSAGE(
+                    EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                    EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
                     "Single attach per hook capability. Attach attempt rejected.");
                 status = STATUS_ACCESS_DENIED;
                 goto Exit;
@@ -518,9 +504,9 @@ _net_ebpf_extension_hook_provider_attach_client(
                 hook_client->client_data->data_size, hook_client->client_data->data, local_provider_context);
 
             if (matching_context != NULL) {
-                NET_EBPF_EXT_LOG_MESSAGE(
-                    NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                EBPF_EXT_LOG_MESSAGE(
+                    EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                    EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
                     "Only one client allowed. Attach attempt rejected.");
                 status = STATUS_ACCESS_DENIED;
                 goto Exit;
@@ -532,9 +518,9 @@ _net_ebpf_extension_hook_provider_attach_client(
     // Acquire rundown reference on provider context. This will be released when the filter context is deleted.
     rundown_acquired = net_ebpf_extension_hook_provider_enter_rundown(local_provider_context);
     if (!rundown_acquired) {
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
             "ExAcquireRundownProtection failed. Attach attempt rejected.");
         status = STATUS_ACCESS_DENIED;
         goto Exit;
@@ -543,9 +529,9 @@ _net_ebpf_extension_hook_provider_attach_client(
     result = local_provider_context->dispatch.create_filter_context(
         hook_client, local_provider_context, &new_filter_context);
     if (result != EBPF_SUCCESS) {
-        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+        EBPF_EXT_LOG_MESSAGE_UINT32(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
             "create_filter_context failed. Attach attempt rejected.",
             result);
         status = STATUS_ACCESS_DENIED;
@@ -587,14 +573,14 @@ Exit:
         }
     }
 
-    NET_EBPF_EXT_RETURN_NTSTATUS(status);
+    EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 _Requires_exclusive_lock_held_(provider_context->lock) static void _net_ebpf_ext_remove_filter_context_from_provider(
     _In_ net_ebpf_extension_hook_provider_t* provider_context,
     _In_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
 
     // Remove the list entry from the provider's list of filter contexts.
     RemoveEntryList(&filter_context->link);
@@ -602,7 +588,7 @@ _Requires_exclusive_lock_held_(provider_context->lock) static void _net_ebpf_ext
     // Release the filter context.
     provider_context->dispatch.delete_filter_context(filter_context);
 
-    NET_EBPF_EXT_LOG_EXIT();
+    EBPF_EXT_LOG_EXIT();
 }
 
 /**
@@ -621,15 +607,15 @@ _net_ebpf_extension_hook_provider_detach_client(_In_ const void* provider_bindin
     bool provider_lock_acquired = FALSE;
     net_ebpf_extension_wfp_filter_context_t* filter_context = NULL;
 
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
 
     net_ebpf_extension_hook_client_t* local_client_context =
         (net_ebpf_extension_hook_client_t*)provider_binding_context;
 
     if (local_client_context == NULL) {
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
             "local_client_context is NULL. Detach attempt rejected.");
         status = STATUS_INVALID_PARAMETER;
         goto Exit;
@@ -665,7 +651,7 @@ Exit:
             RELEASE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->lock);
         }
     }
-    NET_EBPF_EXT_RETURN_NTSTATUS(status);
+    EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 static void
@@ -680,7 +666,7 @@ void
 net_ebpf_extension_hook_provider_unregister(
     _In_opt_ _Frees_ptr_opt_ net_ebpf_extension_hook_provider_t* provider_context)
 {
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
     if (provider_context != NULL) {
         if (provider_context->nmr_provider_handle != NULL) {
             NTSTATUS status = NmrDeregisterProvider(provider_context->nmr_provider_handle);
@@ -689,14 +675,13 @@ net_ebpf_extension_hook_provider_unregister(
                 // Wait for clients to detach.
                 NmrWaitForProviderDeregisterComplete(provider_context->nmr_provider_handle);
             } else {
-                NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "NmrDeregisterProvider", status);
+                EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "NmrDeregisterProvider", status);
             }
         }
 
         net_ebpf_ext_add_provider_context_to_cleanup_list(provider_context);
     }
-    NET_EBPF_EXT_LOG_EXIT();
+    EBPF_EXT_LOG_EXIT();
 }
 
 NTSTATUS
@@ -711,19 +696,19 @@ net_ebpf_extension_hook_provider_register(
     net_ebpf_extension_hook_provider_t* local_provider_context = NULL;
     NPI_PROVIDER_CHARACTERISTICS* characteristics;
 
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
 
     *provider_context = NULL;
 
     local_provider_context = (net_ebpf_extension_hook_provider_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(net_ebpf_extension_hook_provider_t), NET_EBPF_EXTENSION_POOL_TAG);
-    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_STATUS(
-        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, local_provider_context, "local_provider_context", status);
+    EBPF_EXT_BAIL_ON_ALLOC_FAILURE_STATUS(
+        EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, local_provider_context, "local_provider_context", status);
 
     memset(local_provider_context, 0, sizeof(net_ebpf_extension_hook_provider_t));
     ExInitializePushLock(&local_provider_context->lock);
     InitializeListHead(&local_provider_context->filter_context_list);
-    _ebpf_ext_init_hook_rundown(&local_provider_context->rundown);
+    ebpf_ext_init_rundown(&local_provider_context->rundown);
 
     characteristics = &local_provider_context->characteristics;
     characteristics->Length = sizeof(NPI_PROVIDER_CHARACTERISTICS);
@@ -740,13 +725,14 @@ net_ebpf_extension_hook_provider_register(
     local_provider_context->dispatch = *dispatch;
     local_provider_context->custom_data = custom_data;
     local_provider_context->attach_capability = attach_capability;
+    local_provider_context->attach_type = parameters->provider_module_id->Guid;
 
     status = NmrRegisterProvider(characteristics, local_provider_context, &local_provider_context->nmr_provider_handle);
     if (!NT_SUCCESS(status)) {
 
         // The docs don't mention the (out) handle status on failure, so explicitly mark it as invalid.
         local_provider_context->nmr_provider_handle = NULL;
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "NmrRegisterProvider", status);
+        EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "NmrRegisterProvider", status);
         goto Exit;
     }
 
@@ -758,5 +744,5 @@ Exit:
         net_ebpf_extension_hook_provider_unregister(local_provider_context);
     }
 
-    NET_EBPF_EXT_RETURN_NTSTATUS(status);
+    EBPF_EXT_RETURN_NTSTATUS(status);
 }

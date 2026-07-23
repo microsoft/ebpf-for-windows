@@ -25,7 +25,7 @@ extern "C"
     {                                                                                  \
         0xb9707e04, 0x8127, 0x4c72, { 0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96 } \
     }
-    /** @brief Attach type for handling socket bind() requests.
+    /** @brief Attach type for handling socket bind operations.
      *
      * Program type: \ref EBPF_PROGRAM_TYPE_BIND
      */
@@ -44,6 +44,19 @@ extern "C"
     __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT =
         EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_GUID;
 
+#define EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION_GUID                       \
+    {                                                                                  \
+        0x6076c13a, 0xf04f, 0x4ff8, { 0x83, 0x80, 0x90, 0x85, 0x53, 0xf2, 0x22, 0x76 } \
+    }
+    /**
+     * @brief The program attached to the INET4_CONNECT_AUTHORIZATION hook will be invoked for
+     * connect() calls on TCP or UDP sockets before the connection is authorized.
+     *
+     * Program type: \ref EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR
+     */
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION =
+        EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION_GUID;
+
 #define EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_GUID                                     \
     {                                                                                  \
         0xa82e37b2, 0xaee7, 0x11ec, { 0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee } \
@@ -56,6 +69,19 @@ extern "C"
      */
     __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT =
         EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_GUID;
+
+#define EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION_GUID                       \
+    {                                                                                  \
+        0x54b0b6ed, 0x432a, 0x4674, { 0x8b, 0x27, 0x8d, 0x9f, 0x5b, 0x40, 0xc6, 0x75 } \
+    }
+    /**
+     * @brief The program attached to the INET6_CONNECT_AUTHORIZATION hook will be invoked for
+     * connect() calls on TCP or UDP sockets before the connection is authorized.
+     *
+     * Program type: \ref EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR
+     */
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION =
+        EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION_GUID;
 
 #define EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT_GUID                                 \
     {                                                                                  \
@@ -92,6 +118,52 @@ extern "C"
      * Program type: \ref EBPF_PROGRAM_TYPE_SOCK_OPS
      */
     __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS = EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS_GUID;
+
+#define EBPF_ATTACH_TYPE_CGROUP_INET4_BIND_GUID                                        \
+    {                                                                                  \
+        0x0d7ce21a, 0x7773, 0x405c, { 0x93, 0xb6, 0xd5, 0xbf, 0xb9, 0x2e, 0x74, 0xbc } \
+    }
+    /** @brief The programs attached to the INET4_BIND hook will be invoked
+     * when an IPv4 socket is bound to an address/port.
+     *
+     * Program type: \ref EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR
+     */
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET4_BIND =
+        EBPF_ATTACH_TYPE_CGROUP_INET4_BIND_GUID;
+
+#define EBPF_ATTACH_TYPE_CGROUP_INET6_BIND_GUID                                        \
+    {                                                                                  \
+        0x81de64c0, 0x2973, 0x468d, { 0x83, 0x82, 0x67, 0x69, 0xf0, 0x33, 0xd7, 0x59 } \
+    }
+    /** @brief The programs attached to the INET6_BIND hook will be invoked
+     * when an IPv6 socket is bound to an address/port.
+     *
+     * Program type: \ref EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR
+     */
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET6_BIND =
+        EBPF_ATTACH_TYPE_CGROUP_INET6_BIND_GUID;
+
+#define EBPF_ATTACH_TYPE_CGROUP_INET4_LISTEN_GUID                                      \
+    {                                                                                  \
+        0xe1b0cb3d, 0xd70c, 0x4ee2, { 0xb2, 0x3a, 0x07, 0x42, 0xbe, 0xdb, 0x06, 0xd6 } \
+    }
+    /** @brief Attach type for handling IPv4 socket listen operations.
+     *
+     * Program type: \ref EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR
+     */
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET4_LISTEN =
+        EBPF_ATTACH_TYPE_CGROUP_INET4_LISTEN_GUID;
+
+#define EBPF_ATTACH_TYPE_CGROUP_INET6_LISTEN_GUID                                      \
+    {                                                                                  \
+        0x4e72f92e, 0x5ed0, 0x4fe5, { 0xb8, 0x51, 0xb1, 0x24, 0xfe, 0x14, 0x07, 0x4d } \
+    }
+    /** @brief Attach type for handling IPv6 socket listen operations.
+     *
+     * Program type: \ref EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR
+     */
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET6_LISTEN =
+        EBPF_ATTACH_TYPE_CGROUP_INET6_LISTEN_GUID;
 
 #define EBPF_ATTACH_TYPE_SAMPLE_GUID                                                   \
     {                                                                                  \
@@ -140,7 +212,7 @@ extern "C"
         0x608c517c, 0x6c52, 0x4a26, { 0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf } \
     }
 
-    /** @brief Program type for handling socket bind() requests.
+    /** @brief Program type for handling socket bind operations.
      *
      * eBPF program prototype: \ref bind_hook_t
      *
@@ -164,6 +236,8 @@ extern "C"
      *  \ref EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT
      *  \ref EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT
      *  \ref EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT
+     *  \ref EBPF_ATTACH_TYPE_CGROUP_INET4_BIND
+     *  \ref EBPF_ATTACH_TYPE_CGROUP_INET6_BIND
      */
     __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR =
         EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR_GUID;

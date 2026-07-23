@@ -33,6 +33,7 @@ namespace ebpf {
 #include <WinSock2.h>
 #include <in6addr.h>
 #include <array>
+#include <atomic>
 #include <cguid.h>
 #include <chrono>
 #include <lsalookup.h>
@@ -317,6 +318,138 @@ divide_by_zero_test_um(ebpf_execution_type_t execution_type)
 }
 
 void
+map_annotation_collision_native_test(ebpf_execution_type_t execution_type)
+{
+    UNREFERENCED_PARAMETER(execution_type);
+
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    int result;
+    const char* error_message = nullptr;
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+    bpf_link_ptr link;
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    // This sample exercises bpf2c map-annotation scoping with bpf-to-bpf subprograms.
+    // The main program does an array-map lookup (annotated/inlineable), while the
+    // subprogram does a lookup on a different map.
+    result = ebpf_program_load(
+        "map_annotation_collision_um.dll",
+        BPF_PROG_TYPE_UNSPEC,
+        EBPF_EXECUTION_NATIVE,
+        &unique_object,
+        &program_fd,
+        &error_message);
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    fd_t array_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "array_map");
+    REQUIRE(array_map_fd > 0);
+
+    fd_t hash_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "hash_map");
+    REQUIRE(hash_map_fd > 0);
+
+    uint32_t key = 0;
+    uint64_t array_value = 10;
+    uint64_t hash_value = 3;
+    REQUIRE(bpf_map_update_elem(array_map_fd, &key, &array_value, EBPF_ANY) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_update_elem(hash_map_fd, &key, &hash_value, EBPF_ANY) == EBPF_SUCCESS);
+
+    REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
+
+    auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
+    INITIALIZE_SAMPLE_CONTEXT;
+
+    uint32_t hook_result = 0;
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == (uint32_t)(array_value + hash_value));
+
+    // Update only hash_map to validate the subprogram reads hash_map and not array_map.
+    hash_value = 7;
+    REQUIRE(bpf_map_update_elem(hash_map_fd, &key, &hash_value, EBPF_ANY) == EBPF_SUCCESS);
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == (uint32_t)(array_value + hash_value));
+
+    hook.detach_and_close_link(&link);
+    bpf_object__close(unique_object.release());
+}
+
+void
+map_sequential_lookup_inline_test(ebpf_execution_type_t execution_type)
+{
+    UNREFERENCED_PARAMETER(execution_type);
+
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    int result;
+    const char* error_message = nullptr;
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+    bpf_link_ptr link;
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    // Load the native program that performs two sequential array-map lookups.
+    // bpf2c inlines both lookups via the array_data optimization path.
+    result = ebpf_program_load(
+        "map_sequential_lookup_um.dll",
+        BPF_PROG_TYPE_UNSPEC,
+        EBPF_EXECUTION_NATIVE,
+        &unique_object,
+        &program_fd,
+        &error_message);
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    fd_t stats_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "stats_map");
+    REQUIRE(stats_map_fd > 0);
+
+    // Pre-populate the array map with known values.
+    uint32_t key_0 = 0;
+    uint32_t key_1 = 1;
+    uint32_t value_0 = 42;
+    uint32_t value_1 = 58;
+    REQUIRE(bpf_map_update_elem(stats_map_fd, &key_0, &value_0, EBPF_ANY) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_update_elem(stats_map_fd, &key_1, &value_1, EBPF_ANY) == EBPF_SUCCESS);
+
+    REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
+
+    INITIALIZE_SAMPLE_CONTEXT;
+
+    uint32_t hook_result = 0;
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+    // Program returns *val_0 + *val_1 = 42 + 58 = 100.
+    REQUIRE(hook_result == 100);
+
+    // Update values and re-run to confirm the inline path reads the correct addresses.
+    value_0 = 7;
+    value_1 = 13;
+    REQUIRE(bpf_map_update_elem(stats_map_fd, &key_0, &value_0, EBPF_ANY) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_update_elem(stats_map_fd, &key_1, &value_1, EBPF_ANY) == EBPF_SUCCESS);
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == 20);
+
+    hook.detach_and_close_link(&link);
+    bpf_object__close(unique_object.release());
+}
+
+void
 bad_map_name_um(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
@@ -543,6 +676,135 @@ _bindmonitor_bpf2bpf_test(ebpf_execution_type_t execution_type)
     REQUIRE(emulate_bind(invoke, 0, "fake_app_0") == BIND_DENY);
     REQUIRE(emulate_bind(invoke, 1, "fake_app_1") == BIND_REDIRECT);
     REQUIRE(emulate_bind(invoke, 2, "fake_app_2") == BIND_PERMIT_SOFT);
+}
+
+// Test noinline subprogram call inside a loop — 10 increments, map should contain 10.
+static void
+_bpf2bpf_loop_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "bpf2bpf_loop_um.dll" : "bpf2bpf_loop.o");
+    program_load_attach_helper_t program_helper;
+    program_helper.initialize(file_name, BPF_PROG_TYPE_SAMPLE, "caller_with_loop", execution_type, nullptr, 0, hook);
+
+    INITIALIZE_SAMPLE_CONTEXT;
+
+    uint32_t hook_result = 0;
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+
+    // The program returns the counter value (should be 10).
+    REQUIRE(hook_result == 10);
+
+    // Verify the map also contains 10 — proves the loop body ran 10 times.
+    fd_t map_fd = bpf_object__find_map_fd_by_name(program_helper.get_object(), "bpf2bpf_loop_map");
+    REQUIRE(map_fd > 0);
+    uint32_t key = 0;
+    uint32_t value = 0;
+    REQUIRE(bpf_map_lookup_elem(map_fd, &key, &value) == 0);
+    REQUIRE(value == 10);
+}
+
+static void
+_callgraph_bpf2bpf_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+
+    program_info_provider_t bind_program_info;
+    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "callgraph_bpf2bpf_um.dll" : "callgraph_bpf2bpf.o");
+
+    std::function<ebpf_result_t(void*, uint32_t*)> invoke =
+        [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t { return hook.fire(context, result); };
+
+    // Test entry_program1: calls S1 and S4 (helper call graph scenario).
+    {
+        program_load_attach_helper_t program_helper;
+        program_helper.initialize(file_name, BPF_PROG_TYPE_BIND, "entry_program1", execution_type, nullptr, 0, hook);
+
+        // entry_program1 calls S1 and S4. Expected result is BIND_REDIRECT.
+        REQUIRE(emulate_bind(invoke, 1001, "callgraph_e1") == BIND_REDIRECT);
+    }
+
+    // Test entry_program2: calls S2 (which calls S3) (helper call chain scenario).
+    {
+        program_load_attach_helper_t program_helper;
+        program_helper.initialize(file_name, BPF_PROG_TYPE_BIND, "entry_program2", execution_type, nullptr, 0, hook);
+
+        // entry_program2 calls S2 (which calls S3). Expected result is BIND_PERMIT_SOFT.
+        REQUIRE(emulate_bind(invoke, 2002, "callgraph_e2") == BIND_PERMIT_SOFT);
+    }
+
+    // Test entry_program3: calls update_map subprogram (map operations scenario).
+    {
+        const char* error_message = nullptr;
+        bpf_object_ptr unique_object;
+        fd_t program_fd;
+        int result;
+
+        result = ebpf_program_load(
+            file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+        if (error_message) {
+            printf("ebpf_program_load failed with %s\n", error_message);
+            ebpf_free((void*)error_message);
+        }
+        REQUIRE(result == 0);
+
+        // Find entry_program3 by name.
+        struct bpf_program* prog = bpf_object__find_program_by_name(unique_object.get(), "entry_program3");
+        REQUIRE(prog != nullptr);
+        program_fd = bpf_program__fd(prog);
+        REQUIRE(program_fd > 0);
+
+        fd_t bind_count_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "bind_count_map");
+        REQUIRE(bind_count_map_fd > 0);
+
+        bpf_link_ptr link;
+        uint32_t ifindex = 0;
+        REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
+
+        uint64_t fake_pid = 12345;
+
+        // First bind - should succeed and update map count to 1.
+        REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT_SOFT);
+
+        // Verify map was updated by the subprogram.
+        uint64_t count = 0;
+        REQUIRE(bpf_map_lookup_elem(bind_count_map_fd, &fake_pid, &count) == 0);
+        REQUIRE(count == 1);
+
+        // Second bind - should succeed and update map count to 2.
+        REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_2") == BIND_PERMIT_SOFT);
+        REQUIRE(bpf_map_lookup_elem(bind_count_map_fd, &fake_pid, &count) == 0);
+        REQUIRE(count == 2);
+
+        // Bind with a different PID - should create a new entry.
+        uint64_t fake_pid2 = 67890;
+        REQUIRE(emulate_bind(invoke, fake_pid2, "fake_app_3") == BIND_PERMIT_SOFT);
+        REQUIRE(bpf_map_lookup_elem(bind_count_map_fd, &fake_pid2, &count) == 0);
+        REQUIRE(count == 1);
+
+        // Original PID count should still be 2.
+        REQUIRE(bpf_map_lookup_elem(bind_count_map_fd, &fake_pid, &count) == 0);
+        REQUIRE(count == 2);
+
+        hook.detach_and_close_link(&link);
+        bpf_object__close(unique_object.release());
+    }
 }
 
 void
@@ -1003,8 +1265,92 @@ global_variable_and_map_test(ebpf_execution_type_t execution_type)
 
 DECLARE_ALL_TEST_CASES("droppacket", "[end_to_end]", droppacket_test);
 DECLARE_ALL_TEST_CASES("divide_by_zero", "[end_to_end]", divide_by_zero_test_um);
+DECLARE_NATIVE_TEST("map-annotation-collision", "[end_to_end]", map_annotation_collision_native_test);
+DECLARE_NATIVE_TEST("map-sequential-lookup-inline", "[end_to_end]", map_sequential_lookup_inline_test);
 DECLARE_ALL_TEST_CASES("bindmonitor", "[end_to_end]", bindmonitor_test);
 DECLARE_ALL_TEST_CASES("bindmonitor-bpf2bpf", "[end_to_end]", _bindmonitor_bpf2bpf_test);
+DECLARE_ALL_TEST_CASES("bpf2bpf-loop", "[end_to_end]", _bpf2bpf_loop_test);
+DECLARE_ALL_TEST_CASES("callgraph-bpf2bpf", "[end_to_end]", _callgraph_bpf2bpf_test);
+
+// Regression test: Verify that reloading a helper provider (triggering the
+// helper-address-change callback) works correctly for native programs that
+// contain sentinel helper entries (helper_id == 0).  Before the fix,
+// _ebpf_native_helper_address_changed compared address_count against
+// program_entry.helper_count (which includes sentinels), causing
+// EBPF_INVALID_ARGUMENT when the callback was invoked with only the actual
+// (non-sentinel) helper count.
+static void
+_callgraph_bpf2bpf_extension_reload_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    const char* file_name = "callgraph_bpf2bpf_um.dll";
+
+    // Only meaningful for native execution (sentinels are a native-module concept).
+    REQUIRE(execution_type == EBPF_EXECUTION_NATIVE);
+
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+    const char* error_message = nullptr;
+    int result;
+    bpf_link_ptr link;
+
+    // Load the program with the extension loaded.
+    {
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+        REQUIRE(hook.initialize() == EBPF_SUCCESS);
+        program_info_provider_t bind_program_info;
+        REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+
+        result = ebpf_program_load(
+            file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+        if (error_message) {
+            printf("ebpf_program_load failed with %s\n", error_message);
+            ebpf_free((void*)error_message);
+        }
+        REQUIRE(result == 0);
+
+        // Find entry_program2 — it has 3 sentinel + 1 real helper, making the
+        // count mismatch most visible.
+        struct bpf_program* prog = bpf_object__find_program_by_name(unique_object.get(), "entry_program2");
+        REQUIRE(prog != nullptr);
+        program_fd = bpf_program__fd(prog);
+        REQUIRE(program_fd > 0);
+
+        uint32_t ifindex = 0;
+        REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
+
+        // Program should run successfully.
+        std::function<ebpf_result_t(void*, uint32_t*)> invoke =
+            [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t {
+            return hook.fire(context, result);
+        };
+        REQUIRE(emulate_bind(invoke, 2002, "callgraph_e2") == BIND_PERMIT_SOFT);
+
+        // Unload the extension (bind_program_info and hook will be destroyed).
+    }
+
+    // Reload the extension provider — this triggers _ebpf_native_helper_address_changed
+    // for every loaded program. With sentinel helpers, the callback must correctly
+    // map the (smaller) address array back to the right helper_data[] slots.
+    {
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+        REQUIRE(hook.initialize() == EBPF_SUCCESS);
+        program_info_provider_t bind_program_info;
+        REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+
+        // Re-attach and verify the program still works after the callback.
+        std::function<ebpf_result_t(void*, uint32_t*)> invoke =
+            [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t {
+            return hook.fire(context, result);
+        };
+        REQUIRE(emulate_bind(invoke, 2002, "callgraph_e2") == BIND_PERMIT_SOFT);
+    }
+}
+DECLARE_NATIVE_TEST("callgraph-bpf2bpf-extension-reload", "[end_to_end]", _callgraph_bpf2bpf_extension_reload_test);
+
 DECLARE_ALL_TEST_CASES("bindmonitor-tailcall", "[end_to_end]", bindmonitor_tailcall_test);
 DECLARE_ALL_TEST_CASES("bindmonitor-ringbuf", "[end_to_end]", bindmonitor_ring_buffer_test);
 DECLARE_ALL_TEST_CASES("negative_ring_buffer_test", "[end_to_end]", negative_ring_buffer_test);
@@ -3771,7 +4117,8 @@ DECLARE_JIT_TEST_CASES(
 
 // This test validates custom map user APIs.
 void
-_test_custom_maps_user_apis(ebpf_map_type_t map_type, bool object_map, bool register_crud_apis)
+_test_custom_maps_user_apis(
+    ebpf_map_type_t map_type, bool object_map, bool register_crud_apis, bool use_postprocess_delete)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -3799,7 +4146,9 @@ _test_custom_maps_user_apis(ebpf_map_type_t map_type, bool object_map, bool regi
 
     REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
     test_sample_map_provider_t sample_map_provider;
-    REQUIRE(sample_map_provider.initialize(map_type, object_map, register_crud_apis) == EBPF_SUCCESS);
+    REQUIRE(
+        sample_map_provider.initialize(map_type, object_map, register_crud_apis, use_postprocess_delete) ==
+        EBPF_SUCCESS);
 
     fd_t custom_map_fd = bpf_map_create(map_type, "custom_map", sizeof(uint32_t), sizeof(uint32_t), map_size, nullptr);
     if (object_map && !register_crud_apis) {
@@ -4048,14 +4397,22 @@ _test_custom_maps_user_apis(ebpf_map_type_t map_type, bool object_map, bool regi
 
 TEST_CASE("custom_maps_user_apis", "[custom_maps]")
 {
-    // object_map = true, register_crud_apis = true.
-    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true, true);
-    // object_map = false, register_crud_apis = true.
-    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, false, true);
-    // object_map = true, register_crud_apis = false.
-    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true, false);
-    // object_map = false, register_crud_apis = false.
-    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, false, false);
+    // object_map = true, register_crud_apis = true, use_postprocess_delete = true
+    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true, true, true);
+    // object_map = true, register_crud_apis = true, use_postprocess_delete = false
+    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true, true, false);
+    // object_map = true, register_crud_apis = false, use_postprocess_delete = true
+    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true, false, true);
+    // object_map = true, register_crud_apis = false, use_postprocess_delete = false
+    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true, false, false);
+    // object_map = false, register_crud_apis = true, use_postprocess_delete = true
+    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, false, true, true);
+    // object_map = false, register_crud_apis = true, use_postprocess_delete = false
+    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, false, true, false);
+    // object_map = false, register_crud_apis = false, use_postprocess_delete = true
+    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, false, false, true);
+    // object_map = false, register_crud_apis = false, use_postprocess_delete = false
+    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, false, false, false);
 }
 
 TEST_CASE("custom_maps_invalid_map_type", "[custom_maps]")
@@ -4081,7 +4438,8 @@ TEST_CASE("custom_maps_invalid_map_type", "[custom_maps]")
     REQUIRE(invalid_map_fd < 0);
 }
 
-TEST_CASE("custom_maps_user_apis_negative", "[custom_maps]")
+static void
+_test_custom_maps_user_apis_negative(bool use_postprocess_delete)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -4091,7 +4449,9 @@ TEST_CASE("custom_maps_user_apis_negative", "[custom_maps]")
     REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
     test_sample_map_provider_t sample_map_provider;
-    REQUIRE(sample_map_provider.initialize(BPF_MAP_TYPE_SAMPLE_HASH_MAP, false) == EBPF_SUCCESS);
+    REQUIRE(
+        sample_map_provider.initialize(BPF_MAP_TYPE_SAMPLE_HASH_MAP, false, true, use_postprocess_delete) ==
+        EBPF_SUCCESS);
 
     // 1. Create a custom map.
     fd_t custom_map_fd =
@@ -4138,11 +4498,16 @@ TEST_CASE("custom_maps_user_apis_negative", "[custom_maps]")
     Platform::_close(custom_map_fd);
 }
 
+TEST_CASE("custom_maps_user_apis_negative_postprocess", "[custom_maps]") { _test_custom_maps_user_apis_negative(true); }
+
+TEST_CASE("custom_maps_user_apis_negative_preprocess", "[custom_maps]") { _test_custom_maps_user_apis_negative(false); }
+
 #define OPERATION_SUCCESS 1
 #define OPERATION_FAILURE 0
 
 void
-_test_custom_maps_program_load_common(ebpf_map_type_t type, bool object_map, ebpf_execution_type_t execution_type)
+_test_custom_maps_program_load_common(
+    ebpf_map_type_t type, bool object_map, ebpf_execution_type_t execution_type, bool use_postprocess_delete)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -4167,7 +4532,9 @@ _test_custom_maps_program_load_common(ebpf_map_type_t type, bool object_map, ebp
 
     // Initialize provider for SAMPLE_HASH_MAP.
     test_sample_map_provider_t sample_hash_map_provider;
-    REQUIRE(sample_hash_map_provider.initialize(BPF_MAP_TYPE_SAMPLE_HASH_MAP, object_map) == EBPF_SUCCESS);
+    REQUIRE(
+        sample_hash_map_provider.initialize(BPF_MAP_TYPE_SAMPLE_HASH_MAP, object_map, true, use_postprocess_delete) ==
+        EBPF_SUCCESS);
 
     auto require_and_close_object = [&](bool condition) {
         if (!condition) {
@@ -4386,14 +4753,17 @@ _test_custom_maps_program_load_common(ebpf_map_type_t type, bool object_map, ebp
 void
 _test_custom_maps_program_load(ebpf_execution_type_t execution_type)
 {
-    _test_custom_maps_program_load_common(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true, execution_type);
-    _test_custom_maps_program_load_common(BPF_MAP_TYPE_SAMPLE_HASH_MAP, false, execution_type);
+    // Test all combinations of object_map and use_postprocess_delete.
+    _test_custom_maps_program_load_common(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true, execution_type, true);
+    _test_custom_maps_program_load_common(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true, execution_type, false);
+    _test_custom_maps_program_load_common(BPF_MAP_TYPE_SAMPLE_HASH_MAP, false, execution_type, true);
+    _test_custom_maps_program_load_common(BPF_MAP_TYPE_SAMPLE_HASH_MAP, false, execution_type, false);
 }
 
 DECLARE_ALL_TEST_CASES("custom_maps_program_load", "[end_to_end][custom_maps]", _test_custom_maps_program_load);
 
 static void
-_test_custom_maps_invalid(ebpf_execution_type_t execution_type)
+_test_custom_maps_invalid_common(ebpf_execution_type_t execution_type, bool use_postprocess_delete)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -4409,7 +4779,9 @@ _test_custom_maps_invalid(ebpf_execution_type_t execution_type)
         (execution_type == EBPF_EXECUTION_NATIVE) ? "custom_map_invalid_um.dll" : "custom_map_invalid.o";
 
     test_sample_map_provider_t sample_map_provider;
-    REQUIRE(sample_map_provider.initialize(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true) == EBPF_SUCCESS);
+    REQUIRE(
+        sample_map_provider.initialize(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true, true, use_postprocess_delete) ==
+        EBPF_SUCCESS);
 
     // Try to load the program with invalid custom map usage.
     result =
@@ -4423,4 +4795,522 @@ _test_custom_maps_invalid(ebpf_execution_type_t execution_type)
     bpf_object__close(unique_object.release());
 }
 
+static void
+_test_custom_maps_invalid(ebpf_execution_type_t execution_type)
+{
+    _test_custom_maps_invalid_common(execution_type, true);
+    _test_custom_maps_invalid_common(execution_type, false);
+}
+
 DECLARE_ALL_TEST_CASES("custom_maps_invalid", "[end_to_end][custom_maps][!mayfail]", _test_custom_maps_invalid);
+
+static void
+_test_custom_maps_concurrent_update_and_query(bool use_postprocess_delete)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    // Use object map (object_map = true) so the provider manages value ownership
+    // (allocating/freeing heap objects on update/delete), exercising the provider callback paths.
+    test_sample_map_provider_t sample_map_provider;
+    REQUIRE(
+        sample_map_provider.initialize(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true, true, use_postprocess_delete) ==
+        EBPF_SUCCESS);
+
+    // 1. Create a custom map.
+    const uint32_t map_size = 10;
+    fd_t custom_map_fd = bpf_map_create(
+        BPF_MAP_TYPE_SAMPLE_HASH_MAP, "concurrent_map", sizeof(uint32_t), sizeof(uint32_t), map_size, nullptr);
+    REQUIRE(custom_map_fd > 0);
+
+    // Close the map fd before REQUIRE to prevent a hang during stack unwinding.
+    auto require_and_close = [](bool condition, fd_t& fd) {
+        if (!condition) {
+            Platform::_close(fd);
+            fd = ebpf_fd_invalid;
+        }
+        REQUIRE(condition);
+    };
+
+    // 2. Insert entries with keys 1 and 2.
+    uint32_t key1 = 1;
+    uint32_t key2 = 2;
+    uint32_t initial_value1 = 100;
+    uint32_t initial_value2 = 200;
+    require_and_close(bpf_map_update_elem(custom_map_fd, &key1, &initial_value1, 0) == 0, custom_map_fd);
+    require_and_close(bpf_map_update_elem(custom_map_fd, &key2, &initial_value2, 0) == 0, custom_map_fd);
+
+    const auto test_duration = std::chrono::seconds(10);
+    const uint32_t value_range = 1000;
+    std::atomic<bool> stop{false};
+    std::atomic<uint32_t> errors{0};
+
+    auto update_key1_fn = [&](uint32_t thread_id) {
+        uint32_t i = 0;
+        while (!stop.load(std::memory_order_relaxed)) {
+            uint32_t value = 1000 + thread_id * value_range + (i % value_range);
+            if (bpf_map_update_elem(custom_map_fd, &key1, &value, 0) != 0) {
+                errors++;
+            }
+            i++;
+        }
+    };
+
+    auto update_key2_fn = [&](uint32_t thread_id) {
+        uint32_t i = 0;
+        while (!stop.load(std::memory_order_relaxed)) {
+            uint32_t value = 2000 + thread_id * value_range + (i % value_range);
+            if (bpf_map_update_elem(custom_map_fd, &key2, &value, 0) != 0) {
+                errors++;
+            }
+            i++;
+        }
+    };
+
+    auto query_fn = [&]() {
+        while (!stop.load(std::memory_order_relaxed)) {
+            uint32_t value = 0;
+            int result = bpf_map_lookup_elem(custom_map_fd, &key1, &value);
+            if (result != 0) {
+                errors++;
+            } else if (value != initial_value1 && (value < 1000 || value >= 1000 + 2 * value_range)) {
+                errors++;
+            }
+            result = bpf_map_lookup_elem(custom_map_fd, &key2, &value);
+            if (result != 0) {
+                errors++;
+            } else if (value != initial_value2 && (value < 2000 || value >= 2000 + 2 * value_range)) {
+                errors++;
+            }
+        }
+    };
+
+    std::jthread t1(update_key1_fn, 0);
+    std::jthread t2(update_key1_fn, 1);
+    std::jthread t3(update_key2_fn, 0);
+    std::jthread t4(update_key2_fn, 1);
+    std::jthread t5(query_fn);
+    std::jthread t6(query_fn);
+
+    std::this_thread::sleep_for(test_duration);
+    stop.store(true);
+    t1.join();
+    t2.join();
+    t3.join();
+    t4.join();
+    t5.join();
+    t6.join();
+
+    require_and_close(errors.load() == 0, custom_map_fd);
+
+    uint32_t final_value1 = 0;
+    uint32_t final_value2 = 0;
+    require_and_close(bpf_map_lookup_elem(custom_map_fd, &key1, &final_value1) == 0, custom_map_fd);
+    require_and_close(bpf_map_lookup_elem(custom_map_fd, &key2, &final_value2) == 0, custom_map_fd);
+
+    Platform::_close(custom_map_fd);
+
+    REQUIRE(final_value1 >= 1000);
+    REQUIRE(final_value1 < 1000 + 2 * value_range);
+    REQUIRE(final_value2 >= 2000);
+    REQUIRE(final_value2 < 2000 + 2 * value_range);
+}
+
+TEST_CASE("custom_maps_concurrent_update_and_query_postprocess", "[custom_maps]")
+{
+    _test_custom_maps_concurrent_update_and_query(true);
+}
+
+TEST_CASE("custom_maps_concurrent_update_and_query_preprocess", "[custom_maps]")
+{
+    _test_custom_maps_concurrent_update_and_query(false);
+}
+
+static void
+_test_custom_maps_concurrent_insert_delete_and_query(bool use_postprocess_delete)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    auto require_and_close = [](bool condition, fd_t& fd) {
+        if (!condition) {
+            Platform::_close(fd);
+            fd = ebpf_fd_invalid;
+        }
+        REQUIRE(condition);
+    };
+
+    // Use object map (object_map = true) so the provider manages value ownership.
+    test_sample_map_provider_t sample_map_provider;
+    REQUIRE(
+        sample_map_provider.initialize(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true, true, use_postprocess_delete) ==
+        EBPF_SUCCESS);
+
+    const uint32_t map_size = 512;
+    const uint32_t shared_key_count = 64;
+    fd_t custom_map_fd = bpf_map_create(
+        BPF_MAP_TYPE_SAMPLE_HASH_MAP, "concurrent_del_map", sizeof(uint32_t), sizeof(uint32_t), map_size, nullptr);
+    REQUIRE(custom_map_fd > 0);
+
+    const auto test_duration = std::chrono::seconds(10);
+    std::atomic<bool> stop{false};
+
+    auto insert_delete_fn = [&](uint32_t thread_id) {
+        uint32_t i = thread_id;
+        while (!stop.load(std::memory_order_relaxed)) {
+            uint32_t key = i % shared_key_count;
+            uint32_t value = (thread_id << 16) | (i & 0xFFFF);
+            if (bpf_map_update_elem(custom_map_fd, &key, &value, 0) == 0) {
+                uint32_t lookup_value = 0;
+                bpf_map_lookup_elem(custom_map_fd, &key, &lookup_value);
+                bpf_map_delete_elem(custom_map_fd, &key);
+            }
+            i++;
+        }
+    };
+
+    auto inserter_fn = [&](uint32_t thread_id) {
+        uint32_t i = thread_id;
+        while (!stop.load(std::memory_order_relaxed)) {
+            uint32_t key = i % shared_key_count;
+            uint32_t value = (thread_id << 16) | (i & 0xFFFF);
+            bpf_map_update_elem(custom_map_fd, &key, &value, 0);
+            i++;
+        }
+    };
+
+    auto deleter_fn = [&](uint32_t thread_id) {
+        uint32_t i = thread_id;
+        while (!stop.load(std::memory_order_relaxed)) {
+            uint32_t key = i % shared_key_count;
+            bpf_map_delete_elem(custom_map_fd, &key);
+            i++;
+        }
+    };
+
+    auto query_fn = [&]() {
+        while (!stop.load(std::memory_order_relaxed)) {
+            uint32_t next_key = 0;
+            uint32_t value = 0;
+            int result = bpf_map_get_next_key(custom_map_fd, nullptr, &next_key);
+            while (result == 0 && !stop.load(std::memory_order_relaxed)) {
+                uint32_t key = next_key;
+                bpf_map_lookup_elem(custom_map_fd, &key, &value);
+                result = bpf_map_get_next_key(custom_map_fd, &key, &next_key);
+            }
+        }
+    };
+
+    std::jthread t1(insert_delete_fn, 0);
+    std::jthread t2(insert_delete_fn, 1);
+    std::jthread t3(insert_delete_fn, 2);
+    std::jthread t4(insert_delete_fn, 3);
+    std::jthread t5(inserter_fn, 0);
+    std::jthread t6(inserter_fn, 1);
+    std::jthread t7(deleter_fn, 0);
+    std::jthread t8(deleter_fn, 1);
+    std::jthread t9(query_fn);
+    std::jthread t10(query_fn);
+
+    std::this_thread::sleep_for(test_duration);
+    stop.store(true);
+    t1.join();
+    t2.join();
+    t3.join();
+    t4.join();
+    t5.join();
+    t6.join();
+    t7.join();
+    t8.join();
+    t9.join();
+    t10.join();
+
+    for (uint32_t k = 0; k < shared_key_count; k++) {
+        bpf_map_delete_elem(custom_map_fd, &k);
+    }
+
+    uint32_t next_key = 0;
+    int next_key_result = bpf_map_get_next_key(custom_map_fd, nullptr, &next_key);
+    require_and_close(next_key_result < 0, custom_map_fd);
+
+    Platform::_close(custom_map_fd);
+}
+
+TEST_CASE("custom_maps_concurrent_insert_delete_and_query_postprocess", "[custom_maps]")
+{
+    _test_custom_maps_concurrent_insert_delete_and_query(true);
+}
+
+TEST_CASE("custom_maps_concurrent_insert_delete_and_query_preprocess", "[custom_maps]")
+{
+    _test_custom_maps_concurrent_insert_delete_and_query(false);
+}
+
+TEST_CASE("multi_attach_sample_extension", "[sample_ext]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    // Create a hook provider for the sample extension.
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    // Native programs must be loaded from distinct binaries.
+    // Create a copy of the DLL for the second instance.
+    const char* file_name1 = "test_sample_ebpf_um.dll";
+    const char* file_name2 = "test_sample_ebpf_um_2.dll";
+    REQUIRE(CopyFileA(file_name1, file_name2, FALSE) != 0);
+
+    const char* error_message = nullptr;
+    bpf_object_ptr object1;
+    bpf_object_ptr object2;
+    fd_t program_fd1;
+    fd_t program_fd2;
+
+    int result = ebpf_program_load(
+        file_name1, BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, &object1, &program_fd1, &error_message);
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+        error_message = nullptr;
+    }
+    REQUIRE(result == 0);
+
+    result = ebpf_program_load(
+        file_name2, BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, &object2, &program_fd2, &error_message);
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+        error_message = nullptr;
+    }
+    REQUIRE(result == 0);
+
+    // Populate test_map for program 1: key 0 = "rainy", key 1 = "sunny".
+    const int VALUE_SIZE = 32;
+    fd_t map_fd1 = bpf_object__find_map_fd_by_name(object1.get(), "test_map");
+    REQUIRE(map_fd1 > 0);
+    uint8_t value_buf[VALUE_SIZE] = {};
+    uint32_t key = 0;
+    memcpy(value_buf, "rainy", 5);
+    REQUIRE(bpf_map_update_elem(map_fd1, &key, value_buf, EBPF_ANY) == EBPF_SUCCESS);
+    key = 1;
+    memset(value_buf, 0, VALUE_SIZE);
+    memcpy(value_buf, "sunny", 5);
+    REQUIRE(bpf_map_update_elem(map_fd1, &key, value_buf, EBPF_ANY) == EBPF_SUCCESS);
+
+    // Populate test_map for program 2: key 0 = "frowny", key 1 = "smiley".
+    fd_t map_fd2 = bpf_object__find_map_fd_by_name(object2.get(), "test_map");
+    REQUIRE(map_fd2 > 0);
+    key = 0;
+    memset(value_buf, 0, VALUE_SIZE);
+    memcpy(value_buf, "frowny", 6);
+    REQUIRE(bpf_map_update_elem(map_fd2, &key, value_buf, EBPF_ANY) == EBPF_SUCCESS);
+    key = 1;
+    memset(value_buf, 0, VALUE_SIZE);
+    memcpy(value_buf, "smiley", 6);
+    REQUIRE(bpf_map_update_elem(map_fd2, &key, value_buf, EBPF_ANY) == EBPF_SUCCESS);
+
+    // Attach program 1 with attach_data 0.
+    uint8_t attach_data0 = 0;
+    bpf_program* prog1 = bpf_object__find_program_by_name(object1.get(), "test_program_entry");
+    REQUIRE(prog1 != nullptr);
+    REQUIRE(hook.attach(prog1, &attach_data0, sizeof(attach_data0)) == EBPF_SUCCESS);
+
+    // Attach program 2 with attach_data 1.
+    uint8_t attach_data1 = 1;
+    bpf_program* prog2 = bpf_object__find_program_by_name(object2.get(), "test_program_entry");
+    REQUIRE(prog2 != nullptr);
+    REQUIRE(hook.attach(prog2, &attach_data1, sizeof(attach_data1)) == EBPF_SUCCESS);
+
+    // Fire program 1 — context data contains "rainy", expect replaced with "sunny".
+    uint8_t context_data1[VALUE_SIZE] = {};
+    memcpy(context_data1, "rainy", 5);
+    sample_program_context_header_t header1{};
+    sample_program_context_t* ctx1 = &header1.context;
+    ctx1->data_start = context_data1;
+    ctx1->data_end = context_data1 + VALUE_SIZE;
+    uint32_t hook_result = 0;
+    REQUIRE(hook.fire(&attach_data0, sizeof(attach_data0), ctx1, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == 42);
+    REQUIRE(memcmp(context_data1, "sunny", 5) == 0);
+
+    // Fire program 2 — context data contains "frowny", expect replaced with "smiley".
+    uint8_t context_data2[VALUE_SIZE] = {};
+    memcpy(context_data2, "frowny", 6);
+    sample_program_context_header_t header2{};
+    sample_program_context_t* ctx2 = &header2.context;
+    ctx2->data_start = context_data2;
+    ctx2->data_end = context_data2 + VALUE_SIZE;
+    hook_result = 0;
+    REQUIRE(hook.fire(&attach_data1, sizeof(attach_data1), ctx2, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == 42);
+    REQUIRE(memcmp(context_data2, "smiley", 6) == 0);
+
+    // Verify that an unoccupied attach_data fails.
+    uint8_t attach_data2 = 2;
+    REQUIRE(hook.fire(&attach_data2, sizeof(attach_data2), ctx1, &hook_result) == EBPF_EXTENSION_FAILED_TO_LOAD);
+
+    // Detach and close.
+    (void)hook.detach(program_fd1, &attach_data0, sizeof(attach_data0));
+    (void)hook.detach(program_fd2, &attach_data1, sizeof(attach_data1));
+
+    bpf_object__close(object1.release());
+    bpf_object__close(object2.release());
+
+    // Clean up the copy.
+    DeleteFileA(file_name2);
+}
+
+TEST_CASE("multi_attach_fire_detach_race", "[sample_ext]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name = "test_sample_ebpf_um.dll";
+    const char* error_message = nullptr;
+    bpf_object_ptr object;
+    fd_t program_fd;
+
+    int result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, &object, &program_fd, &error_message);
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+        error_message = nullptr;
+    }
+    REQUIRE(result == 0);
+
+    // Populate test_map: key 0 = "rainy", key 1 = "sunny".
+    const int VALUE_SIZE = 32;
+    fd_t map_fd = bpf_object__find_map_fd_by_name(object.get(), "test_map");
+    REQUIRE(map_fd > 0);
+    uint8_t value_buf[VALUE_SIZE] = {};
+    uint32_t key = 0;
+    memcpy(value_buf, "rainy", 5);
+    REQUIRE(bpf_map_update_elem(map_fd, &key, value_buf, EBPF_ANY) == EBPF_SUCCESS);
+    key = 1;
+    memset(value_buf, 0, VALUE_SIZE);
+    memcpy(value_buf, "sunny", 5);
+    REQUIRE(bpf_map_update_elem(map_fd, &key, value_buf, EBPF_ANY) == EBPF_SUCCESS);
+
+    // Get bpf_program for attach calls.
+    bpf_program* prog = bpf_object__find_program_by_name(object.get(), "test_program_entry");
+    REQUIRE(prog != nullptr);
+
+    // Initial attach.
+    uint8_t attach_data = 0;
+    REQUIRE(hook.attach(prog, &attach_data, sizeof(attach_data)) == EBPF_SUCCESS);
+
+    std::atomic<bool> stop{false};
+
+    // Thread 1: fire in a tight loop.
+    std::thread fire_thread([&] {
+        while (!stop) {
+            uint8_t context_data[VALUE_SIZE] = {};
+            memcpy(context_data, "rainy", 5);
+            sample_program_context_header_t hdr{};
+            sample_program_context_t* ctx = &hdr.context;
+            ctx->data_start = context_data;
+            ctx->data_end = context_data + VALUE_SIZE;
+            uint32_t fire_result = 0;
+            // Ignore failures — detach may have raced.
+            (void)hook.fire(&attach_data, sizeof(attach_data), ctx, &fire_result);
+        }
+    });
+
+    // Thread 2: detach/reattach in a tight loop.
+    std::thread detach_thread([&] {
+        while (!stop) {
+            (void)hook.detach(program_fd, &attach_data, sizeof(attach_data));
+            (void)hook.attach(prog, &attach_data, sizeof(attach_data));
+        }
+    });
+
+    // Run for 1 second.
+    Sleep(1000);
+    stop = true;
+    fire_thread.join();
+    detach_thread.join();
+
+    // Clean up — detach whatever is attached.
+    (void)hook.detach(program_fd, &attach_data, sizeof(attach_data));
+    bpf_object__close(object.release());
+}
+
+// Positive test for bpf_redirect_map in the sample extension. This test verifies that loading
+// a sample program that uses bpf_redirect_map succeeds, because the sample extension provides
+// an implementation of the global virtual bpf_redirect_map helper.
+void
+test_sample_redirect_map_load(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    int result;
+    const char* error_message = nullptr;
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_redirect_map_um.dll" : "test_sample_redirect_map.o");
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    bpf_object__close(unique_object.release());
+}
+
+DECLARE_ALL_TEST_CASES("test_sample_redirect_map_load", "[end_to_end]", test_sample_redirect_map_load);
+
+// Negative test for bpf_redirect_map. This test verifies that loading a program that uses
+// the global virtual bpf_redirect_map helper fails for a program type that does not implement
+// it. The bind program type does not provide an implementation, so program load should fail
+// for all execution types.
+void
+test_invalid_bpf_redirect_map(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    int result;
+    const char* error_message = nullptr;
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+
+    program_info_provider_t bind_program_info;
+    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_invalid_redirect_map_um.dll" : "test_invalid_redirect_map.o");
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == -EINVAL);
+}
+
+DECLARE_ALL_TEST_CASES("invalid_bpf_redirect_map", "[end_to_end]", test_invalid_bpf_redirect_map);

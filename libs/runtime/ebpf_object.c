@@ -211,7 +211,7 @@ ebpf_object_initialize(
     object->notify_reference_count_zeroed = notify_reference_count_zeroed;
     object->notify_user_reference_count_zeroed = notify_user_reference_count_zeroed;
     object->get_program_type = get_program_type;
-    object->id = ebpf_interlocked_increment_int32((volatile int32_t*)&_ebpf_next_id);
+    object->id = ebpf_interlocked_increment_uint32(&_ebpf_next_id);
 
     ebpf_list_initialize(&object->object_list_entry);
     ebpf_epoch_work_item_t* free_object_work_item = NULL;

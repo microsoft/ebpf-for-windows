@@ -253,6 +253,12 @@ DECLARE_LOAD_TEST_CASE("test_sample_ebpf.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTIO
 // Load test_sample_ebpf with providing expected program type.
 DECLARE_LOAD_TEST_CASE("test_sample_ebpf.o", BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_INTERPRET, INTERPRET_LOAD_RESULT);
 
+// Load test_sample_redirect_map (uses bpf_redirect_map global virtual helper).
+DECLARE_LOAD_TEST_CASE("test_sample_redirect_map.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_JIT, JIT_LOAD_RESULT);
+DECLARE_LOAD_TEST_CASE(
+    "test_sample_redirect_map.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_INTERPRET, INTERPRET_LOAD_RESULT);
+DECLARE_LOAD_TEST_CASE("test_sample_redirect_map.sys", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, 0);
+
 // Load bindmonitor (JIT) without providing expected program type.
 DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_JIT, JIT_LOAD_RESULT);
 
@@ -947,8 +953,8 @@ send_traffic(IPPROTO protocol, bool is_ipv6)
         datagram_client_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
 
         datagram_server_socket.complete_async_receive(false);
-        // Cancel send operation.
-        datagram_client_socket.cancel_send_message();
+        // Cancel pending I/O on the client socket.
+        datagram_client_socket.cancel_pending_io();
     } else // TCP traffic.
     {
         stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
@@ -967,8 +973,8 @@ send_traffic(IPPROTO protocol, bool is_ipv6)
         stream_client_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
 
         stream_server_socket.complete_async_receive(false);
-        // Cancel send operation.
-        stream_client_socket.cancel_send_message();
+        // Cancel pending I/O on the client socket.
+        stream_client_socket.cancel_pending_io();
     }
 }
 
@@ -1884,6 +1890,28 @@ class perf_buffer_test_helper
         }
     }
 
+    /**
+     * @brief Release the perf buffer without closing the map fd.
+     * Use this to test re-creating a perf buffer on the same map.
+     */
+    void
+    release_perf_buffer()
+    {
+        if (_buffer != nullptr) {
+            perf_buffer__free(_buffer);
+            _buffer = nullptr;
+        }
+        // Reset context counters and promise for the next perf buffer.
+        context.event_count = 0;
+        context.lost_count = 0;
+        context.completion_promise = nullptr;
+        _completion_promise = std::promise<void>();
+        {
+            std::lock_guard<std::mutex> guard(context.lock);
+            context.received_data.clear();
+        }
+    }
+
   private:
     perf_buffer* _buffer = nullptr;
     fd_t _map_fd = ebpf_fd_invalid;
@@ -2047,7 +2075,217 @@ TEST_CASE("perf_buffer_async_lost_callback", "[perf_buffer]")
     REQUIRE((helper.context.event_count + helper.context.lost_count) == total_events);
 }
 
-// Test synchronous perf buffer API with real program.
+// Test: Re-creating a perf buffer on the same map in async mode.
+// Validates the fix in ebpf_map_unsubscribe that sends unmap IOCTLs for per-CPU rings,
+// allowing a second perf_buffer__new to succeed on the same map within the same process.
+TEST_CASE("perf_buffer_async_reopen", "[perf_buffer]")
+{
+    perf_buffer_test_helper helper(true);
+    fd_t map_fd;
+    REQUIRE(helper.initialize_map(map_fd, "test_reopen", 64 * 1024) == 0);
+
+    std::vector<std::string> test_messages = {"First open message 1", "First open message 2"};
+
+    // First open: create perf buffer in async mode, write events, verify receipt.
+    {
+        auto completion_future = helper.enable_async_completion(static_cast<uint32_t>(test_messages.size()));
+        auto* pb = helper.create_perf_buffer(map_fd, EBPF_PERFBUF_FLAG_AUTO_CALLBACK);
+        REQUIRE(pb != nullptr);
+
+        for (const auto& msg : test_messages) {
+            REQUIRE(ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length()) == EBPF_SUCCESS);
+        }
+
+        REQUIRE(completion_future.wait_for(5s) == std::future_status::ready);
+        REQUIRE(helper.context.event_count == test_messages.size());
+    }
+
+    // Release the first perf buffer (triggers ebpf_map_unsubscribe → unmap IOCTLs).
+    helper.release_perf_buffer();
+
+    // Second open: create a new perf buffer on the SAME map — must succeed.
+    std::vector<std::string> test_messages2 = {"Second open message 1", "Second open message 2"};
+    {
+        auto completion_future = helper.enable_async_completion(static_cast<uint32_t>(test_messages2.size()));
+        auto* pb2 = helper.create_perf_buffer(map_fd, EBPF_PERFBUF_FLAG_AUTO_CALLBACK);
+        REQUIRE(pb2 != nullptr);
+
+        for (const auto& msg : test_messages2) {
+            REQUIRE(ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length()) == EBPF_SUCCESS);
+        }
+
+        REQUIRE(completion_future.wait_for(5s) == std::future_status::ready);
+        REQUIRE(helper.context.event_count == test_messages2.size());
+        REQUIRE(helper.context.lost_count == 0);
+        helper.validate_data_unordered(test_messages2);
+    }
+}
+
+// Test: Re-creating a perf buffer on the same map in sync mode.
+TEST_CASE("perf_buffer_sync_reopen", "[perf_buffer]")
+{
+    perf_buffer_test_helper helper(true);
+    fd_t map_fd;
+    REQUIRE(helper.initialize_map(map_fd, "test_reopen_sync", 64 * 1024) == 0);
+
+    std::vector<std::string> test_messages = {"Sync first 1", "Sync first 2"};
+
+    // First open: create perf buffer in sync mode, write events, poll and verify.
+    {
+        auto* pb = helper.create_perf_buffer(map_fd);
+        REQUIRE(pb != nullptr);
+
+        for (const auto& msg : test_messages) {
+            REQUIRE(ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length()) == EBPF_SUCCESS);
+        }
+
+        helper.poll_until_count(pb, test_messages.size());
+        REQUIRE(helper.context.event_count == test_messages.size());
+    }
+
+    // Release the first perf buffer.
+    helper.release_perf_buffer();
+
+    // Second open: create a new perf buffer on the SAME map — must succeed.
+    std::vector<std::string> test_messages2 = {"Sync second 1", "Sync second 2"};
+    {
+        auto* pb2 = helper.create_perf_buffer(map_fd);
+        REQUIRE(pb2 != nullptr);
+
+        for (const auto& msg : test_messages2) {
+            REQUIRE(ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length()) == EBPF_SUCCESS);
+        }
+
+        helper.poll_until_count(pb2, test_messages2.size());
+        REQUIRE(helper.context.event_count == test_messages2.size());
+        REQUIRE(helper.context.lost_count == 0);
+        helper.validate_data_unordered(test_messages2);
+    }
+}
+
+// Test: Re-creating a ring buffer on the same map in async mode.
+// Validates that ebpf_map_unsubscribe sends unmap IOCTLs for ring buffer maps,
+// allowing a second ebpf_ring_buffer__new to succeed on the same map within the same process.
+TEST_CASE("ring_buffer_async_reopen", "[ring_buffer]")
+{
+    fd_t map_fd = bpf_map_create(BPF_MAP_TYPE_RINGBUF, "test_rb_reopen", 0, 0, 64 * 1024, nullptr);
+    REQUIRE(map_fd > 0);
+    auto map_cleanup =
+        std::unique_ptr<void, std::function<void(void*)>>(reinterpret_cast<void*>(1), [&](void*) { _close(map_fd); });
+
+    struct rb_context
+    {
+        std::atomic<uint32_t> event_count{0};
+        uint32_t expected{0};
+        std::promise<void> promise;
+    };
+
+    auto sample_cb = [](void* ctx, void*, size_t) -> int {
+        auto* c = reinterpret_cast<rb_context*>(ctx);
+        if (++c->event_count == c->expected) {
+            c->promise.set_value();
+        }
+        return 0;
+    };
+
+    // First open: create ring buffer in async mode, write events, verify receipt.
+    {
+        rb_context ctx;
+        ctx.expected = 3;
+        auto future = ctx.promise.get_future();
+
+        ebpf_ring_buffer_opts opts{.sz = sizeof(opts), .flags = EBPF_RINGBUF_FLAG_AUTO_CALLBACK};
+        auto* ring = ebpf_ring_buffer__new(map_fd, sample_cb, &ctx, &opts);
+        REQUIRE(ring != nullptr);
+        auto ring_cleanup = std::unique_ptr<ring_buffer, decltype(&ring_buffer__free)>(ring, ring_buffer__free);
+
+        std::vector<std::string> messages = {"rb_async_1", "rb_async_2", "rb_async_3"};
+        for (const auto& msg : messages) {
+            REQUIRE(ebpf_ring_buffer_map_write(map_fd, msg.c_str(), msg.length()) == EBPF_SUCCESS);
+        }
+
+        REQUIRE(future.wait_for(5s) == std::future_status::ready);
+        REQUIRE(ctx.event_count == 3);
+    }
+
+    // Second open: create a new ring buffer on the SAME map — must succeed.
+    {
+        rb_context ctx;
+        ctx.expected = 2;
+        auto future = ctx.promise.get_future();
+
+        ebpf_ring_buffer_opts opts{.sz = sizeof(opts), .flags = EBPF_RINGBUF_FLAG_AUTO_CALLBACK};
+        auto* ring = ebpf_ring_buffer__new(map_fd, sample_cb, &ctx, &opts);
+        REQUIRE(ring != nullptr);
+        auto ring_cleanup = std::unique_ptr<ring_buffer, decltype(&ring_buffer__free)>(ring, ring_buffer__free);
+
+        std::vector<std::string> messages = {"rb_async_reopen_1", "rb_async_reopen_2"};
+        for (const auto& msg : messages) {
+            REQUIRE(ebpf_ring_buffer_map_write(map_fd, msg.c_str(), msg.length()) == EBPF_SUCCESS);
+        }
+
+        REQUIRE(future.wait_for(5s) == std::future_status::ready);
+        REQUIRE(ctx.event_count == 2);
+    }
+}
+
+// Test: Re-creating a ring buffer on the same map in sync mode.
+TEST_CASE("ring_buffer_sync_reopen", "[ring_buffer]")
+{
+    fd_t map_fd = bpf_map_create(BPF_MAP_TYPE_RINGBUF, "test_rb_reopen_s", 0, 0, 64 * 1024, nullptr);
+    REQUIRE(map_fd > 0);
+    auto map_cleanup =
+        std::unique_ptr<void, std::function<void(void*)>>(reinterpret_cast<void*>(1), [&](void*) { _close(map_fd); });
+
+    struct rb_sync_context
+    {
+        uint32_t event_count = 0;
+        std::vector<std::string> received_data;
+    };
+
+    auto sample_cb = [](void* ctx, void* data, size_t size) -> int {
+        auto* c = reinterpret_cast<rb_sync_context*>(ctx);
+        c->received_data.emplace_back(reinterpret_cast<const char*>(data), size);
+        c->event_count++;
+        return 0;
+    };
+
+    // First open: create ring buffer in sync mode, write events, consume and verify.
+    {
+        rb_sync_context ctx;
+        ebpf_ring_buffer_opts opts{.sz = sizeof(opts), .flags = 0};
+        auto* ring = ebpf_ring_buffer__new(map_fd, sample_cb, &ctx, &opts);
+        REQUIRE(ring != nullptr);
+        auto ring_cleanup = std::unique_ptr<ring_buffer, decltype(&ring_buffer__free)>(ring, ring_buffer__free);
+
+        std::vector<std::string> messages = {"rb_sync_1", "rb_sync_2"};
+        for (const auto& msg : messages) {
+            REQUIRE(ebpf_ring_buffer_map_write(map_fd, msg.c_str(), msg.length()) == EBPF_SUCCESS);
+        }
+
+        int consumed = ring_buffer__consume(ring);
+        REQUIRE(consumed >= 0);
+        REQUIRE(ctx.event_count == messages.size());
+    }
+
+    // Second open: create a new ring buffer on the SAME map — must succeed.
+    {
+        rb_sync_context ctx;
+        ebpf_ring_buffer_opts opts{.sz = sizeof(opts), .flags = 0};
+        auto* ring = ebpf_ring_buffer__new(map_fd, sample_cb, &ctx, &opts);
+        REQUIRE(ring != nullptr);
+        auto ring_cleanup = std::unique_ptr<ring_buffer, decltype(&ring_buffer__free)>(ring, ring_buffer__free);
+
+        std::vector<std::string> messages = {"rb_sync_reopen_1", "rb_sync_reopen_2"};
+        for (const auto& msg : messages) {
+            REQUIRE(ebpf_ring_buffer_map_write(map_fd, msg.c_str(), msg.length()) == EBPF_SUCCESS);
+        }
+
+        int consumed = ring_buffer__consume(ring);
+        REQUIRE(consumed >= 0);
+        REQUIRE(ctx.event_count == messages.size());
+    }
+}
 TEMPLATE_TEST_CASE("perf_buffer_sync_api", "[perf_buffer]", ENABLED_EXECUTION_TYPES)
 {
     ebpf_execution_type_t execution_type = TestType::value;
@@ -2366,6 +2604,12 @@ TEST_CASE("perf_buffer_sync_callback_block", "[perf_buffer]")
     // Local tracking variables for consumer thread.
     std::atomic<bool> terminate_flag{false};
     std::atomic<uint64_t> total_polled_events{0};
+    // Records the first negative perf_buffer__poll() result seen by the consumer thread (0 == no error).
+    // Catch2's REQUIRE must not be called from a worker thread: its assertion/output-redirect machinery is
+    // not thread-safe before v3.9.0 and concurrent use trips an internal "redirect is already active"
+    // assertion (see catchorg/Catch2#2935). So the consumer only records the value and the main thread
+    // asserts it after the thread is joined.
+    std::atomic<int> consumer_poll_result{0};
 
     // Spawn consumer thread to poll perf buffer.
     std::thread consumer_thread([&]() {
@@ -2373,7 +2617,11 @@ TEST_CASE("perf_buffer_sync_callback_block", "[perf_buffer]")
         while (!terminate_flag.load() && std::chrono::steady_clock::now() < timeout_time) {
             int poll_result = perf_buffer__poll(pb, 100);
             // Poll returns 0 on timeout or event count on data; exact value depends on timing.
-            REQUIRE(poll_result >= 0);
+            // Do not REQUIRE here (worker thread); record the failure and let the main thread assert it.
+            if (poll_result < 0) {
+                consumer_poll_result.store(poll_result);
+                break;
+            }
             total_polled_events.fetch_add(poll_result);
         }
     });
@@ -2483,6 +2731,11 @@ TEST_CASE("perf_buffer_sync_callback_block", "[perf_buffer]")
         REQUIRE(phase_events + phase_lost == phase_written);
         REQUIRE(phase_polled == phase_events);
     }
+
+    // Stop and join the consumer thread, then validate its poll results on the main thread (see the note on
+    // consumer_poll_result above for why the check cannot run inside the consumer thread).
+    thread_cleanup.reset();
+    REQUIRE(consumer_poll_result.load() >= 0);
 }
 
 // Test that BPF_F_INDEX_MASK (explicit CPU index in flags) works for perf_event_output.

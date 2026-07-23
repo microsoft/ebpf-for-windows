@@ -55,6 +55,16 @@ typedef struct _sample_ebpf_ext_batch_run_reply
     uint8_t data[1];
 } sample_ebpf_ext_batch_run_reply_t;
 
+typedef struct _sample_ebpf_ext_run_request
+{
+    uint32_t version;
+    uint32_t attach_parameter_size;
+    uint32_t program_data_size;
+    uint8_t data[1]; // First attach parameter bytes, then program data bytes.
+} sample_ebpf_ext_run_request_t;
+
+#define SAMPLE_EBPF_EXT_RUN_REQUEST_VERSION 0x53455854U // "SEXT"
+
 #define SAMPLE_EBPF_PROGRAM_BATCH_INVOCATION_COUNT 10
 
 #define IOCTL_SAMPLE_EBPF_EXT_CTL_RUN \

@@ -29,12 +29,12 @@ jobs:
       BUILD_CONFIGURATION: Release
       BUILD_PLATFORM: x64
 
-    runs-on: windows-2022
+    runs-on: windows-2025
 
     steps:
       # Check out the main repo.
       - name: Harden Runner
-        uses: step-security/harden-runner@58077d3c7e43986b6b15fba718e8ea69e387dfcc  # v2.15.1
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920  # v2.20.0
         with:
           egress-policy: audit
 

@@ -49,18 +49,21 @@ elf_everparse_error(_In_ const char* struct_name, _In_ const char* field_name, _
 
 using namespace std;
 
+#include "ir/call_resolver.hpp"
+
 // Provide collect_stats locally — it was removed from the verifier public API in a69e70a
 // (commit "Human-friendly CLI output for bin/prevail"), but we still need it for the
 // verbose program-info stats reported by ebpf_api_elf_enumerate_programs.
 static std::string
-_instype(const prevail::Instruction& ins)
+_instype(const prevail::Instruction& ins, const prevail::ProgramInfo& info)
 {
     if (const auto pcall = std::get_if<prevail::Call>(&ins)) {
-        if (pcall->is_map_lookup) {
+        auto resolved = prevail::resolve(*pcall, info);
+        if (resolved.contract.is_map_lookup) {
             return "call_1";
         }
-        if (pcall->pairs.empty()) {
-            if (std::ranges::all_of(pcall->singles, [](const prevail::ArgSingle arg) {
+        if (resolved.contract.pairs.empty()) {
+            if (std::ranges::all_of(resolved.contract.singles, [](const prevail::ArgSingle arg) {
                     return arg.kind == prevail::ArgSingle::Kind::ANYTHING;
                 })) {
                 return "call_nomem";
@@ -135,14 +138,15 @@ collect_stats(const prevail::Program& prog)
             }
         }
         if (const auto pins = std::get_if<prevail::Call>(&cmd)) {
-            if (pins->reallocate_packet) {
+            auto resolved = prevail::resolve(*pins, prog.info());
+            if (resolved.contract.reallocate_packet) {
                 res["reallocate"] = 1;
             }
         }
         if (const auto pins = std::get_if<prevail::Bin>(&cmd)) {
             res[pins->is64 ? "arith64" : "arith32"]++;
         }
-        res[_instype(cmd)]++;
+        res[_instype(cmd, prog.info())]++;
         if (prog.cfg().in_degree(label) > 1) {
             res["joins"]++;
         }
@@ -396,7 +400,7 @@ _Must_inspect_result_ ebpf_result_t
 load_byte_code(
     std::variant<std::string, std::vector<uint8_t>>& file_or_buffer,
     _In_opt_z_ const char* section_name,
-    _In_ const prevail::ebpf_verifier_options_t& verifier_options,
+    _In_ const prevail::VerifierOptions& verifier_options,
     _In_z_ const char* pin_root_path,
     _Inout_ std::vector<ebpf_program_t*>& programs,
     _Inout_ std::vector<ebpf_map_t*>& maps,
@@ -587,8 +591,15 @@ load_byte_code(
         }
     } catch (std::runtime_error& err) {
         auto message = err.what();
-        auto message_length = strlen(message) + 1;
-        char* error = reinterpret_cast<char*>(ebpf_allocate_with_tag(message_length + 1, EBPF_POOL_TAG_DEFAULT));
+        size_t message_length = 0;
+        size_t error_length = 0;
+        if ((ebpf_safe_size_t_add(strlen(message), 1, &message_length) != EBPF_SUCCESS) ||
+            (ebpf_safe_size_t_add(message_length, 1, &error_length) != EBPF_SUCCESS)) {
+            *error_message = nullptr;
+            result = EBPF_ARITHMETIC_OVERFLOW;
+            goto Exit;
+        }
+        char* error = reinterpret_cast<char*>(ebpf_allocate_with_tag(error_length, EBPF_POOL_TAG_DEFAULT));
         if (error) {
             strcpy_s(error, message_length, message);
         }
@@ -643,7 +654,7 @@ ebpf_api_elf_enumerate_programs(
     _Outptr_result_maybenull_ ebpf_api_program_info_t** infos,
     _Outptr_result_maybenull_z_ const char** error_message) noexcept
 {
-    prevail::ebpf_verifier_options_t verifier_options = ebpf_get_default_verifier_options();
+    prevail::VerifierOptions verifier_options = ebpf_get_default_verifier_options();
     const prevail::ebpf_platform_t* platform = &g_ebpf_platform_windows;
     std::ostringstream str;
 
@@ -702,7 +713,11 @@ ebpf_api_elf_enumerate_programs(
             }
 
             info->offset_in_section = raw_program.insn_off;
-            std::vector<uint8_t> raw_data = convert_ebpf_program_to_bytes(raw_program.prog);
+            std::vector<uint8_t> raw_data;
+            result = convert_ebpf_program_to_bytes(raw_program.prog, raw_data);
+            if (result != EBPF_SUCCESS) {
+                throw std::runtime_error("instruction byte count overflow");
+            }
             info->raw_data_size = raw_data.size();
             info->raw_data = (char*)ebpf_allocate_with_tag(info->raw_data_size, EBPF_POOL_TAG_DEFAULT);
             if (info->raw_data == nullptr) {
@@ -733,7 +748,7 @@ ebpf_api_elf_disassemble_program(
     _Outptr_result_maybenull_z_ const char** disassembly,
     _Outptr_result_maybenull_z_ const char** error_message) noexcept
 {
-    prevail::ebpf_verifier_options_t verifier_options = ebpf_get_default_verifier_options();
+    prevail::VerifierOptions verifier_options = ebpf_get_default_verifier_options();
     const prevail::ebpf_platform_t* platform = &g_ebpf_platform_windows;
     std::ostringstream error;
     std::ostringstream output;
@@ -767,7 +782,7 @@ ebpf_api_elf_disassemble_program(
             return 1;
         }
         auto& program = std::get<prevail::InstructionSeq>(programOrError);
-        print(program, output, {}, true);
+        print(program, output, {}, true, &raw_program.info);
         *disassembly = allocate_string(output.str());
         if (!*disassembly) {
             return 1;
@@ -802,7 +817,7 @@ static _Success_(return == 0) uint32_t _ebpf_api_elf_verify_program_from_stream(
 
     try {
         const prevail::ebpf_platform_t* platform = &g_ebpf_platform_windows;
-        prevail::ebpf_verifier_options_t verifier_options = ebpf_get_default_verifier_options(verbosity);
+        prevail::VerifierOptions verifier_options = ebpf_get_default_verifier_options(verbosity);
         if (!stream) {
             throw std::runtime_error(std::string("No such file or directory opening ") + stream_name);
         }

@@ -28,6 +28,10 @@ extern "C"
     void
     ebpf_program_get_header_context_descriptor(
         _In_ const void* program_context, _Outptr_ const ebpf_context_descriptor_t** context_descriptor);
+
+    bool
+    ebpf_program_is_valid_general_helper_provider_data(
+        _In_ PNPI_MODULEID npi_module_id, _In_opt_ const ebpf_program_data_t* program_data);
 }
 
 struct scoped_cpu_affinity
@@ -1265,9 +1269,7 @@ TEST_CASE("ring_buffer_sync_query", "[execution_context][ring_buffer]")
     REQUIRE(*(uint64_t*)(record->data) == value);
 
     // Unmap the ring buffer.
-    REQUIRE(
-        ebpf_ring_buffer_map_unmap_user(
-            map.get(), 0, (const void*)consumer, (const void*)producer, (const void*)data) == EBPF_SUCCESS);
+    REQUIRE(ebpf_ring_buffer_map_unmap_user(map.get(), 0) == EBPF_SUCCESS);
 }
 
 TEST_CASE("perf_event_array_unsupported_ops", "[execution_context][perf_event_array][negative]")
@@ -1314,6 +1316,127 @@ TEST_CASE("perf_event_array_unsupported_ops", "[execution_context][perf_event_ar
     REQUIRE(ebpf_map_push_entry(map.get(), 0, nullptr, 0) == EBPF_OPERATION_NOT_SUPPORTED);
     REQUIRE(ebpf_map_pop_entry(map.get(), 0, nullptr, 0) == EBPF_OPERATION_NOT_SUPPORTED);
     REQUIRE(ebpf_map_peek_entry(map.get(), 0, nullptr, 0) == EBPF_OPERATION_NOT_SUPPORTED);
+}
+
+// Test: Perf event array per-CPU ring map-unmap-remap cycle.
+// Validates that after unmapping a per-CPU ring, it can be re-mapped successfully.
+// This is the kernel-side prerequisite for the user-mode fix in ebpf_map_unsubscribe
+// that sends unmap IOCTLs after cancelling async subscriptions.
+TEST_CASE("perf_event_array_map_unmap_remap", "[execution_context][perf_event_array]")
+{
+    _ebpf_core_initializer core;
+    core.initialize();
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_PERF_EVENT_ARRAY, 0, 0, 64 * 1024};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        cxplat_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+
+    _wait_event event;
+    REQUIRE(ebpf_map_set_wait_handle_internal(map.get(), 0, event.handle(), 0) == EBPF_SUCCESS);
+
+    // RAII guard: track whether the ring is mapped and unmap on scope exit.
+    bool ring_mapped = false;
+    auto unmap_guard = std::unique_ptr<void, std::function<void(void*)>>(reinterpret_cast<void*>(1), [&](void*) {
+        if (ring_mapped) {
+            (void)ebpf_ring_buffer_map_unmap_user(map.get(), 0);
+        }
+    });
+
+    // First map of CPU 0's ring.
+    volatile size_t* consumer1 = nullptr;
+    volatile size_t* producer1 = nullptr;
+    uint8_t* data1 = nullptr;
+    size_t data_size1 = 0;
+    REQUIRE(
+        ebpf_ring_buffer_map_map_user(
+            map.get(), 0, (void**)&consumer1, (void**)&producer1, (const uint8_t**)&data1, &data_size1) ==
+        EBPF_SUCCESS);
+    ring_mapped = true;
+    REQUIRE(consumer1 != nullptr);
+    REQUIRE(data1 != nullptr);
+
+    // Unmap CPU 0's ring.
+    REQUIRE(ebpf_ring_buffer_map_unmap_user(map.get(), 0) == EBPF_SUCCESS);
+    ring_mapped = false;
+
+    // Re-map CPU 0's ring — must succeed after unmap cleared the guard.
+    volatile size_t* consumer2 = nullptr;
+    volatile size_t* producer2 = nullptr;
+    uint8_t* data2 = nullptr;
+    size_t data_size2 = 0;
+    REQUIRE(
+        ebpf_ring_buffer_map_map_user(
+            map.get(), 0, (void**)&consumer2, (void**)&producer2, (const uint8_t**)&data2, &data_size2) ==
+        EBPF_SUCCESS);
+    ring_mapped = true;
+    REQUIRE(consumer2 != nullptr);
+    REQUIRE(data2 != nullptr);
+    // unmap_guard handles cleanup on scope exit.
+}
+
+// Test: Ring buffer map-unmap-remap cycle.
+// Validates that after unmapping a ring buffer, it can be re-mapped successfully.
+// Mirrors perf_event_array_map_unmap_remap for BPF_MAP_TYPE_RINGBUF.
+TEST_CASE("ring_buffer_map_unmap_remap", "[execution_context][ring_buffer]")
+{
+    _ebpf_core_initializer core;
+    core.initialize();
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_RINGBUF, 0, 0, 64 * 1024};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        cxplat_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+
+    _wait_event event;
+    REQUIRE(ebpf_map_set_wait_handle_internal(map.get(), 0, event.handle(), 0) == EBPF_SUCCESS);
+
+    // RAII guard: track whether the ring is mapped and unmap on scope exit.
+    bool ring_mapped = false;
+    auto unmap_guard = std::unique_ptr<void, std::function<void(void*)>>(reinterpret_cast<void*>(1), [&](void*) {
+        if (ring_mapped) {
+            (void)ebpf_ring_buffer_map_unmap_user(map.get(), 0);
+        }
+    });
+
+    // First map.
+    volatile size_t* consumer1 = nullptr;
+    volatile size_t* producer1 = nullptr;
+    uint8_t* data1 = nullptr;
+    size_t data_size1 = 0;
+    REQUIRE(
+        ebpf_ring_buffer_map_map_user(
+            map.get(), 0, (void**)&consumer1, (void**)&producer1, (const uint8_t**)&data1, &data_size1) ==
+        EBPF_SUCCESS);
+    ring_mapped = true;
+    REQUIRE(consumer1 != nullptr);
+    REQUIRE(data1 != nullptr);
+
+    // Unmap.
+    REQUIRE(ebpf_ring_buffer_map_unmap_user(map.get(), 0) == EBPF_SUCCESS);
+    ring_mapped = false;
+
+    // Re-map — must succeed after unmap cleared the guard.
+    volatile size_t* consumer2 = nullptr;
+    volatile size_t* producer2 = nullptr;
+    uint8_t* data2 = nullptr;
+    size_t data_size2 = 0;
+    REQUIRE(
+        ebpf_ring_buffer_map_map_user(
+            map.get(), 0, (void**)&consumer2, (void**)&producer2, (const uint8_t**)&data2, &data_size2) ==
+        EBPF_SUCCESS);
+    ring_mapped = true;
+    REQUIRE(consumer2 != nullptr);
+    REQUIRE(data2 != nullptr);
+    // unmap_guard handles cleanup on scope exit.
 }
 
 struct perf_event_array_test_async_context_t
@@ -1897,12 +2020,7 @@ TEST_CASE("perf_event_array_sync_query", "[execution_context][perf_event_array]"
             for (auto& ring : mapped_rings) {
                 if (ring.mapped) {
                     (void)ebpf_map_set_wait_handle_internal(map.get(), ring.cpu_id, ebpf_handle_invalid, 0);
-                    (void)ebpf_ring_buffer_map_unmap_user(
-                        map.get(),
-                        ring.cpu_id,
-                        (const void*)ring.consumer,
-                        (const void*)ring.producer,
-                        (const void*)ring.data);
+                    (void)ebpf_ring_buffer_map_unmap_user(map.get(), ring.cpu_id);
                     ring.mapped = false;
                 }
             }
@@ -1982,6 +2100,44 @@ TEST_CASE("perf_event_array_sync_query", "[execution_context][perf_event_array]"
     }
 
     // Cleanup will be done in the scope_exit block above.
+}
+
+TEST_CASE("perf_event_array_oob_index", "[execution_context][perf_event_array]")
+{
+    _ebpf_core_initializer core;
+    core.initialize();
+    constexpr uint32_t buffer_size = 64 * 1024;
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_PERF_EVENT_ARRAY, 0, 0, buffer_size};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        cxplat_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+
+    uint32_t ring_count = ebpf_get_cpu_count();
+    REQUIRE(ring_count > 0);
+
+    // Verify out-of-range cpu_id is rejected.
+    uint32_t oob_index = ring_count; // First invalid index.
+    uint8_t* buffer = nullptr;
+    size_t consumer_offset = 0;
+    REQUIRE(ebpf_map_query_buffer(map.get(), oob_index, &buffer, &consumer_offset) == EBPF_INVALID_ARGUMENT);
+
+    // async_context is required to be non-null, but the out-of-range check rejects the
+    // request before the context is ever used, so a placeholder is sufficient here.
+    int dummy_async_context = 0;
+    ebpf_map_async_query_result_t async_query_result = {};
+    REQUIRE(ebpf_map_async_query(map.get(), oob_index, &async_query_result, &dummy_async_context) == EBPF_INVALID_ARGUMENT);
+
+    REQUIRE(ebpf_map_return_buffer(map.get(), oob_index, 0) == EBPF_INVALID_ARGUMENT);
+
+    // Also test UINT32_MAX.
+    REQUIRE(ebpf_map_query_buffer(map.get(), UINT32_MAX, &buffer, &consumer_offset) == EBPF_INVALID_ARGUMENT);
+    REQUIRE(ebpf_map_async_query(map.get(), UINT32_MAX, &async_query_result, &dummy_async_context) == EBPF_INVALID_ARGUMENT);
+    REQUIRE(ebpf_map_return_buffer(map.get(), UINT32_MAX, 0) == EBPF_INVALID_ARGUMENT);
 }
 
 TEST_CASE("EBPF_OPERATION_CREATE_MAP", "[execution_context][negative]")
@@ -2391,7 +2547,7 @@ TEST_CASE("EBPF_OPERATION_LOAD_NATIVE_MODULE short header", "[execution_context]
             reply_ptr,
             static_cast<uint16_t>(reply_size),
             nullptr,
-            completion) == EBPF_ARITHMETIC_OVERFLOW);
+            completion) == EBPF_INVALID_ARGUMENT); // EverParse validator rejects undersized message.
 }
 
 #define EBPF_PROGRAM_TYPE_TEST_GUID {0x8ee1b757, 0xc0b2, 0x4c84, {0xac, 0x07, 0x0c, 0x76, 0x29, 0x8f, 0x1d, 0xc9}}
@@ -2574,6 +2730,48 @@ TEST_CASE("INVALID_PROGRAM_DATA", "[execution_context][negative]")
     // Invalidate the helper function prototype by removing the name of the helper function.
     _test_helper_function_prototype[0].name = nullptr;
     test_register_provider(&provider_characteristics);
+}
+
+TEST_CASE("INVALID_GENERAL_HELPER_PROGRAM_DATA", "[execution_context][negative]")
+{
+    ebpf_program_type_descriptor_t general_helper_program_type_descriptor = {
+        EBPF_PROGRAM_TYPE_DESCRIPTOR_HEADER,
+        "global_helper",
+        nullptr,
+        ebpf_general_helper_function_module_id.Guid,
+        0,
+        0};
+
+    ebpf_helper_function_prototype_t general_helper_prototype[] = {
+        {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+         1,
+         "general_helper",
+         EBPF_RETURN_TYPE_INTEGER,
+         {EBPF_ARGUMENT_TYPE_DONTCARE}}};
+
+    ebpf_program_info_t general_helper_program_info = {
+        EBPF_PROGRAM_INFORMATION_HEADER,
+        &general_helper_program_type_descriptor,
+        0,
+        nullptr,
+        1,
+        general_helper_prototype};
+
+    ebpf_program_data_t invalid_general_helper_program_data = {
+        EBPF_PROGRAM_DATA_HEADER, &general_helper_program_info, nullptr, nullptr, nullptr, nullptr, 0, {0}};
+
+    REQUIRE(!ebpf_program_is_valid_general_helper_provider_data(
+        &ebpf_general_helper_function_module_id, &invalid_general_helper_program_data));
+
+    const void* general_helper_functions[] = {reinterpret_cast<const void*>(1)};
+    ebpf_helper_function_addresses_t general_helper_function_addresses = {
+        EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
+        EBPF_COUNT_OF(general_helper_functions),
+        (uint64_t*)general_helper_functions};
+    invalid_general_helper_program_data.global_helper_function_addresses = &general_helper_function_addresses;
+
+    REQUIRE(ebpf_program_is_valid_general_helper_provider_data(
+        &ebpf_general_helper_function_module_id, &invalid_general_helper_program_data));
 }
 
 // TODO: Add more native module loading IOCTL negative tests.

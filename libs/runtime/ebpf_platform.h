@@ -171,15 +171,11 @@ extern "C"
      * @brief Unmap the memory of a ring buffer.
      *
      * @param[in] ring Ring buffer to unmap.
-     * @param[in] consumer Address of the consumer mapping.
-     * @param[in] producer Address of the producer mapping.
-     * @param[in] data Address of the data mapping.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_ARGUMENT Unable to unmap the buffer.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_ring_unmap_user(
-        _In_ ebpf_ring_descriptor_t* ring, _In_ const void* consumer, _In_ const void* producer, _In_ const void* data);
+    ebpf_ring_unmap_user(_In_ ebpf_ring_descriptor_t* ring);
 
     /**
      * @brief Allocate and copy a UTF-8 string.
@@ -376,6 +372,16 @@ extern "C"
      */
     int32_t
     ebpf_interlocked_increment_int32(_Inout_ volatile int32_t* addend);
+
+    /**
+     * @brief Atomically increase the value of addend by 1 and return the new
+     *  value.
+     *
+     * @param[in, out] addend Value to increase by 1.
+     * @return The new value.
+     */
+    uint32_t
+    ebpf_interlocked_increment_uint32(_Inout_ volatile uint32_t* addend);
 
     /**
      * @brief Atomically decrease the value of addend by 1 and return the new
@@ -641,7 +647,7 @@ extern "C"
     typedef struct _ebpf_program_info ebpf_program_info_t;
 
     /**
-     * @brief Check if the user associated with the current thread is granted
+     * @brief Check if the user associated with the current user-mode thread is granted
      *  the rights requested.
      *
      * @param[in] security_descriptor Security descriptor representing the

@@ -456,6 +456,62 @@ extern "C"
             TraceLoggingWinError(last_error));                                                     \
     }
 
+#define EBPF_LOG_WIN32_API_FAILURE_WITH_ERROR(keyword, api, error)                                 \
+    if (TraceLoggingProviderEnabled(ebpf_tracelog_provider, EBPF_TRACELOG_LEVEL_ERROR, keyword)) { \
+        TraceLoggingWrite(                                                                         \
+            ebpf_tracelog_provider,                                                                \
+            EBPF_TRACELOG_EVENT_API_ERROR,                                                         \
+            TraceLoggingLevel(EBPF_TRACELOG_LEVEL_ERROR),                                          \
+            TraceLoggingKeyword((keyword)),                                                        \
+            TraceLoggingString(#api " failed with error", "Message"),                              \
+            TraceLoggingWinError((unsigned long)(error)));                                         \
+    }
+
+#define EBPF_BAIL_ON_ALLOC_FAILURE(allocation, label)                                                     \
+    do {                                                                                                  \
+        if (!(allocation)) {                                                                              \
+            EBPF_LOG_MESSAGE_STRING(                                                                      \
+                EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "Allocation failed", #allocation); \
+            goto label;                                                                                   \
+        }                                                                                                 \
+    } while (false)
+
+#define EBPF_BAIL_ON_NTSTATUS_API_FAILURE(keyword, api, status, label)                                 \
+    do {                                                                                               \
+        NTSTATUS local_status = (status);                                                              \
+        if (!NT_SUCCESS(local_status)) {                                                               \
+            if (TraceLoggingProviderEnabled(ebpf_tracelog_provider, 0, (keyword))) {                   \
+                ebpf_log_ntstatus_api_failure((ebpf_tracelog_keyword_t)(keyword), #api, local_status); \
+            }                                                                                          \
+            goto label;                                                                                \
+        }                                                                                              \
+    } while (false)
+
+#define EBPF_BAIL_ON_WIN32_API_FAILURE(keyword, api, error, label)            \
+    do {                                                                      \
+        unsigned long local_error = (unsigned long)(error);                   \
+        if (local_error != 0) {                                               \
+            EBPF_LOG_WIN32_API_FAILURE_WITH_ERROR(keyword, api, local_error); \
+            goto label;                                                       \
+        }                                                                     \
+    } while (false)
+
+#define EBPF_BAIL_ON_OBJECT_REF_ERROR(keyword, result, handle, label)                                        \
+    do {                                                                                                     \
+        ebpf_result_t local_result = (result);                                                               \
+        if (local_result != EBPF_SUCCESS) {                                                                  \
+            if (TraceLoggingProviderEnabled(ebpf_tracelog_provider, EBPF_TRACELOG_LEVEL_ERROR, (keyword))) { \
+                ebpf_log_message_uint64_uint64(                                                              \
+                    (ebpf_tracelog_level_t)EBPF_TRACELOG_LEVEL_ERROR,                                        \
+                    (ebpf_tracelog_keyword_t)(keyword),                                                      \
+                    "Failed to reference object by handle",                                                  \
+                    (uint64_t)(handle),                                                                      \
+                    (uint64_t)local_result);                                                                 \
+            }                                                                                                \
+            goto label;                                                                                      \
+        }                                                                                                    \
+    } while (false)
+
 #ifdef __cplusplus
 }
 #endif

@@ -19,7 +19,7 @@ jobs:
       issues: write
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@58077d3c7e43986b6b15fba718e8ea69e387dfcc  # v2.15.1
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920  # v2.20.0
         with:
           disable-sudo: true
           egress-policy: block
@@ -36,6 +36,7 @@ jobs:
 
             - [ ] Ensure SPGO data is regenerated and added to the repo using performance test suite.
             - [ ] Follow instructions in [ReleaseProcess.md](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/ReleaseProcess.md).
+            - [ ] After publishing the release, update the regression tests to point to the release that is now N-1.
             - [ ] Sync the internal `undock` and follow the internal release instructions in `\.internal\docs\ReleaseEbpfRedistProcess.md`.
 
         with:

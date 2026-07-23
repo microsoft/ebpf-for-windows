@@ -110,7 +110,7 @@ _net_ebpf_ext_bind_create_filter_context(
     ebpf_result_t result = EBPF_SUCCESS;
     net_ebpf_extension_wfp_filter_context_t* local_filter_context = NULL;
 
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
 
     result = net_ebpf_extension_wfp_filter_context_create(
         sizeof(net_ebpf_extension_wfp_filter_context_t), attaching_client, provider_context, &local_filter_context);
@@ -140,14 +140,14 @@ Exit:
         CLEAN_UP_FILTER_CONTEXT(local_filter_context);
     }
 
-    NET_EBPF_EXT_RETURN_RESULT(result);
+    EBPF_EXT_RETURN_RESULT(result);
 }
 
 static void
 _net_ebpf_ext_bind_delete_filter_context(
     _In_opt_ _Frees_ptr_opt_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
 
     if (filter_context == NULL) {
         goto Exit;
@@ -159,7 +159,7 @@ _net_ebpf_ext_bind_delete_filter_context(
     net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
 
 Exit:
-    NET_EBPF_EXT_LOG_EXIT();
+    EBPF_EXT_LOG_EXIT();
 }
 
 //
@@ -171,7 +171,7 @@ net_ebpf_ext_bind_register_providers()
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
 
     const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
         &_ebpf_bind_program_info_provider_moduleid, &_ebpf_bind_program_data};
@@ -185,9 +185,9 @@ net_ebpf_ext_bind_register_providers()
     status = net_ebpf_extension_program_info_provider_register(
         &program_info_provider_parameters, &_ebpf_bind_program_info_provider_context);
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_BIND,
+        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_BIND,
             "net_ebpf_extension_program_info_provider_register",
             status);
         goto Exit;
@@ -200,9 +200,9 @@ net_ebpf_ext_bind_register_providers()
         NULL,
         &_ebpf_bind_hook_provider_context);
     if (status != EBPF_SUCCESS) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_BIND,
+        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_BIND,
             "net_ebpf_extension_hook_provider_register",
             status);
         goto Exit;
@@ -212,7 +212,7 @@ Exit:
     if (!NT_SUCCESS(status)) {
         net_ebpf_ext_bind_unregister_providers();
     }
-    NET_EBPF_EXT_RETURN_NTSTATUS(status);
+    EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 void
@@ -308,9 +308,9 @@ net_ebpf_ext_resource_allocation_classify(
     // Note: This is intentionally not guarded by a lock as this is opportunistically checking if all the clients have
     // detached and the filter context is being deleted.
     if (filter_context->context_deleting) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_BIND,
+        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            EBPF_EXT_TRACELOG_KEYWORD_BIND,
             "net_ebpf_ext_resource_allocation_classify - Filter context deleting.",
             STATUS_INVALID_PARAMETER);
         goto Exit;
@@ -343,15 +343,15 @@ net_ebpf_ext_resource_allocation_classify(
     program_result = net_ebpf_extension_hook_invoke_programs(ctx, filter_context, &result);
     if (program_result == EBPF_OBJECT_NOT_FOUND) {
         // No program found.
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_BIND,
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_BIND,
             "net_ebpf_ext_resource_allocation_classify - No programs found.");
         goto Exit;
     } else if (program_result != EBPF_SUCCESS) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_BIND,
+        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_BIND,
             "net_ebpf_ext_resource_allocation_classify - net_ebpf_extension_hook_invoke_programs failed.",
             program_result);
         goto Exit;
@@ -431,9 +431,9 @@ net_ebpf_ext_resource_release_classify(
     // Note: This is intentionally not guarded by a lock as this is opportunistically checking if all the clients have
     // detached and the filter context is being deleted.
     if (filter_context->context_deleting) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_BIND,
+        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            EBPF_EXT_TRACELOG_KEYWORD_BIND,
             "net_ebpf_ext_resource_release_classify - Client detach detected.",
             STATUS_INVALID_PARAMETER);
         goto Exit;
@@ -478,7 +478,7 @@ _ebpf_bind_context_create(
     size_t context_size_in,
     _Outptr_ void** context)
 {
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
     ebpf_result_t result;
     bind_context_header_t* bind_context_header = NULL;
     bind_md_t* bind_context = NULL;
@@ -486,16 +486,15 @@ _ebpf_bind_context_create(
     *context = NULL;
 
     if (context_in == NULL || context_size_in < sizeof(bind_md_t)) {
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_BIND, "Context is required");
+        EBPF_EXT_LOG_MESSAGE(EBPF_EXT_TRACELOG_LEVEL_ERROR, EBPF_EXT_TRACELOG_KEYWORD_BIND, "Context is required");
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
 
     bind_context_header = (bind_context_header_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(bind_context_header_t), NET_EBPF_EXTENSION_POOL_TAG);
-    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
-        NET_EBPF_EXT_TRACELOG_KEYWORD_BIND, bind_context_header, "bind_context_header", result);
+    EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
+        EBPF_EXT_TRACELOG_KEYWORD_BIND, bind_context_header, "bind_context_header", result);
 
     bind_context = &bind_context_header->context;
     // Copy the context from the caller.
@@ -519,7 +518,7 @@ Exit:
         ExFreePool(bind_context_header);
         bind_context_header = NULL;
     }
-    NET_EBPF_EXT_RETURN_RESULT(result);
+    EBPF_EXT_RETURN_RESULT(result);
 }
 
 static void
@@ -530,7 +529,7 @@ _ebpf_bind_context_destroy(
     _Out_writes_bytes_to_(*context_size_out, *context_size_out) uint8_t* context_out,
     _Inout_ size_t* context_size_out)
 {
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
 
     bind_md_t* bind_context = (bind_md_t*)context;
     bind_md_t* bind_context_out = (bind_md_t*)context_out;
@@ -565,5 +564,5 @@ _ebpf_bind_context_destroy(
     ExFreePool(bind_context_header);
 
 Exit:
-    NET_EBPF_EXT_LOG_EXIT();
+    EBPF_EXT_LOG_EXIT();
 }

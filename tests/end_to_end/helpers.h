@@ -29,6 +29,7 @@ typedef LARGE_INTEGER PHYSICAL_ADDRESS, *PPHYSICAL_ADDRESS;
 #pragma warning(disable : 4324) // structure was padded due to alignment specifier
 #include <ndis/nbl.h>
 #endif
+#include <ifdef.h>
 #include <vector>
 
 #define CONCAT(s1, s2) s1 s2
@@ -125,6 +126,17 @@ typedef class _test_global_helper
         // Return an arbitrary non-zero value for pid and tgid.
         return 9999;
     }
+
+    // Returns 1 on success, or -1 on failure.
+    static intptr_t
+    _sample_redirect_map(_In_ void* map, uint64_t key, uint64_t flags)
+    {
+        UNREFERENCED_PARAMETER(map);
+        UNREFERENCED_PARAMETER(key);
+        UNREFERENCED_PARAMETER(flags);
+        // Return 1 to indicate success.
+        return 1;
+    }
 } test_global_helper_t;
 
 class _test_sample_map_provider;
@@ -161,7 +173,7 @@ _test_sample_hash_map_create(
 static void
 _test_sample_hash_map_delete(_In_ void* binding_context, _In_ _Post_invalid_ void* map_context);
 
-static ebpf_result_t
+static void
 _test_sample_hash_map_delete_entry(
     _In_ void* binding_context,
     _In_ void* map_context,
@@ -170,6 +182,19 @@ _test_sample_hash_map_delete_entry(
     size_t value_size,
     _In_reads_(value_size) const uint8_t* value,
     uint32_t flags);
+
+#pragma warning(push)
+#pragma warning(disable : 4996) // Suppress deprecation warning for the preprocess typedef.
+static ebpf_result_t
+_test_sample_hash_map_preprocess_delete_entry(
+    _In_ void* binding_context,
+    _In_ void* map_context,
+    size_t key_size,
+    _In_reads_opt_(key_size) const uint8_t* key,
+    size_t value_size,
+    _In_reads_(value_size) const uint8_t* value,
+    uint32_t flags);
+#pragma warning(pop)
 
 _Success_(return == EBPF_SUCCESS) static ebpf_result_t _test_sample_hash_map_find_entry(
     _In_ void* binding_context,
@@ -200,7 +225,7 @@ static ebpf_base_map_provider_dispatch_table_t _test_sample_hash_map_dispatch_ta
     .preprocess_associate_program_type = _test_sample_map_associate_program,
     .postprocess_map_find_element = _test_sample_hash_map_find_entry,
     .preprocess_map_update_element = _test_sample_hash_map_update_entry,
-    .preprocess_map_delete_element = _test_sample_hash_map_delete_entry};
+    .postprocess_map_delete_element = _test_sample_hash_map_delete_entry};
 
 static ebpf_base_map_provider_properties_t _test_sample_hash_map_provider_properties = {
     EBPF_BASE_MAP_PROVIDER_PROPERTIES_HEADER, true};
@@ -231,7 +256,7 @@ typedef class _test_sample_map_provider
     }
 
     ebpf_result_t
-    initialize(uint32_t map_type, bool object_map, bool register_crud_apis = true)
+    initialize(uint32_t map_type, bool object_map, bool register_crud_apis = true, bool use_postprocess_delete = true)
     {
         _object_map = object_map;
         if (map_type == BPF_MAP_TYPE_SAMPLE_HASH_MAP || map_type == BPF_MAP_TYPE_SAMPLE_HASH_MAP_UNREGISTERED) {
@@ -244,17 +269,40 @@ typedef class _test_sample_map_provider
 
         _test_sample_hash_map_provider_data.base_properties->updates_original_value = object_map ? true : false;
 
+        // Always clear both delete callbacks first.
+        _test_sample_hash_map_provider_data.base_provider_table->postprocess_map_delete_element = nullptr;
+#pragma warning(push)
+#pragma warning(disable : 4996)
+        _test_sample_hash_map_provider_data.base_provider_table->preprocess_map_delete_element = nullptr;
+#pragma warning(pop)
+
         if (!register_crud_apis) {
             _test_sample_hash_map_provider_data.base_provider_table->postprocess_map_find_element = nullptr;
             _test_sample_hash_map_provider_data.base_provider_table->preprocess_map_update_element = nullptr;
-            _test_sample_hash_map_provider_data.base_provider_table->preprocess_map_delete_element = nullptr;
         } else {
             _test_sample_hash_map_provider_data.base_provider_table->postprocess_map_find_element =
                 _test_sample_hash_map_find_entry;
             _test_sample_hash_map_provider_data.base_provider_table->preprocess_map_update_element =
                 _test_sample_hash_map_update_entry;
-            _test_sample_hash_map_provider_data.base_provider_table->preprocess_map_delete_element =
-                _test_sample_hash_map_delete_entry;
+
+            // Set exactly one of preprocess or postprocess delete callback.
+            if (use_postprocess_delete) {
+                _test_sample_hash_map_provider_data.base_provider_table->postprocess_map_delete_element =
+                    _test_sample_hash_map_delete_entry;
+                // Report the new (larger) header size.
+                _test_sample_hash_map_provider_data.base_provider_table->header.size =
+                    EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_CURRENT_VERSION_SIZE;
+            } else {
+                // Simulate an old-style provider using the deprecated preprocess callback.
+#pragma warning(push)
+#pragma warning(disable : 4996)
+                _test_sample_hash_map_provider_data.base_provider_table->preprocess_map_delete_element =
+                    _test_sample_hash_map_preprocess_delete_entry;
+#pragma warning(pop)
+                // Report the old (smaller) header size to simulate a provider compiled with the old SDK.
+                _test_sample_hash_map_provider_data.base_provider_table->header.size =
+                    EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_V1_SIZE_0;
+            }
         }
 
         // Register as NMR provider
@@ -413,7 +461,7 @@ _test_sample_hash_map_delete(_In_ void* binding_context, _In_ _Post_invalid_ voi
     ebpf_free(context);
 }
 
-static ebpf_result_t
+static void
 _test_sample_hash_map_delete_entry(
     _In_ void* binding_context,
     _In_ void* map_context,
@@ -431,9 +479,28 @@ _test_sample_hash_map_delete_entry(
     UNREFERENCED_PARAMETER(value_size);
 
     if (provider->object_map() && (flags & EBPF_MAP_OPERATION_HELPER)) {
-        return EBPF_OPERATION_NOT_SUPPORTED;
+        return;
     }
 
+    if (!provider->object_map()) {
+        // Nothing to do.
+    } else {
+        _sample_object_hash_map_delete_entry_common(provider->dispatch_table(), value_size, value, flags);
+    }
+}
+
+#pragma warning(push)
+#pragma warning(disable : 4996) // Suppress deprecation warning for the preprocess typedef.
+static ebpf_result_t
+_test_sample_hash_map_preprocess_delete_entry(
+    _In_ void* binding_context,
+    _In_ void* map_context,
+    size_t key_size,
+    _In_reads_opt_(key_size) const uint8_t* key,
+    size_t value_size,
+    _In_reads_(value_size) const uint8_t* value,
+    uint32_t flags)
+{
     // Allocate dummy memory to trigger fault injection if enabled.
     if (!(flags & EBPF_MAP_OPERATION_UPDATE) && !(flags & EBPF_MAP_OPERATION_MAP_CLEANUP)) {
         void* dummy_memory = ebpf_allocate_with_tag(16, EBPF_POOL_TAG_DEFAULT);
@@ -444,14 +511,11 @@ _test_sample_hash_map_delete_entry(
         }
     }
 
-    if (!provider->object_map()) {
-        // Nothing to do.
-    } else {
-        return _sample_object_hash_map_delete_entry_common(provider->dispatch_table(), value_size, value, flags);
-    }
-
+    // Delegate to the void version and return EBPF_SUCCESS.
+    _test_sample_hash_map_delete_entry(binding_context, map_context, key_size, key, value_size, value, flags);
     return EBPF_SUCCESS;
 }
+#pragma warning(pop)
 
 // XDP program information.
 static const ebpf_context_descriptor_t _ebpf_xdp_test_context_descriptor = {
@@ -1005,7 +1069,7 @@ static const ebpf_program_info_t _mock_xdp_program_info = {
     EBPF_COUNT_OF(_xdp_test_ebpf_extension_helper_function_prototype),
     _xdp_test_ebpf_extension_helper_function_prototype,
     0,
-    NULL};
+    nullptr};
 
 static ebpf_program_data_t _mock_xdp_program_data = {
     EBPF_PROGRAM_DATA_HEADER,
@@ -1109,6 +1173,23 @@ _ebpf_sock_addr_set_redirect_context(_In_ const bpf_sock_addr_t* ctx, _In_ void*
     UNREFERENCED_PARAMETER(data);
     UNREFERENCED_PARAMETER(data_size);
     return -ENOTSUP;
+}
+
+static int
+_ebpf_sock_addr_get_network_context(
+    _In_ const bpf_sock_addr_t* ctx, _Out_writes_(context_size) void* context_ptr, uint32_t context_size)
+{
+    UNREFERENCED_PARAMETER(ctx);
+    if (context_size < sizeof(bpf_sock_addr_network_context_t)) {
+        return -1;
+    }
+    bpf_sock_addr_network_context_t* net_ctx = (bpf_sock_addr_network_context_t*)context_ptr;
+    net_ctx->version = BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION;
+    net_ctx->interface_type = 0;
+    net_ctx->tunnel_type = TUNNEL_TYPE_NONE;
+    net_ctx->next_hop_interface_luid = NET_IFLUID_UNSPECIFIED;
+    net_ctx->sub_interface_index = NET_IFINDEX_UNSPECIFIED;
+    return 0;
 }
 
 static uint64_t
@@ -1221,7 +1302,10 @@ _ebpf_sock_addr_context_destroy(
     return;
 }
 
-static const void* _ebpf_sock_addr_specific_helper_functions[] = {(void*)_ebpf_sock_addr_set_redirect_context};
+static const void* _ebpf_sock_addr_specific_helper_functions[] = {
+    (void*)_ebpf_sock_addr_set_redirect_context,
+    (void*)_ebpf_sock_addr_get_network_context,
+};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_addr_specific_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
@@ -1398,7 +1482,8 @@ static ebpf_helper_function_addresses_t _sample_ebpf_ext_helper_function_address
     EBPF_COUNT_OF(_sample_ebpf_ext_helper_functions),
     (uint64_t*)_sample_ebpf_ext_helper_functions};
 
-static const void* _test_global_helper_functions[] = {test_global_helper_t::_sample_get_pid_tgid};
+static const void* _test_global_helper_functions[] = {
+    test_global_helper_t::_sample_get_pid_tgid, test_global_helper_t::_sample_redirect_map};
 
 static ebpf_helper_function_addresses_t _test_global_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,

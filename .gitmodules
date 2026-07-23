@@ -1,6 +1,6 @@
 [submodule "external/ebpf-verifier"]
 	path = external/ebpf-verifier
-	url = https://github.com/vbpf/ebpf-verifier.git
+	url = https://github.com/vbpf/prevail.git
 [submodule "external/ubpf"]
 	path = external/ubpf
 	url = https://github.com/iovisor/ubpf.git
@@ -21,6 +21,9 @@
 [submodule "external/usersim"]
 	path = external/usersim
 	url = https://github.com/microsoft/usersim.git
+[submodule "external/ebpf-extension-common"]
+	path = external/ebpf-extension-common
+	url =  https://github.com/microsoft/ebpf-extension-common.git
 [submodule "tests/external/kissfft"]
 	path = tests/external/kissfft
 	url = https://github.com/mborgerding/kissfft
