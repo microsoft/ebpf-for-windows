@@ -2882,7 +2882,7 @@ _test_enumerate_link_IDs_with_bpf(ebpf_execution_type_t execution_type)
     // Pin the detached link.
     memset(&attr, 0, sizeof(attr));
     attr.obj_pin.bpf_fd = fd1;
-    attr.obj_pin.pathname = (uintptr_t)"MyPath";
+    attr.obj_pin.pathname = (uintptr_t) "MyPath";
     REQUIRE(bpf(BPF_OBJ_PIN, &attr, sizeof(attr)) == 0);
 
     // Verify that bpf_fd must be 0 when calling BPF_OBJ_GET.
@@ -3670,6 +3670,21 @@ TEST_CASE("Map and program information", "[libbpf][bpf]")
     int program_fd = bpf(BPF_PROG_LOAD, &attr, sizeof(attr));
     REQUIRE(program_fd >= 0);
 
+    // Query full program info before any maps are bound. A non-null map_ids pointer must be ignored
+    // when there are no map IDs to return.
+    sys_bpf_prog_info_t program_info = {};
+    attr = {};
+    attr.info.bpf_fd = program_fd;
+    attr.info.info = (uintptr_t)&program_info;
+    attr.info.info_len = sizeof(program_info);
+    program_info.nr_map_ids = 1024 * 1024;
+    program_info.map_ids = (uintptr_t)1;
+    REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
+    REQUIRE(attr.info.info_len == sizeof(program_info));
+    REQUIRE(program_info.id != 0);
+    REQUIRE(program_info.nr_map_ids == 0);
+    REQUIRE(strncmp(program_info.name, "testing", sizeof(program_info.name)) == 0);
+
     // Bind map to the program so that the ID is returned in the info.
     attr = {};
     attr.prog_bind_map.prog_fd = program_fd;
@@ -3677,7 +3692,7 @@ TEST_CASE("Map and program information", "[libbpf][bpf]")
     REQUIRE(bpf(BPF_PROG_BIND_MAP, &attr, sizeof(attr)) == 0);
 
     // Verify that we can query a prefix of fields.
-    sys_bpf_prog_info_t program_info = {};
+    program_info = {};
     attr = {};
     attr.info.bpf_fd = program_fd;
     attr.info.info = (uintptr_t)&program_info;
