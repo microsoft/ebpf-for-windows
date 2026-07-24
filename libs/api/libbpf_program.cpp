@@ -250,6 +250,7 @@ _does_attach_type_support_attachable_fd(enum bpf_attach_type type)
     case BPF_CGROUP_INET4_LISTEN:
     case BPF_CGROUP_INET6_LISTEN:
     case BPF_CGROUP_SOCK_OPS:
+    case BPF_ATTACH_TYPE_BIND:
         supported = TRUE;
         break;
     default:
@@ -260,10 +261,30 @@ _does_attach_type_support_attachable_fd(enum bpf_attach_type type)
     return supported;
 }
 
+// The legacy bind hook (BPF_ATTACH_TYPE_BIND) has no per-target attach
+// parameter: its provider installs wildcard filters and ignores any supplied
+// client data. Only the wildcard form is meaningful, so the libbpf-compat
+// wrappers reject a non-zero attachable_fd for this attach type rather than
+// silently dropping it (which would falsely imply the program was scoped to a
+// specific target). The wildcard value is still encoded as a 4-byte zero
+// payload, which bpf_prog_detach2 relies on to locate the matching link to
+// detach.
+static bool
+_attach_type_is_wildcard_only(enum bpf_attach_type type)
+{
+    return type == BPF_ATTACH_TYPE_BIND;
+}
+
 int
 bpf_prog_attach(int prog_fd, int attachable_fd, enum bpf_attach_type type, unsigned int flags)
 {
     ebpf_result_t result = EBPF_SUCCESS;
+
+    // Bind accepts only the wildcard attachable_fd (0); a non-zero value is a
+    // caller error rather than a silently-ignored scope.
+    if (_attach_type_is_wildcard_only(type) && (attachable_fd != 0)) {
+        return libbpf_result_err(EBPF_INVALID_ARGUMENT);
+    }
 
     if (_does_attach_type_support_attachable_fd(type) && (flags == 0)) {
         result = ebpf_program_attach_by_fd(
@@ -288,6 +309,13 @@ bpf_prog_detach2(int prog_fd, int attachable_fd, enum bpf_attach_type type)
         result = EBPF_INVALID_ARGUMENT;
         return libbpf_result_err(result);
     }
+
+    // Bind accepts only the wildcard attachable_fd (0); a non-zero value is a
+    // caller error rather than a silently-ignored scope.
+    if (_attach_type_is_wildcard_only(type) && (attachable_fd != 0)) {
+        return libbpf_result_err(EBPF_INVALID_ARGUMENT);
+    }
+
     if (_does_attach_type_support_attachable_fd(type)) {
         result = ebpf_program_detach(prog_fd, attach_type, &attachable_fd, sizeof(attachable_fd));
     } else {
