@@ -1523,12 +1523,15 @@ _ebpf_core_protocol_unlink_program(_In_ const ebpf_operation_unlink_program_requ
     EBPF_LOG_ENTRY();
     ebpf_result_t retval = EBPF_SUCCESS;
     ebpf_link_t* link = NULL;
+    bool detach_single_link = false;
+    bool detached_any_link = false;
 
     if (request->link_handle != ebpf_handle_invalid) {
         retval = EBPF_OBJECT_REFERENCE_BY_HANDLE(request->link_handle, EBPF_OBJECT_LINK, (ebpf_core_object_t**)&link);
         if (retval != EBPF_SUCCESS) {
             goto Done;
         }
+        detach_single_link = true;
     } else if (request->attach_data_present) {
         // This path will be taken for bpf_prog_detach and bpf_prog_detach2 APIs.
         // Find the link object matching the unlink request parameters.
@@ -1549,17 +1552,18 @@ _ebpf_core_protocol_unlink_program(_In_ const ebpf_operation_unlink_program_requ
             // Detach the link. Since _ebpf_core_find_matching_link takes a reference on the link object,
             // the detach function will not free the link object.
             ebpf_link_detach_program(link);
+            detached_any_link = true;
             // Pass the link object as the previous object parameter to the _ebpf_core_find_matching_link function,
             // which will release the reference from it.
             previous_link = link;
         }
         if (retval == EBPF_NO_MORE_KEYS) {
             // No more matching links to detach.
-            retval = EBPF_SUCCESS;
+            retval = detached_any_link ? EBPF_SUCCESS : EBPF_OBJECT_NOT_FOUND;
         }
     }
 
-    if (link != NULL) {
+    if (detach_single_link && link != NULL) {
         ebpf_link_detach_program(link);
     }
 

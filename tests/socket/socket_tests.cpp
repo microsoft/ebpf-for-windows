@@ -30,6 +30,7 @@
 #include <iostream>
 #include <ipifcons.h>
 #include <memory>
+#include <optional>
 #include <random>
 #include <sstream>
 #include <tuple>
@@ -343,6 +344,7 @@ execute_connection_test(_In_ const connection_test_case& test_case)
         bpf_program* program;
         program_spec spec;
         bpf_link* link;
+        std::optional<bpf_prog_attach_guard_t> attach_guard; ///< RAII guard for bpf_prog_attach path.
     };
     struct loaded_module
     {
@@ -450,14 +452,15 @@ execute_connection_test(_In_ const connection_test_case& test_case)
                 bpf_program__fd(loaded_program.program));
             if (loaded_program.spec.attach_method == attach_method_t::bpf_prog_attach) {
                 // libbpf-compat path: passes a 4-byte attach parameter containing compartment_id=0.
-                int rc = ::bpf_prog_attach(bpf_program__fd(program), 0, loaded_program.spec.attach_type, 0);
-                SAFE_REQUIRE(rc == 0);
+                loaded_program.attach_guard.emplace(bpf_program__fd(program), 0, loaded_program.spec.attach_type);
+                SAFE_REQUIRE(loaded_program.attach_guard->result() == 0);
             } else {
                 // Native API path: passes NULL attach parameter (wildcard / unspecified compartment).
                 ebpf_attach_type_t attach_type_guid{};
                 SAFE_REQUIRE(
                     ebpf_get_ebpf_attach_type(loaded_program.spec.attach_type, &attach_type_guid) == EBPF_SUCCESS);
-                SAFE_REQUIRE(ebpf_program_attach(program, &attach_type_guid, nullptr, 0, nullptr) == EBPF_SUCCESS);
+                SAFE_REQUIRE(
+                    ebpf_program_attach(program, &attach_type_guid, nullptr, 0, &loaded_program.link) == EBPF_SUCCESS);
             }
         }
     }
@@ -589,6 +592,17 @@ execute_connection_test(_In_ const connection_test_case& test_case)
         server.reset();
 
         ++test_index;
+    }
+
+    // Detach and clean up all attached programs before unloading objects.
+    // bpf_prog_attach guards auto-detach in their destructors; only bpf_link* needs manual cleanup.
+    for (auto& mod : loaded_modules) {
+        for (auto& loaded_program : mod.programs) {
+            if (loaded_program.link != nullptr) {
+                bpf_link__destroy(loaded_program.link);
+                loaded_program.link = nullptr;
+            }
+        }
     }
 }
 
@@ -1049,7 +1063,8 @@ sock_addr_bind_unknown_verdict_test(ADDRESS_FAMILY address_family, IPPROTO proto
     const char* program_name = (address_family == AF_INET) ? "authorize_bind4" : "authorize_bind6";
     bpf_program* program = bpf_object__find_program_by_name(object, program_name);
     SAFE_REQUIRE(program != nullptr);
-    SAFE_REQUIRE(bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(program)), 0, attach_type, 0) == 0);
+    bpf_prog_attach_guard_t attach_guard(bpf_program__fd(const_cast<const bpf_program*>(program)), 0, attach_type);
+    SAFE_REQUIRE(attach_guard.result() == 0);
 
     // Inject a bit pattern that is not a valid ebpf_sock_addr_verdict_t enumerator. The kernel
     // bind hook must treat this as REJECT (per the documented contract) and block the bind.
@@ -1077,6 +1092,7 @@ sock_addr_bind_unknown_verdict_test(ADDRESS_FAMILY address_family, IPPROTO proto
     int rc = bind(sock, reinterpret_cast<sockaddr*>(&bind_addr), sizeof(bind_addr));
     int err = (rc == 0) ? 0 : WSAGetLastError();
     closesocket(sock);
+
     SAFE_REQUIRE(rc != 0);
     SAFE_REQUIRE(err == WSAEACCES);
 }
@@ -1117,8 +1133,8 @@ bind_helper_functions_validation_test(ADDRESS_FAMILY address_family)
 
     // Attach at the appropriate BIND layer.
     bpf_attach_type attach_type = (address_family == AF_INET) ? BPF_CGROUP_INET4_BIND : BPF_CGROUP_INET6_BIND;
-    int result = bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(bind_program)), 0, attach_type, 0);
-    SAFE_REQUIRE(result == 0);
+    bpf_prog_attach_guard_t attach_guard(bpf_program__fd(const_cast<const bpf_program*>(bind_program)), 0, attach_type);
+    SAFE_REQUIRE(attach_guard.result() == 0);
 
     // Dual-stack AF_INET6 socket; the bound address selects the V4 vs V6 WFP layer.
     SOCKET sock = WSASocketW(AF_INET6, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, 0);
@@ -1138,7 +1154,7 @@ bind_helper_functions_validation_test(ADDRESS_FAMILY address_family)
         const uint32_t* ip6_dwords = reinterpret_cast<const uint32_t*>(&in6addr_loopback);
         connection_id = (ip6_dwords[0] ^ ip6_dwords[3]) ^ (htons(SOCKET_TEST_PORT) << 16);
     }
-    result = bind(sock, reinterpret_cast<sockaddr*>(&bind_addr), sizeof(bind_addr));
+    int result = bind(sock, reinterpret_cast<sockaddr*>(&bind_addr), sizeof(bind_addr));
     SAFE_REQUIRE(result == 0);
 
     // Verify network context was populated.
@@ -1226,6 +1242,7 @@ bind_helper_functions_validation_test(ADDRESS_FAMILY address_family)
     SAFE_REQUIRE(results.socket_cookie == 0);
 
     closesocket(sock);
+
     printf(
         "Bind helper functions validation test completed successfully for %s\n",
         (address_family == AF_INET) ? "IPv4" : "IPv6");
@@ -1275,12 +1292,11 @@ helper_functions_validation_test(
     // Attach the connect authorization program at the appropriate CONNECT_AUTHORIZATION layer.
     bpf_attach_type connect_authorization_attach_type =
         (address_family == AF_INET) ? BPF_CGROUP_INET4_CONNECT_AUTHORIZATION : BPF_CGROUP_INET6_CONNECT_AUTHORIZATION;
-    int result = bpf_prog_attach(
+    bpf_prog_attach_guard_t attach_guard(
         bpf_program__fd(const_cast<const bpf_program*>(connect_authorization_program)),
         0,
-        connect_authorization_attach_type,
-        0);
-    SAFE_REQUIRE(result == 0);
+        connect_authorization_attach_type);
+    SAFE_REQUIRE(attach_guard.result() == 0);
 
     // Post an asynchronous receive on the receiver socket.
     receiver_socket.post_async_receive();
@@ -1311,7 +1327,7 @@ helper_functions_validation_test(
 
     // Validate that the network context helper returned reasonable values.
     bpf_sock_addr_network_context_t net_ctx = {0};
-    result = bpf_map_lookup_elem(bpf_map__fd(network_context_map), &connection_id, &net_ctx);
+    int result = bpf_map_lookup_elem(bpf_map__fd(network_context_map), &connection_id, &net_ctx);
     SAFE_REQUIRE(result == 0);
     printf(
         "Network context - Version: %u, Interface: %u, Tunnel: %u, Next-hop: %llu, SubInterface: %u\n",
@@ -1389,12 +1405,11 @@ TEST_CASE(
     SAFE_REQUIRE(connection_count_map != nullptr);
 
     // Attach the conditional authorization program.
-    int result = bpf_prog_attach(
+    bpf_prog_attach_guard_t attach_guard(
         bpf_program__fd(const_cast<const bpf_program*>(conditional_program)),
         0,
-        BPF_CGROUP_INET4_CONNECT_AUTHORIZATION,
-        0);
-    SAFE_REQUIRE(result == 0);
+        BPF_CGROUP_INET4_CONNECT_AUTHORIZATION);
+    SAFE_REQUIRE(attach_guard.result() == 0);
 
     // Create test sockets.
     stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
@@ -1415,7 +1430,7 @@ TEST_CASE(
     // Check if tunnel connections were tracked (key 100 is used for tunnel connections).
     uint32_t tunnel_key = 100;
     uint64_t tunnel_count = 0;
-    result = bpf_map_lookup_elem(bpf_map__fd(connection_count_map), &tunnel_key, &tunnel_count);
+    int result = bpf_map_lookup_elem(bpf_map__fd(connection_count_map), &tunnel_key, &tunnel_count);
 
     // For loopback connections, we don't expect tunnels, so tunnel_count should be 0 or entry not found.
     if (result == 0) {
@@ -1786,9 +1801,9 @@ TEST_CASE("listen_helper_functions_validation_tcp_v4", "[sock_addr_tests][helper
     SAFE_REQUIRE(sock_addr_helper_results_map != nullptr);
 
     // Attach at INET4_LISTEN.
-    int result =
-        bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(listen_program)), 0, BPF_CGROUP_INET4_LISTEN, 0);
-    SAFE_REQUIRE(result == 0);
+    bpf_prog_attach_guard_t attach_guard(
+        bpf_program__fd(const_cast<const bpf_program*>(listen_program)), 0, BPF_CGROUP_INET4_LISTEN);
+    SAFE_REQUIRE(attach_guard.result() == 0);
 
     // Trigger listen by creating, binding, and calling listen() on a TCP socket.
     SOCKET sock = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, 0);
@@ -1797,7 +1812,7 @@ TEST_CASE("listen_helper_functions_validation_tcp_v4", "[sock_addr_tests][helper
     bind_addr.sin_family = AF_INET;
     bind_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     bind_addr.sin_port = htons(SOCKET_TEST_PORT);
-    result = bind(sock, reinterpret_cast<sockaddr*>(&bind_addr), sizeof(bind_addr));
+    int result = bind(sock, reinterpret_cast<sockaddr*>(&bind_addr), sizeof(bind_addr));
     SAFE_REQUIRE(result == 0);
     result = listen(sock, SOMAXCONN);
     SAFE_REQUIRE(result == 0);
@@ -1878,6 +1893,7 @@ TEST_CASE("listen_helper_functions_validation_tcp_v4", "[sock_addr_tests][helper
     SAFE_REQUIRE(results.socket_cookie == 0);
 
     closesocket(sock);
+
     printf("Listen helper functions validation test completed successfully for IPv4\n");
 }
 
@@ -1901,9 +1917,9 @@ TEST_CASE("listen_helper_functions_validation_tcp_v6", "[sock_addr_tests][helper
     SAFE_REQUIRE(sock_addr_helper_results_map != nullptr);
 
     // Attach at INET6_LISTEN.
-    int result =
-        bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(listen_program)), 0, BPF_CGROUP_INET6_LISTEN, 0);
-    SAFE_REQUIRE(result == 0);
+    bpf_prog_attach_guard_t attach_guard(
+        bpf_program__fd(const_cast<const bpf_program*>(listen_program)), 0, BPF_CGROUP_INET6_LISTEN);
+    SAFE_REQUIRE(attach_guard.result() == 0);
 
     // Trigger listen.
     SOCKET sock = WSASocketW(AF_INET6, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, 0);
@@ -1912,7 +1928,7 @@ TEST_CASE("listen_helper_functions_validation_tcp_v6", "[sock_addr_tests][helper
     bind_addr.sin6_family = AF_INET6;
     bind_addr.sin6_addr = in6addr_loopback;
     bind_addr.sin6_port = htons(SOCKET_TEST_PORT);
-    result = bind(sock, reinterpret_cast<sockaddr*>(&bind_addr), sizeof(bind_addr));
+    int result = bind(sock, reinterpret_cast<sockaddr*>(&bind_addr), sizeof(bind_addr));
     SAFE_REQUIRE(result == 0);
     result = listen(sock, SOMAXCONN);
     SAFE_REQUIRE(result == 0);
@@ -1979,6 +1995,7 @@ TEST_CASE("listen_helper_functions_validation_tcp_v6", "[sock_addr_tests][helper
     SAFE_REQUIRE(results.socket_cookie == 0);
 
     closesocket(sock);
+
     printf("Listen helper functions validation test completed successfully for IPv6\n");
 }
 
@@ -2217,6 +2234,25 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
         0);
     SAFE_REQUIRE(result == 0);
 
+    ZeroMemory(&program_info, program_info_size);
+    SAFE_REQUIRE(
+        bpf_obj_get_info_by_fd(
+            bpf_program__fd(const_cast<const bpf_program*>(connect6_program)), &program_info, &program_info_size) == 0);
+    SAFE_REQUIRE(program_info.link_count == 1);
+    SAFE_REQUIRE(program_info.map_ids == 0);
+
+    result = bpf_prog_detach2(
+        bpf_program__fd(const_cast<const bpf_program*>(connect6_program)),
+        DEFAULT_COMPARTMENT_ID,
+        BPF_CGROUP_INET6_CONNECT);
+    SAFE_REQUIRE(result == 0);
+
+    ZeroMemory(&program_info, program_info_size);
+    SAFE_REQUIRE(
+        bpf_obj_get_info_by_fd(
+            bpf_program__fd(const_cast<const bpf_program*>(connect6_program)), &program_info, &program_info_size) == 0);
+    SAFE_REQUIRE(program_info.link_count == 0);
+
     bpf_program* recv_accept6_program = bpf_object__find_program_by_name(object, "authorize_recv_accept6");
     SAFE_REQUIRE(recv_accept6_program != nullptr);
 
@@ -2226,6 +2262,27 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
         BPF_CGROUP_INET6_RECV_ACCEPT,
         0);
     SAFE_REQUIRE(result == 0);
+
+    ZeroMemory(&program_info, program_info_size);
+    SAFE_REQUIRE(
+        bpf_obj_get_info_by_fd(
+            bpf_program__fd(const_cast<const bpf_program*>(recv_accept6_program)), &program_info, &program_info_size) ==
+        0);
+    SAFE_REQUIRE(program_info.link_count == 1);
+    SAFE_REQUIRE(program_info.map_ids == 0);
+
+    result = bpf_prog_detach2(
+        bpf_program__fd(const_cast<const bpf_program*>(recv_accept6_program)),
+        DEFAULT_COMPARTMENT_ID,
+        BPF_CGROUP_INET6_RECV_ACCEPT);
+    SAFE_REQUIRE(result == 0);
+
+    ZeroMemory(&program_info, program_info_size);
+    SAFE_REQUIRE(
+        bpf_obj_get_info_by_fd(
+            bpf_program__fd(const_cast<const bpf_program*>(recv_accept6_program)), &program_info, &program_info_size) ==
+        0);
+    SAFE_REQUIRE(program_info.link_count == 0);
 }
 
 void
@@ -2344,8 +2401,9 @@ connection_monitor_test(
     receiver_socket.post_async_receive();
 
     // Attach the sockops program.
-    int result = bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS, 0);
-    SAFE_REQUIRE(result == 0);
+    bpf_prog_attach_guard_t attach_guard(
+        bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS);
+    SAFE_REQUIRE(attach_guard.result() == 0);
 
     // Send loopback message to test port.
     const char* message = CLIENT_MESSAGE;
@@ -2448,8 +2506,9 @@ TEST_CASE("attach_sockops_programs", "[sock_ops_tests]")
     bpf_program* _program = bpf_object__find_program_by_name(object, "connection_monitor");
     SAFE_REQUIRE(_program != nullptr);
 
-    int result = bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS, 0);
-    SAFE_REQUIRE(result == 0);
+    bpf_prog_attach_guard_t attach_guard(
+        bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS);
+    SAFE_REQUIRE(attach_guard.result() == 0);
 }
 
 // Custom event handler for flow ID validation
@@ -2526,8 +2585,9 @@ TEST_CASE("sock_ops_flow_id_helper_test", "[sock_ops_tests]")
     SAFE_REQUIRE(flow_id_map != nullptr);
 
     // Attach the program.
-    int result = bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS, 0);
-    SAFE_REQUIRE(result == 0);
+    bpf_prog_attach_guard_t attach_guard(
+        bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS);
+    SAFE_REQUIRE(attach_guard.result() == 0);
 
     // Get the std::future from the promise field in ring buffer event context, which should be in ready state
     // once notifications for all events are received.
@@ -2587,7 +2647,7 @@ TEST_CASE("sock_ops_flow_id_helper_test", "[sock_ops_tests]")
 
     // Verify that we got a flow ID stored in the map (should be non-zero).
     uint64_t stored_flow_id = 0;
-    result = bpf_map_lookup_elem(bpf_map__fd(flow_id_map), &tuple, &stored_flow_id);
+    int result = bpf_map_lookup_elem(bpf_map__fd(flow_id_map), &tuple, &stored_flow_id);
 
     // Verify we get a non-zero flow ID.
     REQUIRE(result == 0);
@@ -2848,12 +2908,14 @@ multi_attach_test(uint32_t compartment_id, socket_family_t family, ADDRESS_FAMIL
     const char* connect_program_name = (address_family == AF_INET) ? "connect_redirect4" : "connect_redirect6";
 
     // Attach all the programs to the same hook (i.e. same attach parameters).
+    // Guards ensure cleanup even if a SAFE_REQUIRE fails mid-test.
+    std::vector<bpf_prog_attach_guard_t> attach_guards;
     for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
         bpf_program* connect_program = bpf_object__find_program_by_name(objects[i], connect_program_name);
         SAFE_REQUIRE(connect_program != nullptr);
-        int result = bpf_prog_attach(
-            bpf_program__fd(const_cast<const bpf_program*>(connect_program)), compartment_id, attach_type, 0);
-        SAFE_REQUIRE(result == 0);
+        attach_guards.emplace_back(
+            bpf_program__fd(const_cast<const bpf_program*>(connect_program)), compartment_id, attach_type);
+        SAFE_REQUIRE(attach_guards.back().result() == 0);
     }
 
     // Configure policy maps for all programs to "allow" the connection.
@@ -2899,9 +2961,9 @@ multi_attach_test(uint32_t compartment_id, socket_family_t family, ADDRESS_FAMIL
     // Attach the connect program at BPF_CGROUP_INET4_CONNECT / BPF_CGROUP_INET6_CONNECT.
     bpf_program* connect_program = bpf_object__find_program_by_name(object, connect_program_name);
     SAFE_REQUIRE(connect_program != nullptr);
-    int result = bpf_prog_attach(
-        bpf_program__fd(const_cast<const bpf_program*>(connect_program)), compartment_id + 2, attach_type, 0);
-    SAFE_REQUIRE(result == 0);
+    bpf_prog_attach_guard_t fourth_attach_guard(
+        bpf_program__fd(const_cast<const bpf_program*>(connect_program)), compartment_id + 2, attach_type);
+    SAFE_REQUIRE(fourth_attach_guard.result() == 0);
 
     // Not updating policy map for this program should mean that this program (if invoked) will block the connection.
     // Validate that the connection is allowed.
@@ -2935,12 +2997,16 @@ multi_attach_test_redirection(
     }
 
     // Attach all the 3 programs to the same hook (i.e. same attach parameters).
+    // Guards ensure cleanup even if a SAFE_REQUIRE fails mid-test.
+    // Note: validate_program_redirection may detach/re-attach these programs internally as part of its test logic.
+    // The guards remain valid because bpf_prog_detach2 is idempotent and the programs end up re-attached.
+    std::vector<bpf_prog_attach_guard_t> attach_guards;
     for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
         bpf_program* connect_program = bpf_object__find_program_by_name(objects[i], connect_program_name);
         SAFE_REQUIRE(connect_program != nullptr);
-        int result = bpf_prog_attach(
-            bpf_program__fd(const_cast<const bpf_program*>(connect_program)), compartment_id, attach_type, 0);
-        SAFE_REQUIRE(result == 0);
+        attach_guards.emplace_back(
+            bpf_program__fd(const_cast<const bpf_program*>(connect_program)), compartment_id, attach_type);
+        SAFE_REQUIRE(attach_guards.back().result() == 0);
     }
 
     // Lambda function to update the policy map entry, and validate the connection.
@@ -3214,15 +3280,15 @@ test_multi_attach_combined(socket_family_t family, ADDRESS_FAMILY address_family
     const char* connect_program_name = (address_family == AF_INET) ? "connect_redirect4" : "connect_redirect6";
 
     // Attach all the programs.
+    std::vector<bpf_prog_attach_guard_t> attach_guards;
     for (uint32_t i = 0; i < program_count_per_hook * 2; i++) {
         bpf_program* connect_program = bpf_object__find_program_by_name(objects[i], connect_program_name);
         SAFE_REQUIRE(connect_program != nullptr);
-        int result = bpf_prog_attach(
+        attach_guards.emplace_back(
             bpf_program__fd(const_cast<const bpf_program*>(connect_program)),
             i < program_count_per_hook ? 1 : UNSPECIFIED_COMPARTMENT_ID,
-            attach_type,
-            0);
-        SAFE_REQUIRE(result == 0);
+            attach_type);
+        SAFE_REQUIRE(attach_guards.back().result() == 0);
     }
 
     // This loop will iterate over all the possible combinations of program actions for each program.
@@ -3393,17 +3459,16 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
     SAFE_REQUIRE(connect_program_wildcard != nullptr);
 
     // Attach the program with specific compartment id first.
-    result =
-        bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(connect_program_specific)), 1, attach_type, 0);
-    SAFE_REQUIRE(result == 0);
+    bpf_prog_attach_guard_t specific_attach_guard(
+        bpf_program__fd(const_cast<const bpf_program*>(connect_program_specific)), 1, attach_type);
+    SAFE_REQUIRE(specific_attach_guard.result() == 0);
 
     // Attach the program with wildcard compartment id next.
-    result = bpf_prog_attach(
+    bpf_prog_attach_guard_t wildcard_attach_guard(
         bpf_program__fd(const_cast<const bpf_program*>(connect_program_wildcard)),
         UNSPECIFIED_COMPARTMENT_ID,
-        attach_type,
-        0);
-    SAFE_REQUIRE(result == 0);
+        attach_type);
+    SAFE_REQUIRE(wildcard_attach_guard.result() == 0);
 
     // First configure both the programs to allow the connection.
     bpf_map* policy_map_specific = bpf_object__find_map_by_name(object_specific, "policy_map");
@@ -3683,13 +3748,14 @@ thread_function_allow_block_connection(
     fd_t prog_fd = bpf_program__fd(const_cast<const bpf_program*>(connect_program));
 
     // Attach the program at BPF_CGROUP_INET4_CONNECT / BPF_CGROUP_INET6_CONNECT.
-    int result = bpf_prog_attach(prog_fd, compartment_id, attach_type, 0);
-    if (result != 0) {
+    // The guard ensures automatic detach on scope exit, even if an exception is thrown.
+    bpf_prog_attach_guard_t attach_guard(prog_fd, compartment_id, attach_type);
+    if (attach_guard.result() != 0) {
         int saved_errno = errno;
         std::ostringstream oss;
         oss << "ALLOW_BLOCK ATTACH FAILED: thread=" << std::this_thread::get_id() << " compartment=" << compartment_id
             << " prog_fd=" << prog_fd << " attach_type=" << static_cast<int>(attach_type) << " protocol=" << protocol
-            << " result=" << result << " errno=" << saved_errno;
+            << " result=" << attach_guard.result() << " errno=" << saved_errno;
         throw test_failure(oss.str());
     }
 
