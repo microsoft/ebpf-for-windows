@@ -16,6 +16,8 @@
 #include "ebpf_ext_tracelog.h"
 #include "ebpf_extension_uuids.h"
 #include "net_ebpf_ext.h"
+#include "net_ebpf_ext_bind.h"
+#include "net_ebpf_ext_sock_addr.h"
 #include "usersim\fwp_test.h"
 
 #include <iostream>
@@ -49,56 +51,87 @@ typedef class _netebpf_ext_helper
     get_program_info_provider_data(_In_ const GUID& program_info_provider);
 
     FWP_ACTION_TYPE
-    test_bind_ipv4(_In_ fwp_classify_parameters_t* parameters) { return usersim_fwp_bind_ipv4(parameters); }
-
-    FWP_ACTION_TYPE
-    test_cgroup_inet4_recv_accept(_In_ fwp_classify_parameters_t* parameters)
+    test_bind_ipv4(_In_ const fwp_classify_parameters_t* parameters)
     {
-        return usersim_fwp_cgroup_inet4_recv_accept(parameters);
+        // Select the filter by the legacy bind callout key so this exercises the legacy bind callout
+        // even if the CGROUP_SOCK_ADDR bind callout also has a filter registered at the same layer.
+        return usersim_fwp_bind_ipv4_by_callout(
+            const_cast<fwp_classify_parameters_t*>(parameters), &EBPF_HOOK_ALE_RESOURCE_ALLOC_V4_CALLOUT);
     }
 
     FWP_ACTION_TYPE
-    test_cgroup_inet6_recv_accept(_In_ fwp_classify_parameters_t* parameters)
+    test_bind_ipv6(_In_ const fwp_classify_parameters_t* parameters)
     {
-        return usersim_fwp_cgroup_inet6_recv_accept(parameters);
+        return usersim_fwp_bind_ipv6_by_callout(
+            const_cast<fwp_classify_parameters_t*>(parameters), &EBPF_HOOK_ALE_RESOURCE_ALLOC_V6_CALLOUT);
     }
 
     FWP_ACTION_TYPE
-    test_cgroup_inet4_connect(_In_ fwp_classify_parameters_t* parameters)
+    test_cgroup_inet4_bind(_In_ const fwp_classify_parameters_t* parameters)
     {
-        return usersim_fwp_cgroup_inet4_connect(parameters);
+        // The CGROUP_SOCK_ADDR bind hook fires at the same WFP layer and sublayer as the legacy bind
+        // hook (FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4, default sublayer). Select the filter by the
+        // CGROUP_SOCK_ADDR bind callout key so this always exercises the sock_addr bind callout,
+        // regardless of whether the legacy bind hook also has a filter registered.
+        return usersim_fwp_bind_ipv4_by_callout(
+            const_cast<fwp_classify_parameters_t*>(parameters), &EBPF_HOOK_ALE_RESOURCE_ALLOC_V4_SOCK_ADDR_CALLOUT);
     }
 
     FWP_ACTION_TYPE
-    test_cgroup_inet6_connect(_In_ fwp_classify_parameters_t* parameters)
+    test_cgroup_inet6_bind(_In_ const fwp_classify_parameters_t* parameters)
     {
-        return usersim_fwp_cgroup_inet6_connect(parameters);
+        return usersim_fwp_bind_ipv6_by_callout(
+            const_cast<fwp_classify_parameters_t*>(parameters), &EBPF_HOOK_ALE_RESOURCE_ALLOC_V6_SOCK_ADDR_CALLOUT);
     }
 
     FWP_ACTION_TYPE
-    test_cgroup_inet4_connect_authorization(_In_ fwp_classify_parameters_t* parameters)
+    test_cgroup_inet4_recv_accept(_In_ const fwp_classify_parameters_t* parameters)
+    {
+        return usersim_fwp_cgroup_inet4_recv_accept(const_cast<fwp_classify_parameters_t*>(parameters));
+    }
+
+    FWP_ACTION_TYPE
+    test_cgroup_inet6_recv_accept(_In_ const fwp_classify_parameters_t* parameters)
+    {
+        return usersim_fwp_cgroup_inet6_recv_accept(const_cast<fwp_classify_parameters_t*>(parameters));
+    }
+
+    FWP_ACTION_TYPE
+    test_cgroup_inet4_connect(_In_ const fwp_classify_parameters_t* parameters)
+    {
+        return usersim_fwp_cgroup_inet4_connect(const_cast<fwp_classify_parameters_t*>(parameters));
+    }
+
+    FWP_ACTION_TYPE
+    test_cgroup_inet6_connect(_In_ const fwp_classify_parameters_t* parameters)
+    {
+        return usersim_fwp_cgroup_inet6_connect(const_cast<fwp_classify_parameters_t*>(parameters));
+    }
+
+    FWP_ACTION_TYPE
+    test_cgroup_inet4_connect_authorization(_In_ const fwp_classify_parameters_t* parameters)
     {
         // CONNECT_AUTHORIZATION uses the same underlying simulation as regular CONNECT.
-        return usersim_fwp_cgroup_inet4_connect(parameters);
+        return usersim_fwp_cgroup_inet4_connect(const_cast<fwp_classify_parameters_t*>(parameters));
     }
 
     FWP_ACTION_TYPE
-    test_cgroup_inet6_connect_authorization(_In_ fwp_classify_parameters_t* parameters)
+    test_cgroup_inet6_connect_authorization(_In_ const fwp_classify_parameters_t* parameters)
     {
         // CONNECT_AUTHORIZATION uses the same underlying simulation as regular CONNECT.
-        return usersim_fwp_cgroup_inet6_connect(parameters);
+        return usersim_fwp_cgroup_inet6_connect(const_cast<fwp_classify_parameters_t*>(parameters));
     }
 
     FWP_ACTION_TYPE
-    test_sock_ops_v4(_In_ fwp_classify_parameters_t* parameters, _Out_opt_ uint64_t* flow_id)
+    test_sock_ops_v4(_In_ const fwp_classify_parameters_t* parameters, _Out_opt_ uint64_t* flow_id)
     {
-        return usersim_fwp_sock_ops_v4(parameters, flow_id);
+        return usersim_fwp_sock_ops_v4(const_cast<fwp_classify_parameters_t*>(parameters), flow_id);
     }
 
     FWP_ACTION_TYPE
-    test_sock_ops_v6(_In_ fwp_classify_parameters_t* parameters, _Out_opt_ uint64_t* flow_id)
+    test_sock_ops_v6(_In_ const fwp_classify_parameters_t* parameters, _Out_opt_ uint64_t* flow_id)
     {
-        return usersim_fwp_sock_ops_v6(parameters, flow_id);
+        return usersim_fwp_sock_ops_v6(const_cast<fwp_classify_parameters_t*>(parameters), flow_id);
     }
 
     void
