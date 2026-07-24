@@ -457,7 +457,8 @@ execute_connection_test(_In_ const connection_test_case& test_case)
                 ebpf_attach_type_t attach_type_guid{};
                 SAFE_REQUIRE(
                     ebpf_get_ebpf_attach_type(loaded_program.spec.attach_type, &attach_type_guid) == EBPF_SUCCESS);
-                SAFE_REQUIRE(ebpf_program_attach(program, &attach_type_guid, nullptr, 0, nullptr) == EBPF_SUCCESS);
+                SAFE_REQUIRE(
+                    ebpf_program_attach(program, &attach_type_guid, nullptr, 0, &loaded_program.link) == EBPF_SUCCESS);
             }
         }
     }
@@ -589,6 +590,18 @@ execute_connection_test(_In_ const connection_test_case& test_case)
         server.reset();
 
         ++test_index;
+    }
+
+    // Detach and clean up all attached programs before unloading objects.
+    for (auto& mod : loaded_modules) {
+        for (auto& loaded_program : mod.programs) {
+            if (loaded_program.link != nullptr) {
+                bpf_link__destroy(loaded_program.link);
+                loaded_program.link = nullptr;
+            } else if (loaded_program.spec.attach_method == attach_method_t::bpf_prog_attach) {
+                bpf_prog_detach2(bpf_program__fd(loaded_program.program), 0, loaded_program.spec.attach_type);
+            }
+        }
     }
 }
 
@@ -1077,6 +1090,10 @@ sock_addr_bind_unknown_verdict_test(ADDRESS_FAMILY address_family, IPPROTO proto
     int rc = bind(sock, reinterpret_cast<sockaddr*>(&bind_addr), sizeof(bind_addr));
     int err = (rc == 0) ? 0 : WSAGetLastError();
     closesocket(sock);
+
+    // Detach the program before unloading to avoid leaving stale legacy links.
+    bpf_prog_detach2(bpf_program__fd(const_cast<const bpf_program*>(program)), 0, attach_type);
+
     SAFE_REQUIRE(rc != 0);
     SAFE_REQUIRE(err == WSAEACCES);
 }
@@ -1226,6 +1243,10 @@ bind_helper_functions_validation_test(ADDRESS_FAMILY address_family)
     SAFE_REQUIRE(results.socket_cookie == 0);
 
     closesocket(sock);
+
+    // Detach the program before unloading to avoid leaving stale legacy links.
+    bpf_prog_detach2(bpf_program__fd(const_cast<const bpf_program*>(bind_program)), 0, attach_type);
+
     printf(
         "Bind helper functions validation test completed successfully for %s\n",
         (address_family == AF_INET) ? "IPv4" : "IPv6");
@@ -1348,6 +1369,12 @@ helper_functions_validation_test(
     printf(
         "Helper functions validation test completed successfully for %s\n",
         (address_family == AF_INET) ? "IPv4" : "IPv6");
+
+    // Detach the program before unloading to avoid leaving stale legacy links.
+    bpf_prog_detach2(
+        bpf_program__fd(const_cast<const bpf_program*>(connect_authorization_program)),
+        0,
+        connect_authorization_attach_type);
 }
 
 TEST_CASE("connect_authorization_helper_functions_validation_tcp_v4", "[sock_addr_tests][helper_validation]")
@@ -1423,6 +1450,12 @@ TEST_CASE(
         // For loopback, tunnel count should typically be 0.
         SAFE_REQUIRE(tunnel_count == 0);
     }
+
+    // Detach the program before unloading to avoid leaving stale legacy links.
+    bpf_prog_detach2(
+        bpf_program__fd(const_cast<const bpf_program*>(conditional_program)),
+        0,
+        BPF_CGROUP_INET4_CONNECT_AUTHORIZATION);
 
     printf("Conditional policy validation test completed successfully\n");
 }
@@ -1878,6 +1911,10 @@ TEST_CASE("listen_helper_functions_validation_tcp_v4", "[sock_addr_tests][helper
     SAFE_REQUIRE(results.socket_cookie == 0);
 
     closesocket(sock);
+
+    // Detach the program before unloading to avoid leaving stale legacy links.
+    bpf_prog_detach2(bpf_program__fd(const_cast<const bpf_program*>(listen_program)), 0, BPF_CGROUP_INET4_LISTEN);
+
     printf("Listen helper functions validation test completed successfully for IPv4\n");
 }
 
@@ -1979,6 +2016,10 @@ TEST_CASE("listen_helper_functions_validation_tcp_v6", "[sock_addr_tests][helper
     SAFE_REQUIRE(results.socket_cookie == 0);
 
     closesocket(sock);
+
+    // Detach the program before unloading to avoid leaving stale legacy links.
+    bpf_prog_detach2(bpf_program__fd(const_cast<const bpf_program*>(listen_program)), 0, BPF_CGROUP_INET6_LISTEN);
+
     printf("Listen helper functions validation test completed successfully for IPv6\n");
 }
 
@@ -2217,6 +2258,25 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
         0);
     SAFE_REQUIRE(result == 0);
 
+    ZeroMemory(&program_info, program_info_size);
+    SAFE_REQUIRE(
+        bpf_obj_get_info_by_fd(
+            bpf_program__fd(const_cast<const bpf_program*>(connect6_program)), &program_info, &program_info_size) == 0);
+    SAFE_REQUIRE(program_info.link_count == 1);
+    SAFE_REQUIRE(program_info.map_ids == 0);
+
+    result = bpf_prog_detach2(
+        bpf_program__fd(const_cast<const bpf_program*>(connect6_program)),
+        DEFAULT_COMPARTMENT_ID,
+        BPF_CGROUP_INET6_CONNECT);
+    SAFE_REQUIRE(result == 0);
+
+    ZeroMemory(&program_info, program_info_size);
+    SAFE_REQUIRE(
+        bpf_obj_get_info_by_fd(
+            bpf_program__fd(const_cast<const bpf_program*>(connect6_program)), &program_info, &program_info_size) == 0);
+    SAFE_REQUIRE(program_info.link_count == 0);
+
     bpf_program* recv_accept6_program = bpf_object__find_program_by_name(object, "authorize_recv_accept6");
     SAFE_REQUIRE(recv_accept6_program != nullptr);
 
@@ -2226,6 +2286,27 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
         BPF_CGROUP_INET6_RECV_ACCEPT,
         0);
     SAFE_REQUIRE(result == 0);
+
+    ZeroMemory(&program_info, program_info_size);
+    SAFE_REQUIRE(
+        bpf_obj_get_info_by_fd(
+            bpf_program__fd(const_cast<const bpf_program*>(recv_accept6_program)), &program_info, &program_info_size) ==
+        0);
+    SAFE_REQUIRE(program_info.link_count == 1);
+    SAFE_REQUIRE(program_info.map_ids == 0);
+
+    result = bpf_prog_detach2(
+        bpf_program__fd(const_cast<const bpf_program*>(recv_accept6_program)),
+        DEFAULT_COMPARTMENT_ID,
+        BPF_CGROUP_INET6_RECV_ACCEPT);
+    SAFE_REQUIRE(result == 0);
+
+    ZeroMemory(&program_info, program_info_size);
+    SAFE_REQUIRE(
+        bpf_obj_get_info_by_fd(
+            bpf_program__fd(const_cast<const bpf_program*>(recv_accept6_program)), &program_info, &program_info_size) ==
+        0);
+    SAFE_REQUIRE(program_info.link_count == 0);
 }
 
 void
@@ -2372,6 +2453,9 @@ connection_monitor_test(
 
     // Unsubscribe.
     context->unsubscribe();
+
+    // Detach the program before unloading to avoid leaving stale legacy links.
+    bpf_prog_detach2(bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS);
 }
 
 TEST_CASE("connection_monitor_test_udp_v4", "[sock_ops_tests]")
@@ -2450,6 +2534,9 @@ TEST_CASE("attach_sockops_programs", "[sock_ops_tests]")
 
     int result = bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS, 0);
     SAFE_REQUIRE(result == 0);
+
+    // Detach the program before unloading to avoid leaving stale legacy links.
+    bpf_prog_detach2(bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS);
 }
 
 // Custom event handler for flow ID validation
@@ -2592,6 +2679,9 @@ TEST_CASE("sock_ops_flow_id_helper_test", "[sock_ops_tests]")
     // Verify we get a non-zero flow ID.
     REQUIRE(result == 0);
     REQUIRE(stored_flow_id != 0);
+
+    // Detach the program before unloading to avoid leaving stale legacy links.
+    bpf_prog_detach2(bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS);
 }
 
 // This function populates map policies for multi-attach tests.
@@ -2907,6 +2997,15 @@ multi_attach_test(uint32_t compartment_id, socket_family_t family, ADDRESS_FAMIL
     // Validate that the connection is allowed.
     validate_connection_multi_attach(
         family, address_family, SOCKET_TEST_PORT, SOCKET_TEST_PORT, protocol, RESULT_ALLOW);
+
+    // Detach all programs before unloading to avoid leaving stale legacy links.
+    for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
+        bpf_program* prog = bpf_object__find_program_by_name(objects[i], connect_program_name);
+        if (prog != nullptr) {
+            bpf_prog_detach2(bpf_program__fd(const_cast<const bpf_program*>(prog)), compartment_id, attach_type);
+        }
+    }
+    bpf_prog_detach2(bpf_program__fd(const_cast<const bpf_program*>(connect_program)), compartment_id + 2, attach_type);
 }
 
 void
@@ -3074,6 +3173,14 @@ multi_attach_test_redirection(
     // For each program, detach and re-attach it, and validate the connection.
     for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
         validate_program_redirection(i);
+    }
+
+    // Detach all programs before unloading to avoid leaving stale legacy links.
+    for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
+        bpf_program* program = bpf_object__find_program_by_name(objects[i], connect_program_name);
+        if (program != nullptr) {
+            bpf_prog_detach2(bpf_program__fd(const_cast<const bpf_program*>(program)), compartment_id, attach_type);
+        }
     }
 }
 
@@ -3280,6 +3387,17 @@ test_multi_attach_combined(socket_family_t family, ADDRESS_FAMILY address_family
 
         if (should_break) {
             break;
+        }
+    }
+
+    // Detach all programs before unloading to avoid leaving stale legacy links.
+    for (uint32_t i = 0; i < program_count_per_hook * 2; i++) {
+        bpf_program* connect_program = bpf_object__find_program_by_name(objects[i], connect_program_name);
+        if (connect_program != nullptr) {
+            bpf_prog_detach2(
+                bpf_program__fd(const_cast<const bpf_program*>(connect_program)),
+                i < program_count_per_hook ? 1 : UNSPECIFIED_COMPARTMENT_ID,
+                attach_type);
         }
     }
 }
@@ -3554,6 +3672,12 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
     // Since the specific program is now detached, the connection should be correctly redirected by wildcard program.
     validate_connection_multi_attach(
         family, address_family, SOCKET_TEST_PORT, destination_port, IPPROTO_TCP, RESULT_ALLOW);
+
+    // Detach the wildcard program before unloading to avoid leaving stale legacy links.
+    bpf_prog_detach2(
+        bpf_program__fd(const_cast<const bpf_program*>(connect_program_wildcard)),
+        UNSPECIFIED_COMPARTMENT_ID,
+        attach_type);
 }
 
 /**
@@ -3681,6 +3805,7 @@ thread_function_allow_block_connection(
     SAFE_REQUIRE(bpf_object__load(object) == 0);
 
     fd_t prog_fd = bpf_program__fd(const_cast<const bpf_program*>(connect_program));
+    bool attached = false;
 
     // Attach the program at BPF_CGROUP_INET4_CONNECT / BPF_CGROUP_INET6_CONNECT.
     int result = bpf_prog_attach(prog_fd, compartment_id, attach_type, 0);
@@ -3692,6 +3817,7 @@ thread_function_allow_block_connection(
             << " result=" << result << " errno=" << saved_errno;
         throw test_failure(oss.str());
     }
+    attached = true;
 
     // Configure policy map to allow the connection.
     bpf_map* policy_map = bpf_object__find_map_by_name(object, "policy_map");
@@ -3714,27 +3840,45 @@ thread_function_allow_block_connection(
     _update_map_entry_multi_attach(
         map_fd, address_family, htons(destination_port), htons(destination_port), protocol, true);
 
-    while (!token.stop_requested()) {
-        // Block the connection.
-        _update_map_entry_multi_attach(
-            map_fd, address_family, htons(destination_port), htons(destination_port), protocol, false);
+    try {
+        while (!token.stop_requested()) {
+            // Block the connection.
+            _update_map_entry_multi_attach(
+                map_fd, address_family, htons(destination_port), htons(destination_port), protocol, false);
 
-        // The connection should be blocked. Due to race, it can sometimes be allowed, so we don't care about the
-        // result.
-        validate_connection_multi_attach(
-            family, address_family, destination_port, destination_port, protocol, RESULT_DONT_CARE);
+            // The connection should be blocked. Due to race, it can sometimes be allowed, so we don't care about the
+            // result.
+            validate_connection_multi_attach(
+                family, address_family, destination_port, destination_port, protocol, RESULT_DONT_CARE);
 
-        // Allow the connection.
-        _update_map_entry_multi_attach(
-            map_fd, address_family, htons(destination_port), htons(destination_port), protocol, true);
+            // Allow the connection.
+            _update_map_entry_multi_attach(
+                map_fd, address_family, htons(destination_port), htons(destination_port), protocol, true);
 
-        // The connection should be allowed. Due to race, it can sometimes be blocked, so we don't care about the
-        // result.
-        validate_connection_multi_attach(
-            family, address_family, destination_port, destination_port, protocol, RESULT_DONT_CARE);
+            // The connection should be allowed. Due to race, it can sometimes be blocked, so we don't care about the
+            // result.
+            validate_connection_multi_attach(
+                family, address_family, destination_port, destination_port, protocol, RESULT_DONT_CARE);
 
-        count++;
+            count++;
+        }
+    } catch (...) {
+        if (attached) {
+            (void)bpf_prog_detach2(prog_fd, compartment_id, attach_type);
+        }
+        throw;
     }
+
+    result = bpf_prog_detach2(prog_fd, compartment_id, attach_type);
+    if (result != 0) {
+        int saved_errno = errno;
+        std::ostringstream oss;
+        oss << "ALLOW_BLOCK DETACH FAILED: thread=" << std::this_thread::get_id() << " compartment=" << compartment_id
+            << " prog_fd=" << prog_fd << " attach_type=" << static_cast<int>(attach_type) << " protocol=" << protocol
+            << " result=" << result << " errno=" << saved_errno;
+        throw test_failure(oss.str());
+    }
+    attached = false;
 
     std::cout << "Thread (allow_block)" << std::this_thread::get_id() << " executed " << count << " times."
               << std::endl;
