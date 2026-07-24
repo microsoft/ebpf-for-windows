@@ -1,4 +1,4 @@
-﻿# Copyright (c) eBPF for Windows contributors
+# Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
 param ([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
@@ -511,9 +511,9 @@ function Invoke-CICDStressTests
     $TestCommand = ".\ebpf_stress_tests_km.exe"
     $TestArguments = " "
     if ($RestartExtension -eq $false) {
-        $TestArguments = "-tt=8 -td=5"
+        $TestArguments = "-td=5"
     } else {
-        $TestArguments = "-tt=8 -td=5 -erd=1000 -er=1"
+        $TestArguments = "-td=5 -erd=1000 -er=1"
     }
 
     Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -TracingProfileName "EbpfForWindowsProvider"
