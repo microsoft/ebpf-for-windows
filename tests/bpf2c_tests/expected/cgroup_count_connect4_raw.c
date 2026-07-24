@@ -207,7 +207,7 @@ label_3:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 144, 160}, // Version header.
         count_tcp_connect4,
         "cgroup~1",
         "cgroup/connect4",

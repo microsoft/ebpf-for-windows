@@ -451,6 +451,27 @@ Done:
 }
 
 _Must_inspect_result_ ebpf_result_t
+ebpf_core_resolve_btf_resolved_functions(
+    ebpf_handle_t program_handle,
+    size_t count_of_functions,
+    _Out_writes_(count_of_functions) uint64_t* function_addresses)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_program_t* program = NULL;
+    ebpf_result_t return_value =
+        EBPF_OBJECT_REFERENCE_BY_HANDLE(program_handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program);
+    if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    return_value = ebpf_program_get_btf_resolved_function_addresses(program, count_of_functions, function_addresses);
+
+Done:
+    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program);
+    EBPF_RETURN_RESULT(return_value);
+}
+
+_Must_inspect_result_ ebpf_result_t
 ebpf_core_resolve_maps(
     ebpf_handle_t program_handle,
     uint32_t count_of_maps,

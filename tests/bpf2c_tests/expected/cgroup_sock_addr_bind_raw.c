@@ -256,7 +256,7 @@ label_1:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 144, 160}, // Version header.
         authorize_bind4,
         "cgroup~2",
         "cgroup/bind4",
@@ -271,7 +271,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 144, 160}, // Version header.
         authorize_bind6,
         "cgroup~1",
         "cgroup/bind6",

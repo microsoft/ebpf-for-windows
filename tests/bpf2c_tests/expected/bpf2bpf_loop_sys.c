@@ -380,7 +380,7 @@ increment(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint6
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 144, 160}, // Version header.
         caller_with_loop,
         "sample~1",
         "sample_ext",

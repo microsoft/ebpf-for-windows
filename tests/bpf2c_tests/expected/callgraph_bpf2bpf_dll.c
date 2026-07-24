@@ -745,7 +745,7 @@ label_1:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 144, 160}, // Version header.
         entry_program1,
         "bind/1",
         "bind/1",
@@ -760,7 +760,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 144, 160}, // Version header.
         entry_program2,
         "bind/2",
         "bind/2",
@@ -775,7 +775,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 144, 160}, // Version header.
         entry_program3,
         "bind/3",
         "bind/3",

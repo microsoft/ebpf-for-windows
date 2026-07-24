@@ -801,7 +801,7 @@ label_6:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 144, 160}, // Version header.
         BindMonitor,
         "bind",
         "bind",
@@ -816,7 +816,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 144, 160}, // Version header.
         BindMonitor_Callee0,
         "bind/0",
         "bind/0",
@@ -831,7 +831,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 144, 160}, // Version header.
         BindMonitor_Callee1,
         "bind/1",
         "bind/1",

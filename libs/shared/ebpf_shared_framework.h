@@ -165,6 +165,13 @@ bool
 ebpf_validate_attach_provider_data(_In_ const ebpf_attach_provider_data_t* attach_provider_data);
 
 bool
+ebpf_validate_btf_resolved_function_prototype_array(
+    _In_reads_(count) const ebpf_btf_resolved_function_prototype_t* function_prototype, uint32_t count);
+
+bool
+ebpf_validate_btf_resolved_function_provider_data(_In_ const ebpf_btf_resolved_function_provider_data_t* provider_data);
+
+bool
 ebpf_validate_program_data(_In_ const ebpf_program_data_t* program_data);
 
 bool
