@@ -105,7 +105,7 @@ jobs:
 
       - id: skip_check
         if: inputs.perform_skip_check == true
-        uses: fkirc/skip-duplicate-actions@f75f66ce1886f00957d99748a42c724f4330bdcf  # v5.3.1
+        uses: fkirc/skip-duplicate-actions@b974a9395958c231af965b70070979a577efa578  # v5.3.2
         with:
           cancel_others: 'false'
           paths_ignore: '["**.md", "**/docs/**"]'
