@@ -59,7 +59,7 @@ if ($enable_procdump_monitor) {
     } else {
         $procdump_args += @('-e')
     }
-    $procdump_args += @('-x', $OutputFolder, $process.Id)
+    $procdump_args += @($process.Id, ($OutputFolder -replace '/', '\'))
     Write-Output "Starting ProcDump monitor: $($procdump_command.Source) $($procdump_args -join ' ')"
     try {
         $procdump_process = Start-Process -NoNewWindow -PassThru -FilePath $procdump_command.Source -ArgumentList $procdump_args
