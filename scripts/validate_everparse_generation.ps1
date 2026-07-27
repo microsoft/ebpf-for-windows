@@ -196,6 +196,7 @@ try {
                 "/p:Configuration=$Configuration",
                 "/p:Platform=$Platform",
                 "/p:HostPlatform=$Platform",
+                "/p:RunEverParseGeneration=true",
                 "/p:SolutionDir=$solution_dir",
                 $unit.project
             )
