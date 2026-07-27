@@ -331,7 +331,7 @@ test_invalid_redirect_map(void* context, const program_runtime_context_t* runtim
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 160}, // Version header.
+        {1, 160, 160}, // Version header.
         test_invalid_redirect_map,
         "bind",
         "bind",
