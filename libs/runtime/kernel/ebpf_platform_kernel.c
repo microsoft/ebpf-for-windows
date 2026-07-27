@@ -10,12 +10,15 @@ ebpf_driver_get_device_object();
 
 typedef struct _ebpf_ring_section
 {
-    HANDLE section_handle;
-    void* section_object;
+    HANDLE section_handle; ///< Kernel handle to the backing section.
+    void* section_object;  ///< Referenced section object used to reopen region-scoped user handles.
+    // System-space section view used as the source for MDL creation.
     void* pageable_kernel_view;
+    // Locked kernel mapping used by hot-path ring operations.
     void* kernel_view;
+    // MDL that pins pageable_kernel_view while kernel_view is active.
     MDL* locked_kernel_view_mdl;
-    size_t view_size;
+    size_t view_size; ///< Size of this logical region.
 } ebpf_ring_section_t;
 
 struct _ebpf_ring_descriptor
@@ -25,8 +28,11 @@ struct _ebpf_ring_descriptor
     ebpf_ring_section_t consumer;
     ebpf_ring_section_t producer;
     ebpf_ring_section_t data;
+    // Pins the single-view data section so its PFNs can seed the double mapping.
     MDL* data_source_mdl;
+    // Synthetic MDL that repeats the data PFNs twice for linear wraparound reads.
     MDL* data_double_mdl;
+    // Locked double mapping used by kernel producers and consumers.
     uint8_t* data_double_mapped_view;
 };
 typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
@@ -139,6 +145,8 @@ _ebpf_ring_create_kernel_double_map(_Inout_ ebpf_ring_descriptor_t* ring_descrip
     }
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmProbeAndLockPages, status);
+        IoFreeMdl(ring_descriptor->data_source_mdl);
+        ring_descriptor->data_source_mdl = NULL;
         return EBPF_NO_MEMORY;
     }
 
@@ -159,6 +167,10 @@ _ebpf_ring_create_kernel_double_map(_Inout_ ebpf_ring_descriptor_t* ring_descrip
 
 #pragma warning(push)
 #pragma warning(disable : 28145)
+    /*
+     * The opaque MDL structure should not be modified by a driver except for
+     * MDL_PAGES_LOCKED and MDL_MAPPING_CAN_FAIL.
+     */
     ring_descriptor->data_double_mdl->MdlFlags |= MDL_PAGES_LOCKED;
 #pragma warning(pop)
 
@@ -349,6 +361,11 @@ ebpf_ring_open_user_section(
     _Out_ ebpf_handle_t* handle,
     _Out_ size_t* view_size)
 {
+    // In the protected-region model the kernel opens one handle per requested
+    // region and leaves view lifetime to user mode. Closing those
+    // user-mode views/handles, or letting process rundown do it, is sufficient
+    // cleanup, so ebpf_ring_unmap_user has no later ring-specific teardown
+    // state to reverse in kernel mode.
     ebpf_ring_section_t* source_section = NULL;
     ACCESS_MASK desired_access = SECTION_MAP_READ | SECTION_QUERY;
     HANDLE user_handle = NULL;
