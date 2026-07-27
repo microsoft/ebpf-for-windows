@@ -2173,26 +2173,63 @@ ebpf_program_get_info(
 
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_id_t* map_ids = (ebpf_id_t*)input_info->map_ids;
-    if ((input_info->map_ids != 0) && (input_info->nr_map_ids > 0) && (program->count_of_maps > 0)) {
+    ebpf_id_t* local_map_ids = NULL;
+    uint32_t map_count = 0;
+    if ((input_info->map_ids != 0) && (input_info->nr_map_ids > 0)) {
         // Fill in map ids before we overwrite the info buffer.
         uint32_t max_nr_map_ids = input_info->nr_map_ids;
-        size_t length = 0;
-        result = ebpf_safe_size_t_multiply(max_nr_map_ids, sizeof(ebpf_id_t), &length);
+        uint32_t copied_map_count = 0;
+        size_t copied_length = 0;
+
+        // Snapshot the map IDs under the lock, then copy them to user memory after the lock is released.
+        ebpf_lock_state_t state = ebpf_lock_lock(&((ebpf_program_t*)program)->lock);
+        __try {
+            map_count = program->count_of_maps;
+            copied_map_count = min(map_count, max_nr_map_ids);
+            result = ebpf_safe_size_t_multiply(copied_map_count, sizeof(ebpf_id_t), &copied_length);
+            if (result == EBPF_SUCCESS && copied_length > 0) {
+                local_map_ids = ebpf_allocate_with_tag(copied_length, EBPF_POOL_TAG_PROGRAM);
+                if (local_map_ids == NULL) {
+                    result = EBPF_NO_MEMORY;
+                }
+            }
+
+            if (result == EBPF_SUCCESS && local_map_ids != NULL) {
+                for (uint32_t i = 0; i < copied_map_count; i++) {
+                    ebpf_map_t* map = program->maps[i];
+                    local_map_ids[i] = ebpf_map_get_id(map);
+                }
+            } else if (result == EBPF_SUCCESS && copied_map_count > 0) {
+                result = EBPF_NO_MEMORY;
+            }
+        } __finally {
+            ebpf_lock_unlock(&((ebpf_program_t*)program)->lock, state);
+        }
+
         if (result != EBPF_SUCCESS) {
-            EBPF_RETURN_RESULT(result);
+            goto Done;
+        }
+
+        if (copied_length > 0) {
+            // Probe only the bytes that will actually be written.
+            __try {
+                ebpf_probe_for_write(map_ids, copied_length, sizeof(ebpf_id_t));
+            } __except (EXCEPTION_EXECUTE_HANDLER) {
+                EBPF_LOG_MESSAGE_UINT64(
+                    EBPF_TRACELOG_LEVEL_ERROR,
+                    EBPF_TRACELOG_KEYWORD_PROGRAM,
+                    "User mode map_ids buffer invalid or too small.",
+                    (uint64_t)((uintptr_t)map_ids));
+                result = EBPF_INVALID_POINTER;
+                goto Done;
+            }
         }
 
         __try {
-            ebpf_probe_for_write(map_ids, length, sizeof(ebpf_id_t));
-
-            for (uint32_t i = 0; i < program->count_of_maps; i++) {
-                if (i == max_nr_map_ids) {
-                    // No more space left.
-                    EBPF_RETURN_RESULT(EBPF_INVALID_POINTER);
-                } else {
-                    ebpf_map_t* map = program->maps[i];
+            if (copied_length > 0) {
+                for (uint32_t i = 0; i < copied_map_count; i++) {
                     // Volatile user mode pointer.
-                    WriteNoFence((volatile long*)&map_ids[i], ebpf_map_get_id(map));
+                    WriteNoFence((volatile long*)&map_ids[i], local_map_ids[i]);
                 }
             }
         } __except (EXCEPTION_EXECUTE_HANDLER) {
@@ -2201,8 +2238,18 @@ ebpf_program_get_info(
                 EBPF_TRACELOG_KEYWORD_PROGRAM,
                 "User mode map_ids buffer invalid or too small.",
                 (uint64_t)((uintptr_t)map_ids));
-            EBPF_RETURN_RESULT(EBPF_INVALID_POINTER);
+            result = EBPF_INVALID_POINTER;
+            goto Done;
         }
+
+        if (map_count > max_nr_map_ids) {
+            result = EBPF_INVALID_POINTER;
+            goto Done;
+        }
+    } else {
+        ebpf_lock_state_t state = ebpf_lock_lock(&((ebpf_program_t*)program)->lock);
+        map_count = program->count_of_maps;
+        ebpf_lock_unlock(&((ebpf_program_t*)program)->lock, state);
     }
 
     struct bpf_prog_info local_program = {0};
@@ -2228,7 +2275,7 @@ ebpf_program_get_info(
     if (program_name_length < sizeof(output_info->name)) {
         memset(output_info->name + program_name_length, 0, sizeof(output_info->name) - program_name_length);
     }
-    output_info->nr_map_ids = program->count_of_maps;
+    output_info->nr_map_ids = map_count;
     output_info->map_ids = (uintptr_t)map_ids;
     output_info->type = _ebpf_program_get_bpf_prog_type(program);
     output_info->type_uuid = ebpf_program_type_uuid(program);
@@ -2241,6 +2288,8 @@ ebpf_program_get_info(
     memcpy(output_buffer, output_info, out_size);
     *output_buffer_size = out_size;
 
+Done:
+    ebpf_free(local_map_ids);
     EBPF_RETURN_RESULT(result);
 }
 
