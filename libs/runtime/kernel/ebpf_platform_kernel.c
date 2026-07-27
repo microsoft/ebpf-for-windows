@@ -316,21 +316,28 @@ ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
         EBPF_RETURN_VOID();
     }
 
-    if (ring->composite_view != NULL) {
-        MmUnmapLockedPages(ring->composite_view, ring->composite_mdl);
+    ebpf_ring_descriptor_t* descriptor = ring;
+    __analysis_assume(descriptor != NULL);
+
+#pragma warning(push)
+#pragma warning(suppress : 6001) // Ring descriptors are zero-initialized on allocation, so partially constructed
+                                 // descriptors can be cleaned up by testing members against NULL.
+    if (descriptor->composite_view != NULL) {
+        MmUnmapLockedPages(descriptor->composite_view, descriptor->composite_mdl);
     }
-    if (ring->composite_mdl != NULL) {
-        IoFreeMdl(ring->composite_mdl);
+    if (descriptor->composite_mdl != NULL) {
+        IoFreeMdl(descriptor->composite_mdl);
     }
-    if (ring->data_source_mdl != NULL) {
-        MmUnlockPages(ring->data_source_mdl);
-        IoFreeMdl(ring->data_source_mdl);
+    if (descriptor->data_source_mdl != NULL) {
+        MmUnlockPages(descriptor->data_source_mdl);
+        IoFreeMdl(descriptor->data_source_mdl);
     }
-    _ebpf_ring_cleanup_section(&ring->kernel);
-    _ebpf_ring_cleanup_section(&ring->consumer);
-    _ebpf_ring_cleanup_section(&ring->producer);
-    _ebpf_ring_cleanup_section(&ring->data);
-    ebpf_free(ring);
+    _ebpf_ring_cleanup_section(&descriptor->kernel);
+    _ebpf_ring_cleanup_section(&descriptor->consumer);
+    _ebpf_ring_cleanup_section(&descriptor->producer);
+    _ebpf_ring_cleanup_section(&descriptor->data);
+#pragma warning(pop)
+    ebpf_free(descriptor);
     EBPF_RETURN_VOID();
 }
 
