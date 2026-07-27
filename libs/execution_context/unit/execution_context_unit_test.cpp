@@ -1211,6 +1211,7 @@ TEST_CASE("ring_buffer_async_query", "[execution_context][ring_buffer]")
                     completion->buffer_size,
                     async_query_result->consumer,
                     async_query_result->producer);
+                REQUIRE(record != nullptr);
                 if (!ebpf_ring_buffer_record_is_locked(record)) {
                     completion->value = *(uint64_t*)(record->data);
                 }
@@ -1437,6 +1438,31 @@ TEST_CASE("ring_buffer_map_unmap_remap", "[execution_context][ring_buffer]")
     REQUIRE(consumer2 != nullptr);
     REQUIRE(data2 != nullptr);
     // unmap_guard handles cleanup on scope exit.
+}
+
+TEST_CASE("ring_buffer_get_user_mapping_handle", "[execution_context][ring_buffer]")
+{
+    _ebpf_core_initializer core;
+    core.initialize();
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_RINGBUF, 0, 0, 64 * 1024};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        cxplat_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+
+    ebpf_handle_t handle = ebpf_handle_invalid;
+    size_t view_size = 0;
+    auto result =
+        ebpf_map_get_user_mapping_handle(map.get(), 0, EBPF_RING_BUFFER_USER_SECTION_CONSUMER, &handle, &view_size);
+    INFO("result=" << result << " handle=" << handle << " view_size=" << view_size);
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(handle != ebpf_handle_invalid);
+    REQUIRE(view_size == PAGE_SIZE);
+    CloseHandle((HANDLE)handle);
 }
 
 struct perf_event_array_test_async_context_t
@@ -2130,13 +2156,16 @@ TEST_CASE("perf_event_array_oob_index", "[execution_context][perf_event_array]")
     // request before the context is ever used, so a placeholder is sufficient here.
     int dummy_async_context = 0;
     ebpf_map_async_query_result_t async_query_result = {};
-    REQUIRE(ebpf_map_async_query(map.get(), oob_index, &async_query_result, &dummy_async_context) == EBPF_INVALID_ARGUMENT);
+    REQUIRE(
+        ebpf_map_async_query(map.get(), oob_index, &async_query_result, &dummy_async_context) == EBPF_INVALID_ARGUMENT);
 
     REQUIRE(ebpf_map_return_buffer(map.get(), oob_index, 0) == EBPF_INVALID_ARGUMENT);
 
     // Also test UINT32_MAX.
     REQUIRE(ebpf_map_query_buffer(map.get(), UINT32_MAX, &buffer, &consumer_offset) == EBPF_INVALID_ARGUMENT);
-    REQUIRE(ebpf_map_async_query(map.get(), UINT32_MAX, &async_query_result, &dummy_async_context) == EBPF_INVALID_ARGUMENT);
+    REQUIRE(
+        ebpf_map_async_query(map.get(), UINT32_MAX, &async_query_result, &dummy_async_context) ==
+        EBPF_INVALID_ARGUMENT);
     REQUIRE(ebpf_map_return_buffer(map.get(), UINT32_MAX, 0) == EBPF_INVALID_ARGUMENT);
 }
 
@@ -2550,7 +2579,10 @@ TEST_CASE("EBPF_OPERATION_LOAD_NATIVE_MODULE short header", "[execution_context]
             completion) == EBPF_INVALID_ARGUMENT); // EverParse validator rejects undersized message.
 }
 
-#define EBPF_PROGRAM_TYPE_TEST_GUID {0x8ee1b757, 0xc0b2, 0x4c84, {0xac, 0x07, 0x0c, 0x76, 0x29, 0x8f, 0x1d, 0xc9}}
+#define EBPF_PROGRAM_TYPE_TEST_GUID                                                    \
+    {                                                                                  \
+        0x8ee1b757, 0xc0b2, 0x4c84, { 0xac, 0x07, 0x0c, 0x76, 0x29, 0x8f, 0x1d, 0xc9 } \
+    }
 
 void
 test_register_provider(
