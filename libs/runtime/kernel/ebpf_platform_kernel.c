@@ -24,16 +24,16 @@ typedef struct _ebpf_ring_section
 struct _ebpf_ring_descriptor
 {
     size_t length;
-    ebpf_ring_buffer_kernel_page_t* kernel_page;
+    ebpf_ring_section_t kernel;
     ebpf_ring_section_t consumer;
     ebpf_ring_section_t producer;
     ebpf_ring_section_t data;
     // Pins the single-view data section so its PFNs can seed the double mapping.
     MDL* data_source_mdl;
-    // Synthetic MDL that repeats the data PFNs twice for linear wraparound reads.
-    MDL* data_double_mdl;
-    // Locked double mapping used by kernel producers and consumers.
-    uint8_t* data_double_mapped_view;
+    // Synthetic MDL that maps kernel, consumer, producer, and a double-mapped data view contiguously.
+    MDL* composite_mdl;
+    // Locked composite mapping used by kernel producers and consumers.
+    uint8_t* composite_view;
 };
 typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
 
@@ -125,11 +125,13 @@ _ebpf_ring_lock_kernel_section_view(_Inout_ ebpf_ring_section_t* section)
     return EBPF_SUCCESS;
 }
 static ebpf_result_t
-_ebpf_ring_create_kernel_double_map(_Inout_ ebpf_ring_descriptor_t* ring_descriptor)
+_ebpf_ring_create_kernel_composite_view(_Inout_ ebpf_ring_descriptor_t* ring_descriptor)
 {
     NTSTATUS status = STATUS_SUCCESS;
     uint32_t page_count = (uint32_t)(ring_descriptor->length / PAGE_SIZE);
     size_t pfn_array_size = sizeof(PFN_NUMBER) * page_count;
+    size_t composite_view_size = (EBPF_RING_BUFFER_HEADER_PAGES * PAGE_SIZE) + (ring_descriptor->length * 2);
+    PFN_NUMBER* composite_pfn_array = NULL;
 
     ring_descriptor->data_source_mdl =
         IoAllocateMdl(ring_descriptor->data.pageable_kernel_view, (ULONG)ring_descriptor->length, FALSE, FALSE, NULL);
@@ -150,20 +152,22 @@ _ebpf_ring_create_kernel_double_map(_Inout_ ebpf_ring_descriptor_t* ring_descrip
         return EBPF_NO_MEMORY;
     }
 
-    ring_descriptor->data_double_mdl = IoAllocateMdl(NULL, (ULONG)(ring_descriptor->length * 2), FALSE, FALSE, NULL);
-    if (ring_descriptor->data_double_mdl == NULL) {
+    ring_descriptor->composite_mdl = IoAllocateMdl(NULL, (ULONG)composite_view_size, FALSE, FALSE, NULL);
+    if (ring_descriptor->composite_mdl == NULL) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, IoAllocateMdl, STATUS_NO_MEMORY);
         return EBPF_NO_MEMORY;
     }
 
-    memcpy(
-        MmGetMdlPfnArray(ring_descriptor->data_double_mdl),
-        MmGetMdlPfnArray(ring_descriptor->data_source_mdl),
-        pfn_array_size);
-    memcpy(
-        MmGetMdlPfnArray(ring_descriptor->data_double_mdl) + page_count,
-        MmGetMdlPfnArray(ring_descriptor->data_source_mdl),
-        pfn_array_size);
+    composite_pfn_array = MmGetMdlPfnArray(ring_descriptor->composite_mdl);
+    memcpy(composite_pfn_array, MmGetMdlPfnArray(ring_descriptor->kernel.locked_kernel_view_mdl), sizeof(PFN_NUMBER));
+    composite_pfn_array += 1;
+    memcpy(composite_pfn_array, MmGetMdlPfnArray(ring_descriptor->consumer.locked_kernel_view_mdl), sizeof(PFN_NUMBER));
+    composite_pfn_array += 1;
+    memcpy(composite_pfn_array, MmGetMdlPfnArray(ring_descriptor->producer.locked_kernel_view_mdl), sizeof(PFN_NUMBER));
+    composite_pfn_array += 1;
+    memcpy(composite_pfn_array, MmGetMdlPfnArray(ring_descriptor->data_source_mdl), pfn_array_size);
+    composite_pfn_array += page_count;
+    memcpy(composite_pfn_array, MmGetMdlPfnArray(ring_descriptor->data_source_mdl), pfn_array_size);
 
 #pragma warning(push)
 #pragma warning(disable : 28145)
@@ -171,12 +175,12 @@ _ebpf_ring_create_kernel_double_map(_Inout_ ebpf_ring_descriptor_t* ring_descrip
      * The opaque MDL structure should not be modified by a driver except for
      * MDL_PAGES_LOCKED and MDL_MAPPING_CAN_FAIL.
      */
-    ring_descriptor->data_double_mdl->MdlFlags |= MDL_PAGES_LOCKED;
+    ring_descriptor->composite_mdl->MdlFlags |= MDL_PAGES_LOCKED;
 #pragma warning(pop)
 
-    ring_descriptor->data_double_mapped_view = (uint8_t*)MmMapLockedPagesSpecifyCache(
-        ring_descriptor->data_double_mdl, KernelMode, MmCached, NULL, FALSE, NormalPagePriority | MdlMappingNoExecute);
-    if (ring_descriptor->data_double_mapped_view == NULL) {
+    ring_descriptor->composite_view = (uint8_t*)MmMapLockedPagesSpecifyCache(
+        ring_descriptor->composite_mdl, KernelMode, MmCached, NULL, FALSE, NormalPagePriority | MdlMappingNoExecute);
+    if (ring_descriptor->composite_view == NULL) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmMapLockedPagesSpecifyCache, STATUS_NO_MEMORY);
         return EBPF_NO_MEMORY;
     }
@@ -257,13 +261,15 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     memset(ring_descriptor, 0, sizeof(*ring_descriptor));
     ring_descriptor->length = length;
 
-    ring_descriptor->kernel_page =
-        (ebpf_ring_buffer_kernel_page_t*)ebpf_allocate_with_tag(PAGE_SIZE, EBPF_POOL_TAG_DEFAULT);
-    if (ring_descriptor->kernel_page == NULL) {
-        ebpf_free(ring_descriptor);
-        EBPF_RETURN_POINTER(ebpf_ring_descriptor_t*, NULL);
+    result = _ebpf_ring_create_section(PAGE_SIZE, &ring_descriptor->kernel);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
     }
-    memset(ring_descriptor->kernel_page, 0, PAGE_SIZE);
+
+    result = _ebpf_ring_lock_kernel_section_view(&ring_descriptor->kernel);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
 
     result = _ebpf_ring_create_section(PAGE_SIZE, &ring_descriptor->consumer);
     if (result != EBPF_SUCCESS) {
@@ -290,7 +296,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
         goto Done;
     }
 
-    result = _ebpf_ring_create_kernel_double_map(ring_descriptor);
+    result = _ebpf_ring_create_kernel_composite_view(ring_descriptor);
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
@@ -310,22 +316,20 @@ ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
         EBPF_RETURN_VOID();
     }
 
-    _ebpf_ring_cleanup_section(&ring->consumer);
-    _ebpf_ring_cleanup_section(&ring->producer);
-    if (ring->data_double_mapped_view != NULL) {
-        MmUnmapLockedPages(ring->data_double_mapped_view, ring->data_double_mdl);
+    if (ring->composite_view != NULL) {
+        MmUnmapLockedPages(ring->composite_view, ring->composite_mdl);
     }
-    if (ring->data_double_mdl != NULL) {
-        IoFreeMdl(ring->data_double_mdl);
+    if (ring->composite_mdl != NULL) {
+        IoFreeMdl(ring->composite_mdl);
     }
     if (ring->data_source_mdl != NULL) {
         MmUnlockPages(ring->data_source_mdl);
         IoFreeMdl(ring->data_source_mdl);
     }
+    _ebpf_ring_cleanup_section(&ring->kernel);
+    _ebpf_ring_cleanup_section(&ring->consumer);
+    _ebpf_ring_cleanup_section(&ring->producer);
     _ebpf_ring_cleanup_section(&ring->data);
-    if (ring->kernel_page != NULL) {
-        ebpf_free(ring->kernel_page);
-    }
     ebpf_free(ring);
     EBPF_RETURN_VOID();
 }
@@ -333,25 +337,25 @@ ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
 void*
 ebpf_ring_descriptor_get_kernel_page_address(_In_ const ebpf_ring_descriptor_t* ring)
 {
-    return ring->kernel_page;
+    return ring->composite_view;
 }
 
 void*
 ebpf_ring_descriptor_get_consumer_page_address(_In_ const ebpf_ring_descriptor_t* ring)
 {
-    return ring->consumer.kernel_view;
+    return ring->composite_view + PAGE_SIZE;
 }
 
 void*
 ebpf_ring_descriptor_get_producer_page_address(_In_ const ebpf_ring_descriptor_t* ring)
 {
-    return ring->producer.kernel_view;
+    return ring->composite_view + (2 * PAGE_SIZE);
 }
 
 uint8_t*
 ebpf_ring_descriptor_get_data_address(_In_ const ebpf_ring_descriptor_t* ring)
 {
-    return ring->data_double_mapped_view;
+    return ring->composite_view + (EBPF_RING_BUFFER_HEADER_PAGES * PAGE_SIZE);
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -413,9 +417,9 @@ ebpf_ring_map_user(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    *consumer = ring->consumer.kernel_view;
-    *producer = ring->producer.kernel_view;
-    *data = ring->data_double_mapped_view;
+    *consumer = ring->composite_view + PAGE_SIZE;
+    *producer = ring->composite_view + (2 * PAGE_SIZE);
+    *data = ring->composite_view + (EBPF_RING_BUFFER_HEADER_PAGES * PAGE_SIZE);
     return EBPF_SUCCESS;
 }
 
