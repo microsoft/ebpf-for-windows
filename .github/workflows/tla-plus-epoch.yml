@@ -8,6 +8,7 @@ on:
   pull_request:
     paths:
       - 'models/epoch/**'
+      - 'models/epoch_hot_add/**'
       - 'libs/runtime/ebpf_epoch.c'
       - 'libs/runtime/ebpf_epoch.h'
       - '.github/workflows/tla-plus-epoch.yml'
@@ -16,6 +17,7 @@ on:
       - main
     paths:
       - 'models/epoch/**'
+      - 'models/epoch_hot_add/**'
       - 'libs/runtime/ebpf_epoch.c'
       - 'libs/runtime/ebpf_epoch.h'
       - '.github/workflows/tla-plus-epoch.yml'
@@ -30,10 +32,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6.0.1
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - name: Set up Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
         with:
           distribution: 'microsoft'
           java-version: '21'
@@ -69,3 +71,40 @@ jobs:
             echo "Buggy model failed, but did not report a Safety invariant violation"
             exit 1
           fi
+
+      - name: TLC hot-add fixed config must pass
+        run: |
+          java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -workers auto \
+            -config models/epoch_hot_add/EpochHotAddModel.cfg \
+            models/epoch_hot_add/EpochHotAddModel.tla
+
+      - name: TLC hot-add buggy configs must fail
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for cfg in \
+            models/epoch_hot_add/EpochHotAddModel_buggy_no_quiesce.cfg \
+            models/epoch_hot_add/EpochHotAddModel_buggy_early_resume.cfg; do
+            out="${cfg}.out"
+
+            set +e
+            java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -workers auto \
+              -config "${cfg}" \
+              models/epoch_hot_add/EpochHotAddModel.tla \
+              > "${out}" 2>&1
+            status=$?
+            set -e
+
+            cat "${out}"
+
+            if [ "$status" -eq 0 ]; then
+              echo "Buggy model unexpectedly passed: ${cfg}"
+              exit 1
+            fi
+
+            if ! grep -q "Invariant" "${out}"; then
+              echo "Buggy model failed, but did not report an invariant violation: ${cfg}"
+              exit 1
+            fi
+          done
