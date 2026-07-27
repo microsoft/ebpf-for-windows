@@ -116,7 +116,8 @@ size_t _ebpf_native_map_data_supported_size[] = {EBPF_NATIVE_MAP_DATA_SIZE_0, EB
 
 #define EBPF_NATIVE_PROGRAM_ENTRY_SIZE_0 EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_VERSION_SIZE
 #define EBPF_NATIVE_PROGRAM_ENTRY_SIZE_1 EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE
-size_t _ebpf_native_program_entry_supported_size[] = {EBPF_NATIVE_PROGRAM_ENTRY_SIZE_0, EBPF_NATIVE_PROGRAM_ENTRY_SIZE_1};
+size_t _ebpf_native_program_entry_supported_size[] = {
+    EBPF_NATIVE_PROGRAM_ENTRY_SIZE_0, EBPF_NATIVE_PROGRAM_ENTRY_SIZE_1};
 
 #define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_SIZE_0 \
     EBPF_SIZE_INCLUDING_FIELD(program_runtime_context_t, global_variable_section_data)
@@ -215,7 +216,7 @@ _ebpf_validate_extension_object_header(
     __analysis_assume(supported_sizes != NULL);
 
     return (
-        (header->version > 0) && (header->version <= _supported_ebpf_extension_version[object_type]) &&
+        (header->version == _supported_ebpf_extension_version[object_type]) &&
         (_ebpf_is_size_supported(supported_sizes, count, header->size)));
 }
 
