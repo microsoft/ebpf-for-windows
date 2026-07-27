@@ -761,6 +761,7 @@ ebpf_epoch_initiate()
         if (return_value != EBPF_SUCCESS) {
             goto Error;
         }
+        _ebpf_epoch_cpu_table[cpu_id].admitted = true;
     }
 #endif
 
