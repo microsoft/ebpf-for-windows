@@ -17,6 +17,7 @@
 #include "native_helper.hpp"
 #include "program_helper.h"
 #include "sample_ext_helpers.h"
+#include "sample_test_common.h"
 #include "service_helper.h"
 #include "socket_helper.h"
 #include "watchdog.h"
@@ -922,8 +923,6 @@ bind_tailcall_test(_In_ struct bpf_object* object)
     WSACleanup();
 }
 
-#define SOCKET_TEST_PORT 0x3bbf
-
 void
 send_traffic(IPPROTO protocol, bool is_ipv6)
 {
@@ -1105,12 +1104,7 @@ run_process_start_key_test(IPPROTO protocol, bool is_ipv6)
         REQUIRE(map->map_fd != ebpf_fd_invalid);
 
         uint32_t key = 0;
-        typedef struct _value
-        {
-            uint32_t current_pid;
-            uint64_t start_key;
-        } value_t;
-        value_t found_value{};
+        process_start_key_value_t found_value{};
         std::cout << "bpf_map_lookup_elem(process_start_key_map) key: " << key << "\n";
         REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &found_value) == 0);
 
@@ -1167,12 +1161,7 @@ run_thread_start_time_test(IPPROTO protocol, bool is_ipv6)
         REQUIRE(map->map_fd != ebpf_fd_invalid);
 
         uint32_t key = 0;
-        typedef struct _value
-        {
-            uint32_t current_tid;
-            int64_t start_time;
-        } value_t;
-        value_t found_value{};
+        thread_start_time_value_t found_value{};
         std::cout << "bpf_map_lookup_elem(thread_start_time_map) key: " << key << "\n";
         REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &found_value) == 0);
 
