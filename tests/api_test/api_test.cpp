@@ -65,6 +65,9 @@ CATCH_REGISTER_LISTENER(_api_test_watchdog)
 
 #define SAMPLE_PATH ""
 
+#define EBPF_PARAMETERS_REGISTRY_PATH L"Software\\eBPF\\Parameters"
+#define EBPF_PROOF_OF_VERIFICATION_REGISTRY_VALUE L"ProofOfVerification"
+
 #define EBPF_CORE_DRIVER_BINARY_NAME L"ebpfcore.sys"
 #define EBPF_CORE_DRIVER_NAME L"ebpfcore"
 
@@ -3840,6 +3843,119 @@ TEST_CASE("ebpf_verification_memory_apis", "[ebpf_api]")
     ebpf_free_string(error_message);
 }
 
+/**
+ * @brief Set the proof of verification registry value to control whether production signature
+ * verification is required for native module loads.
+ *
+ * @param[in] enable Non-zero to require production signatures, zero to allow test-signed modules.
+ */
+static void
+_set_proof_of_verification(uint32_t enable)
+{
+    HKEY key = nullptr;
+    LSTATUS status =
+        RegCreateKeyExW(HKEY_LOCAL_MACHINE, EBPF_PARAMETERS_REGISTRY_PATH, 0, nullptr, 0, KEY_WRITE, nullptr, &key, nullptr);
+    REQUIRE(status == ERROR_SUCCESS);
+    status = RegSetValueExW(
+        key, EBPF_PROOF_OF_VERIFICATION_REGISTRY_VALUE, 0, REG_DWORD, (const BYTE*)&enable, sizeof(enable));
+    RegCloseKey(key);
+    REQUIRE(status == ERROR_SUCCESS);
+}
+
+/**
+ * @brief Test that validates production-signed native eBPF modules load successfully.
+ *
+ * This test validates that a production-signed bindmonitor driver can be loaded.
+ * It requires that the signed driver exists in the same directory as api_test.exe.
+ */
+TEST_CASE("proof_of_verification_positive", "[native_tests][proof_of_verification]")
+{
+    // Select the architecture and build-type appropriate signed driver.
+    #if defined(_AMD64_) && defined(_DEBUG)
+        const char* signed_driver_name = "bindmonitor_x64_debug_signed.sys";
+    #elif defined(_AMD64_)
+        const char* signed_driver_name = "bindmonitor_x64_signed.sys";
+    #elif defined(_ARM64_) && defined(_DEBUG)
+        const char* signed_driver_name = "bindmonitor_arm64_debug_signed.sys";
+    #elif defined(_ARM64_)
+        const char* signed_driver_name = "bindmonitor_arm64_signed.sys";
+    #else
+    #error "Unsupported architecture"
+    #endif
+
+    // The signed driver must be present in the same directory as api_test.exe.
+    REQUIRE(_access(signed_driver_name, 0) == 0);
+
+    // Require production signature verification for native module loads.
+    _set_proof_of_verification(1);
+
+    int result;
+    struct bpf_object* object = nullptr;
+    fd_t program_fd;
+
+    // Attempt to load the signed driver.
+    result = program_load_helper(signed_driver_name, BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd);
+    INFO("Failed to load production-signed driver " << signed_driver_name << " (error " << result << ")");
+    REQUIRE(result == 0);
+    REQUIRE(program_fd != ebpf_fd_invalid);
+
+    // RAII cleanup for the loaded object so it is freed even if assertions below fail.
+    auto object_cleanup = std::unique_ptr<bpf_object, decltype(&bpf_object__close)>(object, bpf_object__close);
+
+    // Restore default behavior (allow test-signed modules) before further assertions.
+    _set_proof_of_verification(0);
+
+    // Verify the program loaded correctly.
+    uint32_t next_id;
+    REQUIRE(bpf_prog_get_next_id(0, &next_id) == 0);
+
+    fd_t query_fd = bpf_prog_get_fd_by_id(next_id);
+    REQUIRE(query_fd > 0);
+
+    const char* program_file_name;
+    const char* program_section_name;
+    ebpf_execution_type_t program_execution_type;
+    REQUIRE(
+        ebpf_program_query_info(query_fd, &program_execution_type, &program_file_name, &program_section_name) ==
+        EBPF_SUCCESS);
+
+    REQUIRE(program_execution_type == EBPF_EXECUTION_NATIVE);
+    _close(query_fd);
+}
+
+/**
+ * @brief Test that validates non-production-signed native eBPF modules are rejected.
+ *
+ * This test validates that a test-signed (non-production-signed) bindmonitor.sys 
+ * is rejected by the proof of verification system.
+ *
+ * The test expects loading to FAIL because bindmonitor.sys is only test-signed,
+ * not production-signed with the required eBPF Verification EKU.
+ */
+TEST_CASE("proof_of_verification_negative", "[native_tests][proof_of_verification]")
+{
+    // Require production signature verification for native module loads.
+    _set_proof_of_verification(1);
+
+    int result;
+    struct bpf_object* object = nullptr;
+    fd_t program_fd;
+
+    result = program_load_helper("bindmonitor.sys", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd);
+
+    // The load should fail because the binary is not production-signed
+    if (result == 0) {
+        std::cout << "ERROR: Test-signed bindmonitor.sys should NOT have loaded successfully!" << std::endl;
+        std::cout << "The proof of verification system should reject non-production-signed binaries." << std::endl;
+        bpf_object__close(object);
+    } else {
+        std::cout << "Test-signed bindmonitor.sys was correctly rejected (error " << result << ")" << std::endl;
+    }
+    REQUIRE(result != 0);
+
+    // Restore default behavior (allow test-signed modules).
+    _set_proof_of_verification(0);
+}
 #define OPERATION_SUCCESS 1
 #define OPERATION_FAILURE 0
 
