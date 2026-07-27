@@ -6,6 +6,10 @@
 # is captured using the procdump tool from Sysinternals. The dump is saved to
 # the <output folder> with the name of the test executable and the current date
 # and time.
+#
+# While the test runs, a ProcDump monitor is attached to capture a dump if the
+# test process crashes. If that monitor cannot start, the run is failed so the
+# loss of crash coverage is not silently ignored.
 
 # Modifying $args directly can cause issues, so copy it to a new variable.
 $arguments = $args
@@ -46,6 +50,7 @@ $process.Start() | Out-Null
 # If ProcDump is available (installed by CI when dump collection is enabled), start it as a background
 # monitor so crashes that don't produce WER dumps still generate a dump file.
 $procdump_process = $null
+$procdump_monitor_failed = $false
 $procdump_command = Get-Command procdump.exe -ErrorAction SilentlyContinue
 if ($null -eq $procdump_command) {
     $procdump_command = Get-Command procdump -ErrorAction SilentlyContinue
@@ -64,7 +69,20 @@ if ($enable_procdump_monitor) {
     try {
         $procdump_process = Start-Process -NoNewWindow -PassThru -FilePath $procdump_command.Source -ArgumentList $procdump_args
     } catch {
-        Write-Output "Failed to start ProcDump monitor: $($_.Exception.Message)"
+        Write-Output "ERROR: Failed to start ProcDump monitor: $($_.Exception.Message)"
+        $procdump_monitor_failed = $true
+    }
+
+    # Confirm the monitor actually attached. ProcDump is expected to keep running
+    # for the lifetime of the test process. If it exits during a short startup
+    # window while the test process is still running, it failed to attach (for
+    # example due to a bad argument) and would silently provide no crash coverage.
+    if ($null -ne $procdump_process) {
+        $procdump_startup_window_ms = 3000
+        if ($procdump_process.WaitForExit($procdump_startup_window_ms) -and !$process.HasExited) {
+            Write-Output "ERROR: ProcDump monitor exited during startup while the test process (PID $($process.Id)) was still running; it failed to attach."
+            $procdump_monitor_failed = $true
+        }
     }
 }
 
@@ -116,6 +134,13 @@ if ($process.ExitCode -ne 0) {
         }
     } else {
         Write-Output "No dump files found in $OutputFolder"
+    }
+}
+
+if ($enable_procdump_monitor -and $procdump_monitor_failed) {
+    Write-Output "ERROR: The ProcDump crash-dump monitor failed to start; failing the test run so the regression is not silently ignored."
+    if ($process.ExitCode -eq 0) {
+        exit 1
     }
 }
 
