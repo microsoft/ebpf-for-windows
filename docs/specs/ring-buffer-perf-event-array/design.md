@@ -122,7 +122,8 @@ wait handle or synchronous drain semantics.
 
 #### Mapped-memory mode
 
-This is Windows-specific and bypasses callback managers. User mode:
+This uses a Windows-specific API shape to provide the Windows equivalent of Linux `mmap`-based ring access and bypasses
+callback managers. User mode:
 
 1. requests one protected mapping handle at a time from the kernel for the consumer page, producer page, or data region
 2. maps the writable consumer page, read-only producer page, and read-only data region
@@ -192,7 +193,7 @@ Perf event arrays reuse the ring runtime's:
 Perf event arrays differ from plain ring buffers in three important ways:
 
 1. storage is per-CPU instead of globally shared
-2. overflow is tracked by lost-record counters rather than represented by discarded records
+2. overflow is tracked by lost-record counters maintained per CPU ring
 3. helper behavior supports optional context-payload capture
 
 ### 6.3 Internal vs Public Surface
