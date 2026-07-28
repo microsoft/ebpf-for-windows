@@ -599,6 +599,9 @@ extern "C"
     /**
      * @brief Write data into the ring buffer map.
      *
+     * @deprecated Use the polling-based ring buffer APIs (ring_buffer__new, ring_buffer__poll, ring_buffer__consume)
+     * and map producer helpers instead.
+     *
      * @param [in] ring_buffer_map_fd ring buffer map file descriptor.
      * @param [in]  data Pointer to data to be written.
      * @param [in] data_length Length of data to be written.
@@ -606,7 +609,7 @@ extern "C"
      * @retval EBPF_OUT_OF_SPACE Unable to output to ring buffer due to inadequate space.
      * @retval EBPF_NO_MEMORY Out of memory.
      */
-    _Must_inspect_result_ ebpf_result_t
+    _Must_inspect_result_ __declspec(deprecated("Use polling-based ring buffer APIs instead.")) ebpf_result_t
     ebpf_ring_buffer_map_write(
         fd_t ring_buffer_map_fd, _In_reads_bytes_(data_length) const void* data, size_t data_length) EBPF_NO_EXCEPT;
 
@@ -708,6 +711,9 @@ extern "C"
     /**
      * @brief Write data into the perf event array map.
      *
+     * @deprecated Use the polling-based perf buffer APIs (perf_buffer__new, perf_buffer__poll, perf_buffer__consume)
+     * and BPF helper output path instead.
+     *
      * @param [in] perf_event_array_map_fd perf event array map file descriptor.
      * @param [in] data Pointer to data to be written.
      * @param [in] data_length Length of data to be written.
@@ -715,7 +721,7 @@ extern "C"
      * @retval EBPF_OUT_OF_SPACE Unable to output to perf event array due to inadequate space.
      * @retval EBPF_NO_MEMORY Out of memory.
      */
-    _Must_inspect_result_ ebpf_result_t
+    _Must_inspect_result_ __declspec(deprecated("Use polling-based perf buffer APIs instead.")) ebpf_result_t
     ebpf_perf_event_array_map_write(
         fd_t perf_event_array_map_fd,
         _In_reads_bytes_(data_length) const void* data,
@@ -807,14 +813,18 @@ extern "C"
 
     /**
      * @brief Ring buffer option flags.
+     * @deprecated EBPF_RINGBUF_FLAG_AUTO_CALLBACK is deprecated. Prefer polling mode (flags = 0).
      */
     enum ebpf_ring_buffer_flags
     {
-        EBPF_RINGBUF_FLAG_AUTO_CALLBACK = (uint64_t)1 << 0, /* Automatically invoke callback for each record. */
+        EBPF_RINGBUF_FLAG_AUTO_CALLBACK = (uint64_t)1 << 0, /* Deprecated: Automatically invoke callback. */
     };
 
     /**
      * @brief Creates a new ring buffer manager (Windows-specific with flags support).
+     *
+     * @deprecated Use ring_buffer__new() (or ebpf_ring_buffer__new() with flags set to 0) and consume records via
+     * ring_buffer__poll()/ring_buffer__consume().
      *
      * @param[in] map_fd File descriptor to ring buffer map.
      * @param[in] sample_cb Pointer to ring buffer notification callback function.
@@ -823,7 +833,7 @@ extern "C"
      *
      * @returns Pointer to ring buffer manager, or NULL on error.
      */
-    _Ret_maybenull_ struct ring_buffer*
+    _Ret_maybenull_ __declspec(deprecated("Use ring_buffer__new() polling mode instead.")) struct ring_buffer*
     ebpf_ring_buffer__new(
         int map_fd,
         ring_buffer_sample_fn sample_cb,
@@ -886,16 +896,20 @@ extern "C"
 
     /**
      * @brief Perf buffer option flags (Windows-specific).
+     * @deprecated EBPF_PERFBUF_FLAG_AUTO_CALLBACK is deprecated. Prefer polling mode (flags = 0).
      */
     enum ebpf_perf_buffer_flags
     {
-        EBPF_PERFBUF_FLAG_AUTO_CALLBACK = (uint64_t)1 << 0, /* Automatically invoke callback for each record */
+        EBPF_PERFBUF_FLAG_AUTO_CALLBACK = (uint64_t)1 << 0, /* Deprecated: Automatically invoke callback. */
     };
     typedef void (*perf_buffer_sample_fn)(void* ctx, int cpu, void* data, uint32_t size);
     typedef void (*perf_buffer_lost_fn)(void* ctx, int cpu, uint64_t cnt);
 
     /**
      * @brief Create a new perf buffer manager with Windows-specific options.
+     *
+     * @deprecated Use perf_buffer__new() (or ebpf_perf_buffer__new() with flags set to 0) and consume records via
+     * perf_buffer__poll()/perf_buffer__consume().
      *
      * @param[in] map_fd File descriptor of BPF_MAP_TYPE_PERF_EVENT_ARRAY map.
      * @param[in] page_cnt Number of memory pages allocated for each per-CPU buffer. Should be set to 0.
@@ -906,7 +920,7 @@ extern "C"
      *
      * @returns Pointer to perf buffer manager on success, null on error.
      */
-    _Ret_maybenull_ struct perf_buffer*
+    _Ret_maybenull_ __declspec(deprecated("Use perf_buffer__new() polling mode instead.")) struct perf_buffer*
     ebpf_perf_buffer__new(
         int map_fd,
         size_t page_cnt,

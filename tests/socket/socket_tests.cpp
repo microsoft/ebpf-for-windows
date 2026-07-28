@@ -2328,6 +2328,7 @@ connection_monitor_test(
     bpf_map* ring_buffer_map = bpf_object__find_map_by_name(object, "audit_map");
     SAFE_REQUIRE(ring_buffer_map != nullptr);
     ebpf_ring_buffer_opts ring_opts{.sz = sizeof(ring_opts), .flags = EBPF_RINGBUF_FLAG_AUTO_CALLBACK};
+#pragma warning(suppress : 4996) // deprecated
     context->ring_buffer = ebpf_ring_buffer__new(
         bpf_map__fd(ring_buffer_map), (ring_buffer_sample_fn)ring_buffer_test_event_handler, context.get(), &ring_opts);
     SAFE_REQUIRE(context->ring_buffer != nullptr);
@@ -2539,6 +2540,7 @@ TEST_CASE("sock_ops_flow_id_helper_test", "[sock_ops_tests]")
     ebpf_ring_buffer_opts ring_opts = {};
     ring_opts.sz = sizeof(ring_opts);
     ring_opts.flags = EBPF_RINGBUF_FLAG_AUTO_CALLBACK;
+#pragma warning(suppress : 4996) // deprecated
     context->ring_buffer = ebpf_ring_buffer__new(
         bpf_map__fd(ring_buffer_map),
         (ring_buffer_sample_fn)flow_id_ring_buffer_event_handler,

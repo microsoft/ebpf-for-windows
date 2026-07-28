@@ -3,7 +3,9 @@
 This document describes the support for the bpf map type BPF_MAP_TYPE_PERF_EVENT_ARRAY.
 
 NOTE: With [#4640](https://github.com/microsoft/ebpf-for-windows/pull/4640) The default behavior has been changed to be Linux-compatible.
-- Code expecting asynchronous callbacks should switch to `ebpf_perf_buffer__new` with `EBPF_PERFBUF_FLAG_AUTO_CALLBACK` set in the opts flags.
+- The asynchronous callback path (`ebpf_perf_buffer__new` + `EBPF_PERFBUF_FLAG_AUTO_CALLBACK`) is now deprecated.
+  Prefer polling mode via `perf_buffer__new` (or `ebpf_perf_buffer__new` with flags = 0), then call
+  `perf_buffer__poll` / `perf_buffer__consume`.
 
 ## Background
 
@@ -46,7 +48,7 @@ The perf buffers are implemented using the ring buffer map support in ebpf-for-w
 2. **Perf ring buffer support** (not other Linux perf features)
    - Supports eBPF program producers with a single user-space consumer per event array.
    - **Not supported**: perf counters, hardware-generated perf events, attaching eBPF programs to perf events, and sending events from user-space to eBPF programs.
-3. **Asynchronous callbacks** (Windows-specific)
+3. **Asynchronous callbacks** (Windows-specific, deprecated)
    - In addition to the Linux behavior, automatically invokes the callback if the `EBPF_PERFBUF_FLAG_AUTO_CALLBACK` flag is set.
 
 ### Helper Function: bpf_perf_event_output
@@ -68,14 +70,15 @@ The perf buffers are implemented using the ring buffer map support in ebpf-for-w
 4. **`perf_buffer__consume`** - Consume available records without waiting (synchronous mode).
 5. **`perf_buffer__consume_buffer`** - Consume records from a specific per-CPU buffer.
 6. **`perf_buffer__buffer_cnt`** - Get the number of per-CPU buffers.
-7. **`ebpf_perf_buffer__new`** - Windows-specific perfbuf manager with flags for async/sync modes.
+7. **`ebpf_perf_buffer__new`** - Windows-specific perfbuf manager with flags for async/sync modes (deprecated for async mode usage).
 8. **`ebpf_perf_buffer_get_wait_handle`** - Get wait handle for blocking on new data (Windows-specific).
 
 ## Consumer Modes
 
 Similar to ring buffers, perf event arrays support both synchronous and asynchronous consumer modes.
 
-ebpf-for-windows now uses Linux-compatible synchronous callbacks by default, with the existing asynchronous callbacks supported via the `EBPF_PERFBUF_FLAG_AUTO_CALLBACK` flag.
+ebpf-for-windows now uses Linux-compatible synchronous callbacks by default, with the existing asynchronous callbacks
+supported via the `EBPF_PERFBUF_FLAG_AUTO_CALLBACK` flag (deprecated).
 
 Linux only supports synchronous perf buffer consumers using either the libbpf interface or directly
 accessing the shared memory, with epoll to wait for new data. ebpf-for-windows supports synchronous callbacks (like libbpf on Linux) and wait handle access, while also preserving asynchronous callback support as a Windows-specific feature.
@@ -91,7 +94,7 @@ accessing the shared memory, with epoll to wait for new data. ebpf-for-windows s
 
 **Asynchronous callback consumer (Windows-specific):**
 
-1. Call `ebpf_perf_buffer__new` with `EBPF_PERFBUF_FLAG_AUTO_CALLBACK` specified.
+1. Call `ebpf_perf_buffer__new` with `EBPF_PERFBUF_FLAG_AUTO_CALLBACK` specified (**deprecated**).
    - Note: automatic callbacks were the original default behavior, but the default has been changed to be source-compatible with Linux.
 2. The callback will be invoked automatically for each record written to any per-CPU buffer.
 
@@ -116,10 +119,12 @@ Windows now supports both `perf_buffer__poll()` and `perf_buffer__consume()`, wi
 #### Asynchronous callbacks
 
 On Linux perf buffers support only synchronous callbacks (using poll/consume).
-Windows eBPF now supports both synchronous callbacks (default, matching Linux) and asynchronous perf buffer callbacks.
+Windows eBPF now supports both synchronous callbacks (default, matching Linux) and asynchronous perf buffer callbacks
+(asynchronous mode is deprecated).
 
 For synchronous callbacks (Linux-compatible), use the default behavior with `perf_buffer__new()`.
-For asynchronous callbacks (Windows-specific), use `ebpf_perf_buffer__new()` with the `EBPF_PERFBUF_FLAG_AUTO_CALLBACK` flag.
+For asynchronous callbacks (Windows-specific, **deprecated**), use `ebpf_perf_buffer__new()` with the
+`EBPF_PERFBUF_FLAG_AUTO_CALLBACK` flag.
 
 #### Memory mapped consumers
 
@@ -178,7 +183,7 @@ struct ebpf_perf_buffer_opts {
 /* Perf buffer option flags (Windows-specific) */
 /* The default behavior is now synchronous callbacks to match Linux libbpf */
 enum ebpf_perf_buffer_flags {
-  EBPF_PERFBUF_FLAG_AUTO_CALLBACK = (uint64_t)1 << 0, /* Automatically invoke callback for each record */
+  EBPF_PERFBUF_FLAG_AUTO_CALLBACK = (uint64_t)1 << 0, /* Deprecated: Automatically invoke callback for each record */
 };
 
 #define perf_buffer_opts__last_field sz
@@ -245,6 +250,7 @@ void perf_buffer__free(struct perf_buffer *pb);
 
 /**
  * @brief Create a new perf buffer manager with Windows-specific options.
+ * @deprecated Prefer polling mode (`perf_buffer__new`) over asynchronous callbacks.
  *
  * @param[in] map_fd File descriptor of BPF_MAP_TYPE_PERF_EVENT_ARRAY map.
  * @param[in] page_cnt Number of memory pages allocated for each per-CPU buffer. Should be set to 0.
