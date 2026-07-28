@@ -28,25 +28,34 @@ extern "C"
     } ebpf_work_queue_wakeup_behavior_t;
 
     /**
-     * @brief Create a timed work queue.
+     * @brief Allocate and prepare a timed work queue.
      *
      * @param[out] work_queue Pointer to memory that contains the work queue on success.
-     * @param[in] cpu_id The CPU to run the work queue on.
      * @param[in] interval The interval at which to run the work queue.
      * @param[in] callback The callback to execute for each work item.
      * @param[in] context The context to pass to the callback.
      *
      * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
-     *  operation.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this operation.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_timed_work_queue_create(
+    ebpf_timed_work_queue_allocate(
         _Out_ ebpf_timed_work_queue_t** work_queue,
-        uint32_t cpu_id,
         _In_ LARGE_INTEGER* interval,
         _In_ ebpf_timed_work_queue_callback_t callback,
         _In_ void* context);
+
+    /**
+     * @brief Bind a timed work queue to a processor.
+     *
+     * @param[in] work_queue The work queue to initialize.
+     * @param[in] cpu_id The CPU to run the work queue on.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT The processor is not a valid target.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_timed_work_queue_initialize(_Inout_ ebpf_timed_work_queue_t* work_queue, uint32_t cpu_id);
 
     /**
      * @brief Destroy a timed work queue.
