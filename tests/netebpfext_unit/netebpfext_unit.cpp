@@ -305,6 +305,7 @@ typedef struct test_sock_addr_client_context_t
     netebpfext_helper_base_client_context_t base;
     int sock_addr_action;
     bool validate_sock_addr_entries = true;
+    bool validate_listen_entries = false;
 } test_sock_addr_client_context_t;
 
 typedef struct test_sock_addr_client_context_header_t
@@ -362,13 +363,16 @@ netebpfext_unit_invoke_sock_addr_program(
         REQUIRE(sock_addr_context->protocol == IPPROTO_TCP);
         REQUIRE(sock_addr_context->user_port == htons(1235));
         REQUIRE(sock_addr_context->msg_src_port == htons(5678));
-    } else {
-        ASSERT((sock_addr_context->family == AF_INET || sock_addr_context->family == AF_INET6));
-        ASSERT(sock_addr_context->user_ip4 == htonl(0x01020304));
-        ASSERT(sock_addr_context->msg_src_ip4 == htonl(0x05060708));
-        ASSERT(sock_addr_context->protocol == IPPROTO_TCP);
-        ASSERT(sock_addr_context->user_port == htons(1235));
-        ASSERT(sock_addr_context->msg_src_port == htons(5678));
+    } else if (client_context->validate_listen_entries) {
+        // Listen context populates both user_* and msg_src_* with the local listen
+        // address/port (see _net_ebpf_extension_sock_addr_copy_wfp_listen_fields), so the
+        // connect-specific remote msg_src_* values do not apply on this path.
+        REQUIRE((sock_addr_context->family == AF_INET || sock_addr_context->family == AF_INET6));
+        REQUIRE(sock_addr_context->user_ip4 == htonl(0x01020304));
+        REQUIRE(sock_addr_context->msg_src_ip4 == sock_addr_context->user_ip4);
+        REQUIRE(sock_addr_context->protocol == IPPROTO_TCP);
+        REQUIRE(sock_addr_context->user_port == htons(1235));
+        REQUIRE(sock_addr_context->msg_src_port == sock_addr_context->user_port);
     }
 
     if (is_admin) {
@@ -1264,6 +1268,7 @@ TEST_CASE("sock_addr_listen_invoke", "[netebpfext]")
     // Listen context has different field semantics (both msg_src and user contain local address).
     client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT_SOFT;
     client_context->validate_sock_addr_entries = false;
+    client_context->validate_listen_entries = true;
 
     FWP_ACTION_TYPE result = helper.test_cgroup_inet4_listen(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
