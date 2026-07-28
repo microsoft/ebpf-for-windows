@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) eBPF for Windows contributors
+     SPDX-License-Identifier: MIT
+-->
+<!-- This is an aggregator "Utility" project that builds only the binaries required to run the
+     driver validation tests. It is intended to be built by the internal release pipeline via:
+       msbuild ebpf-for-windows.sln /t:tools\driver-test /p:Configuration=NativeOnlyRelease /p:Platform=x64
+     Only driver tests are required for release validation, so this target avoids building the
+     unit tests, fuzzers, and dev tools that make up the rest of the solution. -->
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(SolutionDir)wdk.props" />
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{2549DCD5-3190-4E46-A5AB-42E77D5383DE}</ProjectGuid>
+    <RootNamespace>drivertest</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>$(EbpfPlatformToolset)</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>$(EbpfPlatformToolset)</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='NativeOnlyDebug'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>$(EbpfPlatformToolset)</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='NativeOnlyRelease'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>$(EbpfPlatformToolset)</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <ItemGroup>
+    <!-- Sample extension driver (test hook/helper provider). -->
+    <ProjectReference Include="..\..\undocked\tests\sample\ext\drv\sample_ext.vcxproj">
+      <Project>{c8d46543-5ae5-4e66-b9ce-8b84588b1c9e}</Project>
+    </ProjectReference>
+    <!-- Sample eBPF programs compiled as native drivers. -->
+    <ProjectReference Include="..\..\tests\sample\sample.vcxproj">
+      <Project>{b4ad72e3-754e-40ca-9cea-d3f2c9170e51}</Project>
+    </ProjectReference>
+    <!-- Driver validation test binaries. -->
+    <ProjectReference Include="..\..\tests\api_test\api_test.vcxproj">
+      <Project>{12161211-5463-4aa9-9b6e-552552b475dc}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\tests\socket\socket_tests.vcxproj">
+      <Project>{eed9dac6-8b98-4c33-969a-e8cede8e985e}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\tests\connect_redirect\connect_redirect_tests.vcxproj">
+      <Project>{02a1913f-7ff5-4c20-b230-2240b4edec10}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
