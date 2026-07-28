@@ -601,6 +601,7 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Perf buffer option flags (Windows-specific). </p>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000021">Deprecated:</a></b></dt><dd>EBPF_PERFBUF_FLAG_AUTO_CALLBACK is deprecated. Prefer polling mode (flags = 0). </dd></dl>
 <table class="fieldtable">
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="af262088d3fe851336797c964a46465e2a40c61cd0cd368340082cf350e95b634d" name="af262088d3fe851336797c964a46465e2a40c61cd0cd368340082cf350e95b634d"></a>EBPF_PERFBUF_FLAG_AUTO_CALLBACK&#160;</td><td class="fielddoc"></td></tr>
 </table>
@@ -620,6 +621,7 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Ring buffer option flags. </p>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000019">Deprecated:</a></b></dt><dd>EBPF_RINGBUF_FLAG_AUTO_CALLBACK is deprecated. Prefer polling mode (flags = 0). </dd></dl>
 <table class="fieldtable">
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a22c8510f176e45d5a47fdc32b4af0407a75aa9d4bd49acf9fc1cf79bd4846d5d0" name="a22c8510f176e45d5a47fdc32b4af0407a75aa9d4bd49acf9fc1cf79bd4846d5d0"></a>EBPF_RINGBUF_FLAG_AUTO_CALLBACK&#160;</td><td class="fielddoc"></td></tr>
 </table>
@@ -2094,6 +2096,7 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Create a new perf buffer manager with Windows-specific options. </p>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000022">Deprecated:</a></b></dt><dd>Use <a class="el" href="libbpf_8h.html#a28adc4c0f27a820dbeec22396a904be2" title="Create BPF perfbuf manager.">perf_buffer__new()</a> (or <a class="el" href="ebpf__api_8h.html#a4be29a278b8a744646b573cbba5dd318" title="Create a new perf buffer manager with Windows-specific options.">ebpf_perf_buffer__new()</a> with flags set to 0) and consume records via <a class="el" href="libbpf_8h.html#a7d52462fbb4a483575ec42ec1268491e" title="Poll perf buffer for new data with timeout.">perf_buffer__poll()</a>/perf_buffer__consume().</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">map_fd</td><td>File descriptor of BPF_MAP_TYPE_PERF_EVENT_ARRAY map. </td></tr>
@@ -2173,6 +2176,7 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Write data into the perf event array map. </p>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000018">Deprecated:</a></b></dt><dd>Use the polling-based perf buffer APIs (perf_buffer__new, perf_buffer__poll, perf_buffer__consume) and BPF helper output path instead.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">perf_event_array_map_fd</td><td>perf event array map file descriptor. </td></tr>
@@ -2599,6 +2603,7 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Creates a new ring buffer manager (Windows-specific with flags support). </p>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000020">Deprecated:</a></b></dt><dd>Use <a class="el" href="libbpf_8h.html#a23c29b5bb71c56a972c7583ee3171e5a" title="Creates a new ring buffer manager with synchronous callbacks.">ring_buffer__new()</a> (or <a class="el" href="ebpf__api_8h.html#afa992c96d30c64eeefa0bdfb30d7d12f" title="Creates a new ring buffer manager (Windows-specific with flags support).">ebpf_ring_buffer__new()</a> with flags set to 0) and consume records via <a class="el" href="libbpf_8h.html#aa387d349828c9ca240eddf92f078eee1" title="Poll ring buffer for available data and consume records by calling sample_cb.">ring_buffer__poll()</a>/ring_buffer__consume().</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">map_fd</td><td>File descriptor to ring buffer map. </td></tr>
@@ -2875,6 +2880,7 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Write data into the ring buffer map. </p>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000017">Deprecated:</a></b></dt><dd>Use the polling-based ring buffer APIs (ring_buffer__new, ring_buffer__poll, ring_buffer__consume) and map producer helpers instead.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">ring_buffer_map_fd</td><td>ring buffer map file descriptor. </td></tr>

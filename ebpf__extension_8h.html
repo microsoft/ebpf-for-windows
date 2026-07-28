@@ -846,7 +846,7 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Pre-process an element deletion from a provider-backed map (called before the core delete). </p>
-<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000017">Deprecated:</a></b></dt><dd>Use ebpf_postprocess_map_delete_element_t instead. This callback is invoked before the entry is removed from the hash table, under the per-bucket lock. New providers should use ebpf_postprocess_map_delete_element_t, which is invoked after the entry is removed from the hash table. A provider must register exactly one of preprocess_map_delete_element or postprocess_map_delete_element, not both.</dd></dl>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000023">Deprecated:</a></b></dt><dd>Use ebpf_postprocess_map_delete_element_t instead. This callback is invoked before the entry is removed from the hash table, under the per-bucket lock. New providers should use ebpf_postprocess_map_delete_element_t, which is invoked after the entry is removed from the hash table. A provider must register exactly one of preprocess_map_delete_element or postprocess_map_delete_element, not both.</dd></dl>
 <p>This function can be called in three scenarios:</p><ol type="1">
 <li>Normal map element deletion.</li>
 <li>Deletion performed as part of an update operation (replacing an existing entry).</li>
