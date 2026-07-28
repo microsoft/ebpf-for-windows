@@ -312,6 +312,9 @@ static void
 _ebpf_epoch_release_free_list(_Inout_ ebpf_epoch_cpu_entry_t* cpu_entry, int64_t released_epoch);
 
 static _Must_inspect_result_ ebpf_result_t
+_ebpf_epoch_allocate_cpu_entry(uint32_t cpu_id);
+
+static _Must_inspect_result_ ebpf_result_t
 _ebpf_epoch_initialize_cpu_entry(uint32_t cpu_id);
 
 static void
@@ -381,7 +384,7 @@ static void
 _ebpf_epoch_resume_passive_synchronization(uint32_t cpu_id);
 
 static _Must_inspect_result_ ebpf_result_t
-_ebpf_epoch_initialize_cpu_entry(uint32_t cpu_id)
+_ebpf_epoch_allocate_cpu_entry(uint32_t cpu_id)
 {
     ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[cpu_id];
     LARGE_INTEGER interval;
@@ -402,8 +405,20 @@ _ebpf_epoch_initialize_cpu_entry(uint32_t cpu_id)
     ebpf_list_initialize(&cpu_entry->free_list);
 
     interval.QuadPart = EBPF_EPOCH_FLUSH_DELAY_IN_NANOSECONDS / EBPF_NS_PER_FILETIME;
-    return ebpf_timed_work_queue_create(
-        &cpu_entry->work_queue, cpu_id, &interval, _ebpf_epoch_messenger_worker, cpu_entry);
+    return ebpf_timed_work_queue_allocate(
+        &cpu_entry->work_queue, &interval, _ebpf_epoch_messenger_worker, cpu_entry);
+}
+
+static _Must_inspect_result_ ebpf_result_t
+_ebpf_epoch_initialize_cpu_entry(uint32_t cpu_id)
+{
+    ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[cpu_id];
+
+    if (cpu_entry->work_queue == NULL) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    return ebpf_timed_work_queue_initialize(cpu_entry->work_queue, cpu_id);
 }
 
 static void
@@ -563,7 +578,7 @@ _Function_class_(PROCESSOR_CALLBACK_FUNCTION) static void _ebpf_epoch_processor_
     case KeProcessorAddStartNotify: {
         ebpf_result_t result = _ebpf_epoch_initialize_cpu_entry(cpu_id);
         if (result != EBPF_SUCCESS) {
-            *operation_status = STATUS_INSUFFICIENT_RESOURCES;
+            *operation_status = STATUS_INVALID_PARAMETER;
             return;
         }
 
@@ -736,7 +751,7 @@ ebpf_epoch_initiate()
 
 #if defined(KE_PROCESSOR_CHANGE_ADD_EXISTING)
     for (uint32_t cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
-        return_value = _ebpf_epoch_initialize_cpu_entry(cpu_id);
+        return_value = _ebpf_epoch_allocate_cpu_entry(cpu_id);
         if (return_value != EBPF_SUCCESS) {
             goto Error;
         }
@@ -756,6 +771,12 @@ ebpf_epoch_initiate()
         goto Error;
     }
 #else
+    for (uint32_t cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
+        return_value = _ebpf_epoch_allocate_cpu_entry(cpu_id);
+        if (return_value != EBPF_SUCCESS) {
+            goto Error;
+        }
+    }
     for (uint32_t cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
         return_value = _ebpf_epoch_initialize_cpu_entry(cpu_id);
         if (return_value != EBPF_SUCCESS) {
