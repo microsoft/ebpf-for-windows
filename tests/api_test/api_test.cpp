@@ -32,6 +32,8 @@
 #include <mstcpip.h>
 #include <mutex>
 #define _NTDEF_ // UNICODE_STRING is already defined
+#include "usersim/nt_process_info.h"
+
 #include <ntsecapi.h>
 #include <processthreadsapi.h>
 #include <thread>
@@ -975,45 +977,6 @@ send_traffic(IPPROTO protocol, bool is_ipv6)
 }
 
 /**
- * @brief Subset of the process information classes accepted by NtQueryInformationProcess.
- */
-enum
-{
-    ProcessTelemetryIdInformation = 64
-};
-
-/**
- * @brief Structure returned by NtQueryInformationProcess(ProcessTelemetryIdInformation).
- *
- * Per the official documentation this struct "has no associated import library or header file", so
- * it must be declared locally; the same declaration is used by usersim (external/usersim/src/ps.cpp)
- * to implement the kernel-mode PsGetProcessStartKey helper that backs
- * bpf_get_current_process_start_key. The full layout is declared so the query receives the buffer
- * size it expects; only ProcessStartKey is read.
- * @see https://learn.microsoft.com/en-us/windows/win32/devnotes/process_telemetry_id_information_type
- */
-typedef struct _PROCESS_TELEMETRY_ID_INFORMATION
-{
-    ULONG HeaderSize;
-    ULONG ProcessId;
-    ULONG64 ProcessStartKey; ///< Per-boot process start key; matches bpf_get_current_process_start_key.
-    ULONG64 CreateTime;
-    ULONG64 CreateInterruptTime;
-    ULONG64 CreateUnbiasedInterruptTime;
-    ULONG64 ProcessSequenceNumber;
-    ULONG64 SessionCreateTime;
-    ULONG SessionId;
-    ULONG BootId;
-    ULONG ImageChecksum;
-    ULONG ImageTimeDateStamp;
-    ULONG UserSidOffset;
-    ULONG ImagePathOffset;
-    ULONG PackageNameOffset;
-    ULONG RelativeAppNameOffset;
-    ULONG CommandLineOffset;
-} PROCESS_TELEMETRY_ID_INFORMATION;
-
-/**
  * @brief Look up the process start key for a given PID, for comparison against the value reported by
  * bpf_get_current_process_start_key (PsGetProcessStartKey in the kernel).
  * @param[in] pid Process ID whose start key to query.
@@ -1024,12 +987,12 @@ typedef struct _PROCESS_TELEMETRY_ID_INFORMATION
 static bool
 try_get_process_start_key(uint32_t pid, uint64_t& start_key)
 {
-    // NtQueryInformationProcess is only declared by <winternl.h>, which cannot be included here: it
-    // redefines _STRING/UNICODE_STRING already provided by <ntsecapi.h> (used elsewhere in this file),
-    // producing C2011. Declare the prototype locally and resolve it at runtime via GetProcAddress to
-    // avoid an ntdll.lib link dependency.
+    // PROCESS_TELEMETRY_ID_INFORMATION and the NtQueryInformationProcess prototype come from
+    // usersim/nt_process_info.h. They are declared there (rather than pulled from <winternl.h>)
+    // because <winternl.h> redefines _STRING/UNICODE_STRING already provided by <ntsecapi.h>
+    // (used elsewhere in this file), producing C2011. Resolve the function at runtime via
+    // GetProcAddress to avoid an ntdll.lib link dependency.
     // See https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess
-    typedef NTSTATUS(NTAPI * NtQueryInformationProcess_t)(HANDLE, ULONG, PVOID, ULONG, PULONG);
     static NtQueryInformationProcess_t nt_query_information_process = reinterpret_cast<NtQueryInformationProcess_t>(
         GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtQueryInformationProcess"));
     REQUIRE(nt_query_information_process != nullptr);
