@@ -5994,7 +5994,7 @@ CATCH_NO_MEMORY_EBPF_RESULT
 //
 
 _Ret_maybenull_ struct ring_buffer*
-ebpf_ring_buffer__new(
+ebpf_ring_buffer_new_internal(
     int map_fd, ring_buffer_sample_fn sample_cb, _In_opt_ void* ctx, _In_opt_ const struct ebpf_ring_buffer_opts* opts)
     EBPF_NO_EXCEPT
 {
@@ -6091,6 +6091,14 @@ Exit:
     EBPF_RETURN_POINTER(ring_buffer_t*, local_ring_buffer);
 }
 
+_Ret_maybenull_ struct ring_buffer*
+ebpf_ring_buffer__new(
+    int map_fd, ring_buffer_sample_fn sample_cb, _In_opt_ void* ctx, _In_opt_ const struct ebpf_ring_buffer_opts* opts)
+    EBPF_NO_EXCEPT
+{
+    return ebpf_ring_buffer_new_internal(map_fd, sample_cb, ctx, opts);
+}
+
 ebpf_handle_t
 ebpf_ring_buffer_get_wait_handle(_In_ struct ring_buffer* rb) EBPF_NO_EXCEPT
 {
@@ -6133,7 +6141,7 @@ _Must_inspect_result_ _Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_ring_
 }
 
 _Ret_maybenull_ struct perf_buffer*
-ebpf_perf_buffer__new(
+ebpf_perf_buffer_new_internal(
     int map_fd,
     size_t page_cnt,
     perf_buffer_sample_fn sample_cb,
@@ -6141,15 +6149,24 @@ ebpf_perf_buffer__new(
     _In_opt_ void* ctx,
     _In_opt_ const struct ebpf_perf_buffer_opts* opts) EBPF_NO_EXCEPT
 {
+    EBPF_LOG_ENTRY();
+
     ebpf_result_t result = EBPF_SUCCESS;
+    uint32_t win32_error = ERROR_SUCCESS;
     struct perf_buffer* local_perf_buffer = nullptr;
 
     if ((sample_cb == nullptr) || (lost_cb == nullptr)) {
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_API,
+            "perf_buffer__new requires both sample and lost callbacks");
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
 
     if (page_cnt != 0) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_API, "perf_buffer__new page count must be zero", page_cnt);
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -6189,8 +6206,9 @@ ebpf_perf_buffer__new(
 
             HANDLE wait_handle = CreateEvent(nullptr, TRUE, FALSE, nullptr);
             if (wait_handle == nullptr) {
-                result = EBPF_NO_MEMORY;
-                goto Exit;
+                win32_error = GetLastError();
+                result = win32_error_code_to_ebpf_result(win32_error);
+                EBPF_BAIL_ON_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, CreateEvent, win32_error, Exit);
             }
             perf_buffer->wait_handle = reinterpret_cast<ebpf_handle_t>(wait_handle);
 
@@ -6275,6 +6293,18 @@ Exit:
         EBPF_LOG_FUNCTION_ERROR(result);
     }
     EBPF_RETURN_POINTER(struct perf_buffer*, local_perf_buffer);
+}
+
+_Ret_maybenull_ struct perf_buffer*
+ebpf_perf_buffer__new(
+    int map_fd,
+    size_t page_cnt,
+    perf_buffer_sample_fn sample_cb,
+    perf_buffer_lost_fn lost_cb,
+    _In_opt_ void* ctx,
+    _In_opt_ const struct ebpf_perf_buffer_opts* opts) EBPF_NO_EXCEPT
+{
+    return ebpf_perf_buffer_new_internal(map_fd, page_cnt, sample_cb, lost_cb, ctx, opts);
 }
 
 ebpf_handle_t

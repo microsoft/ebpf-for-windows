@@ -68,6 +68,9 @@ CATCH_REGISTER_LISTENER(_api_test_watchdog)
 
 #define SAMPLE_PATH ""
 
+#define EBPF_PARAMETERS_REGISTRY_PATH L"Software\\eBPF\\Parameters"
+#define EBPF_PROOF_OF_VERIFICATION_REGISTRY_VALUE L"ProofOfVerification"
+
 #define EBPF_CORE_DRIVER_BINARY_NAME L"ebpfcore.sys"
 #define EBPF_CORE_DRIVER_NAME L"ebpfcore"
 
@@ -323,6 +326,7 @@ TEMPLATE_TEST_CASE("ring_buffer_sync_api", "[ring_buffer]", ENABLED_EXECUTION_TY
     uint32_t event_count = 0;
     const uint32_t expected_events = 10;
 
+#pragma warning(suppress : 4996) // deprecated
     auto ring = ebpf_ring_buffer__new(
         process_map_fd,
         [](void* ctx, void* /*data*/, size_t /*size */) {
@@ -397,6 +401,7 @@ TEST_CASE("ring_buffer_sync_consume", "[ring_buffer]")
     };
     test_context context;
 
+#pragma warning(suppress : 4996) // deprecated
     auto ring = ebpf_ring_buffer__new(
         map_fd,
         [](void* ctx, void* data, size_t size) {
@@ -427,6 +432,7 @@ TEST_CASE("ring_buffer_sync_consume", "[ring_buffer]")
     std::vector<std::string> test_messages = {"First message", "Second message", "Third message"};
 
     for (const auto& msg : test_messages) {
+#pragma warning(suppress : 4996) // deprecated
         result = ebpf_ring_buffer_map_write(map_fd, msg.c_str(), msg.length());
         REQUIRE(result == EBPF_SUCCESS);
     }
@@ -485,6 +491,8 @@ TEST_CASE("ring_buffer_sync_multiple_maps", "[ring_buffer]")
     };
     multi_map_context context;
 
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
     ring = ebpf_ring_buffer__new(
         map_fd1,
         [](void* ctx, void* data, size_t size) {
@@ -552,6 +560,7 @@ TEST_CASE("ring_buffer_sync_multiple_maps", "[ring_buffer]")
     REQUIRE(result1 == EBPF_SUCCESS);
 
     ebpf_result_t result2 = ebpf_ring_buffer_map_write(map_fd2, msg2.c_str(), msg2.length());
+#pragma warning(pop)
     REQUIRE(result2 == EBPF_SUCCESS);
 
     // Use ring_buffer__consume to process all available events.
@@ -609,11 +618,13 @@ TEST_CASE("ring_buffer_mmap_consumer", "[ring_buffer]")
 
     // Write some test data to the ring buffer.
     std::string test_data = "Hello, Ring Buffer!";
+#pragma warning(suppress : 4996) // deprecated
     result = ebpf_ring_buffer_map_write(map_fd, test_data.c_str(), test_data.length());
     REQUIRE(result == EBPF_SUCCESS);
 
     // Write another test record.
     std::string test_data2 = "Second record";
+#pragma warning(suppress : 4996) // deprecated
     result = ebpf_ring_buffer_map_write(map_fd, test_data2.c_str(), test_data2.length());
     REQUIRE(result == EBPF_SUCCESS);
 
@@ -1450,6 +1461,7 @@ TEST_CASE("ioctl_stress", "[stress]")
 
     // Subscribe to the ring buffer with empty callback (using async mode for automatic callbacks).
     ebpf_ring_buffer_opts ring_opts{.sz = sizeof(ring_opts), .flags = EBPF_RINGBUF_FLAG_AUTO_CALLBACK};
+#pragma warning(suppress : 4996) // deprecated
     auto ring = ebpf_ring_buffer__new(process_map_fd, [](void*, void*, size_t) { return 0; }, nullptr, &ring_opts);
 
     // Run 4 threads per cpu.
@@ -1624,6 +1636,7 @@ TEST_CASE("test_ringbuffer_concurrent_wraparound", "[stress][ring_buffer]")
     auto ring_buffer_event_callback = context.promise.get_future();
     // Subscribe to the ring buffer (using async mode for automatic callbacks).
     ebpf_ring_buffer_opts ring_opts{.sz = sizeof(ring_opts), .flags = EBPF_RINGBUF_FLAG_AUTO_CALLBACK};
+#pragma warning(suppress : 4996) // deprecated
     auto ring = ebpf_ring_buffer__new(
         process_map_fd,
         [](void* ctx, void*, size_t) {
@@ -1673,6 +1686,7 @@ TEST_CASE("test_ringbuffer_wraparound", "[ring_buffer]")
     REQUIRE(data != nullptr);
 
     for (uint32_t i = 0; i < iterations; i++) {
+#pragma warning(suppress : 4996) // deprecated
         REQUIRE(ebpf_ring_buffer_map_write(map_fd, app_id.data(), app_id.size()) == EBPF_SUCCESS);
 
         uint64_t prod = ReadAcquire64(producer_ptr);
@@ -1790,6 +1804,7 @@ class perf_buffer_test_helper
     {
         REQUIRE(_buffer == nullptr);
         ebpf_perf_buffer_opts opts = {.sz = sizeof(opts), .flags = flags};
+#pragma warning(suppress : 4996) // deprecated
         _buffer = ebpf_perf_buffer__new(
             map_fd, 0, perf_buffer_sync_sample_callback, perf_buffer_sync_lost_callback, &context, &opts);
         return _buffer;
@@ -2039,6 +2054,7 @@ TEST_CASE("perf_buffer_async_consume", "[perf_buffer]")
     // Write all test events.
     size_t written = 0;
     for (const auto& msg : test_messages) {
+#pragma warning(suppress : 4996) // deprecated
         if (ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length()) == EBPF_SUCCESS) {
             written++;
         }
@@ -2088,6 +2104,7 @@ TEST_CASE("perf_buffer_async_lost_callback", "[perf_buffer]")
     for (uint32_t cpu_id = 0; cpu_id < num_cpus; cpu_id++) {
         cpu_affinity.switch_cpu(cpu_id);
         for (size_t i = 0; i < per_cpu_event_count; i++) {
+#pragma warning(suppress : 4996) // deprecated
             if (ebpf_perf_event_array_map_write(map_fd, large_message.c_str(), large_message.length()) ==
                 EBPF_SUCCESS) {
                 write_succeeded++;
@@ -2130,6 +2147,7 @@ TEST_CASE("perf_buffer_async_reopen", "[perf_buffer]")
         REQUIRE(pb != nullptr);
 
         for (const auto& msg : test_messages) {
+#pragma warning(suppress : 4996) // deprecated
             REQUIRE(ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length()) == EBPF_SUCCESS);
         }
 
@@ -2148,6 +2166,7 @@ TEST_CASE("perf_buffer_async_reopen", "[perf_buffer]")
         REQUIRE(pb2 != nullptr);
 
         for (const auto& msg : test_messages2) {
+#pragma warning(suppress : 4996) // deprecated
             REQUIRE(ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length()) == EBPF_SUCCESS);
         }
 
@@ -2173,6 +2192,7 @@ TEST_CASE("perf_buffer_sync_reopen", "[perf_buffer]")
         REQUIRE(pb != nullptr);
 
         for (const auto& msg : test_messages) {
+#pragma warning(suppress : 4996) // deprecated
             REQUIRE(ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length()) == EBPF_SUCCESS);
         }
 
@@ -2190,6 +2210,7 @@ TEST_CASE("perf_buffer_sync_reopen", "[perf_buffer]")
         REQUIRE(pb2 != nullptr);
 
         for (const auto& msg : test_messages2) {
+#pragma warning(suppress : 4996) // deprecated
             REQUIRE(ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length()) == EBPF_SUCCESS);
         }
 
@@ -2232,6 +2253,8 @@ TEST_CASE("ring_buffer_async_reopen", "[ring_buffer]")
         auto future = ctx.promise.get_future();
 
         ebpf_ring_buffer_opts opts{.sz = sizeof(opts), .flags = EBPF_RINGBUF_FLAG_AUTO_CALLBACK};
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
         auto* ring = ebpf_ring_buffer__new(map_fd, sample_cb, &ctx, &opts);
         REQUIRE(ring != nullptr);
         auto ring_cleanup = std::unique_ptr<ring_buffer, decltype(&ring_buffer__free)>(ring, ring_buffer__free);
@@ -2259,6 +2282,7 @@ TEST_CASE("ring_buffer_async_reopen", "[ring_buffer]")
         std::vector<std::string> messages = {"rb_async_reopen_1", "rb_async_reopen_2"};
         for (const auto& msg : messages) {
             REQUIRE(ebpf_ring_buffer_map_write(map_fd, msg.c_str(), msg.length()) == EBPF_SUCCESS);
+#pragma warning(pop)
         }
 
         REQUIRE(future.wait_for(5s) == std::future_status::ready);
@@ -2291,6 +2315,8 @@ TEST_CASE("ring_buffer_sync_reopen", "[ring_buffer]")
     {
         rb_sync_context ctx;
         ebpf_ring_buffer_opts opts{.sz = sizeof(opts), .flags = 0};
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
         auto* ring = ebpf_ring_buffer__new(map_fd, sample_cb, &ctx, &opts);
         REQUIRE(ring != nullptr);
         auto ring_cleanup = std::unique_ptr<ring_buffer, decltype(&ring_buffer__free)>(ring, ring_buffer__free);
@@ -2316,6 +2342,7 @@ TEST_CASE("ring_buffer_sync_reopen", "[ring_buffer]")
         std::vector<std::string> messages = {"rb_sync_reopen_1", "rb_sync_reopen_2"};
         for (const auto& msg : messages) {
             REQUIRE(ebpf_ring_buffer_map_write(map_fd, msg.c_str(), msg.length()) == EBPF_SUCCESS);
+#pragma warning(pop)
         }
 
         int consumed = ring_buffer__consume(ring);
@@ -2400,6 +2427,7 @@ TEST_CASE("perf_buffer_sync_consume", "[perf_buffer]")
     std::vector<std::string> test_messages = {"First perf message", "Second perf message", "Third perf message"};
     size_t written = 0;
     for (const auto& msg : test_messages) {
+#pragma warning(suppress : 4996) // deprecated
         if (ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length()) == EBPF_SUCCESS) {
             written++;
         }
@@ -2446,6 +2474,7 @@ TEST_CASE("perf_buffer_sync_multiple_cpus", "[perf_buffer]")
 
     // Write test data.
     const std::string msg = "Test message for CPU buffers";
+#pragma warning(suppress : 4996) // deprecated
     ebpf_result_t write_result = ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length());
     REQUIRE(write_result == EBPF_SUCCESS);
 
@@ -2488,6 +2517,7 @@ TEST_CASE("perf_buffer_sync_poll_timeout", "[perf_buffer]")
 
     // Write data and verify poll returns positive.
     const std::string msg = "Test poll message";
+#pragma warning(suppress : 4996) // deprecated
     ebpf_result_t write_result = ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length());
     REQUIRE(write_result == EBPF_SUCCESS);
 
@@ -2519,6 +2549,7 @@ TEST_CASE("perf_buffer_sync_wait_handle", "[perf_buffer]")
 
         // Write data - wait handle should become signaled.
         const std::string msg = "Test wait handle";
+#pragma warning(suppress : 4996) // deprecated
         ebpf_result_t write_result = ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length());
         REQUIRE(write_result == EBPF_SUCCESS);
 
@@ -2559,6 +2590,7 @@ TEST_CASE("perf_buffer_sync_lost_callback", "[perf_buffer]")
 
     // Write normal event and consume successfully.
     const std::string first_msg = "Test lost callback";
+#pragma warning(suppress : 4996) // deprecated
     ebpf_result_t write_result = ebpf_perf_event_array_map_write(map_fd, first_msg.c_str(), first_msg.length());
     writes_attempted++;
     REQUIRE(write_result == EBPF_SUCCESS);
@@ -2582,6 +2614,7 @@ TEST_CASE("perf_buffer_sync_lost_callback", "[perf_buffer]")
 
         // Write events to this CPU's ring.
         for (const auto& msg : large_messages) {
+#pragma warning(suppress : 4996) // deprecated
             write_result = ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length());
             writes_attempted++;
             if (write_result != EBPF_SUCCESS) {
@@ -3707,6 +3740,8 @@ TEST_CASE("ebpf_perf_event_array_api", "[ebpf_api]")
     if (map_fd > 0) {
         // Test writing to perf event array.
         const char test_data[] = "test perf event data";
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
         ebpf_result_t result = ebpf_perf_event_array_map_write(map_fd, test_data, sizeof(test_data));
 
         REQUIRE(result == EBPF_SUCCESS);
@@ -3720,6 +3755,7 @@ TEST_CASE("ebpf_perf_event_array_api", "[ebpf_api]")
 
         // Negative test: zero size.
         result = ebpf_perf_event_array_map_write(map_fd, test_data, 0);
+#pragma warning(pop)
         REQUIRE(result != EBPF_SUCCESS);
 
         (void)ebpf_close_fd(map_fd);
@@ -3880,6 +3916,119 @@ TEST_CASE("ebpf_verification_memory_apis", "[ebpf_api]")
     ebpf_free_string(error_message);
 }
 
+/**
+ * @brief Set the proof of verification registry value to control whether production signature
+ * verification is required for native module loads.
+ *
+ * @param[in] enable Non-zero to require production signatures, zero to allow test-signed modules.
+ */
+static void
+_set_proof_of_verification(uint32_t enable)
+{
+    HKEY key = nullptr;
+    LSTATUS status =
+        RegCreateKeyExW(HKEY_LOCAL_MACHINE, EBPF_PARAMETERS_REGISTRY_PATH, 0, nullptr, 0, KEY_WRITE, nullptr, &key, nullptr);
+    REQUIRE(status == ERROR_SUCCESS);
+    status = RegSetValueExW(
+        key, EBPF_PROOF_OF_VERIFICATION_REGISTRY_VALUE, 0, REG_DWORD, (const BYTE*)&enable, sizeof(enable));
+    RegCloseKey(key);
+    REQUIRE(status == ERROR_SUCCESS);
+}
+
+/**
+ * @brief Test that validates production-signed native eBPF modules load successfully.
+ *
+ * This test validates that a production-signed bindmonitor driver can be loaded.
+ * It requires that the signed driver exists in the same directory as api_test.exe.
+ */
+TEST_CASE("proof_of_verification_positive", "[native_tests][proof_of_verification]")
+{
+    // Select the architecture and build-type appropriate signed driver.
+    #if defined(_AMD64_) && defined(_DEBUG)
+        const char* signed_driver_name = "bindmonitor_x64_debug_signed.sys";
+    #elif defined(_AMD64_)
+        const char* signed_driver_name = "bindmonitor_x64_signed.sys";
+    #elif defined(_ARM64_) && defined(_DEBUG)
+        const char* signed_driver_name = "bindmonitor_arm64_debug_signed.sys";
+    #elif defined(_ARM64_)
+        const char* signed_driver_name = "bindmonitor_arm64_signed.sys";
+    #else
+    #error "Unsupported architecture"
+    #endif
+
+    // The signed driver must be present in the same directory as api_test.exe.
+    REQUIRE(_access(signed_driver_name, 0) == 0);
+
+    // Require production signature verification for native module loads.
+    _set_proof_of_verification(1);
+
+    int result;
+    struct bpf_object* object = nullptr;
+    fd_t program_fd;
+
+    // Attempt to load the signed driver.
+    result = program_load_helper(signed_driver_name, BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd);
+    INFO("Failed to load production-signed driver " << signed_driver_name << " (error " << result << ")");
+    REQUIRE(result == 0);
+    REQUIRE(program_fd != ebpf_fd_invalid);
+
+    // RAII cleanup for the loaded object so it is freed even if assertions below fail.
+    auto object_cleanup = std::unique_ptr<bpf_object, decltype(&bpf_object__close)>(object, bpf_object__close);
+
+    // Restore default behavior (allow test-signed modules) before further assertions.
+    _set_proof_of_verification(0);
+
+    // Verify the program loaded correctly.
+    uint32_t next_id;
+    REQUIRE(bpf_prog_get_next_id(0, &next_id) == 0);
+
+    fd_t query_fd = bpf_prog_get_fd_by_id(next_id);
+    REQUIRE(query_fd > 0);
+
+    const char* program_file_name;
+    const char* program_section_name;
+    ebpf_execution_type_t program_execution_type;
+    REQUIRE(
+        ebpf_program_query_info(query_fd, &program_execution_type, &program_file_name, &program_section_name) ==
+        EBPF_SUCCESS);
+
+    REQUIRE(program_execution_type == EBPF_EXECUTION_NATIVE);
+    _close(query_fd);
+}
+
+/**
+ * @brief Test that validates non-production-signed native eBPF modules are rejected.
+ *
+ * This test validates that a test-signed (non-production-signed) bindmonitor.sys 
+ * is rejected by the proof of verification system.
+ *
+ * The test expects loading to FAIL because bindmonitor.sys is only test-signed,
+ * not production-signed with the required eBPF Verification EKU.
+ */
+TEST_CASE("proof_of_verification_negative", "[native_tests][proof_of_verification]")
+{
+    // Require production signature verification for native module loads.
+    _set_proof_of_verification(1);
+
+    int result;
+    struct bpf_object* object = nullptr;
+    fd_t program_fd;
+
+    result = program_load_helper("bindmonitor.sys", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd);
+
+    // The load should fail because the binary is not production-signed
+    if (result == 0) {
+        std::cout << "ERROR: Test-signed bindmonitor.sys should NOT have loaded successfully!" << std::endl;
+        std::cout << "The proof of verification system should reject non-production-signed binaries." << std::endl;
+        bpf_object__close(object);
+    } else {
+        std::cout << "Test-signed bindmonitor.sys was correctly rejected (error " << result << ")" << std::endl;
+    }
+    REQUIRE(result != 0);
+
+    // Restore default behavior (allow test-signed modules).
+    _set_proof_of_verification(0);
+}
 #define OPERATION_SUCCESS 1
 #define OPERATION_FAILURE 0
 

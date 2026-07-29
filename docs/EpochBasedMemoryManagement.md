@@ -103,6 +103,31 @@ using the globally published epoch value (so retirements are never stamped with 
 concurrent reader may have observed), and it becomes eligible for reclamation when `freed_epoch <= released_epoch`,
 where `released_epoch` is computed via the propose/commit epoch computation described below.
 
+### Active vs. potential (hot-add) CPUs
+
+The per-CPU table is sized for the system's *maximum* processor count. On systems where the maximum
+processor count exceeds the set of processors that are actually schedulable at boot (hot-add-capable
+firmware, BIOS-disabled cores, partial processor groups), a per-CPU work queue cannot be created for
+the non-schedulable indices.
+
+As an **interim stopgap** (full hot-add support is tracked separately), `ebpf_epoch_initiate()` no
+longer fails the whole load in this situation. Instead, each per-CPU entry carries an `admitted` flag:
+a CPU is *admitted* only if its work queue was successfully created (i.e., the processor is
+schedulable). CPU 0 is required — if it cannot be admitted, initialization still fails.
+
+Non-admitted CPUs are handled as follows:
+
+- The inter-CPU propose/commit/rundown ring walk skips non-admitted CPUs (it steps to the next
+    admitted CPU, always terminating because CPU 0 is admitted).
+- Any code path that touches a non-admitted CPU's per-CPU state (`ebpf_epoch_enter`,
+    `ebpf_epoch_exit`, free-list insertion, free-list queries) **fails fast** rather than corrupting
+    state.
+
+Because the current CPU of a running thread is always a schedulable (admitted) CPU, this is safe as
+long as the non-admitted (inactive/hot-add) CPUs are never brought online and used. If such a CPU is
+ever used before full hot-add support lands, the fail-fast guards trip instead of silently corrupting
+epoch state.
+
 ## Epoch computation (propose/commit)
 
 Reclamation is driven by an epoch computation cycle that is initiated when there are items

@@ -316,15 +316,19 @@ function Run-KernelTests {
         $TestMode = $TestMode.ToLower()
         switch ($TestMode) {
             "ci/cd" {
+                $ProofOfVerification = $Options -contains "ProofOfVerification"
                 Invoke-CICDTests `
                     -VerboseLogs $VerboseLogs `
                     -ExecuteSystemTests $true `
+                    -ProofOfVerification $ProofOfVerification `
                     2>&1 | Write-Log
             }
             "regression" {
+                $ProofOfVerification = $Options -contains "ProofOfVerification"
                 Invoke-CICDTests `
                     -VerboseLogs $VerboseLogs `
                     -ExecuteSystemTests $false `
+                    -ProofOfVerification $ProofOfVerification `
                     2>&1 | Write-Log
             }
             "stress" {

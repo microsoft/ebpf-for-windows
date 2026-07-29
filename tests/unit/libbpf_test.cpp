@@ -999,6 +999,8 @@ TEST_CASE("ring buffer Linux-compatible APIs", "[libbpf][ring_buffer]")
 
 TEST_CASE("ring buffer Windows-specific APIs", "[libbpf][ring_buffer]")
 {
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
     _test_helper_libbpf test_helper;
     test_helper.initialize();
 
@@ -1092,6 +1094,7 @@ TEST_CASE("ring buffer Windows-specific APIs", "[libbpf][ring_buffer]")
     }
 
     Platform::_close(map_fd);
+#pragma warning(pop)
 }
 
 TEST_CASE("ring buffer memory mapping APIs", "[libbpf][ring_buffer]")
@@ -1173,6 +1176,8 @@ TEST_CASE("ring buffer memory mapping APIs", "[libbpf][ring_buffer]")
 
 TEST_CASE("ring buffer manager APIs", "[libbpf][ring_buffer]")
 {
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
     _test_helper_libbpf test_helper;
     test_helper.initialize();
 
@@ -1351,6 +1356,7 @@ TEST_CASE("ring buffer manager APIs", "[libbpf][ring_buffer]")
     // No null parameter tests (violates SAL).
 
     Platform::_close(map_fd);
+#pragma warning(pop)
 }
 
 // Test helper for perf buffer callback.
@@ -1557,6 +1563,8 @@ TEST_CASE("perf buffer Linux-compatible APIs", "[libbpf][perf_event_array]")
 
 TEST_CASE("perf buffer Windows-specific APIs", "[libbpf][perf_event_array]")
 {
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
     _test_helper_libbpf test_helper;
     test_helper.initialize();
 
@@ -1656,6 +1664,7 @@ TEST_CASE("perf buffer Windows-specific APIs", "[libbpf][perf_event_array]")
     }
 
     Platform::_close(map_fd);
+#pragma warning(pop)
 }
 
 TEST_CASE("perf buffer manager APIs", "[libbpf][perf_event_array]")
@@ -1674,6 +1683,7 @@ TEST_CASE("perf buffer manager APIs", "[libbpf][perf_event_array]")
     {
         ebpf_perf_buffer_opts perf_opts = {.sz = sizeof(perf_opts), .flags = 0};
 
+#pragma warning(suppress : 4996) // deprecated
         struct perf_buffer* pb = ebpf_perf_buffer__new(
             map_fd, 0, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, &perf_opts);
         REQUIRE(pb != nullptr);
@@ -1692,6 +1702,7 @@ TEST_CASE("perf buffer manager APIs", "[libbpf][perf_event_array]")
     {
         ebpf_perf_buffer_opts perf_opts{.sz = sizeof(perf_opts), .flags = EBPF_PERFBUF_FLAG_AUTO_CALLBACK};
 
+#pragma warning(suppress : 4996) // deprecated
         struct perf_buffer* pb = ebpf_perf_buffer__new(
             map_fd, 0, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, &perf_opts);
         REQUIRE(pb != nullptr);
@@ -1787,6 +1798,7 @@ TEST_CASE("perf buffer error handling", "[libbpf][perf_event_array]")
         // Test with a flag value that's not defined.
         ebpf_perf_buffer_opts opts_with_unknown_flag{.sz = sizeof(ebpf_perf_buffer_opts), .flags = 0xFFFFFFFF};
 
+#pragma warning(suppress : 4996) // deprecated
         struct perf_buffer* pb = ebpf_perf_buffer__new(
             map_fd,
             0,
@@ -3670,6 +3682,21 @@ TEST_CASE("Map and program information", "[libbpf][bpf]")
     int program_fd = bpf(BPF_PROG_LOAD, &attr, sizeof(attr));
     REQUIRE(program_fd >= 0);
 
+    // Query full program info before any maps are bound. A non-null map_ids pointer must be ignored
+    // when there are no map IDs to return.
+    sys_bpf_prog_info_t program_info = {};
+    attr = {};
+    attr.info.bpf_fd = program_fd;
+    attr.info.info = (uintptr_t)&program_info;
+    attr.info.info_len = sizeof(program_info);
+    program_info.nr_map_ids = 1024 * 1024;
+    program_info.map_ids = (uintptr_t)1;
+    REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
+    REQUIRE(attr.info.info_len == sizeof(program_info));
+    REQUIRE(program_info.id != 0);
+    REQUIRE(program_info.nr_map_ids == 0);
+    REQUIRE(strncmp(program_info.name, "testing", sizeof(program_info.name)) == 0);
+
     // Bind map to the program so that the ID is returned in the info.
     attr = {};
     attr.prog_bind_map.prog_fd = program_fd;
@@ -3677,7 +3704,7 @@ TEST_CASE("Map and program information", "[libbpf][bpf]")
     REQUIRE(bpf(BPF_PROG_BIND_MAP, &attr, sizeof(attr)) == 0);
 
     // Verify that we can query a prefix of fields.
-    sys_bpf_prog_info_t program_info = {};
+    program_info = {};
     attr = {};
     attr.info.bpf_fd = program_fd;
     attr.info.info = (uintptr_t)&program_info;
