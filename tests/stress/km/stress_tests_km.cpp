@@ -1071,15 +1071,32 @@ TEST_CASE("sample_attach_invoke_detach_race_km", "[stress_km]")
     std::atomic<uint32_t> next_worker_id{0};
     std::atomic<uint64_t> detach_failure_count{0};
     std::atomic<uint64_t> attach_failure_count{0};
+    std::atomic<uint64_t> invoke_failure_count{0};
+    std::atomic<uint64_t> initialize_failure_count{0};
     auto invoke_routine = [&]() {
         thread_local const uint32_t worker_id = next_worker_id.fetch_add(1);
         // One per invoke thread: client used to issue invocation requests through the sample extension path.
         thread_local _sample_extension_helper sample_extension_client(false);
+        thread_local const bool sample_extension_client_initialized = sample_extension_client.initialize();
+        thread_local bool sample_extension_client_init_failure_reported = false;
+        if (!sample_extension_client_initialized) {
+            if (!sample_extension_client_init_failure_reported) {
+                ++initialize_failure_count;
+                LOG_ERROR("Invoke thread {}: failed to open sample extension device handle.", worker_id);
+                sample_extension_client_init_failure_reported = true;
+            }
+            return;
+        }
         thread_local std::vector<char> input_buffer = {'r', 'a', 'i', 'n', 'y'};
         thread_local std::vector<char> output_buffer(256);
         uint32_t attach_value = attach_data[worker_id % invoke_thread_count];
-        (void)sample_extension_client.try_invoke_by_attach_parameter(
-            &attach_value, sizeof(attach_value), input_buffer, output_buffer);
+        if (!sample_extension_client.try_invoke_by_attach_parameter(
+                &attach_value, sizeof(attach_value), input_buffer, output_buffer)) {
+            // During detach/attach churn, invoke can fail with ERROR_NOT_FOUND when no program matches attach data.
+            if (GetLastError() != ERROR_NOT_FOUND) {
+                ++invoke_failure_count;
+            }
+        }
     };
     auto detach_routine = [&](bool extension_restarting) {
         for (uint32_t i = 0; i < invoke_thread_count; i++) {
@@ -1117,9 +1134,13 @@ TEST_CASE("sample_attach_invoke_detach_race_km", "[stress_km]")
         extension_restart_delay_ms,
         extension_restart_routine));
     LOG_INFO(
-        "Race attach/detach failures: detach_failures={}, attach_failures={}",
+        "Race attach/detach/invoke failures: detach_failures={}, attach_failures={}, invoke_failures={}, "
+        "initialize_failures={}",
         detach_failure_count.load(),
-        attach_failure_count.load());
+        attach_failure_count.load(),
+        invoke_failure_count.load(),
+        initialize_failure_count.load());
+    REQUIRE(initialize_failure_count.load() == 0);
 
     for (uint32_t i = 0; i < invoke_thread_count; i++) {
         (void)hook.detach(program_fd, &attach_data[i], sizeof(attach_data[i]));

@@ -5286,7 +5286,7 @@ TEST_CASE("multi_attach_sample_extension", "[sample_ext]")
 
     // Verify that an unoccupied attach_data fails.
     uint8_t attach_data2 = 2;
-    REQUIRE(hook.fire(&attach_data2, sizeof(attach_data2), ctx1, &hook_result) == EBPF_EXTENSION_FAILED_TO_LOAD);
+    REQUIRE(hook.fire(&attach_data2, sizeof(attach_data2), ctx1, &hook_result) == EBPF_KEY_NOT_FOUND);
 
     // Detach and close.
     (void)hook.detach(program_fd1, &attach_data0, sizeof(attach_data0));

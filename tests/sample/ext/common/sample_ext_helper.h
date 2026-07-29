@@ -15,6 +15,16 @@ class _sample_extension_helper
     _sample_extension_helper(bool log_invoke_errors = true);
     ~_sample_extension_helper();
 
+    /**
+     * @brief Open the sample extension device handle.
+     * Must be called (and return true) before any invoke methods.
+     *
+     * @retval true  Device handle opened successfully.
+     * @retval false CreateFileW failed; the error is printed to stderr.
+     */
+    bool
+    initialize();
+
     bool
     invoke(std::vector<char>& input_buffer, std::vector<char>& output_buffer);
 

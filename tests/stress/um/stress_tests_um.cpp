@@ -72,6 +72,7 @@ TEST_CASE("sample_attach_invoke_detach_race_um", "[stress_um][!mayfail]")
     std::atomic<uint32_t> next_worker_id{0};
     std::atomic<uint64_t> detach_failure_count{0};
     std::atomic<uint64_t> attach_failure_count{0};
+    std::atomic<uint64_t> invoke_failure_count{0};
     auto invoke_routine = [&]() {
         thread_local const uint32_t worker_id = next_worker_id.fetch_add(1);
         uint32_t attach_value = attach_data[worker_id % invoke_thread_count];
@@ -82,7 +83,10 @@ TEST_CASE("sample_attach_invoke_detach_race_um", "[stress_um][!mayfail]")
         context->data_start = context_data;
         context->data_end = context_data + value_size;
         uint32_t hook_result = 0;
-        (void)hook->fire(&attach_value, sizeof(attach_value), context, &hook_result);
+        ebpf_result_t invoke_result = hook->fire(&attach_value, sizeof(attach_value), context, &hook_result);
+        if (invoke_result != EBPF_SUCCESS && invoke_result != EBPF_KEY_NOT_FOUND) {
+            ++invoke_failure_count;
+        }
     };
     auto detach_routine = [&](bool extension_restarting) {
         for (uint32_t i = 0; i < invoke_thread_count; i++) {
@@ -123,9 +127,10 @@ TEST_CASE("sample_attach_invoke_detach_race_um", "[stress_um][!mayfail]")
         extension_restart_delay_ms,
         extension_restart_routine));
     LOG_INFO(
-        "Race attach/detach failures: detach_failures={}, attach_failures={}",
+        "Race attach/detach/invoke failures: detach_failures={}, attach_failures={}, invoke_failures={}",
         detach_failure_count.load(),
-        attach_failure_count.load());
+        attach_failure_count.load(),
+        invoke_failure_count.load());
 
     for (uint32_t i = 0; i < invoke_thread_count; i++) {
         (void)attach_helper.detach(program_fd, &attach_data[i], sizeof(attach_data[i]));

@@ -117,7 +117,7 @@ run_attach_invoke_detach_race(
         invoke_thread_count = 1;
     }
     if (attach_detach_delay_ms == 0) {
-        attach_detach_delay_ms = 10;
+        attach_detach_delay_ms = DEFAULT_ATTACH_DETACH_DELAY_MS;
     }
 
     std::atomic<bool> stop_all{false};
