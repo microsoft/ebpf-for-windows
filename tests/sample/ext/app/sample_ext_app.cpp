@@ -56,6 +56,7 @@ sample_ebpf_ext_test(_In_ const struct bpf_object* object)
     const char* expected_output = "Seattle is a sunny city";
     std::vector<char> output_buffer(256);
     _sample_extension_helper extension;
+    REQUIRE(extension.initialize());
 
     // Get map and insert data.
     map = bpf_object__find_map_by_name(object, "test_map");
@@ -146,6 +147,7 @@ sample_ebpf_ext_test_batch(_In_ const struct bpf_object* object)
     memcpy(request->data, input_string, input_string_length);
     sample_ebpf_ext_batch_run_reply_t* reply = (sample_ebpf_ext_batch_run_reply_t*)output_buffer.data();
     _sample_extension_helper extension;
+    REQUIRE(extension.initialize());
 
     // Get map and insert data.
     map = bpf_object__find_map_by_name(object, "test_map");
@@ -303,6 +305,7 @@ TEST_CASE("native_multi_attach_by_parameter", "[sample_ext_test]")
     native_module_helper_t native_helper1;
     native_module_helper_t native_helper2;
     _sample_extension_helper extension;
+    REQUIRE(extension.initialize());
     uint8_t attach_data0 = 0;
     uint8_t attach_data1 = 1;
 
@@ -343,6 +346,7 @@ TEST_CASE("ebpf_program_attach_with_attach_data_race_native", "[sample_ext_test]
     constexpr int value_size = 32;
     std::vector<char> map_entry_buffer(value_size);
     _sample_extension_helper extension;
+    REQUIRE(extension.initialize());
     std::vector<char> input_buffer = {'r', 'a', 'i', 'n', 'y'};
     std::vector<char> output_buffer(256);
     std::atomic<bool> stop{false};
@@ -433,6 +437,7 @@ utility_helpers_test(ebpf_execution_type_t execution_type)
 
     std::vector<char> dummy(1);
     _sample_extension_helper extension;
+    REQUIRE(extension.initialize());
 
     extension.invoke(dummy, dummy);
 

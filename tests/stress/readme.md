@@ -29,7 +29,7 @@ loop.  The test set up ensures that the `thread_index` passed in each `thread_co
 This causes the invocation of the in-kernel eBPF program which returns some (arbitrary) decision based on the end-point
 port number.
 
-This test can be run with or without the extension restart option.
+This test can be run with or without the extension restart option. If `-tt` is not specified, this test uses 32 invoke threads by default.
 
 Sample command line invocations:
 
@@ -48,7 +48,7 @@ This test first loads a specific native eBPF program. It then loads all the MAX_
 
 This causes the invocation of the in-kernel eBPF tail call programs to be executed in sequence. The last tail call program returns a PERMIT verdict.
 
-This test can be run with or without the extension restart option.
+This test can be run with or without the extension restart option. If `-tt` is not specified, this test uses 32 invoke threads by default.
 
 Sample command line invocations:
 

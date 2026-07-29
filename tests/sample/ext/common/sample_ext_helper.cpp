@@ -9,6 +9,11 @@
 _sample_extension_helper::_sample_extension_helper(bool log_invoke_errors)
     : _device_handle(INVALID_HANDLE_VALUE), _log_invoke_errors(log_invoke_errors)
 {
+}
+
+bool
+_sample_extension_helper::initialize()
+{
     _device_handle = ::CreateFileW(
         SAMPLE_EBPF_EXT_DEVICE_WIN32_NAME,
         GENERIC_READ | GENERIC_WRITE,
@@ -17,6 +22,11 @@ _sample_extension_helper::_sample_extension_helper(bool log_invoke_errors)
         CREATE_ALWAYS,
         FILE_ATTRIBUTE_NORMAL,
         nullptr);
+    if (_device_handle == INVALID_HANDLE_VALUE) {
+        fprintf(stderr, "CreateFileW(%ls) failed: %lu\n", SAMPLE_EBPF_EXT_DEVICE_WIN32_NAME, GetLastError());
+        return false;
+    }
+    return true;
 }
 
 _sample_extension_helper::~_sample_extension_helper()
