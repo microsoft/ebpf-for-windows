@@ -3166,7 +3166,7 @@ _ebpf_contains_helper_id(_In_ const uint32_t* helper_ids, size_t count_of_helper
  * @return EBPF_INVALID_ARGUMENT the program info hash does not match.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_program_information_hash(
-    _In_ const uint32_t* actual_helper_ids,
+    _In_reads_(count_of_actual_helper_ids) const uint32_t* actual_helper_ids,
     size_t count_of_actual_helper_ids,
     _In_reads_opt_(btf_resolved_function_count) const ebpf_program_btf_hash_entry_t* btf_resolved_functions,
     size_t btf_resolved_function_count,
