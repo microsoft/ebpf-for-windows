@@ -98,7 +98,7 @@ extern "C"
     typedef struct _btf_resolved_function_entry
     {
         ebpf_native_module_header_t header;
-        const char* name;
+        _Field_z_ const char* name;
         GUID module_guid;
     } btf_resolved_function_entry_t;
 
@@ -182,20 +182,22 @@ extern "C"
 
         ebpf_native_module_header_t header;
         uint64_t (*function)(void*, const program_runtime_context_t*); ///< Address of the program.
-        const char* pe_section_name;                           ///< Name of the PE section containing the program.
-        const char* section_name;                              ///< Name of the section containing the program.
-        const char* program_name;                              ///< Name of the program.
-        uint16_t* referenced_map_indices;                      ///< List of map indices referenced by the program.
-        uint16_t referenced_map_count;                         ///< Number of maps referenced by the program.
-        helper_function_entry_t* helpers;                      ///< List of helper functions used by the program.
-        uint16_t helper_count;                                 ///< Number of helper functions used by the program.
-        size_t bpf_instruction_count;                          ///< Number of BPF instructions in the program.
-        ebpf_program_type_t* program_type;                     ///< Type of the program.
-        ebpf_attach_type_t* expected_attach_type;              ///< Expected attach type of the program.
-        const uint8_t* program_info_hash;                      ///< Hash of the program info.
-        size_t program_info_hash_length;                       ///< Length of the program info hash.
-        const char* program_info_hash_type;                    ///< Type of the program info hash
-        btf_resolved_function_entry_t* btf_resolved_functions; ///< List of BTF-resolved functions used by the program.
+        const char* pe_section_name;              ///< Name of the PE section containing the program.
+        const char* section_name;                 ///< Name of the section containing the program.
+        const char* program_name;                 ///< Name of the program.
+        uint16_t* referenced_map_indices;         ///< List of map indices referenced by the program.
+        uint16_t referenced_map_count;            ///< Number of maps referenced by the program.
+        helper_function_entry_t* helpers;         ///< List of helper functions used by the program.
+        uint16_t helper_count;                    ///< Number of helper functions used by the program.
+        size_t bpf_instruction_count;             ///< Number of BPF instructions in the program.
+        ebpf_program_type_t* program_type;        ///< Type of the program.
+        ebpf_attach_type_t* expected_attach_type; ///< Expected attach type of the program.
+        const uint8_t* program_info_hash;         ///< Hash of the program info.
+        size_t program_info_hash_length;          ///< Length of the program info hash.
+        const char* program_info_hash_type;       ///< Type of the program info hash
+        _Field_size_(btf_resolved_function_count)
+            btf_resolved_function_entry_t* btf_resolved_functions; ///< List of BTF-resolved functions used by the
+                                                                   ///< program.
         uint16_t btf_resolved_function_count; ///< Number of BTF-resolved functions used by the program.
     } program_entry_t;
 

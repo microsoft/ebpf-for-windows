@@ -128,7 +128,7 @@ typedef struct _ebpf_program_btf_provider
 typedef struct _ebpf_program_btf_hash_entry
 {
     GUID module_guid;
-    char* name;
+    _Field_z_ char* name;
     ebpf_return_type_t return_type;
     ebpf_argument_type_t arguments[5];
     uint32_t flags;
@@ -599,7 +599,7 @@ Exit:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_program_information_hash(
-    _In_ const uint32_t* actual_helper_ids,
+    _In_reads_(count_of_actual_helper_ids) const uint32_t* actual_helper_ids,
     size_t count_of_actual_helper_ids,
     _In_reads_opt_(btf_resolved_function_count) const ebpf_program_btf_hash_entry_t* btf_resolved_functions,
     size_t btf_resolved_function_count,
