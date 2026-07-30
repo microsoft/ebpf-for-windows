@@ -14,6 +14,7 @@
   <ItemGroup>
     <CustomBuild Include="EbpfProtocol.3d">
       <FileType>Document</FileType>
+      <ExcludedFromBuild Condition="'$(RunEverParseGeneration)' != 'true'">true</ExcludedFromBuild>
       <Command>
          if not exist "$(ProjectDir)generated" mkdir "$(ProjectDir)generated"
          pushd "$(ProjectDir)generated"
