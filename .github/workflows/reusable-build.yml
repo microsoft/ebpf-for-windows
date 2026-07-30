@@ -71,6 +71,7 @@ on:
 
 permissions:
   contents: read
+  security-events: write  # Required by codeql-action/analyze when build_codeql is true.
 
 jobs:
   build:
