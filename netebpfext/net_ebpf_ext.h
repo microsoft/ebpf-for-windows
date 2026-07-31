@@ -290,8 +290,7 @@ net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id)
  * @retval EBPF_SUCCESS The operation completed successfully.
  * @retval EBPF_INVALID_ARGUMENT One or more arguments are invalid.
  */
-_Must_inspect_result_ ebpf_result_t
-net_ebpf_extension_add_wfp_filters(
+_IRQL_requires_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t net_ebpf_extension_add_wfp_filters(
     _In_ HANDLE wfp_engine_handle,
     uint32_t filter_count,
     _In_count_(filter_count) const net_ebpf_extension_wfp_filter_parameters_t* parameters,
@@ -302,17 +301,16 @@ net_ebpf_extension_add_wfp_filters(
         net_ebpf_ext_wfp_filter_id_t** filter_ids);
 
 /**
- * @brief Deletes WFP filters with specified filter IDs.
+ * @brief Deletes the WFP filters associated with a filter context.
  *
- * @param[in] wfp_filter_handle The WFP filter handle used to delete the filters.
- * @param[in]  filter_count Count of filters to be added.
- * @param[in]  filter_ids ID of the filter being deleted.
+ * Marks each filter as deleting and calls @c FwpmFilterDeleteById; a successful delete releases the per-filter
+ * reference through the synchronous WFP delete notification. A filter whose delete fails is left in the
+ * @c NET_EBPF_EXT_WFP_FILTER_DELETE_FAILED state for the driver-unload sweep to recover.
+ *
+ * @param[in,out] filter_context The filter context whose WFP filters are being deleted.
  */
-void
-net_ebpf_extension_delete_wfp_filters(
-    _In_ HANDLE wfp_engine_handle,
-    uint32_t filter_count,
-    _Frees_ptr_ _In_count_(filter_count) net_ebpf_ext_wfp_filter_id_t* filter_ids);
+_IRQL_requires_(PASSIVE_LEVEL) void net_ebpf_extension_delete_wfp_filters(
+    _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context);
 
 // eBPF WFP Provider GUID.
 // ddb851f5-841a-4b77-8a46-bb7063e9f162

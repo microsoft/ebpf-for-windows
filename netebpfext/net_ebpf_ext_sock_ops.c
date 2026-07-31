@@ -289,10 +289,7 @@ _net_ebpf_extension_sock_ops_delete_filter_context(
     local_filter_context = (net_ebpf_extension_sock_ops_wfp_filter_context_t*)filter_context;
 
     InitializeListHead(&local_list_head);
-    net_ebpf_extension_delete_wfp_filters(
-        filter_context->wfp_engine_handle,
-        local_filter_context->base.filter_ids_count,
-        local_filter_context->base.filter_ids);
+    net_ebpf_extension_delete_wfp_filters(filter_context);
 
     KeAcquireSpinLock(&local_filter_context->lock, &irql);
     if (local_filter_context->flow_context_list.count > 0) {

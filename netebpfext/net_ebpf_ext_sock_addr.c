@@ -925,8 +925,7 @@ _net_ebpf_extension_sock_addr_delete_filter_context(
     }
     sock_addr_filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter_context;
 
-    net_ebpf_extension_delete_wfp_filters(
-        filter_context->wfp_engine_handle, filter_context->filter_ids_count, filter_context->filter_ids);
+    net_ebpf_extension_delete_wfp_filters(filter_context);
     if (sock_addr_filter_context->redirect_handle != NULL) {
         FwpsRedirectHandleDestroy(sock_addr_filter_context->redirect_handle);
     }
