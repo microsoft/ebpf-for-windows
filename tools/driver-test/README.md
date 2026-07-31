@@ -22,3 +22,15 @@ Building this target compiles the referenced projects plus their transitive depe
 | API tests | `tests\api_test\api_test.vcxproj` |
 | Socket tests | `tests\socket\socket_tests.vcxproj` |
 | Connect redirect tests | `tests\connect_redirect\connect_redirect_tests.vcxproj` |
+| bpftool tests | `tests\bpftool_tests\bpftool_tests.vcxproj` |
+| Sample extension app | `tests\sample\ext\app\sample_ext_app.vcxproj` |
+| Performance tests | `tests\performance\performance.vcxproj` |
+| Restart test controller | `tests\stress\restart_test_controller\ebpf_restart_test_controller.vcxproj` |
+| Restart test helper | `tests\stress\restart_test_helper\ebpf_restart_test_helper.vcxproj` |
+| KM stress tests | `tests\stress\km\ebpf_stress_tests_km.vcxproj` |
+| eBPF MSI installer | `installer\ebpf-for-windows.wixproj` |
+
+The MSI installer (`ebpf-for-windows.msi`) is required because the driver validation setup
+(`scripts\install_ebpf.psm1`) installs the eBPF runtime (ebpfcore.sys, netebpfext.sys,
+ebpfsvc.exe, ebpfapi.dll, and dependencies) from it. Building it pulls in the shippable runtime
+projects as transitive dependencies.
