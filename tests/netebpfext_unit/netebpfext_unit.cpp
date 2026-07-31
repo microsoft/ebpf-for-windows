@@ -10,6 +10,7 @@
 #include "netebpf_ext_helper.h"
 #include "watchdog.h"
 
+#include <chrono>
 #include <map>
 #include <stop_token>
 #include <thread>
@@ -905,6 +906,113 @@ TEST_CASE("sock_addr_connect_authorization_invoke", "[netebpfext]")
     // routes both CONNECT and CONNECT_AUTHORIZATION through the same WFP filter context, and the
     // _is_auth_connect_program filter finds no CONNECT_AUTHORIZATION clients. This is validated
     // by integration tests (socket_tests) instead.
+}
+
+// Verifies that the inline retry recovers a transient WFP filter delete failure before unload: a failed
+// FwpmFilterDeleteById is retried in the delete path, and the delete notification releases the reference.
+TEST_CASE("wfp_filter_delete_failure_runtime_retry", "[netebpfext][wfp_cleanup]")
+{
+    // This test drives a deterministic fault-injection sequence; skip it under the random fault-injection harness.
+    if (cxplat_fault_injection_is_enabled()) {
+        return;
+    }
+
+    ebpf_extension_data_t npi_specific_characteristics = {
+        .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
+    };
+    test_sock_addr_client_context_header_t client_context_header = {0};
+    client_context_header.context.base.desired_attach_types = {BPF_CGROUP_INET4_CONNECT, BPF_CGROUP_INET6_CONNECT};
+    test_sock_addr_client_context_t* client_context = &client_context_header.context;
+
+    netebpf_ext_helper_t helper(
+        &npi_specific_characteristics,
+        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
+        (netebpfext_helper_base_client_context_t*)client_context);
+
+    // Attaching the connect program creates WFP filters.
+    REQUIRE(usersim_fwp_get_fwpm_filter_count() > 0);
+
+    // Fail the first delete attempt so the inline retry path is exercised.
+    usersim_fwp_set_filter_delete_failure_count(1);
+
+    // Detach: the inline retry recovers the transient failure and removes the filter before returning.
+    helper.detach_hook_client();
+
+    REQUIRE(usersim_fwp_get_fwpm_filter_count() == 0);
+
+    usersim_fwp_set_filter_delete_failure_count(0);
+}
+
+// Verifies that driver unload reclaims a WFP filter's reference when its delete permanently fails: the unload
+// sweep releases the reference so unload completes even though the filter cannot be deleted.
+TEST_CASE("wfp_filter_delete_failure_unload_reclaim", "[netebpfext][wfp_cleanup]")
+{
+    if (cxplat_fault_injection_is_enabled()) {
+        return;
+    }
+
+    ebpf_extension_data_t npi_specific_characteristics = {
+        .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
+    };
+    test_sock_addr_client_context_header_t client_context_header = {0};
+    client_context_header.context.base.desired_attach_types = {BPF_CGROUP_INET4_CONNECT, BPF_CGROUP_INET6_CONNECT};
+    test_sock_addr_client_context_t* client_context = &client_context_header.context;
+
+    {
+        netebpf_ext_helper_t helper(
+            &npi_specific_characteristics,
+            (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
+            (netebpfext_helper_base_client_context_t*)client_context);
+
+        REQUIRE(usersim_fwp_get_fwpm_filter_count() > 0);
+
+        // Fail every delete attempt so the filters remain DELETE_FAILED until the unload sweep.
+        usersim_fwp_set_filter_delete_failure_count(UINT32_MAX);
+
+        helper.detach_hook_client();
+
+        // End of scope runs unload cleanup, which must reclaim the references without asserting or hanging.
+    }
+
+    // Deletes still fail, so the filters remain in the mock engine; clear them for the next test.
+    REQUIRE(usersim_fwp_get_fwpm_filter_count() > 0);
+    usersim_fwp_set_filter_delete_failure_count(0);
+    usersim_fwp_clear_fwpm_filters();
+}
+
+// Verifies that unload deletes now-stale WFP filters (after callout unregister) and releases their references, so
+// no filter survives with a dangling context pointer across a driver reload.
+TEST_CASE("wfp_filter_delete_failure_unload_deletes_stale_filter", "[netebpfext][wfp_cleanup]")
+{
+    if (cxplat_fault_injection_is_enabled()) {
+        return;
+    }
+
+    ebpf_extension_data_t npi_specific_characteristics = {
+        .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
+    };
+    test_sock_addr_client_context_header_t client_context_header = {0};
+    client_context_header.context.base.desired_attach_types = {BPF_CGROUP_INET4_CONNECT, BPF_CGROUP_INET6_CONNECT};
+    test_sock_addr_client_context_t* client_context = &client_context_header.context;
+
+    {
+        netebpf_ext_helper_t helper(
+            &npi_specific_characteristics,
+            (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
+            (netebpfext_helper_base_client_context_t*)client_context);
+
+        REQUIRE(usersim_fwp_get_fwpm_filter_count() > 0);
+
+        // Fail every delete through detach so unload sees DELETE_FAILED filters.
+        usersim_fwp_set_filter_delete_failure_count(UINT32_MAX);
+        helper.detach_hook_client();
+
+        // Let deletes succeed: the unload sweep now deletes the stale filters after callout unregister and
+        // releases their references.
+        usersim_fwp_set_filter_delete_failure_count(0);
+    }
+
+    REQUIRE(usersim_fwp_get_fwpm_filter_count() == 0);
 }
 
 #pragma endregion cgroup_sock_addr
