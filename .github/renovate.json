@@ -13,10 +13,8 @@
     {
       "matchManagers": ["git-submodules"],
       "matchPaths": [
-        "external/win-c",
-        "external/Catch2",
-        "external/pe-parse",
-        "tests/external/kissfft"
+        "external/**",
+        "tests/external/**"
       ],
       "groupName": "git-submodules"
     },
