@@ -39,7 +39,7 @@ jobs:
           egress-policy: audit
 
       - name: Download performance result artifacts
-        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
         with:
           name: Test-Logs-${{inputs.result_artifact}}
           path: ${{github.workspace}}/results_artifact
@@ -65,13 +65,13 @@ jobs:
 
       # Grab the output from the results directory and upload it as an artifact to debug failures.
       - name: Upload data as artifacts for debugging
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: Test-Results-${{inputs.result_artifact}}
           path: ${{github.workspace}}/results
 
       - name: Log into Azure
-        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -105,7 +105,7 @@ jobs:
           psql -f ./check_perf_results.sql -v platform='${{inputs.platform}}' --csv > ${{github.workspace}}/results/regression_results.csv
 
       - name: Upload regression results
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: Regression-Results-${{inputs.result_artifact}}
           path: ${{github.workspace}}/results/regression_results.csv
