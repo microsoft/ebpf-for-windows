@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "ebpf_api.h"
 #include "ebpf_structs.h"
 #include "ir/syntax.hpp"
 #include "platform.hpp"

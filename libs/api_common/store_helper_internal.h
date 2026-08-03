@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "ebpf_api.h"
 #include "ebpf_store_helper.h"
 #include "windows_program_type.h"
 

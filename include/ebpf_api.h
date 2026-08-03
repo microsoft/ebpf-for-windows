@@ -6,6 +6,7 @@
 #include "ebpf_core_structs.h"
 #include "ebpf_execution_type.h"
 #include "ebpf_program_attach_type_guids.h"
+#include "ebpf_program_types.h"
 #include "ebpf_result.h"
 
 #include <specstrings.h>
@@ -25,7 +26,12 @@ extern "C"
     typedef int32_t fd_t;
     extern __declspec(selectany) const fd_t ebpf_fd_invalid = -1;
     typedef intptr_t ebpf_handle_t;
-    typedef struct _ebpf_btf_resolved_function_info ebpf_btf_resolved_function_info_t;
+
+    typedef struct _ebpf_btf_resolved_function_info
+    {
+        GUID module_guid;
+        ebpf_btf_resolved_function_prototype_t prototype;
+    } ebpf_btf_resolved_function_info_t;
 
     struct bpf_object;
     struct bpf_program;

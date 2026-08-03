@@ -28,12 +28,6 @@ extern "C"
         const ebpf_btf_resolved_function_prototype_t* btf_resolved_function_prototypes;
     } ebpf_btf_resolved_function_provider_info_t;
 
-    typedef struct _ebpf_btf_resolved_function_info
-    {
-        GUID module_guid;
-        ebpf_btf_resolved_function_prototype_t prototype;
-    } ebpf_btf_resolved_function_info_t;
-
 #define EBPF_BTF_RESOLVED_FUNCTION_PROVIDER_INFO_CURRENT_VERSION 1
 #define EBPF_BTF_RESOLVED_FUNCTION_PROVIDER_INFO_CURRENT_VERSION_SIZE \
     EBPF_SIZE_INCLUDING_FIELD(ebpf_btf_resolved_function_provider_info_t, btf_resolved_function_prototypes)
