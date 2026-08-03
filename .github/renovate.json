@@ -12,12 +12,16 @@
     },
     {
       "matchManagers": ["git-submodules"],
+      "matchPaths": ["external/ebpf-verifier"],
+      "groupName": "prevail"
+    },
+    {
+      "matchManagers": ["git-submodules"],
       "matchPaths": [
-        "external/win-c",
-        "external/Catch2",
-        "external/pe-parse",
-        "tests/external/kissfft"
+        "external/**",
+        "tests/external/**"
       ],
+      "excludePaths": ["external/ebpf-verifier"],
       "groupName": "git-submodules"
     },
     {
