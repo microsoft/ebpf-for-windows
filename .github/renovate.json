@@ -12,10 +12,16 @@
     },
     {
       "matchManagers": ["git-submodules"],
+      "matchPaths": ["external/ebpf-verifier"],
+      "groupName": "prevail"
+    },
+    {
+      "matchManagers": ["git-submodules"],
       "matchPaths": [
         "external/**",
         "tests/external/**"
       ],
+      "excludePaths": ["external/ebpf-verifier"],
       "groupName": "git-submodules"
     },
     {
