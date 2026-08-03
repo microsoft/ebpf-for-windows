@@ -305,7 +305,7 @@ label_1:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 160, 160}, // Version header.
+        {1, 154, 160}, // Version header.
         func,
         "sample~1",
         "sample_ext",

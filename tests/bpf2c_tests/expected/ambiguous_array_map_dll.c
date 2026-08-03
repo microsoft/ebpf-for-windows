@@ -209,7 +209,7 @@ label_2:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 160, 160}, // Version header.
+        {1, 154, 160}, // Version header.
         ambiguous_map_lookup,
         "bind",
         "bind",

@@ -203,7 +203,7 @@ GlobalVariableTest(void* context, const program_runtime_context_t* runtime_conte
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 160, 160}, // Version header.
+        {1, 154, 160}, // Version header.
         GlobalVariableTest,
         "sample~1",
         "sample_ext",
