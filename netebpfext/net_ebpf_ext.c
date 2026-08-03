@@ -884,9 +884,11 @@ Exit:
 // Reclaims references for non-DELETED filters at driver unload: DELETE_FAILED zombies and filters whose delete
 // notification never arrived. Best-effort deletes the (possibly live) WFP filter and releases the reference once.
 //
-// MUST run after the callout functions are unregistered (so no classify/notify can race) and before the callout
-// objects, sub-layers and provider are deleted (avoids FWP_E_IN_USE and a filter surviving with a dangling
-// rawContext across a reload).
+// Runs after the callout functions are unregistered and before the callout objects, sub-layers and provider are
+// deleted (avoids FWP_E_IN_USE and a filter surviving with a dangling rawContext across a reload). Unregistering
+// the callouts first normally keeps a classify/notify from racing this sweep; if a callout could not be
+// unregistered, a successful delete here can still fire the notify, so each context is pinned across its per-filter
+// processing to stay safe.
 static void
 _net_ebpf_ext_cleanup_leaked_filters(bool all_callouts_unregistered)
 {
@@ -898,6 +900,11 @@ _net_ebpf_ext_cleanup_leaked_filters(bool all_callouts_unregistered)
         net_ebpf_extension_wfp_filter_context_t* filter_context =
             CONTAINING_RECORD(entry, net_ebpf_extension_wfp_filter_context_t, link);
         InitializeListHead(&filter_context->link);
+
+        // Pin the context for the duration of this sweep entry. If a callout could not be unregistered, a
+        // successful FwpmFilterDeleteById below can synchronously fire the delete notification, which releases the
+        // per-filter reference; the pin guarantees the context is not freed out from under the rest of this loop.
+        REFERENCE_FILTER_CONTEXT(filter_context);
 
         // Release the list lock while processing the entry: FwpmFilterDeleteById requires PASSIVE_LEVEL and
         // DEREFERENCE_FILTER_CONTEXT re-acquires this lock.
@@ -949,12 +956,16 @@ _net_ebpf_ext_cleanup_leaked_filters(bool all_callouts_unregistered)
             ASSERT(FALSE);
         }
 
-        // Only the per-filter references this sweep just claimed should remain (the add-time reference was
-        // released on the detach path).
-        ASSERT(filter_context->reference_count == (long)release_count);
+        // Besides the pin taken above, only the per-filter references this sweep just claimed should remain (the
+        // add-time reference was released on the detach path).
+        ASSERT(filter_context->reference_count == (long)release_count + 1);
         for (uint32_t i = 0; i < release_count; i++) {
             DEREFERENCE_FILTER_CONTEXT(filter_context);
         }
+
+        // Release the pin. This may free the context if the releases above dropped its last reference.
+#pragma warning(suppress : 6001) // filter_context is a live list entry pinned above; the loop cannot free it.
+        DEREFERENCE_FILTER_CONTEXT(filter_context);
 
         old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
     }
