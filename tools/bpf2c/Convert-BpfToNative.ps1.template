@@ -135,12 +135,20 @@ if ($VerbosePreference -eq "Continue") {
     $AdditionalOptions += " --verbose"
 }
 
+# Forward an explicit WDK version to the generated project when the caller pinned one. The templates
+# otherwise derive it from $(MSBuildToolsVersion); passing it through guarantees the restore and the
+# build agree, and lets a pipeline override both from one place.
+$WDKVersionArgs = @()
+if ($env:WDKVersion) {
+    $WDKVersionArgs += "/p:WDKVersion=$env:WDKVersion"
+}
+
 # Restore NuGet packages (Windows SDK / WDK) referenced by the generated project so that
 # $(WindowsSdkDir) is resolved from the package and the SDK does not need to be installed on the
 # machine. Both kernel-mode and user-mode templates reference SDK packages, so restore for both.
-msbuild /t:restore /p:Configuration="$Configuration" /p:Platform="$Platform" $ProjectFile
+msbuild /t:restore /p:Configuration="$Configuration" /p:Platform="$Platform" @WDKVersionArgs $ProjectFile
 
-msbuild /p:BinDir="$BinDir\" /p:OutDir="$OutDir\" /p:IncludeDir="$IncludeDir" /p:Configuration="$Configuration" /p:Platform="$Platform" /p:FileName="$FileName" /p:AdditionalOptions="$AdditionalOptions" /p:ResourceFile="$ResourceFile" /p:SpdFile="$SpdFile" $ProjectFile
+msbuild /p:BinDir="$BinDir\" /p:OutDir="$OutDir\" /p:IncludeDir="$IncludeDir" /p:Configuration="$Configuration" /p:Platform="$Platform" /p:FileName="$FileName" /p:AdditionalOptions="$AdditionalOptions" /p:ResourceFile="$ResourceFile" /p:SpdFile="$SpdFile" @WDKVersionArgs $ProjectFile
 
 if ($LASTEXITCODE -ne 0) {
     throw "Build failed for $FileName.o"
