@@ -7,6 +7,7 @@
 #include "ebpf_protocol.h"
 #include "ebpf_registry_helper.h"
 #include "ebpf_shared_framework.h"
+#include "ebpf_store_helper.h"
 #include "ebpf_windows.h"
 #include "hash.h"
 #include "map_descriptors.hpp"
