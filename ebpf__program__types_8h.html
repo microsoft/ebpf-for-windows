@@ -94,6 +94,10 @@ Data Structures</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__helper__function__prototype.html">_ebpf_helper_function_prototype</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__btf__resolved__function__prototype.html">_ebpf_btf_resolved_function_prototype</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__btf__resolved__function__provider__data.html">_ebpf_btf_resolved_function_provider_data</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__program__info.html">_ebpf_program_info</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__helper__function__addresses.html">_ebpf_helper_function_addresses</a></td></tr>
@@ -122,6 +126,10 @@ Typedefs</h2></td></tr>
 <tr class="separator:a2a6b4ce6aa2ad34329354f0f776ec786"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8cabe38407044d4c213492316d2852fc" id="r_a8cabe38407044d4c213492316d2852fc"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__helper__function__prototype.html">_ebpf_helper_function_prototype</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__types_8h.html#a8cabe38407044d4c213492316d2852fc">ebpf_helper_function_prototype_t</a></td></tr>
 <tr class="separator:a8cabe38407044d4c213492316d2852fc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a978fe33e9e46c898b2950d9c65d709c3" id="r_a978fe33e9e46c898b2950d9c65d709c3"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__btf__resolved__function__prototype.html">_ebpf_btf_resolved_function_prototype</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__types_8h.html#a978fe33e9e46c898b2950d9c65d709c3">ebpf_btf_resolved_function_prototype_t</a></td></tr>
+<tr class="separator:a978fe33e9e46c898b2950d9c65d709c3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a918b4b179e247da570e73af0bf86f152" id="r_a918b4b179e247da570e73af0bf86f152"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__btf__resolved__function__provider__data.html">_ebpf_btf_resolved_function_provider_data</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__types_8h.html#a918b4b179e247da570e73af0bf86f152">ebpf_btf_resolved_function_provider_data_t</a></td></tr>
+<tr class="separator:a918b4b179e247da570e73af0bf86f152"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af4c03ef813e8625b8c4c869eea6e7a43" id="r_af4c03ef813e8625b8c4c869eea6e7a43"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__program__info.html">_ebpf_program_info</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__types_8h.html#af4c03ef813e8625b8c4c869eea6e7a43">ebpf_program_info_t</a></td></tr>
 <tr class="separator:af4c03ef813e8625b8c4c869eea6e7a43"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a92fcd0c5efe2b7e5ca59020423fcb8f9" id="r_a92fcd0c5efe2b7e5ca59020423fcb8f9"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__helper__function__addresses.html">_ebpf_helper_function_addresses</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__types_8h.html#a92fcd0c5efe2b7e5ca59020423fcb8f9">ebpf_helper_function_addresses_t</a></td></tr>
@@ -167,6 +175,34 @@ Typedefs</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Typedef Documentation</h2>
+<a id="a978fe33e9e46c898b2950d9c65d709c3" name="a978fe33e9e46c898b2950d9c65d709c3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a978fe33e9e46c898b2950d9c65d709c3">&#9670;&#160;</a></span>ebpf_btf_resolved_function_prototype_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="struct__ebpf__btf__resolved__function__prototype.html">_ebpf_btf_resolved_function_prototype</a> <a class="el" href="ebpf__program__types_8h.html#a978fe33e9e46c898b2950d9c65d709c3">ebpf_btf_resolved_function_prototype_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a918b4b179e247da570e73af0bf86f152" name="a918b4b179e247da570e73af0bf86f152"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a918b4b179e247da570e73af0bf86f152">&#9670;&#160;</a></span>ebpf_btf_resolved_function_provider_data_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="struct__ebpf__btf__resolved__function__provider__data.html">_ebpf_btf_resolved_function_provider_data</a> <a class="el" href="ebpf__program__types_8h.html#a918b4b179e247da570e73af0bf86f152">ebpf_btf_resolved_function_provider_data_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="af224edd0a584f2d18d3b80b0910fe1c3" name="af224edd0a584f2d18d3b80b0910fe1c3"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#af224edd0a584f2d18d3b80b0910fe1c3">&#9670;&#160;</a></span>ebpf_context_descriptor_t</h2>
 

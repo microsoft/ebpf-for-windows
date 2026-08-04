@@ -95,6 +95,10 @@ Data Structures</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__helper__function__data.html">_helper_function_data</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__btf__resolved__function__entry.html">_btf_resolved_function_entry</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__btf__resolved__function__data.html">_btf_resolved_function_data</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__map__entry.html">_map_entry</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Map entry. This structure contains the address of the map and the map definition. The address is written into the entry during load time. The map definition is used to initialize the map when the program is loaded.  <a href="struct__map__entry.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -181,6 +185,22 @@ Macros</h2></td></tr>
 <tr class="separator:a0f887b650de31e3c3e4b3b26e0808661"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7952121751fe8c74e36d52e8563f3a9f" id="r_a7952121751fe8c74e36d52e8563f3a9f"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#a7952121751fe8c74e36d52e8563f3a9f">EBPF_NATIVE_HELPER_FUNCTION_DATA_HEADER</a></td></tr>
 <tr class="separator:a7952121751fe8c74e36d52e8563f3a9f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5ab5b9a98d5d58514dd26c21e6c18ba9" id="r_a5ab5b9a98d5d58514dd26c21e6c18ba9"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#a5ab5b9a98d5d58514dd26c21e6c18ba9">EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION</a>&#160;&#160;&#160;1</td></tr>
+<tr class="separator:a5ab5b9a98d5d58514dd26c21e6c18ba9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a173d4716604102e9ae32c6f8fb55ced6" id="r_a173d4716604102e9ae32c6f8fb55ced6"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#a173d4716604102e9ae32c6f8fb55ced6">EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_SIZE</a>&#160;&#160;&#160;    <a class="el" href="ebpf__windows_8h.html#a3d039b76f2da321ce21b58cdb2a150b1">EBPF_SIZE_INCLUDING_FIELD</a>(<a class="el" href="bpf2c_8h.html#ab6da115b533b1740b841ec0361f13df5">btf_resolved_function_entry_t</a>, module_guid)</td></tr>
+<tr class="separator:a173d4716604102e9ae32c6f8fb55ced6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af2c9b393d2ffffe03c6ec5d5ec9e4d49" id="r_af2c9b393d2ffffe03c6ec5d5ec9e4d49"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#af2c9b393d2ffffe03c6ec5d5ec9e4d49">EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE</a>&#160;&#160;&#160;sizeof(<a class="el" href="bpf2c_8h.html#ab6da115b533b1740b841ec0361f13df5">btf_resolved_function_entry_t</a>)</td></tr>
+<tr class="separator:af2c9b393d2ffffe03c6ec5d5ec9e4d49"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab4d88d72e955ad98bae36594c392452f" id="r_ab4d88d72e955ad98bae36594c392452f"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#ab4d88d72e955ad98bae36594c392452f">EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_HEADER</a></td></tr>
+<tr class="separator:ab4d88d72e955ad98bae36594c392452f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abfe6b17eff5ab9dd28878d0e5e52a895" id="r_abfe6b17eff5ab9dd28878d0e5e52a895"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#abfe6b17eff5ab9dd28878d0e5e52a895">EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_CURRENT_VERSION</a>&#160;&#160;&#160;1</td></tr>
+<tr class="separator:abfe6b17eff5ab9dd28878d0e5e52a895"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a45048c0a6dcd8679b8661233d435abf0" id="r_a45048c0a6dcd8679b8661233d435abf0"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#a45048c0a6dcd8679b8661233d435abf0">EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_CURRENT_VERSION_SIZE</a>&#160;&#160;&#160;    <a class="el" href="ebpf__windows_8h.html#a3d039b76f2da321ce21b58cdb2a150b1">EBPF_SIZE_INCLUDING_FIELD</a>(<a class="el" href="bpf2c_8h.html#a6c94ba9be0487787b0d779e83565eb29">btf_resolved_function_data_t</a>, address)</td></tr>
+<tr class="separator:a45048c0a6dcd8679b8661233d435abf0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afb92df657ec5bd5db79b5d770640fb25" id="r_afb92df657ec5bd5db79b5d770640fb25"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#afb92df657ec5bd5db79b5d770640fb25">EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_CURRENT_VERSION_TOTAL_SIZE</a>&#160;&#160;&#160;sizeof(<a class="el" href="bpf2c_8h.html#a6c94ba9be0487787b0d779e83565eb29">btf_resolved_function_data_t</a>)</td></tr>
+<tr class="separator:afb92df657ec5bd5db79b5d770640fb25"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acc2932bed299aba452694826d55b8eb3" id="r_acc2932bed299aba452694826d55b8eb3"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#acc2932bed299aba452694826d55b8eb3">EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_HEADER</a></td></tr>
+<tr class="separator:acc2932bed299aba452694826d55b8eb3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aaacbc8f55f52d2f10f0394b045b3195f" id="r_aaacbc8f55f52d2f10f0394b045b3195f"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#aaacbc8f55f52d2f10f0394b045b3195f">EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION</a>&#160;&#160;&#160;1</td></tr>
 <tr class="separator:aaacbc8f55f52d2f10f0394b045b3195f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abe3e3ae1468558f97c633b71be154522" id="r_abe3e3ae1468558f97c633b71be154522"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#abe3e3ae1468558f97c633b71be154522">EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_SIZE</a>&#160;&#160;&#160;<a class="el" href="ebpf__windows_8h.html#a3d039b76f2da321ce21b58cdb2a150b1">EBPF_SIZE_INCLUDING_FIELD</a>(<a class="el" href="bpf2c_8h.html#a4fe28d06b61887b8c086b1e132383707">map_entry_t</a>, name)</td></tr>
@@ -199,7 +219,7 @@ Macros</h2></td></tr>
 <tr class="separator:a11f8275d38dd5c5141eb382af036cb32"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aff4ae77082cc95ae6e3616a2fc97377a" id="r_aff4ae77082cc95ae6e3616a2fc97377a"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#aff4ae77082cc95ae6e3616a2fc97377a">EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION</a>&#160;&#160;&#160;1</td></tr>
 <tr class="separator:aff4ae77082cc95ae6e3616a2fc97377a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab9824ef77ae0c69e608b23939b83e1d2" id="r_ab9824ef77ae0c69e608b23939b83e1d2"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#ab9824ef77ae0c69e608b23939b83e1d2">EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE</a>&#160;&#160;&#160;    <a class="el" href="ebpf__windows_8h.html#a3d039b76f2da321ce21b58cdb2a150b1">EBPF_SIZE_INCLUDING_FIELD</a>(<a class="el" href="bpf2c_8h.html#aa90fb1b455357ca56d50c4eaab83f7a0">program_entry_t</a>, program_info_hash_type)</td></tr>
+<tr class="memitem:ab9824ef77ae0c69e608b23939b83e1d2" id="r_ab9824ef77ae0c69e608b23939b83e1d2"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#ab9824ef77ae0c69e608b23939b83e1d2">EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE</a>&#160;&#160;&#160;    <a class="el" href="ebpf__windows_8h.html#a3d039b76f2da321ce21b58cdb2a150b1">EBPF_SIZE_INCLUDING_FIELD</a>(<a class="el" href="bpf2c_8h.html#aa90fb1b455357ca56d50c4eaab83f7a0">program_entry_t</a>, btf_resolved_function_count)</td></tr>
 <tr class="separator:ab9824ef77ae0c69e608b23939b83e1d2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af8a4be97dd2a9da6720b04f7e84c8268" id="r_af8a4be97dd2a9da6720b04f7e84c8268"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#af8a4be97dd2a9da6720b04f7e84c8268">EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_TOTAL_SIZE</a>&#160;&#160;&#160;sizeof(<a class="el" href="bpf2c_8h.html#aa90fb1b455357ca56d50c4eaab83f7a0">program_entry_t</a>)</td></tr>
 <tr class="separator:af8a4be97dd2a9da6720b04f7e84c8268"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -207,7 +227,7 @@ Macros</h2></td></tr>
 <tr class="separator:aea4c25e8bca92ccf413b3c9194dc49f8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa172419606ed79eb90a9defe1f918f75" id="r_aa172419606ed79eb90a9defe1f918f75"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#aa172419606ed79eb90a9defe1f918f75">EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION</a>&#160;&#160;&#160;1</td></tr>
 <tr class="separator:aa172419606ed79eb90a9defe1f918f75"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad223d33885f4c1496d9ed5f7c049bb6d" id="r_ad223d33885f4c1496d9ed5f7c049bb6d"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#ad223d33885f4c1496d9ed5f7c049bb6d">EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION_SIZE</a>&#160;&#160;&#160;    <a class="el" href="ebpf__windows_8h.html#a3d039b76f2da321ce21b58cdb2a150b1">EBPF_SIZE_INCLUDING_FIELD</a>(<a class="el" href="bpf2c_8h.html#a0a39201ab67e6be5778bcc511e9953e6">program_runtime_context_t</a>, map_data)</td></tr>
+<tr class="memitem:ad223d33885f4c1496d9ed5f7c049bb6d" id="r_ad223d33885f4c1496d9ed5f7c049bb6d"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#ad223d33885f4c1496d9ed5f7c049bb6d">EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION_SIZE</a>&#160;&#160;&#160;    <a class="el" href="ebpf__windows_8h.html#a3d039b76f2da321ce21b58cdb2a150b1">EBPF_SIZE_INCLUDING_FIELD</a>(<a class="el" href="bpf2c_8h.html#a0a39201ab67e6be5778bcc511e9953e6">program_runtime_context_t</a>, btf_resolved_function_data)</td></tr>
 <tr class="separator:ad223d33885f4c1496d9ed5f7c049bb6d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad5bffeac888355183ecd4770a79a23e2" id="r_ad5bffeac888355183ecd4770a79a23e2"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#ad5bffeac888355183ecd4770a79a23e2">EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION_TOTAL_SIZE</a>&#160;&#160;&#160;sizeof(<a class="el" href="bpf2c_8h.html#a0a39201ab67e6be5778bcc511e9953e6">program_runtime_context_t</a>)</td></tr>
 <tr class="separator:ad5bffeac888355183ecd4770a79a23e2"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -255,6 +275,10 @@ Typedefs</h2></td></tr>
 <tr class="separator:a5a615dcc4f1c8b536fd125680aa93b72"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1f094fb022a7289457a5be6137d539e6" id="r_a1f094fb022a7289457a5be6137d539e6"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__helper__function__data.html">_helper_function_data</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#a1f094fb022a7289457a5be6137d539e6">helper_function_data_t</a></td></tr>
 <tr class="separator:a1f094fb022a7289457a5be6137d539e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab6da115b533b1740b841ec0361f13df5" id="r_ab6da115b533b1740b841ec0361f13df5"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__btf__resolved__function__entry.html">_btf_resolved_function_entry</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#ab6da115b533b1740b841ec0361f13df5">btf_resolved_function_entry_t</a></td></tr>
+<tr class="separator:ab6da115b533b1740b841ec0361f13df5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6c94ba9be0487787b0d779e83565eb29" id="r_a6c94ba9be0487787b0d779e83565eb29"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__btf__resolved__function__data.html">_btf_resolved_function_data</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#a6c94ba9be0487787b0d779e83565eb29">btf_resolved_function_data_t</a></td></tr>
+<tr class="separator:a6c94ba9be0487787b0d779e83565eb29"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4fe28d06b61887b8c086b1e132383707" id="r_a4fe28d06b61887b8c086b1e132383707"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__map__entry.html">_map_entry</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#a4fe28d06b61887b8c086b1e132383707">map_entry_t</a></td></tr>
 <tr class="memdesc:a4fe28d06b61887b8c086b1e132383707"><td class="mdescLeft">&#160;</td><td class="mdescRight">Map entry. This structure contains the address of the map and the map definition. The address is written into the entry during load time. The map definition is used to initialize the map when the program is loaded.  <br /></td></tr>
 <tr class="separator:a4fe28d06b61887b8c086b1e132383707"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -292,6 +316,130 @@ Functions</h2></td></tr>
 <tr class="separator:a27634689306157c465da8414fabf1df2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
+<a id="abfe6b17eff5ab9dd28878d0e5e52a895" name="abfe6b17eff5ab9dd28878d0e5e52a895"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abfe6b17eff5ab9dd28878d0e5e52a895">&#9670;&#160;</a></span>EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_CURRENT_VERSION</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_CURRENT_VERSION&#160;&#160;&#160;1</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a45048c0a6dcd8679b8661233d435abf0" name="a45048c0a6dcd8679b8661233d435abf0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a45048c0a6dcd8679b8661233d435abf0">&#9670;&#160;</a></span>EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_CURRENT_VERSION_SIZE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_CURRENT_VERSION_SIZE&#160;&#160;&#160;    <a class="el" href="ebpf__windows_8h.html#a3d039b76f2da321ce21b58cdb2a150b1">EBPF_SIZE_INCLUDING_FIELD</a>(<a class="el" href="bpf2c_8h.html#a6c94ba9be0487787b0d779e83565eb29">btf_resolved_function_data_t</a>, address)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="afb92df657ec5bd5db79b5d770640fb25" name="afb92df657ec5bd5db79b5d770640fb25"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afb92df657ec5bd5db79b5d770640fb25">&#9670;&#160;</a></span>EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_CURRENT_VERSION_TOTAL_SIZE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_CURRENT_VERSION_TOTAL_SIZE&#160;&#160;&#160;sizeof(<a class="el" href="bpf2c_8h.html#a6c94ba9be0487787b0d779e83565eb29">btf_resolved_function_data_t</a>)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="acc2932bed299aba452694826d55b8eb3" name="acc2932bed299aba452694826d55b8eb3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#acc2932bed299aba452694826d55b8eb3">&#9670;&#160;</a></span>EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_HEADER</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_HEADER</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<b>Value:</b><div class="fragment"><div class="line">    {<a class="code hl_define" href="bpf2c_8h.html#abfe6b17eff5ab9dd28878d0e5e52a895">EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_CURRENT_VERSION</a>,      \</div>
+<div class="line">     <a class="code hl_define" href="bpf2c_8h.html#a45048c0a6dcd8679b8661233d435abf0">EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_CURRENT_VERSION_SIZE</a>, \</div>
+<div class="line">     <a class="code hl_define" href="bpf2c_8h.html#afb92df657ec5bd5db79b5d770640fb25">EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_CURRENT_VERSION_TOTAL_SIZE</a>}</div>
+<div class="ttc" id="abpf2c_8h_html_a45048c0a6dcd8679b8661233d435abf0"><div class="ttname"><a href="bpf2c_8h.html#a45048c0a6dcd8679b8661233d435abf0">EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_CURRENT_VERSION_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_CURRENT_VERSION_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:305</div></div>
+<div class="ttc" id="abpf2c_8h_html_abfe6b17eff5ab9dd28878d0e5e52a895"><div class="ttname"><a href="bpf2c_8h.html#abfe6b17eff5ab9dd28878d0e5e52a895">EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_CURRENT_VERSION</a></div><div class="ttdeci">#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_CURRENT_VERSION</div><div class="ttdef"><b>Definition</b> bpf2c.h:304</div></div>
+<div class="ttc" id="abpf2c_8h_html_afb92df657ec5bd5db79b5d770640fb25"><div class="ttname"><a href="bpf2c_8h.html#afb92df657ec5bd5db79b5d770640fb25">EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_CURRENT_VERSION_TOTAL_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_CURRENT_VERSION_TOTAL_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:307</div></div>
+</div><!-- fragment -->
+</div>
+</div>
+<a id="a5ab5b9a98d5d58514dd26c21e6c18ba9" name="a5ab5b9a98d5d58514dd26c21e6c18ba9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5ab5b9a98d5d58514dd26c21e6c18ba9">&#9670;&#160;</a></span>EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION&#160;&#160;&#160;1</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a173d4716604102e9ae32c6f8fb55ced6" name="a173d4716604102e9ae32c6f8fb55ced6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a173d4716604102e9ae32c6f8fb55ced6">&#9670;&#160;</a></span>EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_SIZE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_SIZE&#160;&#160;&#160;    <a class="el" href="ebpf__windows_8h.html#a3d039b76f2da321ce21b58cdb2a150b1">EBPF_SIZE_INCLUDING_FIELD</a>(<a class="el" href="bpf2c_8h.html#ab6da115b533b1740b841ec0361f13df5">btf_resolved_function_entry_t</a>, module_guid)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="af2c9b393d2ffffe03c6ec5d5ec9e4d49" name="af2c9b393d2ffffe03c6ec5d5ec9e4d49"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af2c9b393d2ffffe03c6ec5d5ec9e4d49">&#9670;&#160;</a></span>EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE&#160;&#160;&#160;sizeof(<a class="el" href="bpf2c_8h.html#ab6da115b533b1740b841ec0361f13df5">btf_resolved_function_entry_t</a>)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ab4d88d72e955ad98bae36594c392452f" name="ab4d88d72e955ad98bae36594c392452f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab4d88d72e955ad98bae36594c392452f">&#9670;&#160;</a></span>EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_HEADER</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_HEADER</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<b>Value:</b><div class="fragment"><div class="line">    {<a class="code hl_define" href="bpf2c_8h.html#a5ab5b9a98d5d58514dd26c21e6c18ba9">EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION</a>,      \</div>
+<div class="line">     <a class="code hl_define" href="bpf2c_8h.html#a173d4716604102e9ae32c6f8fb55ced6">EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_SIZE</a>, \</div>
+<div class="line">     <a class="code hl_define" href="bpf2c_8h.html#af2c9b393d2ffffe03c6ec5d5ec9e4d49">EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE</a>}</div>
+<div class="ttc" id="abpf2c_8h_html_a173d4716604102e9ae32c6f8fb55ced6"><div class="ttname"><a href="bpf2c_8h.html#a173d4716604102e9ae32c6f8fb55ced6">EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:296</div></div>
+<div class="ttc" id="abpf2c_8h_html_a5ab5b9a98d5d58514dd26c21e6c18ba9"><div class="ttname"><a href="bpf2c_8h.html#a5ab5b9a98d5d58514dd26c21e6c18ba9">EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION</a></div><div class="ttdeci">#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION</div><div class="ttdef"><b>Definition</b> bpf2c.h:295</div></div>
+<div class="ttc" id="abpf2c_8h_html_af2c9b393d2ffffe03c6ec5d5ec9e4d49"><div class="ttname"><a href="bpf2c_8h.html#af2c9b393d2ffffe03c6ec5d5ec9e4d49">EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:298</div></div>
+</div><!-- fragment -->
+</div>
+</div>
 <a id="a84416356bbe807faa240eee2ad3e645e" name="a84416356bbe807faa240eee2ad3e645e"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a84416356bbe807faa240eee2ad3e645e">&#9670;&#160;</a></span>EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_DATA_CURRENT_VERSION</h2>
 
@@ -348,9 +496,9 @@ Functions</h2></td></tr>
 <b>Value:</b><div class="fragment"><div class="line">    {<a class="code hl_define" href="bpf2c_8h.html#a84416356bbe807faa240eee2ad3e645e">EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_DATA_CURRENT_VERSION</a>,      \</div>
 <div class="line">     <a class="code hl_define" href="bpf2c_8h.html#a59d9a86c8ed7f6c33c17428fedf16539">EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_DATA_CURRENT_VERSION_SIZE</a>, \</div>
 <div class="line">     <a class="code hl_define" href="bpf2c_8h.html#a0c9768a8ef6ea7eb35b70d3ba942af42">EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_DATA_CURRENT_VERSION_TOTAL_SIZE</a>}</div>
-<div class="ttc" id="abpf2c_8h_html_a0c9768a8ef6ea7eb35b70d3ba942af42"><div class="ttname"><a href="bpf2c_8h.html#a0c9768a8ef6ea7eb35b70d3ba942af42">EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_DATA_CURRENT_VERSION_TOTAL_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_DATA_CURRENT_VERSION_TOTAL_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:331</div></div>
-<div class="ttc" id="abpf2c_8h_html_a59d9a86c8ed7f6c33c17428fedf16539"><div class="ttname"><a href="bpf2c_8h.html#a59d9a86c8ed7f6c33c17428fedf16539">EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_DATA_CURRENT_VERSION_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_DATA_CURRENT_VERSION_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:329</div></div>
-<div class="ttc" id="abpf2c_8h_html_a84416356bbe807faa240eee2ad3e645e"><div class="ttname"><a href="bpf2c_8h.html#a84416356bbe807faa240eee2ad3e645e">EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_DATA_CURRENT_VERSION</a></div><div class="ttdeci">#define EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_DATA_CURRENT_VERSION</div><div class="ttdef"><b>Definition</b> bpf2c.h:328</div></div>
+<div class="ttc" id="abpf2c_8h_html_a0c9768a8ef6ea7eb35b70d3ba942af42"><div class="ttname"><a href="bpf2c_8h.html#a0c9768a8ef6ea7eb35b70d3ba942af42">EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_DATA_CURRENT_VERSION_TOTAL_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_DATA_CURRENT_VERSION_TOTAL_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:367</div></div>
+<div class="ttc" id="abpf2c_8h_html_a59d9a86c8ed7f6c33c17428fedf16539"><div class="ttname"><a href="bpf2c_8h.html#a59d9a86c8ed7f6c33c17428fedf16539">EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_DATA_CURRENT_VERSION_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_DATA_CURRENT_VERSION_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:365</div></div>
+<div class="ttc" id="abpf2c_8h_html_a84416356bbe807faa240eee2ad3e645e"><div class="ttname"><a href="bpf2c_8h.html#a84416356bbe807faa240eee2ad3e645e">EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_DATA_CURRENT_VERSION</a></div><div class="ttdeci">#define EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_DATA_CURRENT_VERSION</div><div class="ttdef"><b>Definition</b> bpf2c.h:364</div></div>
 </div><!-- fragment -->
 </div>
 </div>
@@ -410,9 +558,9 @@ Functions</h2></td></tr>
 <b>Value:</b><div class="fragment"><div class="line">    {<a class="code hl_define" href="bpf2c_8h.html#aa5a235c8140b89652fb61e523d761280">EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION</a>,      \</div>
 <div class="line">     <a class="code hl_define" href="bpf2c_8h.html#aa0c20467aaac8bc524d2f2c0157097b3">EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION_SIZE</a>, \</div>
 <div class="line">     <a class="code hl_define" href="bpf2c_8h.html#ac04697ff3c4311a70059234e5e424965">EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION_TOTAL_SIZE</a>}</div>
-<div class="ttc" id="abpf2c_8h_html_aa0c20467aaac8bc524d2f2c0157097b3"><div class="ttname"><a href="bpf2c_8h.html#aa0c20467aaac8bc524d2f2c0157097b3">EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:320</div></div>
-<div class="ttc" id="abpf2c_8h_html_aa5a235c8140b89652fb61e523d761280"><div class="ttname"><a href="bpf2c_8h.html#aa5a235c8140b89652fb61e523d761280">EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION</a></div><div class="ttdeci">#define EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION</div><div class="ttdef"><b>Definition</b> bpf2c.h:319</div></div>
-<div class="ttc" id="abpf2c_8h_html_ac04697ff3c4311a70059234e5e424965"><div class="ttname"><a href="bpf2c_8h.html#ac04697ff3c4311a70059234e5e424965">EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION_TOTAL_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION_TOTAL_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:322</div></div>
+<div class="ttc" id="abpf2c_8h_html_aa0c20467aaac8bc524d2f2c0157097b3"><div class="ttname"><a href="bpf2c_8h.html#aa0c20467aaac8bc524d2f2c0157097b3">EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:356</div></div>
+<div class="ttc" id="abpf2c_8h_html_aa5a235c8140b89652fb61e523d761280"><div class="ttname"><a href="bpf2c_8h.html#aa5a235c8140b89652fb61e523d761280">EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION</a></div><div class="ttdeci">#define EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION</div><div class="ttdef"><b>Definition</b> bpf2c.h:355</div></div>
+<div class="ttc" id="abpf2c_8h_html_ac04697ff3c4311a70059234e5e424965"><div class="ttname"><a href="bpf2c_8h.html#ac04697ff3c4311a70059234e5e424965">EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION_TOTAL_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION_TOTAL_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:358</div></div>
 </div><!-- fragment -->
 </div>
 </div>
@@ -472,9 +620,9 @@ Functions</h2></td></tr>
 <b>Value:</b><div class="fragment"><div class="line">    {<a class="code hl_define" href="bpf2c_8h.html#a76400468ed7441e438b263292df5f178">EBPF_NATIVE_HELPER_FUNCTION_DATA_CURRENT_VERSION</a>,      \</div>
 <div class="line">     <a class="code hl_define" href="bpf2c_8h.html#a51bd89770d496d0b55964310b67eb522">EBPF_NATIVE_HELPER_FUNCTION_DATA_CURRENT_VERSION_SIZE</a>, \</div>
 <div class="line">     <a class="code hl_define" href="bpf2c_8h.html#a0f887b650de31e3c3e4b3b26e0808661">EBPF_NATIVE_HELPER_FUNCTION_DATA_CURRENT_VERSION_TOTAL_SIZE</a>}</div>
-<div class="ttc" id="abpf2c_8h_html_a0f887b650de31e3c3e4b3b26e0808661"><div class="ttname"><a href="bpf2c_8h.html#a0f887b650de31e3c3e4b3b26e0808661">EBPF_NATIVE_HELPER_FUNCTION_DATA_CURRENT_VERSION_TOTAL_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_HELPER_FUNCTION_DATA_CURRENT_VERSION_TOTAL_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:271</div></div>
-<div class="ttc" id="abpf2c_8h_html_a51bd89770d496d0b55964310b67eb522"><div class="ttname"><a href="bpf2c_8h.html#a51bd89770d496d0b55964310b67eb522">EBPF_NATIVE_HELPER_FUNCTION_DATA_CURRENT_VERSION_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_HELPER_FUNCTION_DATA_CURRENT_VERSION_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:269</div></div>
-<div class="ttc" id="abpf2c_8h_html_a76400468ed7441e438b263292df5f178"><div class="ttname"><a href="bpf2c_8h.html#a76400468ed7441e438b263292df5f178">EBPF_NATIVE_HELPER_FUNCTION_DATA_CURRENT_VERSION</a></div><div class="ttdeci">#define EBPF_NATIVE_HELPER_FUNCTION_DATA_CURRENT_VERSION</div><div class="ttdef"><b>Definition</b> bpf2c.h:268</div></div>
+<div class="ttc" id="abpf2c_8h_html_a0f887b650de31e3c3e4b3b26e0808661"><div class="ttname"><a href="bpf2c_8h.html#a0f887b650de31e3c3e4b3b26e0808661">EBPF_NATIVE_HELPER_FUNCTION_DATA_CURRENT_VERSION_TOTAL_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_HELPER_FUNCTION_DATA_CURRENT_VERSION_TOTAL_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:289</div></div>
+<div class="ttc" id="abpf2c_8h_html_a51bd89770d496d0b55964310b67eb522"><div class="ttname"><a href="bpf2c_8h.html#a51bd89770d496d0b55964310b67eb522">EBPF_NATIVE_HELPER_FUNCTION_DATA_CURRENT_VERSION_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_HELPER_FUNCTION_DATA_CURRENT_VERSION_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:287</div></div>
+<div class="ttc" id="abpf2c_8h_html_a76400468ed7441e438b263292df5f178"><div class="ttname"><a href="bpf2c_8h.html#a76400468ed7441e438b263292df5f178">EBPF_NATIVE_HELPER_FUNCTION_DATA_CURRENT_VERSION</a></div><div class="ttdeci">#define EBPF_NATIVE_HELPER_FUNCTION_DATA_CURRENT_VERSION</div><div class="ttdef"><b>Definition</b> bpf2c.h:286</div></div>
 </div><!-- fragment -->
 </div>
 </div>
@@ -534,9 +682,9 @@ Functions</h2></td></tr>
 <b>Value:</b><div class="fragment"><div class="line">    {<a class="code hl_define" href="bpf2c_8h.html#a08bf0236b93ff9c76a8b1da39e26c619">EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION</a>,      \</div>
 <div class="line">     <a class="code hl_define" href="bpf2c_8h.html#a4dd7a9cfc759678868cea043a1733782">EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION_SIZE</a>, \</div>
 <div class="line">     <a class="code hl_define" href="bpf2c_8h.html#a353b12b6bec6ad93227f27bbbcc07ca4">EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE</a>}</div>
-<div class="ttc" id="abpf2c_8h_html_a08bf0236b93ff9c76a8b1da39e26c619"><div class="ttname"><a href="bpf2c_8h.html#a08bf0236b93ff9c76a8b1da39e26c619">EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION</a></div><div class="ttdeci">#define EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION</div><div class="ttdef"><b>Definition</b> bpf2c.h:260</div></div>
-<div class="ttc" id="abpf2c_8h_html_a353b12b6bec6ad93227f27bbbcc07ca4"><div class="ttname"><a href="bpf2c_8h.html#a353b12b6bec6ad93227f27bbbcc07ca4">EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:262</div></div>
-<div class="ttc" id="abpf2c_8h_html_a4dd7a9cfc759678868cea043a1733782"><div class="ttname"><a href="bpf2c_8h.html#a4dd7a9cfc759678868cea043a1733782">EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:261</div></div>
+<div class="ttc" id="abpf2c_8h_html_a08bf0236b93ff9c76a8b1da39e26c619"><div class="ttname"><a href="bpf2c_8h.html#a08bf0236b93ff9c76a8b1da39e26c619">EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION</a></div><div class="ttdeci">#define EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION</div><div class="ttdef"><b>Definition</b> bpf2c.h:278</div></div>
+<div class="ttc" id="abpf2c_8h_html_a353b12b6bec6ad93227f27bbbcc07ca4"><div class="ttname"><a href="bpf2c_8h.html#a353b12b6bec6ad93227f27bbbcc07ca4">EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:280</div></div>
+<div class="ttc" id="abpf2c_8h_html_a4dd7a9cfc759678868cea043a1733782"><div class="ttname"><a href="bpf2c_8h.html#a4dd7a9cfc759678868cea043a1733782">EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:279</div></div>
 </div><!-- fragment -->
 </div>
 </div>
@@ -596,9 +744,9 @@ Functions</h2></td></tr>
 <b>Value:</b><div class="fragment"><div class="line">    {<a class="code hl_define" href="bpf2c_8h.html#a2538b71364dea8aa64fdb6f7ba7a12c4">EBPF_NATIVE_MAP_DATA_CURRENT_VERSION</a>,      \</div>
 <div class="line">     <a class="code hl_define" href="bpf2c_8h.html#a93b0fa9584b236c5da6686c0a0e44e04">EBPF_NATIVE_MAP_DATA_CURRENT_VERSION_SIZE</a>, \</div>
 <div class="line">     <a class="code hl_define" href="bpf2c_8h.html#a4035fce4455855fbaffb8320cdbf9528">EBPF_NATIVE_MAP_DATA_CURRENT_VERSION_TOTAL_SIZE</a>}</div>
-<div class="ttc" id="abpf2c_8h_html_a2538b71364dea8aa64fdb6f7ba7a12c4"><div class="ttname"><a href="bpf2c_8h.html#a2538b71364dea8aa64fdb6f7ba7a12c4">EBPF_NATIVE_MAP_DATA_CURRENT_VERSION</a></div><div class="ttdeci">#define EBPF_NATIVE_MAP_DATA_CURRENT_VERSION</div><div class="ttdef"><b>Definition</b> bpf2c.h:285</div></div>
-<div class="ttc" id="abpf2c_8h_html_a4035fce4455855fbaffb8320cdbf9528"><div class="ttname"><a href="bpf2c_8h.html#a4035fce4455855fbaffb8320cdbf9528">EBPF_NATIVE_MAP_DATA_CURRENT_VERSION_TOTAL_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_MAP_DATA_CURRENT_VERSION_TOTAL_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:287</div></div>
-<div class="ttc" id="abpf2c_8h_html_a93b0fa9584b236c5da6686c0a0e44e04"><div class="ttname"><a href="bpf2c_8h.html#a93b0fa9584b236c5da6686c0a0e44e04">EBPF_NATIVE_MAP_DATA_CURRENT_VERSION_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_MAP_DATA_CURRENT_VERSION_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:286</div></div>
+<div class="ttc" id="abpf2c_8h_html_a2538b71364dea8aa64fdb6f7ba7a12c4"><div class="ttname"><a href="bpf2c_8h.html#a2538b71364dea8aa64fdb6f7ba7a12c4">EBPF_NATIVE_MAP_DATA_CURRENT_VERSION</a></div><div class="ttdeci">#define EBPF_NATIVE_MAP_DATA_CURRENT_VERSION</div><div class="ttdef"><b>Definition</b> bpf2c.h:321</div></div>
+<div class="ttc" id="abpf2c_8h_html_a4035fce4455855fbaffb8320cdbf9528"><div class="ttname"><a href="bpf2c_8h.html#a4035fce4455855fbaffb8320cdbf9528">EBPF_NATIVE_MAP_DATA_CURRENT_VERSION_TOTAL_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_MAP_DATA_CURRENT_VERSION_TOTAL_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:323</div></div>
+<div class="ttc" id="abpf2c_8h_html_a93b0fa9584b236c5da6686c0a0e44e04"><div class="ttname"><a href="bpf2c_8h.html#a93b0fa9584b236c5da6686c0a0e44e04">EBPF_NATIVE_MAP_DATA_CURRENT_VERSION_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_MAP_DATA_CURRENT_VERSION_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:322</div></div>
 </div><!-- fragment -->
 </div>
 </div>
@@ -658,9 +806,9 @@ Functions</h2></td></tr>
 <b>Value:</b><div class="fragment"><div class="line">    {<a class="code hl_define" href="bpf2c_8h.html#aaacbc8f55f52d2f10f0394b045b3195f">EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION</a>,      \</div>
 <div class="line">     <a class="code hl_define" href="bpf2c_8h.html#abe3e3ae1468558f97c633b71be154522">EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_SIZE</a>, \</div>
 <div class="line">     <a class="code hl_define" href="bpf2c_8h.html#a4ef66c8ce404c40010eb343e3802aed4">EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_TOTAL_SIZE</a>}</div>
-<div class="ttc" id="abpf2c_8h_html_a4ef66c8ce404c40010eb343e3802aed4"><div class="ttname"><a href="bpf2c_8h.html#a4ef66c8ce404c40010eb343e3802aed4">EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_TOTAL_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_TOTAL_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:279</div></div>
-<div class="ttc" id="abpf2c_8h_html_aaacbc8f55f52d2f10f0394b045b3195f"><div class="ttname"><a href="bpf2c_8h.html#aaacbc8f55f52d2f10f0394b045b3195f">EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION</a></div><div class="ttdeci">#define EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION</div><div class="ttdef"><b>Definition</b> bpf2c.h:277</div></div>
-<div class="ttc" id="abpf2c_8h_html_abe3e3ae1468558f97c633b71be154522"><div class="ttname"><a href="bpf2c_8h.html#abe3e3ae1468558f97c633b71be154522">EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:278</div></div>
+<div class="ttc" id="abpf2c_8h_html_a4ef66c8ce404c40010eb343e3802aed4"><div class="ttname"><a href="bpf2c_8h.html#a4ef66c8ce404c40010eb343e3802aed4">EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_TOTAL_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_TOTAL_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:315</div></div>
+<div class="ttc" id="abpf2c_8h_html_aaacbc8f55f52d2f10f0394b045b3195f"><div class="ttname"><a href="bpf2c_8h.html#aaacbc8f55f52d2f10f0394b045b3195f">EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION</a></div><div class="ttdeci">#define EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION</div><div class="ttdef"><b>Definition</b> bpf2c.h:313</div></div>
+<div class="ttc" id="abpf2c_8h_html_abe3e3ae1468558f97c633b71be154522"><div class="ttname"><a href="bpf2c_8h.html#abe3e3ae1468558f97c633b71be154522">EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:314</div></div>
 </div><!-- fragment -->
 </div>
 </div>
@@ -720,9 +868,9 @@ Functions</h2></td></tr>
 <b>Value:</b><div class="fragment"><div class="line">    {<a class="code hl_define" href="bpf2c_8h.html#a5af7245c738a0701383df866358c2ee2">EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION</a>,      \</div>
 <div class="line">     <a class="code hl_define" href="bpf2c_8h.html#a412d51cbda3c7689f23da4e5f1d1ac0f">EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION_SIZE</a>, \</div>
 <div class="line">     <a class="code hl_define" href="bpf2c_8h.html#a7ad0f7dcd5faecbfdc11e7e93e10c2e1">EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION_TOTAL_SIZE</a>}</div>
-<div class="ttc" id="abpf2c_8h_html_a412d51cbda3c7689f23da4e5f1d1ac0f"><div class="ttname"><a href="bpf2c_8h.html#a412d51cbda3c7689f23da4e5f1d1ac0f">EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:312</div></div>
-<div class="ttc" id="abpf2c_8h_html_a5af7245c738a0701383df866358c2ee2"><div class="ttname"><a href="bpf2c_8h.html#a5af7245c738a0701383df866358c2ee2">EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION</a></div><div class="ttdeci">#define EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION</div><div class="ttdef"><b>Definition</b> bpf2c.h:311</div></div>
-<div class="ttc" id="abpf2c_8h_html_a7ad0f7dcd5faecbfdc11e7e93e10c2e1"><div class="ttname"><a href="bpf2c_8h.html#a7ad0f7dcd5faecbfdc11e7e93e10c2e1">EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION_TOTAL_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION_TOTAL_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:313</div></div>
+<div class="ttc" id="abpf2c_8h_html_a412d51cbda3c7689f23da4e5f1d1ac0f"><div class="ttname"><a href="bpf2c_8h.html#a412d51cbda3c7689f23da4e5f1d1ac0f">EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:348</div></div>
+<div class="ttc" id="abpf2c_8h_html_a5af7245c738a0701383df866358c2ee2"><div class="ttname"><a href="bpf2c_8h.html#a5af7245c738a0701383df866358c2ee2">EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION</a></div><div class="ttdeci">#define EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION</div><div class="ttdef"><b>Definition</b> bpf2c.h:347</div></div>
+<div class="ttc" id="abpf2c_8h_html_a7ad0f7dcd5faecbfdc11e7e93e10c2e1"><div class="ttname"><a href="bpf2c_8h.html#a7ad0f7dcd5faecbfdc11e7e93e10c2e1">EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION_TOTAL_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION_TOTAL_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:349</div></div>
 </div><!-- fragment -->
 </div>
 </div>
@@ -782,9 +930,9 @@ Functions</h2></td></tr>
 <b>Value:</b><div class="fragment"><div class="line">    {<a class="code hl_define" href="bpf2c_8h.html#a39f76a1eed342a8388c8006441ad257e">EBPF_NATIVE_METADATA_TABLE_CURRENT_VERSION</a>,      \</div>
 <div class="line">     <a class="code hl_define" href="bpf2c_8h.html#a0610e0e080bdd7f979ae8be96d91fe96">EBPF_NATIVE_METADATA_TABLE_CURRENT_VERSION_SIZE</a>, \</div>
 <div class="line">     <a class="code hl_define" href="bpf2c_8h.html#adafb6a0040c547031426d841162f75a9">EBPF_NATIVE_METADATA_TABLE_CURRENT_VERSION_TOTAL_SIZE</a>}</div>
-<div class="ttc" id="abpf2c_8h_html_a0610e0e080bdd7f979ae8be96d91fe96"><div class="ttname"><a href="bpf2c_8h.html#a0610e0e080bdd7f979ae8be96d91fe96">EBPF_NATIVE_METADATA_TABLE_CURRENT_VERSION_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_METADATA_TABLE_CURRENT_VERSION_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:338</div></div>
-<div class="ttc" id="abpf2c_8h_html_a39f76a1eed342a8388c8006441ad257e"><div class="ttname"><a href="bpf2c_8h.html#a39f76a1eed342a8388c8006441ad257e">EBPF_NATIVE_METADATA_TABLE_CURRENT_VERSION</a></div><div class="ttdeci">#define EBPF_NATIVE_METADATA_TABLE_CURRENT_VERSION</div><div class="ttdef"><b>Definition</b> bpf2c.h:337</div></div>
-<div class="ttc" id="abpf2c_8h_html_adafb6a0040c547031426d841162f75a9"><div class="ttname"><a href="bpf2c_8h.html#adafb6a0040c547031426d841162f75a9">EBPF_NATIVE_METADATA_TABLE_CURRENT_VERSION_TOTAL_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_METADATA_TABLE_CURRENT_VERSION_TOTAL_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:339</div></div>
+<div class="ttc" id="abpf2c_8h_html_a0610e0e080bdd7f979ae8be96d91fe96"><div class="ttname"><a href="bpf2c_8h.html#a0610e0e080bdd7f979ae8be96d91fe96">EBPF_NATIVE_METADATA_TABLE_CURRENT_VERSION_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_METADATA_TABLE_CURRENT_VERSION_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:374</div></div>
+<div class="ttc" id="abpf2c_8h_html_a39f76a1eed342a8388c8006441ad257e"><div class="ttname"><a href="bpf2c_8h.html#a39f76a1eed342a8388c8006441ad257e">EBPF_NATIVE_METADATA_TABLE_CURRENT_VERSION</a></div><div class="ttdeci">#define EBPF_NATIVE_METADATA_TABLE_CURRENT_VERSION</div><div class="ttdef"><b>Definition</b> bpf2c.h:373</div></div>
+<div class="ttc" id="abpf2c_8h_html_adafb6a0040c547031426d841162f75a9"><div class="ttname"><a href="bpf2c_8h.html#adafb6a0040c547031426d841162f75a9">EBPF_NATIVE_METADATA_TABLE_CURRENT_VERSION_TOTAL_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_METADATA_TABLE_CURRENT_VERSION_TOTAL_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:375</div></div>
 </div><!-- fragment -->
 </div>
 </div>
@@ -809,7 +957,7 @@ Functions</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE&#160;&#160;&#160;    <a class="el" href="ebpf__windows_8h.html#a3d039b76f2da321ce21b58cdb2a150b1">EBPF_SIZE_INCLUDING_FIELD</a>(<a class="el" href="bpf2c_8h.html#aa90fb1b455357ca56d50c4eaab83f7a0">program_entry_t</a>, program_info_hash_type)</td>
+          <td class="memname">#define EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE&#160;&#160;&#160;    <a class="el" href="ebpf__windows_8h.html#a3d039b76f2da321ce21b58cdb2a150b1">EBPF_SIZE_INCLUDING_FIELD</a>(<a class="el" href="bpf2c_8h.html#aa90fb1b455357ca56d50c4eaab83f7a0">program_entry_t</a>, btf_resolved_function_count)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -844,9 +992,9 @@ Functions</h2></td></tr>
 <b>Value:</b><div class="fragment"><div class="line">    {<a class="code hl_define" href="bpf2c_8h.html#aff4ae77082cc95ae6e3616a2fc97377a">EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION</a>,      \</div>
 <div class="line">     <a class="code hl_define" href="bpf2c_8h.html#ab9824ef77ae0c69e608b23939b83e1d2">EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE</a>, \</div>
 <div class="line">     <a class="code hl_define" href="bpf2c_8h.html#af8a4be97dd2a9da6720b04f7e84c8268">EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_TOTAL_SIZE</a>}</div>
-<div class="ttc" id="abpf2c_8h_html_ab9824ef77ae0c69e608b23939b83e1d2"><div class="ttname"><a href="bpf2c_8h.html#ab9824ef77ae0c69e608b23939b83e1d2">EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:294</div></div>
-<div class="ttc" id="abpf2c_8h_html_af8a4be97dd2a9da6720b04f7e84c8268"><div class="ttname"><a href="bpf2c_8h.html#af8a4be97dd2a9da6720b04f7e84c8268">EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_TOTAL_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_TOTAL_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:296</div></div>
-<div class="ttc" id="abpf2c_8h_html_aff4ae77082cc95ae6e3616a2fc97377a"><div class="ttname"><a href="bpf2c_8h.html#aff4ae77082cc95ae6e3616a2fc97377a">EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION</a></div><div class="ttdeci">#define EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION</div><div class="ttdef"><b>Definition</b> bpf2c.h:293</div></div>
+<div class="ttc" id="abpf2c_8h_html_ab9824ef77ae0c69e608b23939b83e1d2"><div class="ttname"><a href="bpf2c_8h.html#ab9824ef77ae0c69e608b23939b83e1d2">EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:330</div></div>
+<div class="ttc" id="abpf2c_8h_html_af8a4be97dd2a9da6720b04f7e84c8268"><div class="ttname"><a href="bpf2c_8h.html#af8a4be97dd2a9da6720b04f7e84c8268">EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_TOTAL_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_TOTAL_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:332</div></div>
+<div class="ttc" id="abpf2c_8h_html_aff4ae77082cc95ae6e3616a2fc97377a"><div class="ttname"><a href="bpf2c_8h.html#aff4ae77082cc95ae6e3616a2fc97377a">EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION</a></div><div class="ttdeci">#define EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION</div><div class="ttdef"><b>Definition</b> bpf2c.h:329</div></div>
 </div><!-- fragment -->
 </div>
 </div>
@@ -871,7 +1019,7 @@ Functions</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION_SIZE&#160;&#160;&#160;    <a class="el" href="ebpf__windows_8h.html#a3d039b76f2da321ce21b58cdb2a150b1">EBPF_SIZE_INCLUDING_FIELD</a>(<a class="el" href="bpf2c_8h.html#a0a39201ab67e6be5778bcc511e9953e6">program_runtime_context_t</a>, map_data)</td>
+          <td class="memname">#define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION_SIZE&#160;&#160;&#160;    <a class="el" href="ebpf__windows_8h.html#a3d039b76f2da321ce21b58cdb2a150b1">EBPF_SIZE_INCLUDING_FIELD</a>(<a class="el" href="bpf2c_8h.html#a0a39201ab67e6be5778bcc511e9953e6">program_runtime_context_t</a>, btf_resolved_function_data)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -906,9 +1054,9 @@ Functions</h2></td></tr>
 <b>Value:</b><div class="fragment"><div class="line">    {<a class="code hl_define" href="bpf2c_8h.html#aa172419606ed79eb90a9defe1f918f75">EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION</a>,      \</div>
 <div class="line">     <a class="code hl_define" href="bpf2c_8h.html#ad223d33885f4c1496d9ed5f7c049bb6d">EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION_SIZE</a>, \</div>
 <div class="line">     <a class="code hl_define" href="bpf2c_8h.html#ad5bffeac888355183ecd4770a79a23e2">EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION_TOTAL_SIZE</a>}</div>
-<div class="ttc" id="abpf2c_8h_html_aa172419606ed79eb90a9defe1f918f75"><div class="ttname"><a href="bpf2c_8h.html#aa172419606ed79eb90a9defe1f918f75">EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION</a></div><div class="ttdeci">#define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION</div><div class="ttdef"><b>Definition</b> bpf2c.h:302</div></div>
-<div class="ttc" id="abpf2c_8h_html_ad223d33885f4c1496d9ed5f7c049bb6d"><div class="ttname"><a href="bpf2c_8h.html#ad223d33885f4c1496d9ed5f7c049bb6d">EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:303</div></div>
-<div class="ttc" id="abpf2c_8h_html_ad5bffeac888355183ecd4770a79a23e2"><div class="ttname"><a href="bpf2c_8h.html#ad5bffeac888355183ecd4770a79a23e2">EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION_TOTAL_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION_TOTAL_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:305</div></div>
+<div class="ttc" id="abpf2c_8h_html_aa172419606ed79eb90a9defe1f918f75"><div class="ttname"><a href="bpf2c_8h.html#aa172419606ed79eb90a9defe1f918f75">EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION</a></div><div class="ttdeci">#define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION</div><div class="ttdef"><b>Definition</b> bpf2c.h:338</div></div>
+<div class="ttc" id="abpf2c_8h_html_ad223d33885f4c1496d9ed5f7c049bb6d"><div class="ttname"><a href="bpf2c_8h.html#ad223d33885f4c1496d9ed5f7c049bb6d">EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:339</div></div>
+<div class="ttc" id="abpf2c_8h_html_ad5bffeac888355183ecd4770a79a23e2"><div class="ttname"><a href="bpf2c_8h.html#ad5bffeac888355183ecd4770a79a23e2">EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION_TOTAL_SIZE</a></div><div class="ttdeci">#define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION_TOTAL_SIZE</div><div class="ttdef"><b>Definition</b> bpf2c.h:341</div></div>
 </div><!-- fragment -->
 </div>
 </div>
@@ -1494,6 +1642,34 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Version information for the bpf2c compiler. This structure contains the version information for the bpf2c compiler that generated the module. It can be used to determine if the module is compatible with the current version of the eBPF for Windows runtime. </p>
+
+</div>
+</div>
+<a id="a6c94ba9be0487787b0d779e83565eb29" name="a6c94ba9be0487787b0d779e83565eb29"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6c94ba9be0487787b0d779e83565eb29">&#9670;&#160;</a></span>btf_resolved_function_data_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="struct__btf__resolved__function__data.html">_btf_resolved_function_data</a> <a class="el" href="bpf2c_8h.html#a6c94ba9be0487787b0d779e83565eb29">btf_resolved_function_data_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ab6da115b533b1740b841ec0361f13df5" name="ab6da115b533b1740b841ec0361f13df5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab6da115b533b1740b841ec0361f13df5">&#9670;&#160;</a></span>btf_resolved_function_entry_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="struct__btf__resolved__function__entry.html">_btf_resolved_function_entry</a> <a class="el" href="bpf2c_8h.html#ab6da115b533b1740b841ec0361f13df5">btf_resolved_function_entry_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
 
 </div>
 </div>

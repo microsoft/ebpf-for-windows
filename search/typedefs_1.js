@@ -12,5 +12,7 @@ var searchData=
   ['bpf_5fsock_5faddr_5ftest_5fcontext_5fheader_5ft_9',['bpf_sock_addr_test_context_header_t',['../ebpf__nethooks_8h.html#a49b2249548619396d89f72e405dc7bab',1,'ebpf_nethooks.h']]],
   ['bpf_5fsock_5faddr_5ftest_5fcontext_5ft_10',['bpf_sock_addr_test_context_t',['../ebpf__nethooks_8h.html#af0d4aa9537c93bed401a45dba5ea9708',1,'ebpf_nethooks.h']]],
   ['bpf_5fsock_5fop_5ftype_5ft_11',['bpf_sock_op_type_t',['../ebpf__nethooks_8h.html#a3fe3512916a92a4073c475cbae9299d9',1,'ebpf_nethooks.h']]],
-  ['bpf_5fsock_5fops_5ft_12',['bpf_sock_ops_t',['../ebpf__nethooks_8h.html#aebf60907274448aa9047f1716c2aef00',1,'ebpf_nethooks.h']]]
+  ['bpf_5fsock_5fops_5ft_12',['bpf_sock_ops_t',['../ebpf__nethooks_8h.html#aebf60907274448aa9047f1716c2aef00',1,'ebpf_nethooks.h']]],
+  ['btf_5fresolved_5ffunction_5fdata_5ft_13',['btf_resolved_function_data_t',['../bpf2c_8h.html#a6c94ba9be0487787b0d779e83565eb29',1,'bpf2c.h']]],
+  ['btf_5fresolved_5ffunction_5fentry_5ft_14',['btf_resolved_function_entry_t',['../bpf2c_8h.html#ab6da115b533b1740b841ec0361f13df5',1,'bpf2c.h']]]
 ];

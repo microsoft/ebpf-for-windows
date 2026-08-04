@@ -86,6 +86,7 @@ $(function() {
 <div class="textblock"><code>#include &quot;<a class="el" href="ebpf__core__structs_8h_source.html">ebpf_core_structs.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="ebpf__execution__type_8h_source.html">ebpf_execution_type.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="ebpf__program__attach__type__guids_8h_source.html">ebpf_program_attach_type_guids.h</a>&quot;</code><br />
+<code>#include &quot;<a class="el" href="ebpf__program__types_8h_source.html">ebpf_program_types.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="ebpf__result_8h_source.html">ebpf_result.h</a>&quot;</code><br />
 <code>#include &lt;specstrings.h&gt;</code><br />
 <code>#include &lt;stdbool.h&gt;</code><br />
@@ -96,6 +97,8 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="nested-classes" name="nested-classes"></a>
 Data Structures</h2></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__btf__resolved__function__info.html">_ebpf_btf_resolved_function_info</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__stat.html">_ebpf_stat</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__api__program__info.html">_ebpf_api_program_info</a></td></tr>
@@ -134,6 +137,8 @@ Typedefs</h2></td></tr>
 <tr class="separator:a90a344fbc365e792f103e07afeca9a7b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abb41989791fe081530c8719049ad1c35" id="r_abb41989791fe081530c8719049ad1c35"><td class="memItemLeft" align="right" valign="top">typedef intptr_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a></td></tr>
 <tr class="separator:abb41989791fe081530c8719049ad1c35"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1b40cf9d37e1a24aaaa5c268e3beab75" id="r_a1b40cf9d37e1a24aaaa5c268e3beab75"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__btf__resolved__function__info.html">_ebpf_btf_resolved_function_info</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a1b40cf9d37e1a24aaaa5c268e3beab75">ebpf_btf_resolved_function_info_t</a></td></tr>
+<tr class="separator:a1b40cf9d37e1a24aaaa5c268e3beab75"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a03e330e1ab6b5c901410d1ffbe0196a1" id="r_a03e330e1ab6b5c901410d1ffbe0196a1"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__stat.html">_ebpf_stat</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a03e330e1ab6b5c901410d1ffbe0196a1">ebpf_stat_t</a></td></tr>
 <tr class="separator:a03e330e1ab6b5c901410d1ffbe0196a1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa03448fc652a54db51ef86dc3d89c724" id="r_aa03448fc652a54db51ef86dc3d89c724"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__api__program__info.html">_ebpf_api_program_info</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#aa03448fc652a54db51ef86dc3d89c724">ebpf_api_program_info_t</a></td></tr>
@@ -277,6 +282,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a2e98338e2f76024209ef6d2cf43580c4" id="r_a2e98338e2f76024209ef6d2cf43580c4"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a2e98338e2f76024209ef6d2cf43580c4">ebpf_get_program_info_from_verifier</a> (const <a class="el" href="ebpf__api_8h.html#af4c03ef813e8625b8c4c869eea6e7a43">ebpf_program_info_t</a> **program_info) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
 <tr class="memdesc:a2e98338e2f76024209ef6d2cf43580c4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the set of program information used by the verifier during the last verification.  <br /></td></tr>
 <tr class="separator:a2e98338e2f76024209ef6d2cf43580c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a495e6f703596f5127d445251417f8100" id="r_a495e6f703596f5127d445251417f8100"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a495e6f703596f5127d445251417f8100">ebpf_get_btf_resolved_function_info_from_verifier</a> (int32_t btf_id, const <a class="el" href="ebpf__api_8h.html#a1b40cf9d37e1a24aaaa5c268e3beab75">ebpf_btf_resolved_function_info_t</a> **function_info) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:a495e6f703596f5127d445251417f8100"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get BTF-resolved function metadata from the verifier cache for the last verification.  <br /></td></tr>
+<tr class="separator:a495e6f703596f5127d445251417f8100"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9436237eddbf00d5ff983812910903f2" id="r_a9436237eddbf00d5ff983812910903f2"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a9436237eddbf00d5ff983812910903f2">ebpf_program_test_run</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> program_fd, _Inout_ <a class="el" href="ebpf__api_8h.html#a19411f9f52f8091cc292b69f1eabe341">ebpf_test_run_options_t</a> *options) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
 <tr class="memdesc:a9436237eddbf00d5ff983812910903f2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Run the program in the eBPF VM, measure the execution time, and return the result.  <br /></td></tr>
 <tr class="separator:a9436237eddbf00d5ff983812910903f2"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -358,6 +366,20 @@ Variables</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">typedef struct <a class="el" href="struct__ebpf__api__program__info.html">_ebpf_api_program_info</a> <a class="el" href="ebpf__api_8h.html#aa03448fc652a54db51ef86dc3d89c724">ebpf_api_program_info_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a1b40cf9d37e1a24aaaa5c268e3beab75" name="a1b40cf9d37e1a24aaaa5c268e3beab75"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1b40cf9d37e1a24aaaa5c268e3beab75">&#9670;&#160;</a></span>ebpf_btf_resolved_function_info_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="struct__ebpf__btf__resolved__function__info.html">_ebpf_btf_resolved_function_info</a> <a class="el" href="ebpf__api_8h.html#a1b40cf9d37e1a24aaaa5c268e3beab75">ebpf_btf_resolved_function_info_t</a></td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -1420,6 +1442,50 @@ Variables</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>BPF program type, or BPF_PROG_TYPE_UNSPEC if not found. </dd></dl>
+
+</div>
+</div>
+<a id="a495e6f703596f5127d445251417f8100" name="a495e6f703596f5127d445251417f8100"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a495e6f703596f5127d445251417f8100">&#9670;&#160;</a></span>ebpf_get_btf_resolved_function_info_from_verifier()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a> ebpf_get_btf_resolved_function_info_from_verifier </td>
+          <td>(</td>
+          <td class="paramtype">int32_t&#160;</td>
+          <td class="paramname"><em>btf_id</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const <a class="el" href="ebpf__api_8h.html#a1b40cf9d37e1a24aaaa5c268e3beab75">ebpf_btf_resolved_function_info_t</a> **&#160;</td>
+          <td class="paramname"><em>function_info</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get BTF-resolved function metadata from the verifier cache for the last verification. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">btf_id</td><td>Session-local BTF ID assigned during verification. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">function_info</td><td>Pointer to the BTF-resolved function metadata. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">EBPF_OBJECT_NOT_FOUND</td><td>No BTF-resolved function was found for the supplied ID. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>

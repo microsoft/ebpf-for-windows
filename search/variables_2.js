@@ -12,6 +12,10 @@ var searchData=
   ['bpf_5fprogram_5ftype_9',['bpf_program_type',['../struct__ebpf__program__section__info.html#a99d97eb39cbad6c72e85bae1cd196c09',1,'_ebpf_program_section_info']]],
   ['btf_5ffd_10',['btf_fd',['../structbpf__create__map__attr.html#ac968c4166f16c5162ce2bc2e596b52d2',1,'bpf_create_map_attr']]],
   ['btf_5fkey_5ftype_5fid_11',['btf_key_type_id',['../structbpf__create__map__attr.html#a2af5ed0a26caa707d79f073ebcf63b05',1,'bpf_create_map_attr']]],
-  ['btf_5fvalue_5ftype_5fid_12',['btf_value_type_id',['../structbpf__create__map__attr.html#ae288ed7aa721c4977b20ef2537e9513c',1,'bpf_create_map_attr']]],
-  ['btf_5fvmlinux_5fvalue_5ftype_5fid_13',['btf_vmlinux_value_type_id',['../structbpf__create__map__attr.html#abddcda681405ee159913dbb0f93747e2',1,'bpf_create_map_attr']]]
+  ['btf_5fresolved_5ffunction_5faddresses_12',['btf_resolved_function_addresses',['../struct__ebpf__btf__resolved__function__provider__data.html#a1d2c392b468f930a854f951474668075',1,'_ebpf_btf_resolved_function_provider_data']]],
+  ['btf_5fresolved_5ffunction_5fcount_13',['btf_resolved_function_count',['../struct__program__entry.html#a8b702d3496b4f1fca1b861a04050df45',1,'_program_entry::btf_resolved_function_count'],['../struct__ebpf__btf__resolved__function__provider__data.html#a542ba34d78dac37f129c5b4a85df4ae1',1,'_ebpf_btf_resolved_function_provider_data::btf_resolved_function_count'],['../struct__ebpf__btf__resolved__function__provider__info.html#a3a8e4f47f8d6cad53f75484e15986970',1,'_ebpf_btf_resolved_function_provider_info::btf_resolved_function_count']]],
+  ['btf_5fresolved_5ffunction_5fdata_14',['btf_resolved_function_data',['../struct__program__runtime__context.html#aa5de523a73d1445a4e8de2fedcf72358',1,'_program_runtime_context']]],
+  ['btf_5fresolved_5ffunction_5fprototypes_15',['btf_resolved_function_prototypes',['../struct__ebpf__btf__resolved__function__provider__data.html#ae85dfc7e869dcac3772b1fee6d0f443a',1,'_ebpf_btf_resolved_function_provider_data::btf_resolved_function_prototypes'],['../struct__ebpf__btf__resolved__function__provider__info.html#a6e9e8b20f0a4ad65a136b9ec06b9ce78',1,'_ebpf_btf_resolved_function_provider_info::btf_resolved_function_prototypes']]],
+  ['btf_5fvalue_5ftype_5fid_16',['btf_value_type_id',['../structbpf__create__map__attr.html#ae288ed7aa721c4977b20ef2537e9513c',1,'bpf_create_map_attr']]],
+  ['btf_5fvmlinux_5fvalue_5ftype_5fid_17',['btf_vmlinux_value_type_id',['../structbpf__create__map__attr.html#abddcda681405ee159913dbb0f93747e2',1,'bpf_create_map_attr']]]
 ];

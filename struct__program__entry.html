@@ -70,6 +70,7 @@ $(function() {
 </div><!-- top -->
 <div class="header">
   <div class="summary">
+<a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="#pub-attribs">Data Fields</a>  </div>
   <div class="headertitle"><div class="title">_program_entry Struct Reference</div></div>
 </div><!--header-->
@@ -80,6 +81,11 @@ $(function() {
 
 <p><code>#include &lt;<a class="el" href="bpf2c_8h_source.html">bpf2c.h</a>&gt;</code></p>
 <table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
+Public Member Functions</h2></td></tr>
+<tr class="memitem:ab7502cd8bc2d33e806990c5a5312e0f3" id="r_ab7502cd8bc2d33e806990c5a5312e0f3"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__program__entry.html#ab7502cd8bc2d33e806990c5a5312e0f3">_Field_size_</a> (<a class="el" href="struct__program__entry.html#a8b702d3496b4f1fca1b861a04050df45">btf_resolved_function_count</a>) <a class="el" href="bpf2c_8h.html#ab6da115b533b1740b841ec0361f13df5">btf_resolved_function_entry_t</a> *btf_resolved_functions</td></tr>
+<tr class="separator:ab7502cd8bc2d33e806990c5a5312e0f3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Data Fields</h2></td></tr>
 <tr class="memitem:a0a3a7687599e518ff649e44aabbf6598" id="r_a0a3a7687599e518ff649e44aabbf6598"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__program__entry.html#a0a3a7687599e518ff649e44aabbf6598">zero</a></td></tr>
@@ -128,10 +134,33 @@ Data Fields</h2></td></tr>
 <tr class="memitem:a1a82a19eec84a1d41bcefd93b7ef914f" id="r_a1a82a19eec84a1d41bcefd93b7ef914f"><td class="memItemLeft" align="right" valign="top">const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__program__entry.html#a1a82a19eec84a1d41bcefd93b7ef914f">program_info_hash_type</a></td></tr>
 <tr class="memdesc:a1a82a19eec84a1d41bcefd93b7ef914f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type of the program info hash.  <br /></td></tr>
 <tr class="separator:a1a82a19eec84a1d41bcefd93b7ef914f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8b702d3496b4f1fca1b861a04050df45" id="r_a8b702d3496b4f1fca1b861a04050df45"><td class="memItemLeft" align="right" valign="top">uint16_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__program__entry.html#a8b702d3496b4f1fca1b861a04050df45">btf_resolved_function_count</a></td></tr>
+<tr class="memdesc:a8b702d3496b4f1fca1b861a04050df45"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of BTF-resolved functions used by the program.  <br /></td></tr>
+<tr class="separator:a8b702d3496b4f1fca1b861a04050df45"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Program entry. This structure contains the address of the program and additional information about the program. </p>
-</div><h2 class="groupheader">Field Documentation</h2>
+</div><h2 class="groupheader">Member Function Documentation</h2>
+<a id="ab7502cd8bc2d33e806990c5a5312e0f3" name="ab7502cd8bc2d33e806990c5a5312e0f3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab7502cd8bc2d33e806990c5a5312e0f3">&#9670;&#160;</a></span>_Field_size_()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">_program_entry::_Field_size_ </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="struct__program__entry.html#a8b702d3496b4f1fca1b861a04050df45">btf_resolved_function_count</a>&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>List of BTF-resolved functions used by the program. </p>
+
+</div>
+</div>
+<h2 class="groupheader">Field Documentation</h2>
 <a id="a526815529c41aff2f2f2dea43839c31a" name="a526815529c41aff2f2f2dea43839c31a"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a526815529c41aff2f2f2dea43839c31a">&#9670;&#160;</a></span>bpf_instruction_count</h2>
 
@@ -145,6 +174,22 @@ Data Fields</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Number of BPF instructions in the program. </p>
+
+</div>
+</div>
+<a id="a8b702d3496b4f1fca1b861a04050df45" name="a8b702d3496b4f1fca1b861a04050df45"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8b702d3496b4f1fca1b861a04050df45">&#9670;&#160;</a></span>btf_resolved_function_count</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint16_t _program_entry::btf_resolved_function_count</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Number of BTF-resolved functions used by the program. </p>
 
 </div>
 </div>
