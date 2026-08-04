@@ -5,7 +5,7 @@ NOTE: With [#4640](https://github.com/microsoft/ebpf-for-windows/pull/4640) The 
   Prefer polling mode via `ring_buffer__new` (or `ebpf_ring_buffer__new` with flags = 0), then call `ring_buffer__poll`
   / `ring_buffer__consume`.
 
-ebpf-for-windows exposes the [libbpf.h](/include/bpf/libbpf.h) interface for user-mode code.
+ebpf-for-windows exposes the [libbpf.h](../include/bpf/libbpf.h) interface for user-mode code.
 
 *More documentation on user-mode API to be added later.*
 
@@ -658,9 +658,9 @@ close(map_fd);
 ## Internal Ring Buffer
 
 The ebpf-for-windows ring buffer map is built on the internal ring buffer implementation in
-[ebpf_ring_buffer.h](/libs/runtime/ebpf_ring_buffer.h) and [ebpf_ring_buffer.c](/libs/runtime/ebpf_ring_buffer.c).
+[ebpf_ring_buffer.h](../libs/runtime/ebpf_ring_buffer.h) and [ebpf_ring_buffer.c](../libs/runtime/ebpf_ring_buffer.c).
 
-- These functions are internal to ebpf-for-windows. User mode code should use [libbpf.h](/include/bpf/libbpf.h).
+- These functions are internal to ebpf-for-windows. User mode code should use [libbpf.h](../include/bpf/libbpf.h).
 
 This section describes the multiple-producer single-consumer internal ring buffer implementation.
 
@@ -712,7 +712,7 @@ typedef struct _ebpf_ring_buffer
 } ebpf_ring_buffer_t;
 ```
 
-- Defined in [ebpf_ring_buffer.c](/libs/runtime/ebpf_ring_buffer.c)
+- Defined in [ebpf_ring_buffer.c](../libs/runtime/ebpf_ring_buffer.c)
 - The producer and consumer offsets are used to synchronize between producers and the consumer.
 - The producer reserve offset is used to serialize producer reservations.
 - Offsets are modulo'd by the length to get the offset of a record in the shared buffer.
@@ -734,7 +734,7 @@ typedef struct _ebpf_ring_buffer_record
 } ebpf_ring_buffer_record_t;
 ```
 
-- Defined in [ebpf_ring_buffer_record.h](/libs/shared/ebpf_ring_buffer_record.h).
+- Defined in [ebpf_ring_buffer_record.h](../libs/shared/ebpf_ring_buffer_record.h).
 - Record includes 8 byte header, with the first 4 bytes indicating the length and lock, discard flags.
   - `page_offset` is for future use with the submit and discard bpf helper functions.
   - 32-2 = 30 bit record length limits records to 1GB.
@@ -800,7 +800,7 @@ To serialize reservations, producers use an interlocked compare-exchange on the 
 
 ### Producer Algorithm
 
-Implemented in [ebpf_ring_buffer.c](/libs/runtime/ebpf_ring_buffer.c).
+Implemented in [ebpf_ring_buffer.c](../libs/runtime/ebpf_ring_buffer.c).
 
 Producers reserve a record, then copy the data, then submit the record.
 

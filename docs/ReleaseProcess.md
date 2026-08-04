@@ -11,11 +11,11 @@ Official releases will be production signed using Microsoft certificates.
 A GitHub issue with the title `Scheduled eBPF release is due` is automatically created on the first day of every month requesting a new release.
 When this issue is triaged, a decision must be taken by the maintainers on whether to go ahead with the new monthly release. If
 the decision is to create a new release the release manager must proceed with the following process.
-1. Create a release branch  in the [Microsoft ebpf-for-windows repo]([https://github.com/microsoft/ebpf-for-windows).
+1. Create a release branch  in the [Microsoft ebpf-for-windows repo](https://github.com/microsoft/ebpf-for-windows).
 **Note:** Only release managers have authority to create new branches. One of the ways to create a release branch is as follows:
    1. Create a topic branch from the "`main`" branch of a forked repo, and name it "`release/X.Y`" (where "`X`" and "`Y`" are the version number
    that is being released).
-   1. Add remote called "upstream" pointing to the [Microsoft ebpf-for-windows repo]([https://github.com/microsoft/ebpf-for-windows). Run:
+   1. Add remote called "upstream" pointing to the [Microsoft ebpf-for-windows repo](https://github.com/microsoft/ebpf-for-windows). Run:
       ```bash
       git remote add upstream https://github.com/microsoft/ebpf-for-windows.git
    1. Push the topic branch into upstream. For example:
@@ -91,9 +91,9 @@ Servicing a release has two main scenarios:
     git mergetool
     ```
 1. Follow the process in the [Updating the Release Version](ReleaseProcess.md#updating-the-release-version) to update the release version to include the *patch version*.
-1. Create a pull-request from the topic branch into the [original "upstream" `ebpf-for-windows` repo]([https://github.com/microsoft/ebpf-for-windows)'s "`release/X.Y`" branch, and title the PR as *"Release v`X.Y.Z`"* where "`Z`" is the patch
+1. Create a pull-request from the topic branch into the [original "upstream" `ebpf-for-windows` repo](https://github.com/microsoft/ebpf-for-windows)'s "`release/X.Y`" branch, and title the PR as *"Release v`X.Y.Z`"* where "`Z`" is the patch
 version.
-1. Once the PR is approved and merged into the "`release/X.Y`" branch in the [original "upstream" `ebpf-for-windows` repo]([https://github.com/microsoft/ebpf-for-windows), and create a tag for the latest commit in the following format: "`vX.Y.Z`".
+1. Once the PR is approved and merged into the "`release/X.Y`" branch in the [original "upstream" `ebpf-for-windows` repo](https://github.com/microsoft/ebpf-for-windows), and create a tag for the latest commit in the following format: "`vX.Y.Z`".
 1. In some rare cases, the main and release branches may have deviated so much, that a bug found in the release branch may require a fix that is no longer applicable to the main branch.
    For such rare cases, a fix may be committed directly to the release branch.
 1. Publish the patch release as per the [Publishing a Release](ReleaseProcess.md#publishing-a-release) process.
