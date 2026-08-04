@@ -178,21 +178,24 @@ typedef enum _ebpf_sock_addr_verdict
 When multiple listen programs are attached, the verdicts are combined using a
 most-restrictive accumulation rule:
 
-- **Priority**: `REJECT` (2) > `PROCEED_HARD` (1) > `PROCEED_SOFT` (0)
-- The accumulated verdict is the highest-priority value seen across all
-  attached programs.
+- **Priority (highest wins)**: `REJECT` > `PROCEED_HARD` > `PROCEED_SOFT`
+- The accumulated verdict is the highest-priority value returned by any
+  attached program.
 - **Short-circuit on REJECT**: If any program returns `REJECT`, the provider
   loop stops immediately — subsequent programs are not invoked.
 - If no programs are attached (or all are detached), the default verdict is
   `PROCEED_SOFT` (permit).
 - An unknown/invalid return value from a program is treated as `REJECT`.
 
-The accumulated verdict then interacts with WFP:
+The accumulated eBPF verdict decides whether the listen is permitted
+(`PROCEED_SOFT` or `PROCEED_HARD`) or denied (`REJECT`, surfaced to the caller as
+`WSAEACCES` / `EACCES`). Among eBPF programs the most-restrictive verdict wins, so
+a later program returning `REJECT` still denies a listen that a prior program
+permitted.
 
-- `PROCEED_SOFT`: listen is allowed unless a WFP filter with higher weight blocks it.
-- `PROCEED_HARD`: listen is allowed unconditionally — clears `FWPS_RIGHT_ACTION_WRITE`
-  so no subsequent WFP filter can override.
-- `REJECT`: listen is denied (returns `WSAEACCES` / `EACCES`).
+Refer to [WFP Filter Arbitration](https://learn.microsoft.com/en-us/windows/win32/fwp/filter-arbitration)
+for the effect of WFP filters in other sublayers on a connection that was
+permitted or rejected by the eBPF programs.
 
 ### Multi-Attach Test Coverage
 
