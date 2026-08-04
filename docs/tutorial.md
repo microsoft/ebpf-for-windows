@@ -694,7 +694,7 @@ value in a pointer argument).
 
 The verifier calls into a `get_helper_prototype(2)` API exposed by
 platform-specific code to query the prototype for a given helper function.
-The platform-specific code ([ebpf_general_helpers.cpp](../libs/execution_context/ebpf_general_helpers.cpp))
+The platform-specific code ([ebpf_general_helpers.c](../libs/execution_context/ebpf_general_helpers.c))
 will return an entry like this one:
 
 ```
