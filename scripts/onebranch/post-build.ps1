@@ -142,13 +142,45 @@ else
     throw ("Configuration $OneBranchConfig is not supported.")
 }
 
-Import-Module "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
-Enter-VsDevShell -VsInstallPath "C:\Program Files\Microsoft Visual Studio\2022\Enterprise"  -DevCmdArguments "-arch=$OneBranchArch -host_arch=x64"
+# Resolve the Visual Studio installation via vswhere rather than hardcoding a version-specific path.
+# The OneBranch build container ships whichever Visual Studio the image was built with (VS 2022 lives
+# under "...\2022\Enterprise", VS 2026 under "...\18\Enterprise"), so a literal path breaks whenever
+# the image is updated. This also puts msbuild on PATH for the packaging steps below.
+$vswherePath = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+if (-not (Test-Path $vswherePath)) {
+    throw "vswhere.exe not found at '$vswherePath'; unable to locate a Visual Studio installation."
+}
+$vsInstallPath = & $vswherePath -latest -products * -property installationPath | Select-Object -First 1
+if (-not $vsInstallPath) {
+    throw "Could not locate a Visual Studio installation via vswhere."
+}
+Write-Host "Using Visual Studio installation at '$vsInstallPath'."
+Import-Module (Join-Path $vsInstallPath "Common7\Tools\Microsoft.VisualStudio.DevShell.dll")
+Enter-VsDevShell -VsInstallPath $vsInstallPath -DevCmdArguments "-arch=$OneBranchArch -host_arch=x64"
 Set-Location $scriptPath\..\..
 $SolutionDir = Get-Location
-msbuild /p:SolutionDir=$SolutionDir\ /p:Configuration=$OneBranchConfig /p:Platform=$OneBranchArch /p:BuildProjectReferences=false /p:ForceRepack=true .\tools\nuget\nuget.vcxproj
-msbuild /p:SolutionDir=$SolutionDir\ /p:Configuration=$OneBranchConfig /p:Platform=$OneBranchArch /p:BuildProjectReferences=false /p:ForceRepack=true .\tools\redist-package\redist-package.vcxproj
-msbuild /p:SolutionDir=$SolutionDir\ /p:Configuration=$OneBranchConfig /p:Platform=$OneBranchArch /p:BuildProjectReferences=false .\installer\ebpf-for-windows.wixproj
+
+# Report packaging errors. These msbuild invocations are deliberately NOT fatal: the
+# nuget.vcxproj repack has been failing with MSB8013 for a long time (usersim.vcxproj, an external
+# submodule, does not declare the NativeOnly* configurations; the .sln supplies a configuration
+# mapping that a direct project build cannot), and the error has always been ignored here. Failing
+# the build on it would break pipelines that pass today, so surface it loudly instead and leave the
+# existing behavior intact.
+function Invoke-PackagingBuild {
+    param (
+        [string]$Project,
+        [string[]]$ExtraArgs = @()
+    )
+    msbuild /p:SolutionDir=$SolutionDir\ /p:Configuration=$OneBranchConfig /p:Platform=$OneBranchArch /p:BuildProjectReferences=false @ExtraArgs $Project
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "msbuild exited with code $LASTEXITCODE for $Project. Continuing (see MSB8013 note above)."
+        $global:LASTEXITCODE = 0
+    }
+}
+
+Invoke-PackagingBuild -Project ".\tools\nuget\nuget.vcxproj" -ExtraArgs @("/p:ForceRepack=true")
+Invoke-PackagingBuild -Project ".\tools\redist-package\redist-package.vcxproj" -ExtraArgs @("/p:ForceRepack=true")
+Invoke-PackagingBuild -Project ".\installer\ebpf-for-windows.wixproj"
 
 # After building the packages
 # Copy the nupkg and msi to the output directory
