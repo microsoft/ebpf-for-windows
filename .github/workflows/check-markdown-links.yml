@@ -52,4 +52,3 @@ jobs:
           # post-merge runs scan every markdown file to catch stale links.
           check-modified-files-only: ${{ github.event_name == 'pull_request' && 'yes' || 'no' }}
           base-branch: ${{ github.event.pull_request.base.ref || 'main' }}
-          

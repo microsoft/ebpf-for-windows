@@ -473,7 +473,7 @@ label_1:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 154, 160}, // Version header.
         function_v4,
         "cgroup~2",
         "cgroup/connect4",
@@ -488,7 +488,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 154, 160}, // Version header.
         function_v6,
         "cgroup~1",
         "cgroup/connect6",

@@ -8,6 +8,8 @@
 #include "bpf_code_generator.h"
 #include "capture_helper.hpp"
 #include "catch_wrapper.hpp"
+#include "ebpf_store_helper.h"
+#include "sample_ext_helpers.h"
 
 #include <filesystem>
 #include <map>
@@ -85,6 +87,30 @@ run_test_main(std::vector<const char*> argv)
         return_value};
 }
 
+static const GUID _btf_test_module_guid = SAMPLE_EXT_BTF_MODULE_GUID_INITIALIZER;
+static const ebpf_btf_resolved_function_prototype_t _btf_test_prototypes[] = {
+    {EBPF_BTF_RESOLVED_FUNCTION_PROTOTYPE_HEADER,
+     SAMPLE_EXT_BTF_FUNCTION_NAME,
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_ANYTHING,
+      EBPF_ARGUMENT_TYPE_PTR_TO_WRITABLE_MEM,
+      EBPF_ARGUMENT_TYPE_CONST_SIZE,
+      EBPF_ARGUMENT_TYPE_DONTCARE,
+      EBPF_ARGUMENT_TYPE_DONTCARE},
+     0}};
+
+static void
+_register_btf_test_provider()
+{
+    static const ebpf_btf_resolved_function_provider_info_t provider_info = {
+        EBPF_BTF_RESOLVED_FUNCTION_PROVIDER_INFO_HEADER,
+        _btf_test_module_guid,
+        static_cast<uint32_t>(_countof(_btf_test_prototypes)),
+        _btf_test_prototypes};
+
+    REQUIRE(ebpf_store_update_btf_resolved_function_provider_information(&provider_info) == EBPF_SUCCESS);
+}
+
 enum class _test_mode
 {
     Verify,
@@ -101,6 +127,9 @@ run_test_elf(const std::string& elf_file, _test_mode test_mode, const std::optio
 {
     std::vector<const char*> argv;
     auto name = elf_file.substr(0, elf_file.find('.'));
+    if (name == "btf_resolved") {
+        _register_btf_test_provider();
+    }
     argv.push_back("bpf2c.exe");
     argv.push_back("--bpf");
     argv.push_back(elf_file.c_str());
@@ -208,6 +237,7 @@ DECLARE_TEST("bindmonitor_mt_tailcall", _test_mode::Verify)
 DECLARE_TEST_CUSTOM_PROGRAM_TYPE("bpf", _test_mode::Verify, std::string("bind"))
 DECLARE_TEST_CUSTOM_PROGRAM_TYPE("bpf", _test_mode::FileOutput, std::string("bind"))
 DECLARE_TEST("bpf_call", _test_mode::Verify)
+DECLARE_TEST("btf_resolved", _test_mode::Verify)
 DECLARE_TEST("callgraph_bpf2bpf", _test_mode::Verify)
 DECLARE_TEST("cgroup_sock_addr", _test_mode::Verify)
 DECLARE_TEST("cgroup_sock_addr2", _test_mode::Verify)

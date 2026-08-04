@@ -1610,6 +1610,82 @@ typedef class _program_info_provider
     HANDLE nmr_provider_handle;
 } program_info_provider_t;
 
+typedef class _btf_function_provider
+{
+  public:
+    ebpf_result_t
+    initialize(_In_ const GUID& module_guid, _In_ const ebpf_btf_resolved_function_provider_data_t* btf_provider_data)
+    {
+        provider_characteristics.ProviderRegistrationInstance.NpiSpecificCharacteristics = btf_provider_data;
+        module_id.Guid = module_guid;
+
+        NTSTATUS status = NmrRegisterProvider(&provider_characteristics, this, &nmr_provider_handle);
+        return NT_SUCCESS(status) ? EBPF_SUCCESS : EBPF_FAILED;
+    }
+
+    ~_btf_function_provider()
+    {
+        if (nmr_provider_handle != INVALID_HANDLE_VALUE) {
+            NTSTATUS status = NmrDeregisterProvider(nmr_provider_handle);
+            if (status == STATUS_PENDING) {
+                NmrWaitForProviderDeregisterComplete(nmr_provider_handle);
+            } else {
+                ebpf_assert(status == STATUS_SUCCESS);
+            }
+        }
+    }
+
+  private:
+    static NTSTATUS
+    provider_attach_client_callback(
+        HANDLE nmr_binding_handle,
+        _Inout_ void* provider_context,
+        _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
+        _In_ const void* client_binding_context,
+        _In_ const void* client_dispatch,
+        _Out_ void** provider_binding_context,
+        _Out_ const void** provider_dispatch)
+    {
+        UNREFERENCED_PARAMETER(nmr_binding_handle);
+        UNREFERENCED_PARAMETER(provider_context);
+        UNREFERENCED_PARAMETER(client_registration_instance);
+        UNREFERENCED_PARAMETER(client_binding_context);
+        UNREFERENCED_PARAMETER(client_dispatch);
+        *provider_binding_context = provider_context;
+        *provider_dispatch = NULL;
+        return STATUS_SUCCESS;
+    };
+
+    static NTSTATUS
+    provider_detach_client_callback(_Inout_ void* provider_binding_context)
+    {
+        UNREFERENCED_PARAMETER(provider_binding_context);
+        return STATUS_SUCCESS;
+    };
+
+    NPI_MODULEID module_id = {
+        sizeof(NPI_MODULEID),
+        MIT_GUID,
+    };
+
+    NPI_PROVIDER_CHARACTERISTICS provider_characteristics{
+        0,
+        sizeof(NPI_PROVIDER_CHARACTERISTICS),
+        (NPI_PROVIDER_ATTACH_CLIENT_FN*)provider_attach_client_callback,
+        (NPI_PROVIDER_DETACH_CLIENT_FN*)provider_detach_client_callback,
+        NULL,
+        {
+            0,
+            sizeof(NPI_REGISTRATION_INSTANCE),
+            &EBPF_BTF_RESOLVED_FUNCTION_EXTENSION_IID,
+            &module_id,
+            0,
+            NULL,
+        },
+    };
+    HANDLE nmr_provider_handle = INVALID_HANDLE_VALUE;
+} btf_function_provider_t;
+
 #define ETHERNET_TYPE_IPV4 0x0800
 std::vector<uint8_t>
 prepare_udp_packet(uint16_t udp_length, uint16_t ethertype);

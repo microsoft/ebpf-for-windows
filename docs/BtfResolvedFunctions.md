@@ -187,7 +187,7 @@ ebpf_store_update_btf_resolved_function_provider_information(
     _In_ const ebpf_btf_resolved_function_provider_info_t* provider_info);
 ```
 
-This API is not currently present in `include/ebpf_store_helper.h`.
+This API is implemented in `include/ebpf_store_helper.h`.
 
 ## 5 Verifier Integration
 
@@ -251,12 +251,17 @@ When generating native code, bpf2c emits a BTF-resolved function import table al
 ```c
 typedef struct _btf_resolved_function_entry
 {
-    uint64_t zero_marker;      // Marker for section parsing (must precede header per bpf2c convention)
     ebpf_native_module_header_t header;
     const char* name;          // Function name
     GUID module_guid;          // Module GUID for NMR binding
 } btf_resolved_function_entry_t;
 ```
+
+Only the BTF-resolved function identity is embedded in the native image. The verifier/provider contract
+(`return_type`, `arguments`, and `flags`) stays in verifier/provider metadata and is not carried in native imports.
+
+When bpf2c emits a shared global BTF array for programs with subprograms, unused slots remain zero-initialized and use
+`name = ""` plus `module_guid = GUID_NULL` as sentinels. Native load skips those placeholders.
 
 ### 6.2 Runtime Context Extension
 
@@ -297,6 +302,9 @@ static btf_resolved_function_entry_t _btf_resolved_functions[] = {
 result = ((int (*)(uint64_t, void*, uint32_t))runtime_context->btf_resolved_function_data[0].address)(key, value, size);
 ```
 
+The generated native import table carries only identity (`name` + `module_guid`). The function prototype used for
+verification and proof-of-verification hashing comes from verifier/provider metadata, not from this emitted table.
+
 ### 6.4 Hash Computation
 
 The program info hash (used for proof of verification) must include BTF-resolved function dependencies:
@@ -307,7 +315,7 @@ The program info hash (used for proof of verification) must include BTF-resolved
    - `btf_resolved_function_entry_t::module_guid`
    - `ebpf_btf_resolved_function_prototype_t::return_type`
    - Each element of `ebpf_btf_resolved_function_prototype_t::arguments`
-   - `ebpf_btf_resolved_function_prototype_t::flags` (only if non-default)
+   - `ebpf_btf_resolved_function_prototype_t::flags`
 
 ## 7 NMR Provider Registration
 
@@ -315,18 +323,16 @@ Drivers that expose BTF-resolved functions register as NMR providers for the BTF
 
 ### 7.1 NPI Definition
 
-The GUID name below is a proposed identifier and is not currently present in `include/ebpf_extension_uuids.h`.
-
 ```c
 // BTF-resolved function NPI ID
 static const GUID EBPF_BTF_RESOLVED_FUNCTION_EXTENSION_IID = {
-    0xaabbccdd, 0x1234, 0x5678, {0x9a, 0xbc, 0xde, 0xf0, 0x12, 0x34, 0x56, 0x78}};
+    0x8cf35ce4, 0x7cf4, 0x4407, {0x88, 0x3e, 0x59, 0xb4, 0xe7, 0x3d, 0xbe, 0x4f}};
 ```
 
 ### 7.2 Provider Registration
 
 When registering as an NMR provider:
-- `NpiId`: Set to the proposed `EBPF_BTF_RESOLVED_FUNCTION_EXTENSION_IID` once this identifier is added
+- `NpiId`: Set to `EBPF_BTF_RESOLVED_FUNCTION_EXTENSION_IID`
 - `ModuleId`: Set to the driver's module GUID (same as in the header and registry)
 - `NpiSpecificCharacteristics`: Pointer to `ebpf_btf_resolved_function_provider_data_t`
 
@@ -397,7 +403,7 @@ All required providers must be attached before the program can execute.
 
 ### 9.1 Program Invocation
 
-Before invoking an eBPF program that uses BTF-resolved functions:
+Before invoking a native eBPF program that uses BTF-resolved functions:
 
 1. Check that all required BTF-resolved function providers are attached
 2. If any provider is detached, return `EBPF_EXTENSION_FAILED_TO_LOAD`
@@ -407,7 +413,8 @@ Before invoking an eBPF program that uses BTF-resolved functions:
 
 ### 9.2 Address Change Notification
 
-Similar to helper functions, BTF-resolved function address changes are propagated via callback:
+If JIT-side BTF runtime support is added in the future, BTF-resolved function address changes can be propagated through
+an explicit callback such as:
 
 ```c
 typedef ebpf_result_t (*ebpf_btf_resolved_function_addresses_changed_callback_t)(
@@ -416,8 +423,10 @@ typedef ebpf_result_t (*ebpf_btf_resolved_function_addresses_changed_callback_t)
     _Inout_ void* context);
 ```
 
-For JIT-compiled programs, this callback updates the jump table. For native programs, the runtime context is updated
-directly.
+Current implementation note: runtime BTF-resolved function execution is native-only. JIT and interpreter programs carry
+the metadata needed for proof-of-verification hashing, but do not currently execute BTF-resolved calls at runtime.
+Native provider attach/detach updates `runtime_context->btf_resolved_function_data[...]` directly; no separate
+`ebpf_btf_resolved_function_addresses_changed_callback_t` surface exists yet.
 
 ### 9.3 Error Handling
 
