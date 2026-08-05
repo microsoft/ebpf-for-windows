@@ -12,21 +12,21 @@
     },
     {
       "matchManagers": ["git-submodules"],
-      "matchPaths": ["external/ebpf-verifier"],
+      "matchDepNames": ["external/ebpf-verifier"],
       "groupName": "prevail"
     },
     {
       "matchManagers": ["git-submodules"],
-      "matchPaths": [
+      "matchDepNames": [
         "external/**",
-        "tests/external/**"
+        "tests/external/**",
+        "!external/ebpf-verifier"
       ],
-      "excludePaths": ["external/ebpf-verifier"],
       "groupName": "git-submodules"
     },
     {
       "matchManagers": ["dockerfile"],
-      "matchPaths": ["images/**"],
+      "matchFileNames": ["images/**"],
       "groupName": "docker"
     }
   ]
