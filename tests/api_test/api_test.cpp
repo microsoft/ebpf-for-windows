@@ -687,9 +687,10 @@ TEST_CASE("ring_buffer_mmap_consumer", "[ring_buffer]")
     _close(map_fd);
 }
 
-void
-_test_nested_maps(bpf_map_type type)
+TEMPLATE_TEST_CASE("map_of_maps", "[map_in_map]", MAP_OF_MAPS_TYPES)
 {
+    constexpr bpf_map_type type = TestType::value;
+
     // Create first inner map.
     fd_t inner_map_fd1 =
         bpf_map_create(BPF_MAP_TYPE_ARRAY, "inner_map1", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
@@ -752,8 +753,71 @@ _test_nested_maps(bpf_map_type type)
     _close(outer_map_fd);
 }
 
-TEST_CASE("array_map_of_maps", "[map_in_map]") { _test_nested_maps(BPF_MAP_TYPE_ARRAY_OF_MAPS); }
-TEST_CASE("hash_map_of_maps", "[map_in_map]") { _test_nested_maps(BPF_MAP_TYPE_HASH_OF_MAPS); }
+static void
+_test_nested_maps_with_inner_type(bpf_map_type outer_map_type, bpf_map_type inner_map_type)
+{
+    int key_size = sizeof(uint32_t);
+    int value_size = sizeof(uint32_t);
+    int max_entries = 1;
+
+    // Adjust creation parameters for special map types.
+    if (inner_map_type == BPF_MAP_TYPE_LPM_TRIE) {
+        key_size = sizeof(uint64_t);
+        max_entries = 10;
+    } else if (inner_map_type == BPF_MAP_TYPE_QUEUE || inner_map_type == BPF_MAP_TYPE_STACK) {
+        key_size = 0;
+        max_entries = 10;
+    } else if (inner_map_type == BPF_MAP_TYPE_RINGBUF || inner_map_type == BPF_MAP_TYPE_PERF_EVENT_ARRAY) {
+        key_size = 0;
+        value_size = 0;
+        max_entries = 8192;
+    }
+
+    // Create first inner map.
+    fd_t inner_map_fd1 = bpf_map_create(inner_map_type, "inner_map1", key_size, value_size, max_entries, nullptr);
+    REQUIRE(inner_map_fd1 > 0);
+
+    // Create outer map using first inner map as template.
+    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd1};
+    fd_t outer_map_fd = bpf_map_create(outer_map_type, "outer_map", sizeof(uint32_t), sizeof(fd_t), 10, &opts);
+    REQUIRE(outer_map_fd > 0);
+
+    // Create second inner map.
+    fd_t inner_map_fd2 = bpf_map_create(inner_map_type, "inner_map2", key_size, value_size, max_entries, nullptr);
+    REQUIRE(inner_map_fd2 > 0);
+
+    // Insert both inner maps in outer map.
+    uint32_t key = 1;
+    uint32_t result = bpf_map_update_elem(outer_map_fd, &key, &inner_map_fd1, 0);
+    REQUIRE(result == 0);
+
+    key = 2;
+    result = bpf_map_update_elem(outer_map_fd, &key, &inner_map_fd2, 0);
+    REQUIRE(result == 0);
+
+    // Remove both inner maps from outer map.
+    key = 1;
+    result = bpf_map_delete_elem(outer_map_fd, &key);
+    REQUIRE(result == 0);
+
+    key = 2;
+    result = bpf_map_delete_elem(outer_map_fd, &key);
+    REQUIRE(result == 0);
+
+    _close(inner_map_fd2);
+    _close(inner_map_fd1);
+    _close(outer_map_fd);
+}
+
+TEMPLATE_TEST_CASE("array_of_maps_inner", "[map_in_map]", ALL_INNER_MAP_TYPES)
+{
+    _test_nested_maps_with_inner_type(BPF_MAP_TYPE_ARRAY_OF_MAPS, TestType::value);
+}
+
+TEMPLATE_TEST_CASE("hash_of_maps_inner", "[map_in_map]", ALL_INNER_MAP_TYPES)
+{
+    _test_nested_maps_with_inner_type(BPF_MAP_TYPE_HASH_OF_MAPS, TestType::value);
+}
 
 TEST_CASE("duplicate_fd", "")
 {
@@ -2959,15 +3023,13 @@ TEST_CASE("Test program order", "[native_tests]")
 }
 
 /**
- * @brief This function tests that reference from outer map to inner map is maintained
- * even when the inner map FD is closed. Also, when the outer map FD id closed, the inner
+ * @brief This test verifies that reference from outer map to inner map is maintained
+ * even when the inner map FD is closed. Also, when the outer map FD is closed, the inner
  * map reference is released.
- *
- * @param map_type The type of the outer map.
  */
-void
-_test_nested_maps_user_reference(bpf_map_type map_type)
+TEMPLATE_TEST_CASE("map_of_maps_user_reference", "[user_reference]", MAP_OF_MAPS_TYPES)
 {
+    constexpr bpf_map_type map_type = TestType::value;
     const int num_inner_maps = 5;
     fd_t inner_map_fds[num_inner_maps];
     uint32_t inner_map_ids[num_inner_maps];
@@ -3045,15 +3107,6 @@ _test_nested_maps_user_reference(bpf_map_type map_type)
     for (int i = 0; i < num_inner_maps; ++i) {
         REQUIRE(bpf_map_get_next_id(0, &inner_map_ids[i]) < 0);
     }
-}
-
-TEST_CASE("array_map_of_maps_user_reference", "[user_reference]")
-{
-    _test_nested_maps_user_reference(BPF_MAP_TYPE_ARRAY_OF_MAPS);
-}
-TEST_CASE("hash_map_of_maps_user_reference", "[user_reference]")
-{
-    _test_nested_maps_user_reference(BPF_MAP_TYPE_HASH_OF_MAPS);
 }
 
 /**
@@ -3926,8 +3979,8 @@ static void
 _set_proof_of_verification(uint32_t enable)
 {
     HKEY key = nullptr;
-    LSTATUS status =
-        RegCreateKeyExW(HKEY_LOCAL_MACHINE, EBPF_PARAMETERS_REGISTRY_PATH, 0, nullptr, 0, KEY_WRITE, nullptr, &key, nullptr);
+    LSTATUS status = RegCreateKeyExW(
+        HKEY_LOCAL_MACHINE, EBPF_PARAMETERS_REGISTRY_PATH, 0, nullptr, 0, KEY_WRITE, nullptr, &key, nullptr);
     REQUIRE(status == ERROR_SUCCESS);
     status = RegSetValueExW(
         key, EBPF_PROOF_OF_VERIFICATION_REGISTRY_VALUE, 0, REG_DWORD, (const BYTE*)&enable, sizeof(enable));
@@ -3943,18 +3996,18 @@ _set_proof_of_verification(uint32_t enable)
  */
 TEST_CASE("proof_of_verification_positive", "[native_tests][proof_of_verification]")
 {
-    // Select the architecture and build-type appropriate signed driver.
-    #if defined(_AMD64_) && defined(_DEBUG)
-        const char* signed_driver_name = "bindmonitor_x64_debug_signed.sys";
-    #elif defined(_AMD64_)
-        const char* signed_driver_name = "bindmonitor_x64_signed.sys";
-    #elif defined(_ARM64_) && defined(_DEBUG)
-        const char* signed_driver_name = "bindmonitor_arm64_debug_signed.sys";
-    #elif defined(_ARM64_)
-        const char* signed_driver_name = "bindmonitor_arm64_signed.sys";
-    #else
-    #error "Unsupported architecture"
-    #endif
+// Select the architecture and build-type appropriate signed driver.
+#if defined(_AMD64_) && defined(_DEBUG)
+    const char* signed_driver_name = "bindmonitor_x64_debug_signed.sys";
+#elif defined(_AMD64_)
+    const char* signed_driver_name = "bindmonitor_x64_signed.sys";
+#elif defined(_ARM64_) && defined(_DEBUG)
+    const char* signed_driver_name = "bindmonitor_arm64_debug_signed.sys";
+#elif defined(_ARM64_)
+    const char* signed_driver_name = "bindmonitor_arm64_signed.sys";
+#else
+#error "Unsupported architecture"
+#endif
 
     // The signed driver must be present in the same directory as api_test.exe.
     REQUIRE(_access(signed_driver_name, 0) == 0);
@@ -3999,7 +4052,7 @@ TEST_CASE("proof_of_verification_positive", "[native_tests][proof_of_verificatio
 /**
  * @brief Test that validates non-production-signed native eBPF modules are rejected.
  *
- * This test validates that a test-signed (non-production-signed) bindmonitor.sys 
+ * This test validates that a test-signed (non-production-signed) bindmonitor.sys
  * is rejected by the proof of verification system.
  *
  * The test expects loading to FAIL because bindmonitor.sys is only test-signed,
