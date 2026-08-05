@@ -599,8 +599,8 @@ _Requires_exclusive_lock_held_(provider_context->lock) static void _net_ebpf_ext
  * @retval STATUS_PENDING The operation is pending completion.
  * @retval STATUS_INVALID_PARAMETER One or more parameters are invalid.
  */
-static NTSTATUS
-_net_ebpf_extension_hook_provider_detach_client(_In_ const void* provider_binding_context)
+_IRQL_requires_(PASSIVE_LEVEL) static NTSTATUS
+    _net_ebpf_extension_hook_provider_detach_client(_In_ const void* provider_binding_context)
 {
     NTSTATUS status = STATUS_PENDING;
     net_ebpf_extension_hook_provider_t* local_provider_context = NULL;
