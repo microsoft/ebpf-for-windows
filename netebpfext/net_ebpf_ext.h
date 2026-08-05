@@ -149,9 +149,9 @@ typedef struct _net_ebpf_extension_wfp_filter_context
 } net_ebpf_extension_wfp_filter_context_t;
 
 /**
- * @brief Structure that holds objects related to WFP that require cleanup.
+ * @brief Structure that holds the provider-context and filter-context lists that require cleanup at driver unload.
  */
-typedef struct _net_ebpf_extension_wfp_cleanup_state
+typedef struct _net_ebpf_extension_cleanup_state
 {
     EX_SPIN_LOCK lock;
     _Guarded_by_(lock) LIST_ENTRY provider_context_cleanup_list; ///< List of provider contexts to cleanup.
@@ -159,7 +159,7 @@ typedef struct _net_ebpf_extension_wfp_cleanup_state
         LIST_ENTRY filter_cleanup_list; ///< List of filter contexts that are awaiting a WFP filter deletion callback.
     bool signal_empty_filter_list : 1;  ///< True if the WFP filter cleanup event should be signaled.
     KEVENT wfp_filter_cleanup_event;    ///< Event to signal when no remaining WFP filters require a deletion callback.
-} net_ebpf_extension_wfp_cleanup_state_t;
+} net_ebpf_extension_cleanup_state_t;
 
 // Macro definition of warning suppression for 26100. This is only used in the cleanup context, for which
 // we are the only reference of the memory
@@ -362,6 +362,13 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object);
  */
 void
 net_ebpf_extension_uninitialize_wfp_components(void);
+
+/**
+ * @brief Wait for the rundown of all provider contexts pending cleanup and free them.
+ *
+ */
+void
+net_ebpf_ext_wait_for_provider_context_rundown(void);
 
 /**
  * @brief Register network extension NPI providers with eBPF core.

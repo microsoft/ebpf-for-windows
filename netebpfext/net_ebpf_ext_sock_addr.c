@@ -920,6 +920,10 @@ _net_ebpf_extension_sock_addr_delete_filter_context(
 
     EBPF_EXT_LOG_ENTRY();
 
+    // net_ebpf_extension_delete_wfp_filters requires PASSIVE_LEVEL. This delete_filter_context callback has a fixed
+    // signature so the requirement cannot be expressed via SAL on it; assert it here instead.
+    ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL);
+
     if (filter_context == NULL) {
         goto Exit;
     }
