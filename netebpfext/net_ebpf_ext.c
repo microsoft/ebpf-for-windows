@@ -49,10 +49,17 @@ static net_ebpf_ext_sublayer_info_t _net_ebpf_ext_sublayers[] = {
      SUBLAYER_WEIGHT_MAXIMUM}};
 
 // Global object used to store state for cleanup.
-static net_ebpf_extension_wfp_cleanup_state_t _net_ebpf_ext_wfp_cleanup_state = {0};
+static net_ebpf_extension_cleanup_state_t _net_ebpf_ext_cleanup_state = {0};
+
+// Bounded inline retry for a transient FwpmFilterDeleteById failure: up to this many attempts (initial + retries).
+#define NET_EBPF_EXT_DELETE_RETRY_MAX_ATTEMPTS 3
+#define NET_EBPF_EXT_DELETE_RETRY_DELAY_100NS (-(SECONDSTO100NS(1) / 20)) // 50 ms, expressed as a relative timeout.
 
 static void
 _net_ebpf_ext_flow_delete(uint16_t layer_id, uint32_t callout_id, uint64_t flow_context);
+
+_IRQL_requires_(PASSIVE_LEVEL) static NTSTATUS
+    _net_ebpf_ext_try_delete_wfp_filter(_In_ HANDLE wfp_engine_handle, uint64_t filter_id, uint32_t max_attempts);
 
 NTSTATUS
 net_ebpf_ext_filter_change_notify(
@@ -419,44 +426,113 @@ net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id)
     return callout_id;
 }
 
-void
-net_ebpf_extension_delete_wfp_filters(
-    _In_ HANDLE wfp_engine_handle,
-    uint32_t filter_count,
-    _Frees_ptr_ _In_count_(filter_count) net_ebpf_ext_wfp_filter_id_t* filter_ids)
+_IRQL_requires_(PASSIVE_LEVEL) void net_ebpf_extension_delete_wfp_filters(
+    _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
     EBPF_EXT_LOG_ENTRY();
     NTSTATUS status = STATUS_SUCCESS;
+    HANDLE wfp_engine_handle = filter_context->wfp_engine_handle;
+    net_ebpf_ext_wfp_filter_id_t* filter_ids = filter_context->filter_ids;
+    uint32_t filter_count = filter_context->filter_ids_count;
+    KIRQL old_irql;
 
     ASSERT(wfp_engine_handle != NULL);
 
     for (uint32_t index = 0; index < filter_count; index++) {
-        filter_ids[index].state = NET_EBPF_EXT_WFP_FILTER_DELETING;
-        status = FwpmFilterDeleteById(wfp_engine_handle, filter_ids[index].id);
+        // State transitions are serialized under the context lock, but the lock is dropped across
+        // FwpmFilterDeleteById because a successful delete re-enters the notification callback, which also takes it.
+        old_irql = ExAcquireSpinLockExclusive(&filter_context->lock);
+        // A filter already in the terminal DELETED state has released its per-filter reference; leave it there
+        // instead of resurrecting it to DELETING, which would make the unload sweep over-release the context.
+        bool already_deleted = (filter_ids[index].state == NET_EBPF_EXT_WFP_FILTER_DELETED);
+        if (!already_deleted) {
+            filter_ids[index].state = NET_EBPF_EXT_WFP_FILTER_DELETING;
+        }
+        ExReleaseSpinLockExclusive(&filter_context->lock, old_irql);
+        if (already_deleted) {
+            continue;
+        }
+
+        // A successful delete synchronously invokes net_ebpf_ext_filter_change_notify, which transitions the
+        // filter to DELETED and releases the per-filter reference. FWP_E_FILTER_NOT_FOUND is treated as success
+        // by the helper (the filter is already gone; its notification either already fired or will not fire).
+        status = _net_ebpf_ext_try_delete_wfp_filter(
+            wfp_engine_handle, filter_ids[index].id, NET_EBPF_EXT_DELETE_RETRY_MAX_ATTEMPTS);
         filter_ids[index].error_code = status;
         if (!NT_SUCCESS(status)) {
             EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
                 EBPF_EXT_TRACELOG_LEVEL_ERROR,
                 EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-                "FwpmFilterDeleteById failed to mark WFP filter for deletion.",
+                "FwpmFilterDeleteById failed to delete WFP filter; leaving as zombie for later recovery.",
                 status,
                 filter_ids[index].id);
-            filter_ids[index].state = NET_EBPF_EXT_WFP_FILTER_DELETE_FAILED;
+            // The failed delete issues no notification, so the reference is still held. Mark it DELETE_FAILED for
+            // recovery by the unload sweep, unless a notification already moved it to DELETED.
+            old_irql = ExAcquireSpinLockExclusive(&filter_context->lock);
+            if (filter_ids[index].state == NET_EBPF_EXT_WFP_FILTER_DELETING) {
+                filter_ids[index].state = NET_EBPF_EXT_WFP_FILTER_DELETE_FAILED;
+            }
+            ExReleaseSpinLockExclusive(&filter_context->lock, old_irql);
         } else {
             EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
                 EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
                 EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-                "FwpmFilterDeleteById successfully marked WFP filter for deletion",
+                "FwpmFilterDeleteById successfully deleted WFP filter",
                 index,
                 filter_ids[index].id);
         }
     }
+
     EBPF_EXT_LOG_EXIT();
 }
 
+_IRQL_requires_(PASSIVE_LEVEL) static NTSTATUS
+    _net_ebpf_ext_try_delete_wfp_filter(_In_ HANDLE wfp_engine_handle, uint64_t filter_id, uint32_t max_attempts)
+{
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    NTSTATUS most_recent_failed_status = STATUS_SUCCESS;
+
+    EBPF_EXT_LOG_ENTRY();
+
+    for (uint32_t attempt = 1; attempt <= max_attempts; attempt++) {
+        status = FwpmFilterDeleteById(wfp_engine_handle, filter_id);
+        if (NT_SUCCESS(status) || WFP_ERROR(status, FILTER_NOT_FOUND)) {
+            // FWP_E_FILTER_NOT_FOUND: the filter is already gone (the original delete may have completed but its
+            // RPC reply was lost). Treat as success so the reference is not released twice.
+            status = STATUS_SUCCESS;
+            break;
+        }
+
+        // Remember the last failing status for the one-per-filter recovered-delete log below.
+        most_recent_failed_status = status;
+
+        if (attempt < max_attempts) {
+            // Back off before retrying. Waiting on an unsignaled event with a relative timeout is a portable
+            // PASSIVE_LEVEL delay that is available in both the kernel driver and the user-mode test builds.
+            KEVENT delay_event;
+            LARGE_INTEGER delay = {0};
+            KeInitializeEvent(&delay_event, NotificationEvent, FALSE);
+            delay.QuadPart = NET_EBPF_EXT_DELETE_RETRY_DELAY_100NS;
+            KeWaitForSingleObject(&delay_event, Executive, KernelMode, FALSE, &delay);
+        }
+    }
+
+    if (NT_SUCCESS(status) && most_recent_failed_status != STATUS_SUCCESS) {
+        // Delete succeeded after an earlier attempt failed (a transient BFE outage the inline retry recovered).
+        // Log once per filter with the last failed status.
+        EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
+            EBPF_EXT_TRACELOG_LEVEL_INFO,
+            EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            "FwpmFilterDeleteById recovered after one or more transient failures.",
+            (uint64_t)most_recent_failed_status,
+            filter_id);
+    }
+
+    EBPF_EXT_RETURN_NTSTATUS(status);
+}
+
 #pragma warning(suppress : 6386) // filter_ids receives a separately allocated buffer sized for filter_count entries.
-_Must_inspect_result_ ebpf_result_t
-net_ebpf_extension_add_wfp_filters(
+_IRQL_requires_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t net_ebpf_extension_add_wfp_filters(
     _In_ HANDLE wfp_engine_handle,
     uint32_t filter_count,
     _In_count_(filter_count) const net_ebpf_extension_wfp_filter_parameters_t* parameters,
@@ -729,9 +805,8 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
         goto Exit;
     }
 
-    InitializeListHead(&_net_ebpf_ext_wfp_cleanup_state.provider_context_cleanup_list);
-    InitializeListHead(&_net_ebpf_ext_wfp_cleanup_state.filter_cleanup_list);
-    KeInitializeEvent(&_net_ebpf_ext_wfp_cleanup_state.wfp_filter_cleanup_event, NotificationEvent, FALSE);
+    InitializeListHead(&_net_ebpf_ext_cleanup_state.provider_context_cleanup_list);
+    InitializeListHead(&_net_ebpf_ext_cleanup_state.filter_cleanup_list);
 
     status = FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, NULL, &_fwp_engine_handle);
     EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmEngineOpen", status);
@@ -802,29 +877,125 @@ Exit:
     EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
-void
-net_ebpf_extension_uninitialize_wfp_components(void)
+// Reclaims references for non-DELETED filters at driver unload: DELETE_FAILED zombies and filters whose delete
+// notification never arrived. Best-effort deletes the (possibly live) WFP filter and releases the reference once.
+//
+// Runs after the callout functions are unregistered and before the callout objects, sub-layers and provider are
+// deleted, which avoids FWP_E_IN_USE and keeps a filter from surviving with a dangling rawContext across a reload.
+// With the callout functions unregistered, WFP no longer delivers a delete notification when a filter is removed, so
+// this sweep releases each reference itself instead of relying on net_ebpf_ext_filter_change_notify. A callout that
+// could not be unregistered is the exception: deleting one of its filters can still fire the notification
+// synchronously and drop the last reference, so each context is pinned across its per-filter processing.
+_IRQL_requires_(PASSIVE_LEVEL) static void _net_ebpf_ext_cleanup_leaked_filters(bool all_callouts_unregistered)
+{
+    EBPF_EXT_LOG_ENTRY();
+
+    KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock);
+
+    while (!IsListEmpty(&_net_ebpf_ext_cleanup_state.filter_cleanup_list)) {
+        uint32_t release_count = 0;
+        PLIST_ENTRY entry = RemoveHeadList(&_net_ebpf_ext_cleanup_state.filter_cleanup_list);
+        net_ebpf_extension_wfp_filter_context_t* filter_context =
+            CONTAINING_RECORD(entry, net_ebpf_extension_wfp_filter_context_t, link);
+        InitializeListHead(&filter_context->link);
+
+        // Pin the context across this sweep entry. If a callout could not be unregistered, a successful
+        // FwpmFilterDeleteById below can synchronously fire net_ebpf_ext_filter_change_notify, which releases the
+        // per-filter reference and may drop the last one; the pin keeps the context alive for the rest of this loop.
+        REFERENCE_FILTER_CONTEXT(filter_context);
+
+        // Release the list lock while processing the entry: FwpmFilterDeleteById requires PASSIVE_LEVEL and
+        // DEREFERENCE_FILTER_CONTEXT re-acquires this lock.
+        ExReleaseSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock, old_irql);
+
+#pragma warning(push)
+#pragma warning(disable : 6001) // Using uninitialized memory 'filter_id'. filter_ids is initialized by add_wfp_filters.
+        for (size_t index = 0; index < filter_context->filter_ids_count; index++) {
+            net_ebpf_ext_wfp_filter_id_t* filter_id = &filter_context->filter_ids[index];
+            net_ebpf_ext_wfp_filter_state_t state;
+            KIRQL filter_irql;
+
+            filter_irql = ExAcquireSpinLockExclusive(&filter_context->lock);
+            state = filter_id->state;
+            ExReleaseSpinLockExclusive(&filter_context->lock, filter_irql);
+
+            if (state == NET_EBPF_EXT_WFP_FILTER_DELETED) {
+                continue;
+            }
+
+            // Best-effort removal of the (possibly still live) WFP filter so it cannot outlive the filter context
+            // it points at. A DELETING filter is already gone (returns FWP_E_FILTER_NOT_FOUND, treated as success).
+            (void)_net_ebpf_ext_try_delete_wfp_filter(
+                filter_context->wfp_engine_handle, filter_id->id, NET_EBPF_EXT_DELETE_RETRY_MAX_ATTEMPTS);
+
+            // Claim any non-DELETED reference under the lock (a filter whose delete notification never fired still
+            // holds it). If a callout could not be unregistered, a racing notification may reach DELETED first; the
+            // claim-under-lock ensures the reference is released exactly once.
+            filter_irql = ExAcquireSpinLockExclusive(&filter_context->lock);
+            if (filter_id->state != NET_EBPF_EXT_WFP_FILTER_DELETED) {
+                filter_id->state = NET_EBPF_EXT_WFP_FILTER_DELETED;
+                release_count++;
+                EBPF_EXT_LOG_MESSAGE_UINT64(
+                    EBPF_EXT_TRACELOG_LEVEL_WARNING,
+                    EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                    "Releasing reference for leaked WFP filter during driver unload.",
+                    filter_id->id);
+            }
+            ExReleaseSpinLockExclusive(&filter_context->lock, filter_irql);
+        }
+#pragma warning(pop)
+
+        // A callout could not be unregistered, so a filter it backs may still be installed. Release the references
+        // anyway so provider rundown cannot hang, and log the condition.
+        if (!all_callouts_unregistered && release_count > 0) {
+            EBPF_EXT_LOG_MESSAGE(
+                EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                "Releasing WFP filter references while a callout is still registered.");
+        }
+
+        // Besides the pin taken above, only the per-filter references this sweep just claimed should remain (the
+        // add-time reference was released on the detach path).
+        ASSERT(filter_context->reference_count == (long)release_count + 1);
+        for (uint32_t i = 0; i < release_count; i++) {
+            DEREFERENCE_FILTER_CONTEXT(filter_context);
+        }
+
+        // Release the pin. This may free the context if the releases above dropped its last reference.
+#pragma warning(suppress : 6001) // filter_context is a live list entry pinned above; the loop cannot free it.
+        DEREFERENCE_FILTER_CONTEXT(filter_context);
+
+        old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock);
+    }
+
+    ExReleaseSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock, old_irql);
+
+    EBPF_EXT_LOG_EXIT();
+}
+
+_IRQL_requires_(PASSIVE_LEVEL) void net_ebpf_extension_uninitialize_wfp_components(void)
 {
     size_t index;
     NTSTATUS status;
     const int max_retries = 10;
-    LARGE_INTEGER timeout = {0};
-    timeout.QuadPart = -SECONDSTO100NS(10);
+    bool all_callouts_unregistered = true;
 
     EBPF_EXT_LOG_ENTRY();
 
     if (_fwp_engine_handle != NULL) {
-        // WFP operations may fail if connections are in the middle of being classified and our WFP filters or callouts
-        // are in use. Prior to this function execution, it is expected that the WFP filter objects were removed,
-        // reducing the risk of this failure to occur. However, the following cleanup functions have retry logic built
-        // in to help ensure that the WFP objects are cleaned up properly.
+        // WFP operations may fail if connections are in the middle of being classified and our WFP filters or
+        // callouts are in use. The cleanup functions below have retry logic to help ensure the WFP objects are
+        // cleaned up properly.
 
-        // Clean up the callouts.
+        // Step 1: Unregister the callout functions. Once this succeeds, WFP can no longer invoke classify/notify,
+        // which makes releasing still-live filters' references safe in step 2. The callout objects are deleted in
+        // step 3, after the filters referencing them are gone.
         for (index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_states); index++) {
-
+            bool callout_unregistered = false;
             for (int i = 1; i <= max_retries; i++) {
                 status = FwpsCalloutUnregisterById(_net_ebpf_ext_wfp_callout_states[index].assigned_callout_id);
                 if (NT_SUCCESS(status) || WFP_ERROR(status, CALLOUT_NOT_FOUND)) {
+                    callout_unregistered = true;
                     break;
                 }
 
@@ -833,7 +1004,18 @@ net_ebpf_extension_uninitialize_wfp_components(void)
                         EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpsCalloutUnregisterById", status);
                 }
             }
+            if (!callout_unregistered) {
+                all_callouts_unregistered = false;
+            }
+        }
 
+        // Step 2: Reclaim leaked filter references before removing the callout objects, sub-layers and provider
+        // they reference.
+        _net_ebpf_ext_cleanup_leaked_filters(all_callouts_unregistered);
+
+        // Step 3: Delete the callout objects; the filters referencing them are gone, so this should not fail with
+        // FWP_E_IN_USE.
+        for (index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_states); index++) {
             for (int i = 1; i <= max_retries; i++) {
                 status =
                     FwpmCalloutDeleteByKey(_fwp_engine_handle, _net_ebpf_ext_wfp_callout_states[index].callout_guid);
@@ -882,6 +1064,10 @@ net_ebpf_extension_uninitialize_wfp_components(void)
             EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmEngineClose", status);
         }
         _fwp_engine_handle = NULL;
+    } else {
+        // No global engine handle (e.g., a failed initialization). Still sweep the (expected-empty) cleanup list so
+        // provider rundown cannot hang.
+        _net_ebpf_ext_cleanup_leaked_filters(all_callouts_unregistered);
     }
 
     // FwpsInjectionHandleCreate can fail. So, check for NULL.
@@ -893,78 +1079,30 @@ net_ebpf_extension_uninitialize_wfp_components(void)
         }
     }
 
-    // If there are cleanup filters, sleep to give WFP time to issue callbacks. Once this timeout completes,
-    // we assume that any remaining notifications will not be issued, and proceed with cleanup.
-    KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
-    if (!IsListEmpty(&_net_ebpf_ext_wfp_cleanup_state.filter_cleanup_list)) {
-        EBPF_EXT_LOG_MESSAGE(
-            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-            "Leaked WFP Filters found. Processing cleanup.");
-        _net_ebpf_ext_wfp_cleanup_state.signal_empty_filter_list = TRUE;
+    EBPF_EXT_LOG_EXIT();
+}
 
-        // Allow some time for WFP to signal deletion for the filters. KeWaitForSingleObject also requires dropping the
-        // IRQL level and therefore the lock.
-        ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
-        status = KeWaitForSingleObject(
-            &_net_ebpf_ext_wfp_cleanup_state.wfp_filter_cleanup_event, Executive, KernelMode, FALSE, &timeout);
-        old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
-
-#pragma warning(push)
-#pragma warning(disable : 6001) // Using uninitialized memory 'filter_context' and 'filter_id'.
-        // Proceed with cleanup - assume that any remaining notifications will never be issued by WFP,
-        // and continue with cleaning up our internal state.
-        while (!IsListEmpty(&_net_ebpf_ext_wfp_cleanup_state.filter_cleanup_list)) {
-            uint32_t leaked_filter_count = 0;
-            PLIST_ENTRY entry = RemoveHeadList(&_net_ebpf_ext_wfp_cleanup_state.filter_cleanup_list);
-            net_ebpf_extension_wfp_filter_context_t* filter_context =
-                CONTAINING_RECORD(entry, net_ebpf_extension_wfp_filter_context_t, link);
-            InitializeListHead(&filter_context->link);
-
-            // Release lock as we process the entry. DEREFERENCE_FILTER_CONTEXT also acquires the lock.
-            ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
-
-            // Anything left in the NET_EBPF_EXT_WFP_FILTER_DELETING is considered leaked. Remove the references
-            // to allow for cleanup.
-            for (index = 0; index < filter_context->filter_ids_count; index++) {
-                net_ebpf_ext_wfp_filter_id_t* filter_id = &filter_context->filter_ids[index];
-                if (filter_id->state == NET_EBPF_EXT_WFP_FILTER_DELETING) {
-                    leaked_filter_count++;
-                    EBPF_EXT_LOG_MESSAGE_UINT64(
-                        EBPF_EXT_TRACELOG_LEVEL_WARNING,
-                        EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-                        "Releasing reference for leaked WFP filter.",
-                        filter_id->id);
-                }
-            }
-
-            // Remove remaining references.
-            ASSERT(filter_context->reference_count == (long)leaked_filter_count);
-            for (index = 0; index < leaked_filter_count; index++) {
-                DEREFERENCE_FILTER_CONTEXT(filter_context);
-            }
-
-            old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
-        }
-#pragma warning(pop)
-    }
+_IRQL_requires_(PASSIVE_LEVEL) void net_ebpf_ext_wait_for_provider_context_rundown(void)
+{
+    EBPF_EXT_LOG_ENTRY();
 
     // Iterate through the provider list and handle cleanup.
-    while (!IsListEmpty(&_net_ebpf_ext_wfp_cleanup_state.provider_context_cleanup_list)) {
-        PLIST_ENTRY entry = RemoveHeadList(&_net_ebpf_ext_wfp_cleanup_state.provider_context_cleanup_list);
+    KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock);
+    while (!IsListEmpty(&_net_ebpf_ext_cleanup_state.provider_context_cleanup_list)) {
+        PLIST_ENTRY entry = RemoveHeadList(&_net_ebpf_ext_cleanup_state.provider_context_cleanup_list);
         net_ebpf_extension_hook_provider_t* provider_context =
             CONTAINING_RECORD(entry, net_ebpf_extension_hook_provider_t, cleanup_list_entry);
 
         // Release the lock as waiting for rundown can take time.
-        ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
+        ExReleaseSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock, old_irql);
         ebpf_ext_wait_for_rundown(&provider_context->rundown);
         ExFreePool(provider_context);
 
         // Re-acquire the lock.
-        old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
+        old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock);
     }
 
-    ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
+    ExReleaseSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock, old_irql);
 
     EBPF_EXT_LOG_EXIT();
 }
@@ -980,11 +1118,21 @@ net_ebpf_ext_filter_change_notify(
     if (callout_notification_type == FWPS_CALLOUT_NOTIFY_DELETE_FILTER) {
         net_ebpf_extension_wfp_filter_context_t* filter_context =
             (net_ebpf_extension_wfp_filter_context_t*)(uintptr_t)filter->context;
+        bool release_reference = false;
+        KIRQL old_irql;
 
+        // Exactly one path (this notification or the unload cleanup sweep) releases the per-filter reference; the
+        // idempotent transition to DELETED is the claim.
+        old_irql = ExAcquireSpinLockExclusive(&filter_context->lock);
         for (uint32_t index = 0; index < filter_context->filter_ids_count; index++) {
             net_ebpf_ext_wfp_filter_id_t* cur_filter_id = &filter_context->filter_ids[index];
             if (cur_filter_id->id == filter->filterId) {
-                cur_filter_id->state = NET_EBPF_EXT_WFP_FILTER_DELETED;
+                // Any non-DELETED state still owns the reference (including an external delete or a BFE teardown of
+                // an ADDED filter); claim it by transitioning to DELETED.
+                if (cur_filter_id->state != NET_EBPF_EXT_WFP_FILTER_DELETED) {
+                    cur_filter_id->state = NET_EBPF_EXT_WFP_FILTER_DELETED;
+                    release_reference = true;
+                }
                 EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
                     EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
                     EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
@@ -995,7 +1143,12 @@ net_ebpf_ext_filter_change_notify(
                 break;
             }
         }
-        DEREFERENCE_FILTER_CONTEXT((filter_context));
+        ExReleaseSpinLockExclusive(&filter_context->lock, old_irql);
+
+        // Dereference outside the filter lock: it can free the context and re-acquires the cleanup-list lock.
+        if (release_reference) {
+            DEREFERENCE_FILTER_CONTEXT((filter_context));
+        }
     }
 
     EBPF_EXT_RETURN_NTSTATUS(STATUS_SUCCESS);
@@ -1158,31 +1311,26 @@ Exit:
 void
 net_ebpf_ext_add_provider_context_to_cleanup_list(_Inout_ net_ebpf_extension_hook_provider_t* provider_context)
 {
-    KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
-    InsertTailList(
-        &_net_ebpf_ext_wfp_cleanup_state.provider_context_cleanup_list, &provider_context->cleanup_list_entry);
-    ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
+    KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock);
+    InsertTailList(&_net_ebpf_ext_cleanup_state.provider_context_cleanup_list, &provider_context->cleanup_list_entry);
+    ExReleaseSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock, old_irql);
 }
 
 void
 net_ebpf_ext_add_filter_context_to_cleanup_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
-    KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
-    InsertTailList(&_net_ebpf_ext_wfp_cleanup_state.filter_cleanup_list, &filter_context->link);
-    ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
+    KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock);
+    InsertTailList(&_net_ebpf_ext_cleanup_state.filter_cleanup_list, &filter_context->link);
+    ExReleaseSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock, old_irql);
 }
 
 void
 net_ebpf_ext_remove_filter_context_from_cleanup_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
     if (!IsListEmpty(&filter_context->link)) {
-        KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
+        KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock);
         RemoveEntryList(&filter_context->link);
         InitializeListHead(&filter_context->link);
-        if (IsListEmpty(&_net_ebpf_ext_wfp_cleanup_state.filter_cleanup_list) &&
-            _net_ebpf_ext_wfp_cleanup_state.signal_empty_filter_list) {
-            KeSetEvent(&_net_ebpf_ext_wfp_cleanup_state.wfp_filter_cleanup_event, 0, FALSE);
-        }
-        ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
+        ExReleaseSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock, old_irql);
     }
 }

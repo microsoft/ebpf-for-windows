@@ -122,6 +122,16 @@ typedef class _netebpf_ext_helper
         return usersim_fwp_cgroup_inet6_listen(const_cast<fwp_classify_parameters_t*>(parameters));
     }
 
+    // Detach the hook client via NMR (deletes its WFP filters) while leaving WFP initialized, for filter-delete
+    // recovery tests.
+    void
+    detach_hook_client()
+    {
+        if (nmr_hook_client_handle) {
+            nmr_hook_client_handle.reset(nullptr);
+        }
+    }
+
   private:
     bool trace_initiated = false;
     bool ndis_handle_initialized = false;

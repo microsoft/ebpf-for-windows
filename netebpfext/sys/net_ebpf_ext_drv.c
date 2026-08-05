@@ -47,6 +47,8 @@ _net_ebpf_ext_driver_uninitialize_objects()
 
     net_ebpf_extension_uninitialize_wfp_components();
 
+    net_ebpf_ext_wait_for_provider_context_rundown();
+
     net_ebpf_ext_uninitialize_ndis_handles();
 
     ebpf_ext_trace_terminate();

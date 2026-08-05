@@ -114,6 +114,7 @@ _netebpf_ext_helper::~_netebpf_ext_helper()
 
     if (wfp_initialized) {
         net_ebpf_extension_uninitialize_wfp_components();
+        net_ebpf_ext_wait_for_provider_context_rundown();
     }
 
     if (ndis_handle_initialized) {
