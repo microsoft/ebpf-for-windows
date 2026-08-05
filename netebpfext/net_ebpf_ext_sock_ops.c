@@ -367,6 +367,8 @@ net_ebpf_ext_sock_ops_register_providers()
         &dispatch_table,
         ATTACH_CAPABILITY_SINGLE_ATTACH_PER_HOOK,
         NULL,
+        false,
+        NULL,
         &_ebpf_sock_ops_hook_provider_context);
     if (status != EBPF_SUCCESS) {
         EBPF_EXT_LOG_MESSAGE_NTSTATUS(

@@ -198,6 +198,8 @@ net_ebpf_ext_bind_register_providers()
         &dispatch_table,
         ATTACH_CAPABILITY_SINGLE_ATTACH,
         NULL,
+        true,
+        "Use BPF_PROG_TYPE_CGROUP_SOCK_ADDR with BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND instead.",
         &_ebpf_bind_hook_provider_context);
     if (status != EBPF_SUCCESS) {
         EBPF_EXT_LOG_MESSAGE_NTSTATUS(
