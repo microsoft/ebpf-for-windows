@@ -36,7 +36,7 @@ Personnel: @alessandrogario @evershalik @hawkinsw @song-jiang
 Minimum Requirements:
 * Has attended a triage meeting
 * Has agreed to have a github issue assigned to them to work on
-* Is approved by the existing [Project Admins](@project-admin)
+* Is approved by the existing [Project Admins](#project-admin)
 
 Responsibilities:
 * Contribute pull requests for any assigned issues
@@ -52,7 +52,7 @@ Personnel: @mingxr
 Minimum Requirements:
 * Consistently participates in weekly triage meetings
 * Has ability and willingness to share screen in Zoom
-* Is approved by the existing [Project Admins](@project-admin)
+* Is approved by the existing [Project Admins](#project-admin)
 
 Responsibilities:
 * Run the weekly [triage meetings](https://github.com/microsoft/ebpf-for-windows/discussions/427).
@@ -74,7 +74,7 @@ Minimum Requirements:
 * Has submitted multiple pull requests across at least 2 months that have been merged
 * Has provided feedback on multiple pull requests from others, across at least 2 months
 * Has demonstrated an understanding of a particular area of the code such as one or more directories
-* Is approved by the existing [Project Admins](@project-admin)
+* Is approved by the existing [Project Admins](#project-admin)
 
 Responsibilities:
 * [Review pull requests](#reviewing-pull-requests) from others.
@@ -94,7 +94,7 @@ Minimum Requirements:
 * Has demonstrated an understanding of MSI installation
 * Has demonstrated an understanding of the eBPF for Windows release process
 * Has access to the Microsoft signing pipeline
-* Is approved by the existing [Project Admins](@project-admin)
+* Is approved by the existing [Project Admins](#project-admin)
 
 Responsibilities:
 * Generate periodic releases according to the [Release Process.md](ReleaseProcess.md) documentation.

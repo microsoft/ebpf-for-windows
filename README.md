@@ -37,7 +37,7 @@ the `bpf2c` tool converts every instruction in the bytecode to equivalent `C` st
 module (stored in a `.sys` file) using the standard visual studio toolchain. The generated driver is also known as the native eBPF program.
 
    **Note:** This is the *preferred* way of deploying eBPF programs.
-   See the [FAQ on HVCI](readme.md#3-will-ebpf-work-with-hypervisor-enforced-code-integrity-hvci) for details as to why this mode is
+   See the [FAQ on HVCI](#3-will-ebpf-work-with-hypervisor-enforced-code-integrity-hvci) for details as to why this mode is
    also the most secure.
 
 1. **JIT Compiler**
@@ -73,7 +73,7 @@ Feel free to take a look at our [Good First Issues](https://github.com/microsoft
 list if you're looking for somewhere to start.
 
 Want to chat with us?  We have a:
-* [Slack channel](https://cilium.slack.com/messages/ebpf-for-windows) (If you are new, sign up at http://slack.cilium.io/)
+* [Slack channel](https://cilium.slack.com/messages/ebpf-for-windows) (If you are new, sign up at https://slack.cilium.io/)
 * Zoom meeting for github issue triage: see [meeting info](https://github.com/microsoft/ebpf-for-windows/discussions/427)
 
 For tracking Q&A and general discussion, we use [Discussions](https://github.com/microsoft/ebpf-for-windows/discussions)

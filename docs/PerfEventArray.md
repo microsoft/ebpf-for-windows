@@ -31,7 +31,7 @@ There are 3 primary differences between ring buffer maps and perf event arrays:
           - The payload is whatever the data pointer of the program context points to (e.g. packet data including headers). The payload does not include the bpf program context structure itself.
 
 The main motivation for this implementation is to efficiently support payload capture from the context in eBPF programs.
-- Supporting ring buffer reserve and submit in ebpf-for-windows is currently blocked on verifier support [#273](https://github.com/vbpf/ebpf-verifier/issues/273).
+- Supporting ring buffer reserve and submit in ebpf-for-windows is currently blocked on verifier support [#273](https://github.com/vbpf/prevail/issues/273).
 - Without reserve+submit, using `ringbuf_output` for payload capture requires using a per-CPU array as scratch space to append the payload to the event before calling ringbuf_output.
 - The CTXLEN field in the flags of `perf_event_output` tells the kernel to append bytes from the payload to the record, avoiding the extra copy.
   - On Linux this works for specific program types, on Windows this works for any program type with a data pointer in the context.
