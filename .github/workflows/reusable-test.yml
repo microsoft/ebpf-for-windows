@@ -126,7 +126,7 @@ jobs:
       # Check if .github/workflows/reusable-test.yml exists locally.
       - name: Check for .github/workflows/reusable-test.yml
         # Check for test logs even if the workflow failed.
-        uses: andstor/file-existence-action@076e0072799f4942c8bc574a82233e1e4d13e9d6
+        uses: andstor/file-existence-action@076e0072799f4942c8bc574a82233e1e4d13e9d6 # v3.0.0
         if: (inputs.gather_dumps == true) && (steps.skip_check.outputs.should_skip != 'true')
         id: check_reusable_test_locally
         with:
@@ -193,7 +193,7 @@ jobs:
 
       - name: Download build artifact
         if: (steps.skip_check.outputs.should_skip != 'true') && success()
-        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
         id: download_artifact
         with:
           name: ${{inputs.build_artifact}}-${{matrix.configurations}}
@@ -366,7 +366,7 @@ jobs:
 
       - name: Check for CodeCoverage
         if: steps.skip_check.outputs.should_skip != 'true'
-        uses: andstor/file-existence-action@076e0072799f4942c8bc574a82233e1e4d13e9d6
+        uses: andstor/file-existence-action@076e0072799f4942c8bc574a82233e1e4d13e9d6 # v3.0.0
         id: check_coverage
         with:
           files: ebpf_for_windows.xml
@@ -452,7 +452,7 @@ jobs:
       - name: Check for crash dumps
         # Check for crash dumps even if the workflow failed.
         if: always() && (steps.skip_check.outputs.should_skip != 'true')
-        uses: andstor/file-existence-action@076e0072799f4942c8bc574a82233e1e4d13e9d6
+        uses: andstor/file-existence-action@076e0072799f4942c8bc574a82233e1e4d13e9d6 # v3.0.0
         id: check_dumps
         with:
           files: ${{env.DUMP_PATH}}/*.dmp
@@ -460,7 +460,7 @@ jobs:
       - name: Upload any crash dumps
         # Upload crash dumps even if the workflow failed.
         if: always() && (steps.skip_check.outputs.should_skip != 'true') && (steps.check_dumps.outputs.files_exists == 'true') && (inputs.gather_dumps == true)
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         id: upload_crash_dumps
         with:
           name: Crash-Dumps-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
@@ -469,7 +469,7 @@ jobs:
 
       - name: Check for TestLogs
         # Check for test logs even if the workflow failed.
-        uses: andstor/file-existence-action@076e0072799f4942c8bc574a82233e1e4d13e9d6
+        uses: andstor/file-existence-action@076e0072799f4942c8bc574a82233e1e4d13e9d6 # v3.0.0
         if: always() && (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true')
         id: check_logs
         with:
@@ -479,7 +479,7 @@ jobs:
         # Upload test logs even if the workflow failed.
         if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && (steps.check_logs.outputs.files_exists == 'true')
         id: upload_logs
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         continue-on-error: true
         with:
           name: Test-Logs-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
@@ -489,7 +489,7 @@ jobs:
       - name: Check for generated artifacts
         # Check for artifacts even if the workflow failed.
         if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true')
-        uses: andstor/file-existence-action@076e0072799f4942c8bc574a82233e1e4d13e9d6
+        uses: andstor/file-existence-action@076e0072799f4942c8bc574a82233e1e4d13e9d6 # v3.0.0
         id: check_artifacts
         with:
           files: ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\Artifacts\*
@@ -499,7 +499,7 @@ jobs:
         if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && (steps.check_artifacts.outputs.files_exists == 'true')
         id: upload_artifacts
         continue-on-error: true
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: Artifacts-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
           path: ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\Artifacts
@@ -528,7 +528,7 @@ jobs:
           cancel_others: 'false'
           paths_ignore: '["**.md", "**/docs/**"]'
 
-      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         if: (github.event_name == 'schedule') || (github.event_name == 'push' || github.event_name == 'merge_group') && (steps.skip_check.outputs.should_skip != 'true')
         env:
           TITLE: Workflow failed - ${{inputs.name}}

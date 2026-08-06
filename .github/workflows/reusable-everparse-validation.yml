@@ -36,13 +36,13 @@ jobs:
           fetch-depth: 0
 
       - name: Add MSBuild to PATH
-        uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce
+        uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce # v2.0.0
         with:
           msbuild-architecture: x64
 
       - name: Cache nuget packages
         continue-on-error: true
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: packages
           key: ${{ runner.os }}-everparse-validation-${{ hashFiles('**/packages.config') }}
@@ -54,7 +54,7 @@ jobs:
 
       - name: Create or update EverParse divergence issues
         if: steps.validate.outputs.validation_status == 'diverged' && (github.event_name == 'schedule' || github.event_name == 'push' || github.event_name == 'merge_group')
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         env:
           REPORT_PATH: ${{ steps.validate.outputs.report_path }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

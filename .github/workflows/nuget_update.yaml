@@ -44,7 +44,7 @@ jobs:
           ref: ${{ github.event.workflow_run.head_branch }}
 
       - name: Cache nuget packages
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         env:
           cache-name: cache-nuget-modules
         with:
@@ -61,7 +61,7 @@ jobs:
           nuget update -noninteractive -verbosity detailed ${{env.SOLUTION_FILE_PATH}}
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0
+        uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0 # v8.1.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: Update NuGet packages
