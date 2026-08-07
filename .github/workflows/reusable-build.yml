@@ -71,6 +71,7 @@ on:
 
 permissions:
   contents: read
+  security-events: write  # Required by codeql task to upload SARIF results.
 
 jobs:
   build:
