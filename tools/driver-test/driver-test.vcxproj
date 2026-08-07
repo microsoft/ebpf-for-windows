@@ -87,6 +87,13 @@
     <ProjectReference Include="..\..\tests\stress\km\ebpf_stress_tests_km.vcxproj">
       <Project>{4F082524-9496-44FA-8CBA-4BC0BDC62568}</Project>
     </ProjectReference>
+    <!-- eBPF MSI installer. The driver validation setup (scripts\install_ebpf.psm1)
+         installs the eBPF runtime (ebpfcore.sys, netebpfext.sys, ebpfsvc.exe,
+         ebpfapi.dll, and their dependencies) from ebpf-for-windows.msi, so the
+         installer must be built for the driver tests to run. -->
+    <ProjectReference Include="..\..\installer\ebpf-for-windows.wixproj">
+      <Project>{fe9b26cd-e885-4881-90d7-a096131c5c4a}</Project>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />
