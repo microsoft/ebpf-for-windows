@@ -516,9 +516,11 @@ net_ebpf_extension_add_wfp_filters(
         filter.displayData.name = (wchar_t*)filter_parameter->name;
         filter.displayData.description = (wchar_t*)filter_parameter->description;
         filter.providerKey = (GUID*)&EBPF_WFP_PROVIDER;
-        filter.flags = FWPM_FILTER_FLAG_PERMIT_IF_CALLOUT_UNREGISTERED;
         filter.action.type =
             filter_parameter->action_type ? filter_parameter->action_type : FWP_ACTION_CALLOUT_TERMINATING;
+        if (filter.action.type == FWP_ACTION_CALLOUT_TERMINATING || filter.action.type == FWP_ACTION_CALLOUT_UNKNOWN) {
+            filter.flags = FWPM_FILTER_FLAG_PERMIT_IF_CALLOUT_UNREGISTERED;
+        }
         filter.action.calloutKey = *filter_parameter->callout_guid;
         filter.filterCondition = (FWPM_FILTER_CONDITION*)conditions;
         filter.numFilterConditions = condition_count;
