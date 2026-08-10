@@ -67,6 +67,13 @@
     <ProjectReference Include="..\..\tests\connect_redirect\connect_redirect_tests.vcxproj">
       <Project>{02a1913f-7ff5-4c20-b230-2240b4edec10}</Project>
     </ProjectReference>
+    <!-- Helper listener process launched by scripts\vm_run_tests.psm1
+         (Invoke-ConnectRedirectTestHelper) before connect_redirect_tests.exe runs.
+         Without it the connect redirect tests fail with
+         "This command cannot be run due to the error: The system cannot find the file specified." -->
+    <ProjectReference Include="..\..\tests\tcp_udp_listener\tcp_udp_listener.vcxproj">
+      <Project>{64ad121f-b4d4-4b38-a370-ddd4fea6707e}</Project>
+    </ProjectReference>
     <!-- Additional driver test binaries invoked from scripts\run_driver_tests.psm1
          on the driver-test VMs. These must be built for driver validation to run. -->
     <ProjectReference Include="..\..\tests\bpftool_tests\bpftool_tests.vcxproj">
@@ -99,6 +106,12 @@
     <None Include="README.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <!-- Fail the build immediately if a file the driver validation tests launch at run time
+       is missing from this target's project closure. Without this check a missing binary
+       only surfaces ~45 minutes later as an opaque test failure on the test machines. -->
+  <Target Name="VerifyDriverTestClosure" AfterTargets="Build">
+    <Exec Command="powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;$(SolutionDir)scripts\check_driver_test_closure.ps1&quot; -BuildPath &quot;$(OutDir.TrimEnd('\'))&quot;" />
+  </Target>
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
 </Project>
