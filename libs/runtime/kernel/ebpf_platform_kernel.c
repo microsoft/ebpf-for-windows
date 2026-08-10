@@ -5,6 +5,9 @@
 #include "ebpf_ring_buffer.h"
 #include "ebpf_tracelog.h"
 
+// Must be included last to avoid macro redefinition errors for ntstatus.
+#include "ebpf_error.h"
+
 extern _Ret_notnull_ DEVICE_OBJECT*
 ebpf_driver_get_device_object();
 
@@ -39,22 +42,6 @@ typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
 
 static KDEFERRED_ROUTINE _ebpf_deferred_routine;
 static KDEFERRED_ROUTINE _ebpf_timer_routine;
-
-static ebpf_result_t
-_ebpf_ntstatus_to_ring_open_result(NTSTATUS status)
-{
-    switch (status) {
-    case STATUS_SUCCESS:
-        return EBPF_SUCCESS;
-    case STATUS_NO_MEMORY:
-    case STATUS_INSUFFICIENT_RESOURCES:
-        return EBPF_NO_MEMORY;
-    case STATUS_ACCESS_DENIED:
-        return EBPF_ACCESS_DENIED;
-    default:
-        return EBPF_INVALID_ARGUMENT;
-    }
-}
 
 static void
 _ebpf_ring_cleanup_section(_Inout_ ebpf_ring_section_t* section)
@@ -408,7 +395,7 @@ ebpf_ring_open_user_section(
         ObOpenObjectByPointer(source_section->section_object, 0, NULL, desired_access, NULL, KernelMode, &user_handle);
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, ObOpenObjectByPointer, status);
-        return _ebpf_ntstatus_to_ring_open_result(status);
+        return _ntstatus_to_ebpf_result(status);
     }
 
     *handle = (ebpf_handle_t)user_handle;

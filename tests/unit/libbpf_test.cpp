@@ -1149,6 +1149,8 @@ TEST_CASE("ring buffer memory mapping APIs", "[libbpf][ring_buffer]")
         size_t data_size2 = 0;
         MEMORY_BASIC_INFORMATION producer_info = {};
         MEMORY_BASIC_INFORMATION data_info = {};
+        MEMORY_BASIC_INFORMATION producer_info2 = {};
+        MEMORY_BASIC_INFORMATION data_info2 = {};
 
         REQUIRE(ebpf_ring_buffer_map_map_buffer(map_fd, &consumer1, &producer1, &data1, &data_size1) == EBPF_SUCCESS);
         REQUIRE(ebpf_ring_buffer_map_map_buffer(map_fd, &consumer2, &producer2, &data2, &data_size2) == EBPF_SUCCESS);
@@ -1160,8 +1162,12 @@ TEST_CASE("ring buffer memory mapping APIs", "[libbpf][ring_buffer]")
 
         REQUIRE(VirtualQuery(producer1, &producer_info, sizeof(producer_info)) == sizeof(producer_info));
         REQUIRE(VirtualQuery(data1, &data_info, sizeof(data_info)) == sizeof(data_info));
+        REQUIRE(VirtualQuery(producer2, &producer_info2, sizeof(producer_info2)) == sizeof(producer_info2));
+        REQUIRE(VirtualQuery(data2, &data_info2, sizeof(data_info2)) == sizeof(data_info2));
         REQUIRE((producer_info.Protect & PAGE_READONLY) == PAGE_READONLY);
         REQUIRE((data_info.Protect & PAGE_READONLY) == PAGE_READONLY);
+        REQUIRE((producer_info2.Protect & PAGE_READONLY) == PAGE_READONLY);
+        REQUIRE((data_info2.Protect & PAGE_READONLY) == PAGE_READONLY);
 
         REQUIRE(ebpf_ring_buffer_map_unmap_buffer(map_fd, consumer1, producer1, data1) == EBPF_SUCCESS);
         REQUIRE(ebpf_ring_buffer_map_unmap_buffer(map_fd, consumer2, producer2, data2) == EBPF_SUCCESS);

@@ -123,6 +123,7 @@ _ebpf_ring_create_composite_view(_Inout_ ebpf_ring_descriptor_t* descriptor)
         descriptor->consumer.section_handle,
         descriptor->producer.section_handle,
         descriptor->data.section_handle,
+        // Map the data section twice contiguously so wrapped records can be read linearly.
         descriptor->data.section_handle};
     size_t view_lengths[] = {PAGE_SIZE, PAGE_SIZE, PAGE_SIZE, descriptor->length, descriptor->length};
     void** target_views[] = {
@@ -209,7 +210,7 @@ Exit:
         descriptor->composite_view_size = 0;
     }
 
-    return return_value;
+    EBPF_RETURN_RESULT(return_value);
 }
 
 // This code is derived from the sample at:

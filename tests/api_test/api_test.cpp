@@ -706,6 +706,87 @@ TEST_CASE("ring_buffer_mmap_consumer", "[ring_buffer]")
     _close(map_fd);
 }
 
+static int
+_ring_buffer_mmap_process_exit_child(_In_z_ const char* pin_path)
+{
+    fd_t map_fd = bpf_obj_get(pin_path);
+    if (map_fd < 0) {
+        return 1;
+    }
+
+    void* consumer = nullptr;
+    const void* producer = nullptr;
+    const uint8_t* data = nullptr;
+    size_t data_size = 0;
+    if (ebpf_ring_buffer_map_map_buffer(map_fd, &consumer, &producer, &data, &data_size) != EBPF_SUCCESS ||
+        consumer == nullptr || producer == nullptr || data == nullptr || data_size == 0) {
+        return 1;
+    }
+
+    // Intentionally leave the mapped views and map descriptor for process rundown to reclaim.
+    return 0;
+}
+
+TEST_CASE("ring_buffer_mmap_process_exit_reopen", "[ring_buffer]")
+{
+    fd_t map_fd = bpf_map_create(BPF_MAP_TYPE_RINGBUF, "test_rb_process_exit", 0, 0, 64 * 1024, nullptr);
+    REQUIRE(map_fd > 0);
+
+    std::string pin_path =
+        "BPF:\\ring_buffer_map_process_exit_" + std::to_string(GetCurrentProcessId());
+    REQUIRE(bpf_obj_pin(map_fd, pin_path.c_str()) == 0);
+
+    char module_path[MAX_PATH] = {};
+    REQUIRE(GetModuleFileNameA(nullptr, module_path, ARRAYSIZE(module_path)) != 0);
+    std::string command_line = "\"";
+    command_line += module_path;
+    command_line += "\" --ring-buffer-mmap-process-exit-child \"";
+    command_line += pin_path;
+    command_line += "\"";
+    std::vector<char> command_line_buffer(command_line.begin(), command_line.end());
+    command_line_buffer.push_back('\0');
+
+    STARTUPINFOA startup_info = {sizeof(startup_info)};
+    PROCESS_INFORMATION process_info = {};
+    REQUIRE(CreateProcessA(
+        nullptr,
+        command_line_buffer.data(),
+        nullptr,
+        nullptr,
+        FALSE,
+        0,
+        nullptr,
+        nullptr,
+        &startup_info,
+        &process_info));
+
+    REQUIRE(WaitForSingleObject(process_info.hProcess, WAIT_TIME_IN_MS) == WAIT_OBJECT_0);
+    DWORD exit_code = 1;
+    REQUIRE(GetExitCodeProcess(process_info.hProcess, &exit_code));
+    REQUIRE(exit_code == 0);
+    CloseHandle(process_info.hThread);
+    CloseHandle(process_info.hProcess);
+
+    fd_t reopened_map_fd = bpf_obj_get(pin_path.c_str());
+    REQUIRE(reopened_map_fd > 0);
+
+    void* consumer = nullptr;
+    const void* producer = nullptr;
+    const uint8_t* data = nullptr;
+    size_t data_size = 0;
+    REQUIRE(
+        ebpf_ring_buffer_map_map_buffer(reopened_map_fd, &consumer, &producer, &data, &data_size) == EBPF_SUCCESS);
+    REQUIRE(consumer != nullptr);
+    REQUIRE(producer != nullptr);
+    REQUIRE(data != nullptr);
+    REQUIRE(data_size > 0);
+    REQUIRE(ebpf_ring_buffer_map_unmap_buffer(reopened_map_fd, consumer, producer, (void*)data) == EBPF_SUCCESS);
+
+    _close(reopened_map_fd);
+    REQUIRE(ebpf_object_unpin(pin_path.c_str()) == EBPF_SUCCESS);
+    _close(map_fd);
+}
+
 void
 _test_nested_maps(bpf_map_type type)
 {
@@ -3962,18 +4043,18 @@ _set_proof_of_verification(uint32_t enable)
  */
 TEST_CASE("proof_of_verification_positive", "[native_tests][proof_of_verification]")
 {
-// Select the architecture and build-type appropriate signed driver.
-#if defined(_AMD64_) && defined(_DEBUG)
+    // Select the architecture and build-type appropriate signed driver.
+    #if defined(_AMD64_) && defined(_DEBUG)
     const char* signed_driver_name = "bindmonitor_x64_debug_signed.sys";
-#elif defined(_AMD64_)
+    #elif defined(_AMD64_)
     const char* signed_driver_name = "bindmonitor_x64_signed.sys";
-#elif defined(_ARM64_) && defined(_DEBUG)
+    #elif defined(_ARM64_) && defined(_DEBUG)
     const char* signed_driver_name = "bindmonitor_arm64_debug_signed.sys";
-#elif defined(_ARM64_)
+    #elif defined(_ARM64_)
     const char* signed_driver_name = "bindmonitor_arm64_signed.sys";
-#else
-#error "Unsupported architecture"
-#endif
+    #else
+    #error "Unsupported architecture"
+    #endif
 
     // The signed driver must be present in the same directory as api_test.exe.
     REQUIRE(_access(signed_driver_name, 0) == 0);
@@ -4251,6 +4332,10 @@ TEST_CASE("custom_maps_program_load-native", "[custom_maps]") { _test_custom_map
 int
 main(int argc, char* argv[])
 {
+    if (argc == 3 && strcmp(argv[1], "--ring-buffer-mmap-process-exit-child") == 0) {
+        return _ring_buffer_mmap_process_exit_child(argv[2]);
+    }
+
     Catch::Session session;
 
     using namespace Catch::Clara;
