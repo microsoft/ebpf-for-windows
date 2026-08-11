@@ -127,11 +127,11 @@ extern "C"
      * @brief Allocate pages from physical memory and create a mapping into the
      * system address space with the same pages mapped twice.
      *
-     * @param[in] length Size of memory to allocate, which must be a multiple of the page size.
+     * @param[in] ring_capacity Data ring-buffer capacity in bytes, which must be a multiple of the page size.
      * @return Pointer to an ebpf_memory_descriptor_t on success, NULL on failure.
      */
     _Ret_maybenull_ ebpf_ring_descriptor_t*
-    ebpf_allocate_ring_buffer_memory(size_t length);
+    ebpf_allocate_ring_buffer_memory(size_t ring_capacity);
 
     /**
      * @brief Release physical memory previously allocated via ebpf_allocate_ring_buffer_memory.

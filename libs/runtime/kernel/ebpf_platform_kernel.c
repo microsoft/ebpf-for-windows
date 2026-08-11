@@ -26,7 +26,7 @@ typedef struct _ebpf_ring_section
 
 struct _ebpf_ring_descriptor
 {
-    size_t length;
+    size_t ring_capacity;         ///< Data ring-buffer capacity in bytes.
     ebpf_ring_section_t kernel;   ///< Kernel section that contains the control pages ebpf_ring_buffer_kernel_page_t.
     ebpf_ring_section_t consumer; ///< Kernel section that contains the control pages ebpf_ring_buffer_consumer_page_t.
     ebpf_ring_section_t producer; ///< Kernel section that contains the control pages ebpf_ring_buffer_producer_page_t.
@@ -112,9 +112,9 @@ _ebpf_ring_lock_kernel_section_view(_Inout_ ebpf_ring_section_t* section)
 static ebpf_result_t
 _ebpf_ring_create_kernel_composite_view(_Inout_ ebpf_ring_descriptor_t* ring_descriptor)
 {
-    uint32_t page_count = (uint32_t)(ring_descriptor->length / PAGE_SIZE);
+    uint32_t page_count = (uint32_t)(ring_descriptor->ring_capacity / PAGE_SIZE);
     size_t pfn_array_size = sizeof(PFN_NUMBER) * page_count;
-    size_t composite_view_size = (EBPF_RING_BUFFER_HEADER_PAGES * PAGE_SIZE) + (ring_descriptor->length * 2);
+    size_t composite_view_size = (EBPF_RING_BUFFER_HEADER_PAGES * PAGE_SIZE) + (ring_descriptor->ring_capacity * 2);
     PFN_NUMBER* composite_pfn_array = NULL;
 
     ring_descriptor->composite_mdl = IoAllocateMdl(NULL, (ULONG)composite_view_size, FALSE, FALSE, NULL);
@@ -202,7 +202,7 @@ _ebpf_ring_create_section(size_t size, _Inout_ ebpf_ring_section_t* section)
 }
 
 _Ret_maybenull_ ebpf_ring_descriptor_t*
-ebpf_allocate_ring_buffer_memory(size_t length)
+ebpf_allocate_ring_buffer_memory(size_t ring_capacity)
 {
     EBPF_LOG_ENTRY();
     ebpf_ring_descriptor_t* ring_descriptor =
@@ -213,18 +213,18 @@ ebpf_allocate_ring_buffer_memory(size_t length)
         EBPF_RETURN_POINTER(ebpf_ring_descriptor_t*, NULL);
     }
 
-    if (length == 0 || (length % PAGE_SIZE) != 0) {
+    if (ring_capacity == 0 || (ring_capacity % PAGE_SIZE) != 0) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_BASE,
-            "Ring buffer length doesn't match allocation granularity",
-            length);
+            "Ring buffer capacity doesn't match allocation granularity",
+            ring_capacity);
         ebpf_free(ring_descriptor);
         EBPF_RETURN_POINTER(ebpf_ring_descriptor_t*, NULL);
     }
 
     memset(ring_descriptor, 0, sizeof(*ring_descriptor));
-    ring_descriptor->length = length;
+    ring_descriptor->ring_capacity = ring_capacity;
 
     result = _ebpf_ring_create_section(PAGE_SIZE, &ring_descriptor->kernel);
     if (result != EBPF_SUCCESS) {
@@ -256,7 +256,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
         goto Done;
     }
 
-    result = _ebpf_ring_create_section(length, &ring_descriptor->data);
+    result = _ebpf_ring_create_section(ring_capacity, &ring_descriptor->data);
     if (result != EBPF_SUCCESS) {
         goto Done;
     }

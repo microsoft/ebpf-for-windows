@@ -57,11 +57,11 @@ typedef struct _ebpf_ring_section
 
 struct _ebpf_ring_descriptor
 {
-    size_t length;
-    ebpf_ring_section_t kernel;
-    ebpf_ring_section_t consumer;
-    ebpf_ring_section_t producer;
-    ebpf_ring_section_t data;
+    size_t ring_capacity;         ///< Data ring-buffer capacity in bytes.
+    ebpf_ring_section_t kernel;   ///< Kernel section that contains the control pages ebpf_ring_buffer_kernel_page_t.
+    ebpf_ring_section_t consumer; ///< Kernel section that contains the control pages ebpf_ring_buffer_consumer_page_t.
+    ebpf_ring_section_t producer; ///< Kernel section that contains the control pages ebpf_ring_buffer_producer_page_t.
+    ebpf_ring_section_t data;     ///< Kernel section that contains the data pages.
     uint8_t* composite_base;
     size_t composite_view_size;
     void* data_secondary_view;
@@ -125,7 +125,7 @@ _ebpf_ring_create_composite_view(_Inout_ ebpf_ring_descriptor_t* descriptor)
         descriptor->data.section_handle,
         // Map the data section twice contiguously so wrapped records can be read linearly.
         descriptor->data.section_handle};
-    size_t view_lengths[] = {PAGE_SIZE, PAGE_SIZE, PAGE_SIZE, descriptor->length, descriptor->length};
+    size_t view_lengths[] = {PAGE_SIZE, PAGE_SIZE, PAGE_SIZE, descriptor->ring_capacity, descriptor->ring_capacity};
     void** target_views[] = {
         &descriptor->kernel.view,
         &descriptor->consumer.view,
@@ -134,7 +134,7 @@ _ebpf_ring_create_composite_view(_Inout_ ebpf_ring_descriptor_t* descriptor)
         &descriptor->data_secondary_view};
     ebpf_result_t return_value = EBPF_SUCCESS;
 
-    descriptor->composite_view_size = _ring_header_size + (descriptor->length * 2);
+    descriptor->composite_view_size = _ring_header_size + (descriptor->ring_capacity * 2);
     composite_base = reinterpret_cast<uint8_t*>(VirtualAlloc2(
         nullptr,
         nullptr,
@@ -217,7 +217,7 @@ Exit:
 // https://docs.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc2
 
 _Ret_maybenull_ ebpf_ring_descriptor_t*
-ebpf_allocate_ring_buffer_memory(size_t length)
+ebpf_allocate_ring_buffer_memory(size_t ring_capacity)
 {
     EBPF_LOG_ENTRY();
     SYSTEM_INFO sysInfo;
@@ -228,17 +228,17 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     GetSystemInfo(&sysInfo);
     ebpf_assert(sysInfo.dwPageSize == PAGE_SIZE);
 
-    if (length == 0) {
-        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "Ring buffer length is zero");
+    if (ring_capacity == 0) {
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "Ring buffer capacity is zero");
         return nullptr;
     }
 
-    if (length % PAGE_SIZE != 0) {
+    if (ring_capacity % PAGE_SIZE != 0) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_BASE,
-            "Ring buffer length doesn't match page size",
-            length);
+            "Ring buffer capacity doesn't match page size",
+            ring_capacity);
         return nullptr;
     }
 
@@ -247,7 +247,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
         return nullptr;
     }
     memset(descriptor, 0, sizeof(*descriptor));
-    descriptor->length = length;
+    descriptor->ring_capacity = ring_capacity;
 
     result = _ebpf_ring_create_section(PAGE_SIZE, &descriptor->kernel);
     if (result != EBPF_SUCCESS) {
@@ -264,7 +264,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
         goto Exit;
     }
 
-    result = _ebpf_ring_create_section(length, &descriptor->data);
+    result = _ebpf_ring_create_section(ring_capacity, &descriptor->data);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
