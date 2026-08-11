@@ -273,8 +273,7 @@ Exit:
 }
 
 static void
-_net_ebpf_extension_sock_ops_delete_filter_context(
-    _In_opt_ _Frees_ptr_opt_ net_ebpf_extension_wfp_filter_context_t* filter_context)
+_net_ebpf_extension_sock_ops_delete_filter_context(_Inout_opt_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
     net_ebpf_extension_sock_ops_wfp_filter_context_t* local_filter_context = NULL;
     KIRQL irql;
@@ -322,7 +321,7 @@ _net_ebpf_extension_sock_ops_delete_filter_context(
         ASSERT(status == STATUS_SUCCESS);
     }
 
-    net_ebpf_extension_wfp_filter_context_cleanup(filter_context);
+    net_ebpf_extension_wfp_filter_context_detach(filter_context);
 
 Exit:
     EBPF_EXT_LOG_EXIT();

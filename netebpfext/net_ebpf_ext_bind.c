@@ -144,8 +144,7 @@ Exit:
 }
 
 static void
-_net_ebpf_ext_bind_delete_filter_context(
-    _In_opt_ _Frees_ptr_opt_ net_ebpf_extension_wfp_filter_context_t* filter_context)
+_net_ebpf_ext_bind_delete_filter_context(_Inout_opt_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
     EBPF_EXT_LOG_ENTRY();
 
@@ -155,7 +154,7 @@ _net_ebpf_ext_bind_delete_filter_context(
 
     // Delete the WFP filters.
     net_ebpf_extension_delete_wfp_filters(filter_context);
-    net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
+    net_ebpf_extension_wfp_filter_context_detach((net_ebpf_extension_wfp_filter_context_t*)filter_context);
 
 Exit:
     EBPF_EXT_LOG_EXIT();

@@ -130,7 +130,8 @@ typedef struct _net_ebpf_ext_wfp_filter_id
 
 typedef struct _net_ebpf_extension_wfp_filter_context
 {
-    LIST_ENTRY link;                   ///< Entry in the list of filter contexts.
+    LIST_ENTRY link;                   ///< Entry in the provider's active filter context list.
+    LIST_ENTRY zombie_link;            ///< Entry in the provider's zombie filter context list.
     volatile long reference_count;     ///< Reference count.
     EX_SPIN_LOCK lock;                 ///< Lock to protect the client context array.
     uint32_t client_context_count_max; ///< Maximum number of hook NPI clients.
@@ -149,14 +150,12 @@ typedef struct _net_ebpf_extension_wfp_filter_context
 } net_ebpf_extension_wfp_filter_context_t;
 
 /**
- * @brief Structure that holds the provider-context and filter-context lists that require cleanup at driver unload.
+ * @brief Structure that holds the provider-context list that requires cleanup at driver unload.
  */
 typedef struct _net_ebpf_extension_cleanup_state
 {
     EX_SPIN_LOCK lock;
     _Guarded_by_(lock) LIST_ENTRY provider_context_cleanup_list; ///< List of provider contexts to cleanup.
-    _Guarded_by_(lock)
-        LIST_ENTRY filter_cleanup_list; ///< List of filter contexts that are awaiting a WFP filter deletion callback.
 } net_ebpf_extension_cleanup_state_t;
 
 // Macro definition of warning suppression for 26100. This is only used in the cleanup context, for which
@@ -166,21 +165,20 @@ typedef struct _net_ebpf_extension_cleanup_state
 #define PRAGMA_WARNING_SUPPRESS_26100 _Pragma("warning(suppress: 26100)")
 #define PRAGMA_WARNING_POP _Pragma("warning(pop)")
 
-#define CLEAN_UP_FILTER_CONTEXT(filter_context)                             \
-    ASSERT((filter_context) != NULL);                                       \
-    net_ebpf_ext_remove_filter_context_from_cleanup_list((filter_context)); \
-    if ((filter_context)->filter_ids != NULL) {                             \
-        ExFreePool((filter_context)->filter_ids);                           \
-    }                                                                       \
-    PRAGMA_WARNING_PUSH                                                     \
-    PRAGMA_WARNING_SUPPRESS_26100                                           \
-    if ((filter_context)->client_contexts != NULL) {                        \
-        ExFreePool((filter_context)->client_contexts);                      \
-    }                                                                       \
-    PRAGMA_WARNING_POP                                                      \
-    if ((filter_context)->wfp_engine_handle != NULL) {                      \
-        FwpmEngineClose((filter_context)->wfp_engine_handle);               \
-    }                                                                       \
+#define CLEAN_UP_FILTER_CONTEXT(filter_context)               \
+    ASSERT((filter_context) != NULL);                         \
+    if ((filter_context)->filter_ids != NULL) {               \
+        ExFreePool((filter_context)->filter_ids);             \
+    }                                                         \
+    PRAGMA_WARNING_PUSH                                       \
+    PRAGMA_WARNING_SUPPRESS_26100                             \
+    if ((filter_context)->client_contexts != NULL) {          \
+        ExFreePool((filter_context)->client_contexts);        \
+    }                                                         \
+    PRAGMA_WARNING_POP                                        \
+    if ((filter_context)->wfp_engine_handle != NULL) {        \
+        FwpmEngineClose((filter_context)->wfp_engine_handle); \
+    }                                                         \
     ExFreePool((filter_context));
 
 #define REFERENCE_FILTER_CONTEXT(filter_context)                  \
@@ -217,14 +215,26 @@ net_ebpf_extension_wfp_filter_context_create(
     _Outptr_ net_ebpf_extension_wfp_filter_context_t** filter_context);
 
 /**
- * @brief This function cleans up the input ebpf extension WFP filter context. This should be invoked when the hook
- * client is being detached.
+ * @brief This function marks a filter context as detaching. It sets context_deleting to TRUE so classify callbacks
+ * will not invoke programs. The caller is responsible for deciding whether to release the initial reference (if all
+ * WFP filters were successfully deleted) or transfer ownership to the provider's zombie list (if any filter delete
+ * failed).
  *
- * @param[out] filter_context Pointer to filter_context to clean up.
+ * @param[in,out] filter_context Pointer to filter_context to mark as detaching.
  *
  */
 void
-net_ebpf_extension_wfp_filter_context_cleanup(_Frees_ptr_ net_ebpf_extension_wfp_filter_context_t* filter_context);
+net_ebpf_extension_wfp_filter_context_detach(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context);
+
+/**
+ * @brief Checks whether all WFP filters in a filter context have been successfully deleted (all in DELETED state).
+ *
+ * @param[in] filter_context Pointer to filter_context to check.
+ * @retval TRUE All filters are in DELETED state.
+ * @retval FALSE At least one filter is not in DELETED state.
+ */
+bool
+net_ebpf_ext_filter_context_all_deleted(_In_ net_ebpf_extension_wfp_filter_context_t* filter_context);
 
 /**
  * @brief Structure for WFP flow Id parameters.
@@ -418,19 +428,3 @@ net_ebpf_ext_add_client_context(
  */
 void
 net_ebpf_ext_add_provider_context_to_cleanup_list(_Inout_ net_ebpf_extension_hook_provider_t* provider_context);
-
-/**
- * @brief Add a filter context to the cleanup list.
- *
- * @param filter_context Filter context to add.
- */
-void
-net_ebpf_ext_add_filter_context_to_cleanup_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context);
-
-/**
- * @brief Remove a filter context from the cleanup list.
- *
- * @param filter_context Filter context to remove.
- */
-void
-net_ebpf_ext_remove_filter_context_from_cleanup_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context);

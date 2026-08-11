@@ -562,7 +562,16 @@ Exit:
             RELEASE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->lock);
         }
 
-        local_provider_context->dispatch.delete_filter_context(new_filter_context);
+        if (new_filter_context != NULL) {
+            local_provider_context->dispatch.delete_filter_context(new_filter_context);
+            if (net_ebpf_ext_filter_context_all_deleted(new_filter_context)) {
+                DEREFERENCE_FILTER_CONTEXT(new_filter_context);
+            } else {
+                ACQUIRE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->lock);
+                InsertTailList(&local_provider_context->zombie_filter_context_list, &new_filter_context->zombie_link);
+                RELEASE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->lock);
+            }
+        }
     }
 
     _net_ebpf_extension_hook_client_cleanup(hook_client);
@@ -582,11 +591,22 @@ _Requires_exclusive_lock_held_(provider_context->lock) static void _net_ebpf_ext
 {
     EBPF_EXT_LOG_ENTRY();
 
-    // Remove the list entry from the provider's list of filter contexts.
+    // Remove the list entry from the provider's active list.
     RemoveEntryList(&filter_context->link);
+    InitializeListHead(&filter_context->link);
 
-    // Release the filter context.
+    // Delete WFP filters and mark the context as detaching.
     provider_context->dispatch.delete_filter_context(filter_context);
+
+    // If all WFP filters were successfully deleted, their per-filter references were released by notifications.
+    // Release the initial reference to free the context immediately.
+    // Otherwise, transfer to the zombie list without releasing the initial reference — the unload sweep will
+    // reclaim after callouts are unregistered.
+    if (net_ebpf_ext_filter_context_all_deleted(filter_context)) {
+        DEREFERENCE_FILTER_CONTEXT(filter_context);
+    } else {
+        InsertTailList(&provider_context->zombie_filter_context_list, &filter_context->zombie_link);
+    }
 
     EBPF_EXT_LOG_EXIT();
 }
@@ -708,6 +728,7 @@ net_ebpf_extension_hook_provider_register(
     memset(local_provider_context, 0, sizeof(net_ebpf_extension_hook_provider_t));
     ExInitializePushLock(&local_provider_context->lock);
     InitializeListHead(&local_provider_context->filter_context_list);
+    InitializeListHead(&local_provider_context->zombie_filter_context_list);
     ebpf_ext_init_rundown(&local_provider_context->rundown);
 
     characteristics = &local_provider_context->characteristics;

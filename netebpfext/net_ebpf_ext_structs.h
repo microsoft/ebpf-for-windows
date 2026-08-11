@@ -51,13 +51,15 @@ typedef ebpf_result_t (*net_ebpf_extension_create_filter_context)(
     _Outptr_ net_ebpf_extension_wfp_filter_context_t** filter_context);
 
 /**
- * @brief Callback function to delete hook specific filter context. This callback is invoked when a hook NPI client
-          is detaching from the hook NPI provider.
+ * @brief Callback function to tear down a hook specific filter context. This callback is invoked when a hook NPI
+          client is detaching from the hook NPI provider. It deletes the context's WFP filters and releases any hook
+          specific resources, then marks the context as detaching. It does NOT free the filter context: the caller
+          decides whether to release the initial reference or hand the context to the provider's zombie list.
  *
- * @param[in] filter_context Pointer to the filter context being deleted.
+ * @param[in,out] filter_context Pointer to the filter context being torn down.
  */
 typedef void (*net_ebpf_extension_delete_filter_context)(
-    _In_opt_ _Frees_ptr_opt_ net_ebpf_extension_wfp_filter_context_t* filter_context);
+    _Inout_opt_ net_ebpf_extension_wfp_filter_context_t* filter_context);
 
 /**
  * @brief Callback function to validate if the attach parameters (i.e., client data) is valid, and to get information
@@ -130,8 +132,10 @@ typedef struct _net_ebpf_extension_hook_provider
     const void* custom_data; ///< Opaque pointer to hook specific data associated for this provider.
     _Guarded_by_(lock)
         LIST_ENTRY filter_context_list; ///< Linked list of filter contexts that are attached to this provider.
-    LIST_ENTRY cleanup_list_entry;      ///< List entry for cleanup.
-    ebpf_attach_type_t attach_type;     ///< Attach type of the eBPF program.
+    _Guarded_by_(lock)
+        LIST_ENTRY zombie_filter_context_list; ///< Filter contexts with leaked WFP filters awaiting unload cleanup.
+    LIST_ENTRY cleanup_list_entry;             ///< List entry for cleanup.
+    ebpf_attach_type_t attach_type;            ///< Attach type of the eBPF program.
 } net_ebpf_extension_hook_provider_t;
 
 typedef struct _net_ebpf_extension_invoke_programs_parameters
