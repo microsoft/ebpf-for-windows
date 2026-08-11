@@ -27,10 +27,10 @@ typedef struct _ebpf_ring_section
 struct _ebpf_ring_descriptor
 {
     size_t length;
-    ebpf_ring_section_t kernel;
-    ebpf_ring_section_t consumer;
-    ebpf_ring_section_t producer;
-    ebpf_ring_section_t data;
+    ebpf_ring_section_t kernel;   ///< Kernel section that contains the control pages ebpf_ring_buffer_kernel_page_t.
+    ebpf_ring_section_t consumer; ///< Kernel section that contains the control pages ebpf_ring_buffer_consumer_page_t.
+    ebpf_ring_section_t producer; ///< Kernel section that contains the control pages ebpf_ring_buffer_producer_page_t.
+    ebpf_ring_section_t data;     ///< Kernel section that contains the data pages.
     // Pins the single-view data section so its PFNs can seed the double mapping.
     MDL* data_source_mdl;
     // Synthetic MDL that maps kernel, consumer, producer, and a double-mapped data view contiguously.
