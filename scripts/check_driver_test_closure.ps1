@@ -86,8 +86,8 @@ $RequiredFiles = [ordered]@{
     "tcp_udp_listener.exe"             = "tests\tcp_udp_listener\tcp_udp_listener.vcxproj"
 
     # Kernel-mode components installed by the test setup.
-    # install_ebpf.psm1: Install-eBPFComponents (SampleEbpfExt)
-    "sample_ext.sys"                   = "undocked\tests\sample\ext\drv\sample_ext.vcxproj"
+    # install_ebpf.psm1: Install-eBPFComponents (SampleEbpfExt).
+    "sample_ebpf_ext.sys"              = "undocked\tests\sample\ext\drv\sample_ext.vcxproj"
 
     # Packages installed on the test machine.
     # install_ebpf.psm1: installs the eBPF runtime from the MSI
