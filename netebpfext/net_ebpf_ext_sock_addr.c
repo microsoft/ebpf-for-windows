@@ -913,14 +913,15 @@ Exit:
 }
 
 static void
-_net_ebpf_extension_sock_addr_delete_filter_context(_Inout_opt_ net_ebpf_extension_wfp_filter_context_t* filter_context)
+_net_ebpf_extension_sock_addr_release_hook_resources(
+    _Inout_opt_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
     net_ebpf_extension_sock_addr_wfp_filter_context_t* sock_addr_filter_context = NULL;
 
     EBPF_EXT_LOG_ENTRY();
 
-    // net_ebpf_extension_delete_wfp_filters requires PASSIVE_LEVEL. This delete_filter_context callback has a fixed
-    // signature so the requirement cannot be expressed via SAL on it; assert it here instead.
+    // FwpsRedirectHandleDestroy requires PASSIVE_LEVEL. This release_hook_resources callback has a fixed signature so
+    // the requirement cannot be expressed via SAL on it; assert it here instead.
     ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL);
 
     if (filter_context == NULL) {
@@ -928,11 +929,9 @@ _net_ebpf_extension_sock_addr_delete_filter_context(_Inout_opt_ net_ebpf_extensi
     }
     sock_addr_filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter_context;
 
-    net_ebpf_extension_delete_wfp_filters(filter_context);
     if (sock_addr_filter_context->redirect_handle != NULL) {
         FwpsRedirectHandleDestroy(sock_addr_filter_context->redirect_handle);
     }
-    net_ebpf_extension_wfp_filter_context_detach(filter_context);
 
 Exit:
     EBPF_EXT_LOG_EXIT();
@@ -1388,14 +1387,14 @@ net_ebpf_ext_sock_addr_register_providers()
 
     const net_ebpf_extension_hook_provider_dispatch_table_t connect_dispatch_table = {
         .create_filter_context = _net_ebpf_extension_sock_addr_create_filter_context,
-        .delete_filter_context = _net_ebpf_extension_sock_addr_delete_filter_context,
+        .release_hook_resources = _net_ebpf_extension_sock_addr_release_hook_resources,
         .validate_client_data = _net_ebpf_extension_sock_addr_validate_client_data,
         .process_verdict = _net_ebpf_extension_sock_addr_process_verdict,
     };
 
     const net_ebpf_extension_hook_provider_dispatch_table_t recv_accept_dispatch_table = {
         .create_filter_context = _net_ebpf_extension_sock_addr_create_filter_context,
-        .delete_filter_context = _net_ebpf_extension_sock_addr_delete_filter_context,
+        .release_hook_resources = _net_ebpf_extension_sock_addr_release_hook_resources,
         .validate_client_data = _net_ebpf_extension_sock_addr_validate_client_data,
     };
 
@@ -1404,14 +1403,14 @@ net_ebpf_ext_sock_addr_register_providers()
     // programs and short-circuits on REJECT.
     const net_ebpf_extension_hook_provider_dispatch_table_t bind_dispatch_table = {
         .create_filter_context = _net_ebpf_extension_sock_addr_create_filter_context,
-        .delete_filter_context = _net_ebpf_extension_sock_addr_delete_filter_context,
+        .release_hook_resources = _net_ebpf_extension_sock_addr_release_hook_resources,
         .validate_client_data = _net_ebpf_extension_sock_addr_validate_client_data,
         .process_verdict = _net_ebpf_extension_sock_addr_bind_process_verdict,
     };
 
     const net_ebpf_extension_hook_provider_dispatch_table_t listen_dispatch_table = {
         .create_filter_context = _net_ebpf_extension_sock_addr_create_filter_context,
-        .delete_filter_context = _net_ebpf_extension_sock_addr_delete_filter_context,
+        .release_hook_resources = _net_ebpf_extension_sock_addr_release_hook_resources,
         .validate_client_data = _net_ebpf_extension_sock_addr_validate_client_data,
     };
 

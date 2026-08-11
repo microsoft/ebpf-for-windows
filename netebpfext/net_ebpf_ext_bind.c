@@ -143,23 +143,6 @@ Exit:
     EBPF_EXT_RETURN_RESULT(result);
 }
 
-static void
-_net_ebpf_ext_bind_delete_filter_context(_Inout_opt_ net_ebpf_extension_wfp_filter_context_t* filter_context)
-{
-    EBPF_EXT_LOG_ENTRY();
-
-    if (filter_context == NULL) {
-        goto Exit;
-    }
-
-    // Delete the WFP filters.
-    net_ebpf_extension_delete_wfp_filters(filter_context);
-    net_ebpf_extension_wfp_filter_context_detach((net_ebpf_extension_wfp_filter_context_t*)filter_context);
-
-Exit:
-    EBPF_EXT_LOG_EXIT();
-}
-
 //
 // NMR Registration Helper Routines.
 //
@@ -177,7 +160,8 @@ net_ebpf_ext_bind_register_providers()
         &_ebpf_bind_hook_provider_moduleid, &_net_ebpf_bind_hook_provider_data};
     const net_ebpf_extension_hook_provider_dispatch_table_t dispatch_table = {
         .create_filter_context = _net_ebpf_ext_bind_create_filter_context,
-        .delete_filter_context = _net_ebpf_ext_bind_delete_filter_context,
+        // No hook-specific resources to release.
+        .release_hook_resources = NULL,
         .validate_client_data = _net_ebpf_ext_bind_validate_client_data};
 
     status = net_ebpf_extension_program_info_provider_register(

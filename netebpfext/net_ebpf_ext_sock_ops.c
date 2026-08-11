@@ -273,7 +273,7 @@ Exit:
 }
 
 static void
-_net_ebpf_extension_sock_ops_delete_filter_context(_Inout_opt_ net_ebpf_extension_wfp_filter_context_t* filter_context)
+_net_ebpf_extension_sock_ops_release_hook_resources(_Inout_opt_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
     net_ebpf_extension_sock_ops_wfp_filter_context_t* local_filter_context = NULL;
     KIRQL irql;
@@ -288,7 +288,6 @@ _net_ebpf_extension_sock_ops_delete_filter_context(_Inout_opt_ net_ebpf_extensio
     local_filter_context = (net_ebpf_extension_sock_ops_wfp_filter_context_t*)filter_context;
 
     InitializeListHead(&local_list_head);
-    net_ebpf_extension_delete_wfp_filters(filter_context);
 
     KeAcquireSpinLock(&local_filter_context->lock, &irql);
     if (local_filter_context->flow_context_list.count > 0) {
@@ -321,8 +320,6 @@ _net_ebpf_extension_sock_ops_delete_filter_context(_Inout_opt_ net_ebpf_extensio
         ASSERT(status == STATUS_SUCCESS);
     }
 
-    net_ebpf_extension_wfp_filter_context_detach(filter_context);
-
 Exit:
     EBPF_EXT_LOG_EXIT();
 }
@@ -339,7 +336,7 @@ net_ebpf_ext_sock_ops_register_providers()
 
     const net_ebpf_extension_hook_provider_dispatch_table_t dispatch_table = {
         .create_filter_context = _net_ebpf_extension_sock_ops_create_filter_context,
-        .delete_filter_context = _net_ebpf_extension_sock_ops_delete_filter_context,
+        .release_hook_resources = _net_ebpf_extension_sock_ops_release_hook_resources,
         .validate_client_data = _net_ebpf_extension_sock_ops_validate_client_data,
     };
 

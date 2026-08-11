@@ -354,7 +354,43 @@ _net_ebpf_extension_hook_client_cleanup(_In_opt_ _Frees_ptr_opt_ net_ebpf_extens
 }
 
 /**
- * @brief Callback invoked when an eBPF hook NPI client (a.k.a eBPF link object) attaches.
+ * @brief Tears down a filter context that is no longer referenced by any hook NPI client, and disposes of it.
+ *
+ * The context is marked as detaching, its WFP filters are deleted, and any hook-specific resources are released.
+ * If every WFP filter was deleted the initial reference is released here and the context is freed. If any delete
+ * failed the context is transferred to the provider's zombie list without releasing that reference, so it cannot
+ * be freed while live WFP filters still point at it; the unload sweep reclaims it.
+ *
+ * @param[in] provider_context Provider module's context.
+ * @param[in,out] filter_context Filter context to dispose of. May be freed on return.
+ */
+_IRQL_requires_(PASSIVE_LEVEL)
+    _Requires_exclusive_lock_held_(provider_context->lock) static void _net_ebpf_ext_dispose_filter_context(
+        _In_ net_ebpf_extension_hook_provider_t* provider_context,
+        _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
+{
+    EBPF_EXT_LOG_ENTRY();
+
+    // Stop invoking eBPF programs before removing the filters that reference this context.
+    net_ebpf_extension_wfp_filter_context_detach(filter_context);
+    net_ebpf_extension_delete_wfp_filters(filter_context);
+
+    // Release hook-specific resources (redirect handle, flow contexts).
+    if (provider_context->dispatch.release_hook_resources != NULL) {
+        provider_context->dispatch.release_hook_resources(filter_context);
+    }
+
+    if (net_ebpf_ext_filter_context_all_deleted(filter_context)) {
+        DEREFERENCE_FILTER_CONTEXT(filter_context);
+    } else {
+        InsertTailList(&provider_context->zombie_filter_context_list, &filter_context->zombie_link);
+    }
+
+    EBPF_EXT_LOG_EXIT();
+}
+
+/**
+ * @brief Callback invoked when a hook NPI client (a.k.a. eBPF link object) attaches.
  *
  * @param[in] nmr_binding_handle NMR binding between the client module and the provider module.
  * @param[in] provider_context Provider module's context.
@@ -538,6 +574,10 @@ _net_ebpf_extension_hook_provider_attach_client(
         goto Exit;
     }
 
+    // The filter context now owns the rundown reference: DEREFERENCE_FILTER_CONTEXT releases it via
+    // leave_rundown when the context's last reference is dropped, so this function must not release it.
+    rundown_acquired = FALSE;
+
     // If the attach parameter is a wildcard, set the wildcard flag in the filter context.
     if (is_wild_card_attach_parameter) {
         new_filter_context->wildcard = TRUE;
@@ -559,18 +599,11 @@ _net_ebpf_extension_hook_provider_attach_client(
 Exit:
     if (local_provider_context) {
         if (provider_lock_acquired) {
-            RELEASE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->lock);
-        }
-
-        if (new_filter_context != NULL) {
-            local_provider_context->dispatch.delete_filter_context(new_filter_context);
-            if (net_ebpf_ext_filter_context_all_deleted(new_filter_context)) {
-                DEREFERENCE_FILTER_CONTEXT(new_filter_context);
-            } else {
-                ACQUIRE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->lock);
-                InsertTailList(&local_provider_context->zombie_filter_context_list, &new_filter_context->zombie_link);
-                RELEASE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->lock);
+            // new_filter_context is only non-NULL while the lock is held.
+            if (new_filter_context != NULL) {
+                _net_ebpf_ext_dispose_filter_context(local_provider_context, new_filter_context);
             }
+            RELEASE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->lock);
         }
     }
 
@@ -595,18 +628,7 @@ _Requires_exclusive_lock_held_(provider_context->lock) static void _net_ebpf_ext
     RemoveEntryList(&filter_context->link);
     InitializeListHead(&filter_context->link);
 
-    // Delete WFP filters and mark the context as detaching.
-    provider_context->dispatch.delete_filter_context(filter_context);
-
-    // If all WFP filters were successfully deleted, their per-filter references were released by notifications.
-    // Release the initial reference to free the context immediately.
-    // Otherwise, transfer to the zombie list without releasing the initial reference — the unload sweep will
-    // reclaim after callouts are unregistered.
-    if (net_ebpf_ext_filter_context_all_deleted(filter_context)) {
-        DEREFERENCE_FILTER_CONTEXT(filter_context);
-    } else {
-        InsertTailList(&provider_context->zombie_filter_context_list, &filter_context->zombie_link);
-    }
+    _net_ebpf_ext_dispose_filter_context(provider_context, filter_context);
 
     EBPF_EXT_LOG_EXIT();
 }

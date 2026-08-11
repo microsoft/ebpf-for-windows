@@ -51,14 +51,14 @@ typedef ebpf_result_t (*net_ebpf_extension_create_filter_context)(
     _Outptr_ net_ebpf_extension_wfp_filter_context_t** filter_context);
 
 /**
- * @brief Callback function to tear down a hook specific filter context. This callback is invoked when a hook NPI
-          client is detaching from the hook NPI provider. It deletes the context's WFP filters and releases any hook
-          specific resources, then marks the context as detaching. It does NOT free the filter context: the caller
-          decides whether to release the initial reference or hand the context to the provider's zombie list.
+ * @brief Optional callback to release hook-specific resources held by a filter context. Invoked by the hook provider
+          when the last NPI client detaches, after the context has been marked as detaching and its WFP filters have
+          been deleted. It must NOT free the filter context. May be NULL if the hook holds no hook-specific
+          resources.
  *
- * @param[in,out] filter_context Pointer to the filter context being torn down.
+ * @param[in,out] filter_context Pointer to the filter context whose hook-specific resources are being released.
  */
-typedef void (*net_ebpf_extension_delete_filter_context)(
+typedef void (*net_ebpf_extension_release_hook_resources)(
     _Inout_opt_ net_ebpf_extension_wfp_filter_context_t* filter_context);
 
 /**
@@ -88,7 +88,7 @@ typedef bool (*net_ebpf_extension_hook_process_verdict)(_Inout_ void* program_co
 typedef struct _net_ebpf_extension_hook_provider_dispatch_table
 {
     net_ebpf_extension_create_filter_context create_filter_context;
-    net_ebpf_extension_delete_filter_context delete_filter_context;
+    net_ebpf_extension_release_hook_resources release_hook_resources;
     net_ebpf_extension_validate_client_data validate_client_data;
     net_ebpf_extension_hook_process_verdict process_verdict;
 } net_ebpf_extension_hook_provider_dispatch_table_t;
