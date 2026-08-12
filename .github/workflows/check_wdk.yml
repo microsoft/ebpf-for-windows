@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   check:
-    runs-on: Windows-latest
+    runs-on: windows-2025
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920  # v2.20.0
@@ -38,7 +38,15 @@ jobs:
       - name: Check the version of the WDK in the repo
         id: check_repo_wdk
         run: |
-          $wdkVersion = (Get-Content -Path .\wdk.props | Select-String -Pattern "<WDKVersion>" | ForEach-Object { $_ -replace "<WDKVersion>", "" -replace "</WDKVersion>", "" }).trim()
+          # wdk.props declares one <WDKVersion> per supported Visual Studio version. Read the
+          # one selected for VS 2026 (MSBuildToolsVersion >= 18.0), which is the version the
+          # repo builds and ships with by default.
+          $props = Get-Content -Raw -Path .\wdk.props
+          $match = [regex]::Match($props, "<WDKVersion[^>]*&gt;=\s*'18\.0'[^>]*>([^<]+)</WDKVersion>")
+          if (-not $match.Success) {
+            throw "Could not determine the VS 2026 WDK version from wdk.props."
+          }
+          $wdkVersion = $match.Groups[1].Value.Trim()
           "wdk_version=$wdkVersion" >> $env:GITHUB_OUTPUT
 
       - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
