@@ -548,7 +548,11 @@ execute_connection_test(_In_ const connection_test_case& test_case)
             // Native API path: NULL attach parameter (wildcard / unspecified compartment).
             ebpf_attach_type_t attach_type_guid{};
             SAFE_REQUIRE(ebpf_get_ebpf_attach_type(lp.spec.attach_type, &attach_type_guid) == EBPF_SUCCESS);
-            SAFE_REQUIRE(ebpf_program_attach(program, &attach_type_guid, nullptr, 0, nullptr) == EBPF_SUCCESS);
+            // The legacy bind hook (BPF_ATTACH_TYPE_BIND) is deprecated and is not exposed on the
+            // libbpf-compat bpf_prog_attach/bpf_prog_detach2 path, so capture its link and detach it
+            // via the native link API at teardown. Other hooks detach uniformly via bpf_prog_detach2.
+            bpf_link** link = (lp.spec.attach_type == BPF_ATTACH_TYPE_BIND) ? &lp.link : nullptr;
+            SAFE_REQUIRE(ebpf_program_attach(program, &attach_type_guid, nullptr, 0, link) == EBPF_SUCCESS);
         }
         lp.attached = true;
     };
@@ -558,10 +562,18 @@ execute_connection_test(_In_ const connection_test_case& test_case)
         if (!lp.attached) {
             return;
         }
-        // Use bpf_prog_detach2 uniformly — it works for both attach paths.
-        // For ebpf_program_attach with NULL (wildcard), compartment 0 matches.
-        int rc = ::bpf_prog_detach2(bpf_program__fd(lp.program), 0, lp.spec.attach_type);
-        SAFE_REQUIRE(rc == 0);
+        if (lp.spec.attach_type == BPF_ATTACH_TYPE_BIND) {
+            // Deprecated bind hook: detach via its native link (it is not exposed on
+            // bpf_prog_detach2). bpf_link__destroy detaches and frees the link.
+            SAFE_REQUIRE(lp.link != nullptr);
+            SAFE_REQUIRE(bpf_link__destroy(lp.link) == 0);
+            lp.link = nullptr;
+        } else {
+            // Use bpf_prog_detach2 uniformly for the sock_addr hooks -- it works for both
+            // attach paths. For ebpf_program_attach with NULL (wildcard), compartment 0 matches.
+            int rc = ::bpf_prog_detach2(bpf_program__fd(lp.program), 0, lp.spec.attach_type);
+            SAFE_REQUIRE(rc == 0);
+        }
         lp.attached = false;
     };
 
