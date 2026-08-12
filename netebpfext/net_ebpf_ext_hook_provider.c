@@ -361,12 +361,13 @@ _net_ebpf_extension_hook_client_cleanup(_In_opt_ _Frees_ptr_opt_ net_ebpf_extens
  * be freed while live WFP filters still point at it; the unload sweep reclaims it.
  *
  * @param[in] provider_context Provider module's context.
- * @param[in,out] filter_context Filter context to dispose of. May be freed on return.
+ * @param[in] filter_context Filter context to dispose of. The caller must not use it on return: it is either
+ * freed here or transferred to the provider's zombie list.
  */
 _IRQL_requires_(PASSIVE_LEVEL)
     _Requires_exclusive_lock_held_(provider_context->lock) static void _net_ebpf_ext_dispose_filter_context(
         _In_ net_ebpf_extension_hook_provider_t* provider_context,
-        _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
+        _In_ _Post_ptr_invalid_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
     EBPF_EXT_LOG_ENTRY();
 
