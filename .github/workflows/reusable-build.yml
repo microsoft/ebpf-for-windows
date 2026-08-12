@@ -106,7 +106,7 @@ jobs:
       VS_VERSION: ${{inputs.vs_version}}
       # vswhere-style version range used to pin every Visual Studio lookup to the requested
       # major version, instead of silently taking whatever '-latest' happens to resolve to.
-      VS_VERSION_RANGE: '[${{inputs.vs_version}}.0,${{ fromJSON(inputs.vs_version) + 1 }}.0)'
+      VS_VERSION_RANGE: ${{ inputs.vs_version == '17' && '[17.0,18.0)' || '[18.0,19.0)' }}
 
     steps:
       - name: Harden Runner
