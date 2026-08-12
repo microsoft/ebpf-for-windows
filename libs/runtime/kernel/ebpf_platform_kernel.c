@@ -124,6 +124,7 @@ _ebpf_ring_create_kernel_composite_view(_Inout_ ebpf_ring_descriptor_t* ring_des
     }
 
     composite_pfn_array = MmGetMdlPfnArray(ring_descriptor->composite_mdl);
+    // Composite view order: kernel control page, consumer page, producer page, data pages, then the data pages again.
     memcpy(composite_pfn_array, MmGetMdlPfnArray(ring_descriptor->kernel.locked_kernel_view_mdl), sizeof(PFN_NUMBER));
     composite_pfn_array += 1;
     memcpy(composite_pfn_array, MmGetMdlPfnArray(ring_descriptor->consumer.locked_kernel_view_mdl), sizeof(PFN_NUMBER));
