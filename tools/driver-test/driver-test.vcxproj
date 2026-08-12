@@ -108,8 +108,17 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <!-- Fail the build immediately if a file the driver validation tests launch at run time
        is missing from this target's project closure. Without this check a missing binary
-       only surfaces ~45 minutes later as an opaque test failure on the test machines. -->
-  <Target Name="VerifyDriverTestClosure" AfterTargets="Build">
+       only surfaces ~45 minutes later as an opaque test failure on the test machines.
+
+       Scoped to the NativeOnly configurations because those are the only ones the release
+       validation pipeline builds this target for (see README.md), and the only ones whose
+       output is used for driver validation. In the other configurations this project is
+       built merely because it belongs to the solution, and their build graphs legitimately
+       differ. For example, the MSI is not built at all in FuzzerDebug, and in a parallel
+       full-solution build it can be rewritten by a second wixproj pass while this check
+       is running. -->
+  <Target Name="VerifyDriverTestClosure" AfterTargets="Build"
+          Condition="'$(Configuration)'=='NativeOnlyDebug' Or '$(Configuration)'=='NativeOnlyRelease'">
     <Exec Command="powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;$(SolutionDir)scripts\check_driver_test_closure.ps1&quot; -BuildPath &quot;$(OutDir.TrimEnd('\'))&quot;" />
   </Target>
   <ImportGroup Label="ExtensionTargets">

@@ -53,7 +53,11 @@ This command cannot be run due to the error: The system cannot find the file spe
 `scripts\check_driver_test_closure.ps1` guards against that. It runs in two places:
 
 * As a post-build step of this project (`VerifyDriverTestClosure`), asserting every required
-  file is actually present in the build output directory.
+  file is actually present in the build output directory. This runs only for the
+  `NativeOnlyDebug` and `NativeOnlyRelease` configurations, since those are the only ones
+  this target is built for by the release validation pipeline. In the other solution
+  configurations the project is built only because it belongs to the solution, and their
+  build graphs differ (the MSI, for instance, is not built at all in `FuzzerDebug`).
 * As the `Validate-Driver-Test-Closure` GitHub workflow, which runs the same script in static
   mode. That mode walks the transitive project closure of `driver-test.vcxproj` (following both
   `<ProjectReference>` items and solution `ProjectDependencies`) and needs no build, so it is
