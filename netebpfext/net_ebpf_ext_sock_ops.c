@@ -277,7 +277,6 @@ _net_ebpf_extension_sock_ops_release_hook_resources(_Inout_opt_ net_ebpf_extensi
 {
     net_ebpf_extension_sock_ops_wfp_filter_context_t* local_filter_context = NULL;
     KIRQL irql;
-    LIST_ENTRY local_list_head;
 
     EBPF_EXT_LOG_ENTRY();
 
@@ -287,37 +286,38 @@ _net_ebpf_extension_sock_ops_release_hook_resources(_Inout_opt_ net_ebpf_extensi
 
     local_filter_context = (net_ebpf_extension_sock_ops_wfp_filter_context_t*)filter_context;
 
-    InitializeListHead(&local_list_head);
+    // Pop one entry at a time under the lock: the flow delete callback runs asynchronously and would unlink and
+    // free entries from a detached list while it was being walked. Whichever of this loop and
+    // net_ebpf_extension_sock_ops_flow_delete reaches an entry first unlinks it, but only the latter frees it.
+    for (;;) {
+        LIST_ENTRY* entry;
+        net_ebpf_extension_flow_context_parameters_t flow_parameters;
+        NTSTATUS status;
 
-    KeAcquireSpinLock(&local_filter_context->lock, &irql);
-    if (local_filter_context->flow_context_list.count > 0) {
-
-        LIST_ENTRY* entry = local_filter_context->flow_context_list.list_head.Flink;
-        RemoveEntryList(&local_filter_context->flow_context_list.list_head);
-        InitializeListHead(&local_filter_context->flow_context_list.list_head);
-        AppendTailList(&local_list_head, entry);
-
-        local_filter_context->flow_context_list.count = 0;
-    }
-    KeReleaseSpinLock(&local_filter_context->lock, irql);
-
-    // Remove the flow context associated with the WFP flows.
-    while (!IsListEmpty(&local_list_head)) {
-        LIST_ENTRY* entry = RemoveHeadList(&local_list_head);
+        KeAcquireSpinLock(&local_filter_context->lock, &irql);
+        if (IsListEmpty(&local_filter_context->flow_context_list.list_head)) {
+            KeReleaseSpinLock(&local_filter_context->lock, irql);
+            break;
+        }
+        entry = RemoveHeadList(&local_filter_context->flow_context_list.list_head);
         InitializeListHead(entry);
-        net_ebpf_extension_sock_ops_wfp_flow_context_t* flow_context =
-            CONTAINING_RECORD(entry, net_ebpf_extension_sock_ops_wfp_flow_context_t, link);
+        local_filter_context->flow_context_list.count--;
 
-        net_ebpf_extension_flow_context_parameters_t* flow_parameters = &flow_context->parameters;
+        // Copy the parameters under the lock; the flow delete callback may free the flow context once it drops.
+        flow_parameters = CONTAINING_RECORD(entry, net_ebpf_extension_sock_ops_wfp_flow_context_t, link)->parameters;
+        KeReleaseSpinLock(&local_filter_context->lock, irql);
 
         // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/fwpsk/nf-fwpsk-fwpsflowremovecontext0
-        // Calling FwpsFlowRemoveContext may cause the flowDeleteFn callback on the callout to be invoked synchronously.
-        // The net_ebpf_extension_sock_ops_flow_delete function frees the flow context memory and
-        // releases reference on the filter_context.
-        NTSTATUS status =
-            FwpsFlowRemoveContext(flow_parameters->flow_id, flow_parameters->layer_id, flow_parameters->callout_id);
-        EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS, "FwpsFlowRemoveContext", status);
-        ASSERT(status == STATUS_SUCCESS);
+        // This invokes net_ebpf_extension_sock_ops_flow_delete, which frees the flow context and releases its
+        // reference on the filter context: synchronously on STATUS_SUCCESS, asynchronously on STATUS_PENDING while
+        // a classify callback is still active. STATUS_UNSUCCESSFUL means the flow no longer has a context.
+        status = FwpsFlowRemoveContext(flow_parameters.flow_id, flow_parameters.layer_id, flow_parameters.callout_id);
+        if (!NT_SUCCESS(status)) {
+            EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS, "FwpsFlowRemoveContext", status);
+        }
+
+        // Any other status leaves the association outstanding with the entry already removed from the list.
+        ASSERT((status == STATUS_SUCCESS) || (status == STATUS_PENDING) || (status == STATUS_UNSUCCESSFUL));
     }
 
 Exit:
@@ -511,6 +511,7 @@ net_ebpf_extension_sock_ops_flow_established_classify(
     EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
         EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS, local_flow_context, "flow_context", result);
     memset(local_flow_context, 0, sizeof(net_ebpf_extension_sock_ops_wfp_flow_context_t));
+    InitializeListHead(&local_flow_context->link);
 
     // Associate the filter context with the local flow context.
     REFERENCE_FILTER_CONTEXT(&filter_context->base);
@@ -618,14 +619,20 @@ net_ebpf_extension_sock_ops_flow_delete(uint16_t layer_id, uint32_t callout_id, 
         goto Exit;
     }
 
+    // Unlink before the context_deleting check below: this function frees the flow context before it returns, so
+    // an early return would leave a freed entry linked into flow_context_list. The entry is already self-linked if
+    // the teardown drain removed it first.
+    KeAcquireSpinLock(&filter_context->lock, &irql);
+    if (!IsListEmpty(&local_flow_context->link)) {
+        RemoveEntryList(&local_flow_context->link);
+        InitializeListHead(&local_flow_context->link);
+        filter_context->flow_context_list.count--;
+    }
+    KeReleaseSpinLock(&filter_context->lock, irql);
+
     if (filter_context->base.context_deleting) {
         goto Exit;
     }
-
-    KeAcquireSpinLock(&filter_context->lock, &irql);
-    RemoveEntryList(&local_flow_context->link);
-    filter_context->flow_context_list.count--;
-    KeReleaseSpinLock(&filter_context->lock, irql);
 
     EBPF_EXT_LOG_MESSAGE_UINT64(
         EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
