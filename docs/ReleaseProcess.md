@@ -101,7 +101,7 @@ version.
 
 ## Updating the Product Version
 
-1. Run `.\scripts\update-product-version.ps1` from the root directory of the repository, from a "*Developer Powershell for VS 2022"* terminal.
+1. Run `.\scripts\update-product-version.ps1` from the root directory of the repository, from a "*Developer Powershell for VS"* terminal.
    The script takes as input parameters the major, minor, patch versions and *optionally* the version modifier.
 
    Examples:
