@@ -53,7 +53,6 @@ static net_ebpf_extension_cleanup_state_t _net_ebpf_ext_cleanup_state = {0};
 
 // Bounded inline retry for a transient FwpmFilterDeleteById failure: up to this many attempts (initial + retries).
 #define NET_EBPF_EXT_DELETE_RETRY_MAX_ATTEMPTS 3
-#define NET_EBPF_EXT_DELETE_RETRY_DELAY_100NS (-(SECONDSTO100NS(1) / 20)) // 50 ms, expressed as a relative timeout.
 
 static void
 _net_ebpf_ext_flow_delete(uint16_t layer_id, uint32_t callout_id, uint64_t flow_context);
@@ -319,12 +318,22 @@ net_ebpf_extension_wfp_filter_context_create(
     local_filter_context->client_contexts[0] = (net_ebpf_extension_hook_client_t*)client_context;
     local_filter_context->client_context_count = 1;
 
-    // Set filter context as provider data in the hook client.
-    net_ebpf_extension_hook_client_set_provider_data(
-        (net_ebpf_extension_hook_client_t*)client_context, local_filter_context);
-
-    // Set the provider context.
+    // Acquire a rundown reference on the provider context. The filter context owns it from here on:
+    // CLEAN_UP_FILTER_CONTEXT releases it when the context is freed. provider_context is set only after the
+    // reference has been acquired, so a non-NULL provider_context means the context holds one.
+    if (!net_ebpf_extension_hook_provider_enter_rundown((net_ebpf_extension_hook_provider_t*)provider_context)) {
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            "ExAcquireRundownProtection failed. Filter context creation rejected.");
+        result = EBPF_FAILED;
+        goto Exit;
+    }
     local_filter_context->provider_context = provider_context;
+
+    // Cache the provider's verdict callback. The dispatch table is fixed when the provider is registered, and the
+    // cached copy is what the WFP classify path uses, so it never has to follow provider_context.
+    local_filter_context->process_verdict = provider_context->dispatch.process_verdict;
 
     // Open the WFP engine handle.
     status = FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, NULL, &local_filter_context->wfp_engine_handle);
@@ -519,16 +528,6 @@ _IRQL_requires_(PASSIVE_LEVEL) static NTSTATUS
 
         // Remember the last failing status for the one-per-filter recovered-delete log below.
         most_recent_failed_status = status;
-
-        if (attempt < max_attempts) {
-            // Back off before retrying. Waiting on an unsignaled event with a relative timeout is a portable
-            // PASSIVE_LEVEL delay that is available in both the kernel driver and the user-mode test builds.
-            KEVENT delay_event;
-            LARGE_INTEGER delay = {0};
-            KeInitializeEvent(&delay_event, NotificationEvent, FALSE);
-            delay.QuadPart = NET_EBPF_EXT_DELETE_RETRY_DELAY_100NS;
-            KeWaitForSingleObject(&delay_event, Executive, KernelMode, FALSE, &delay);
-        }
     }
 
     if (NT_SUCCESS(status) && most_recent_failed_status != STATUS_SUCCESS) {
@@ -899,29 +898,19 @@ Exit:
 // nothing can ever release those references. Left alone, the context blocks the provider rundown forever, which
 // hangs driver unload and with it the service stop.
 //
-// This runs after the callout functions are unregistered and before the callout objects, sub-layers and provider are
-// deleted, which avoids FWP_E_IN_USE and keeps a filter from surviving with a dangling rawContext across a reload.
-// Once every callout is unregistered WFP can no longer invoke classify, notify or flow-delete for these filters, so
-// no other code can hold or acquire a reference and this sweep is the context's sole owner. That is what makes the
-// forced cleanup below sound: the reference count carries no information, and the context is freed unconditionally.
+// The caller must have unregistered every callout function first. That is what makes the forced cleanup below
+// sound: WFP can no longer invoke classify, notify or flow-delete for these filters, so this sweep is the context's
+// sole owner, the reference count carries no information, and the context can be freed outright. It also runs
+// before the callout objects, sub-layers and provider are deleted, which avoids FWP_E_IN_USE and keeps a filter
+// from surviving with a dangling rawContext across a reload.
 //
-// Unconditional is deliberate. A filter whose delete never succeeds is left installed in WFP; it is marked
+// A filter whose delete never succeeds is left installed in WFP; it is marked
 // FWPM_FILTER_FLAG_PERMIT_IF_CALLOUT_UNREGISTERED, so with its callout gone it permits rather than blocks traffic.
-// Retaining the context's references instead would hang the provider rundown, which is a strictly worse outcome
-// than a leaked WFP filter.
+// Leaking a WFP filter is a strictly better outcome than hanging the provider rundown.
 _IRQL_requires_(PASSIVE_LEVEL) static void _net_ebpf_ext_cleanup_zombie_filters(
-    _In_ net_ebpf_extension_hook_provider_t* provider_context, bool all_callouts_unregistered)
+    _In_ net_ebpf_extension_hook_provider_t* provider_context)
 {
     EBPF_EXT_LOG_ENTRY();
-
-    if (!all_callouts_unregistered) {
-        // The sole-ownership guarantee above does not hold: WFP can still reach a filter context that is about to
-        // be freed. Unload cannot be abandoned at this point, so proceed and record why the state is unsafe.
-        EBPF_EXT_LOG_MESSAGE(
-            EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-            "Reclaiming zombie WFP filter contexts while a callout is still registered.");
-    }
 
     ACQUIRE_PUSH_LOCK_EXCLUSIVE(&provider_context->lock);
 
@@ -939,27 +928,21 @@ _IRQL_requires_(PASSIVE_LEVEL) static void _net_ebpf_ext_cleanup_zombie_filters(
         for (uint32_t index = 0; index < filter_context->filter_ids_count; index++) {
             net_ebpf_ext_wfp_filter_id_t* filter_id = &filter_context->filter_ids[index];
             NTSTATUS delete_status;
-            bool already_deleted;
-            KIRQL filter_irql;
 
-            // Claim the filter before attempting the delete. net_ebpf_ext_filter_change_notify only releases a
-            // reference for a filter it finds in a non-DELETED state, so from here on the notification is inert and
-            // cannot drop the last reference and free the context while this loop is still walking filter_ids. Only
-            // a callout that could not be unregistered can deliver such a notification at all.
-            filter_irql = ExAcquireSpinLockExclusive(&filter_context->lock);
-            already_deleted = (filter_id->state == NET_EBPF_EXT_WFP_FILTER_DELETED);
-            filter_id->state = NET_EBPF_EXT_WFP_FILTER_DELETED;
-            ExReleaseSpinLockExclusive(&filter_context->lock, filter_irql);
-
-            if (already_deleted) {
+            // No lock is needed: the clients have detached and no callout is registered, so nothing else can
+            // observe or modify this state.
+            if (filter_id->state == NET_EBPF_EXT_WFP_FILTER_DELETED) {
                 continue;
             }
 
-            // Best-effort removal of the still-live WFP filter so it cannot outlive the filter context.
+            // Best-effort removal of the still-live WFP filter so it cannot outlive the filter context. The delete
+            // is retried because BFE may have recovered since the attempt at detach failed.
             delete_status = _net_ebpf_ext_try_delete_wfp_filter(
                 filter_context->wfp_engine_handle, filter_id->id, NET_EBPF_EXT_DELETE_RETRY_MAX_ATTEMPTS);
             filter_id->error_code = delete_status;
-            if (!NT_SUCCESS(delete_status)) {
+            if (NT_SUCCESS(delete_status)) {
+                filter_id->state = NET_EBPF_EXT_WFP_FILTER_DELETED;
+            } else {
                 EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
                     EBPF_EXT_TRACELOG_LEVEL_ERROR,
                     EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
@@ -970,13 +953,54 @@ _IRQL_requires_(PASSIVE_LEVEL) static void _net_ebpf_ext_cleanup_zombie_filters(
         }
 #pragma warning(pop)
 
-        // Forced cleanup. Whatever references remain are unreachable now that the filters are claimed and the
-        // callouts are gone, so drop the count to one and release it: this leaves the provider rundown and frees
-        // the context, guaranteeing unload completes even when a filter could not be deleted.
-        InterlockedExchange(&filter_context->reference_count, 1);
-        DEREFERENCE_FILTER_CONTEXT(filter_context);
+        // Free the context outright. Its reference count is meaningless here: the references it still holds belong
+        // to filters WFP never deleted, and nothing can release them. This also leaves the provider rundown.
+        CLEAN_UP_FILTER_CONTEXT(filter_context);
 
         ACQUIRE_PUSH_LOCK_EXCLUSIVE(&provider_context->lock);
+    }
+
+    RELEASE_PUSH_LOCK_EXCLUSIVE(&provider_context->lock);
+
+    EBPF_EXT_LOG_EXIT();
+}
+
+// Abandons the filter contexts on a provider's zombie list when one or more callout functions could not be
+// unregistered. WFP can still invoke classify, notify and flow-delete against these contexts, so freeing them would
+// be a use-after-free. Instead each context is pinned with a reference count that can never reach zero and is
+// deliberately leaked, while the provider rundown reference it owns is released here so that driver unload, and the
+// service stop behind it, can still complete.
+_IRQL_requires_(PASSIVE_LEVEL) static void _net_ebpf_ext_abandon_zombie_filters(
+    _In_ net_ebpf_extension_hook_provider_t* provider_context)
+{
+    EBPF_EXT_LOG_ENTRY();
+
+    ACQUIRE_PUSH_LOCK_EXCLUSIVE(&provider_context->lock);
+
+    while (!IsListEmpty(&provider_context->zombie_filter_context_list)) {
+        PLIST_ENTRY entry = RemoveHeadList(&provider_context->zombie_filter_context_list);
+        net_ebpf_extension_wfp_filter_context_t* filter_context =
+            CONTAINING_RECORD(entry, net_ebpf_extension_wfp_filter_context_t, zombie_link);
+        InitializeListHead(&filter_context->zombie_link);
+
+        // The context keeps the initial reference taken when it was created: _net_ebpf_ext_dispose_filter_context
+        // only releases that reference for a context whose filters were all deleted, and every other reference has
+        // exactly one owner that releases it at most once. The count can therefore never reach zero, so a late
+        // dereference from WFP cannot free the context. The allocation is deliberately leaked.
+        ASSERT(filter_context->reference_count >= 1);
+
+        // WFP can still reach this context, and the provider is freed once the rundown reference below is released,
+        // so the context must not be left pointing at it. Nothing on a WFP callback path reads provider_context.
+        ASSERT(filter_context->context_deleting);
+        filter_context->provider_context = NULL;
+
+        EBPF_EXT_LOG_MESSAGE_UINT64(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            "Leaking a zombie WFP filter context because a callout could not be unregistered.",
+            filter_context->filter_ids_count);
+
+        net_ebpf_extension_hook_provider_leave_rundown(provider_context);
     }
 
     RELEASE_PUSH_LOCK_EXCLUSIVE(&provider_context->lock);
@@ -1021,7 +1045,15 @@ _IRQL_requires_(PASSIVE_LEVEL) void net_ebpf_extension_uninitialize_wfp_componen
         }
 
         // Step 2: Reclaim zombie filter contexts on each provider before removing the callout objects, sub-layers
-        // and provider they reference.
+        // and provider they reference. Reclaiming is only safe once every callout function is unregistered; if any
+        // could not be, the contexts are abandoned instead so WFP cannot reach freed memory.
+        if (!all_callouts_unregistered) {
+            EBPF_EXT_LOG_MESSAGE(
+                EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                "One or more WFP callouts could not be unregistered; zombie filter contexts will be leaked rather "
+                "than freed.");
+        }
         {
             KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock);
             PLIST_ENTRY entry = _net_ebpf_ext_cleanup_state.provider_context_cleanup_list.Flink;
@@ -1031,7 +1063,11 @@ _IRQL_requires_(PASSIVE_LEVEL) void net_ebpf_extension_uninitialize_wfp_componen
                 entry = entry->Flink;
                 ExReleaseSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock, old_irql);
 
-                _net_ebpf_ext_cleanup_zombie_filters(provider_context, all_callouts_unregistered);
+                if (all_callouts_unregistered) {
+                    _net_ebpf_ext_cleanup_zombie_filters(provider_context);
+                } else {
+                    _net_ebpf_ext_abandon_zombie_filters(provider_context);
+                }
 
                 old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock);
             }

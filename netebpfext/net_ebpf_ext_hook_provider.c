@@ -180,8 +180,7 @@ net_ebpf_extension_hook_invoke_filtered_programs(
     bool lock_acquired = FALSE;
     uint32_t client_count = 0;
     net_ebpf_extension_hook_client_t* clients[NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_MULTI_ATTACH] = {0};
-    const net_ebpf_extension_hook_process_verdict process_verdict =
-        filter_context->provider_context->dispatch.process_verdict;
+    const net_ebpf_extension_hook_process_verdict process_verdict = filter_context->process_verdict;
 
     *result = 0;
 
@@ -423,7 +422,6 @@ _net_ebpf_extension_hook_provider_attach_client(
     ebpf_extension_data_t* client_data = NULL;
     bool is_wild_card_attach_parameter = FALSE;
     net_ebpf_extension_wfp_filter_context_t* new_filter_context = NULL;
-    bool rundown_acquired = FALSE;
 
     EBPF_EXT_LOG_ENTRY();
 
@@ -550,18 +548,8 @@ _net_ebpf_extension_hook_provider_attach_client(
         }
     }
 
-    // No matching filter context found. Need to create a new filter context.
-    // Acquire rundown reference on provider context. This will be released when the filter context is deleted.
-    rundown_acquired = net_ebpf_extension_hook_provider_enter_rundown(local_provider_context);
-    if (!rundown_acquired) {
-        EBPF_EXT_LOG_MESSAGE(
-            EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-            "ExAcquireRundownProtection failed. Attach attempt rejected.");
-        status = STATUS_ACCESS_DENIED;
-        goto Exit;
-    }
-
+    // No matching filter context found. Need to create a new filter context. It acquires its own rundown reference
+    // on the provider context, which it releases when it is freed.
     result = local_provider_context->dispatch.create_filter_context(
         hook_client, local_provider_context, &new_filter_context);
     if (result != EBPF_SUCCESS) {
@@ -574,9 +562,9 @@ _net_ebpf_extension_hook_provider_attach_client(
         goto Exit;
     }
 
-    // The filter context now owns the rundown reference: DEREFERENCE_FILTER_CONTEXT releases it via
-    // leave_rundown when the context's last reference is dropped, so this function must not release it.
-    rundown_acquired = FALSE;
+    // Set the filter context as the client's provider data. This is done only now that the context is guaranteed to
+    // outlive the call: every failure path inside create_filter_context frees it.
+    net_ebpf_extension_hook_client_set_provider_data(hook_client, new_filter_context);
 
     // If the attach parameter is a wildcard, set the wildcard flag in the filter context.
     if (is_wild_card_attach_parameter) {
@@ -608,12 +596,6 @@ Exit:
     }
 
     _net_ebpf_extension_hook_client_cleanup(hook_client);
-
-    if (status != STATUS_SUCCESS) {
-        if (rundown_acquired) {
-            net_ebpf_extension_hook_provider_leave_rundown(local_provider_context);
-        }
-    }
 
     EBPF_EXT_RETURN_NTSTATUS(status);
 }

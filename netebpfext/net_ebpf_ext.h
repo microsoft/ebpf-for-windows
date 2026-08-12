@@ -140,6 +140,11 @@ typedef struct _net_ebpf_extension_wfp_filter_context
     _Guarded_by_(lock) uint32_t client_context_count;                   ///< Current number of hook NPI clients.
     const struct _net_ebpf_extension_hook_provider* provider_context;   ///< Pointer to provider binding context.
 
+    /// Cached copy of the provider's verdict callback, taken when the context is created. The WFP classify path uses
+    /// this copy so that it never has to follow provider_context, which is cleared when a context is abandoned at
+    /// unload and whose target is freed once the provider rundown is released.
+    net_ebpf_extension_hook_process_verdict process_verdict;
+
     net_ebpf_ext_wfp_filter_id_t* filter_ids; ///< Array of WFP filter Ids.
     uint32_t filter_ids_count;                ///< Number of WFP filter Ids.
 
@@ -165,20 +170,24 @@ typedef struct _net_ebpf_extension_cleanup_state
 #define PRAGMA_WARNING_SUPPRESS_26100 _Pragma("warning(suppress: 26100)")
 #define PRAGMA_WARNING_POP _Pragma("warning(pop)")
 
-#define CLEAN_UP_FILTER_CONTEXT(filter_context)               \
-    ASSERT((filter_context) != NULL);                         \
-    if ((filter_context)->filter_ids != NULL) {               \
-        ExFreePool((filter_context)->filter_ids);             \
-    }                                                         \
-    PRAGMA_WARNING_PUSH                                       \
-    PRAGMA_WARNING_SUPPRESS_26100                             \
-    if ((filter_context)->client_contexts != NULL) {          \
-        ExFreePool((filter_context)->client_contexts);        \
-    }                                                         \
-    PRAGMA_WARNING_POP                                        \
-    if ((filter_context)->wfp_engine_handle != NULL) {        \
-        FwpmEngineClose((filter_context)->wfp_engine_handle); \
-    }                                                         \
+#define CLEAN_UP_FILTER_CONTEXT(filter_context)                                       \
+    ASSERT((filter_context) != NULL);                                                 \
+    if ((filter_context)->filter_ids != NULL) {                                       \
+        ExFreePool((filter_context)->filter_ids);                                     \
+    }                                                                                 \
+    PRAGMA_WARNING_PUSH                                                               \
+    PRAGMA_WARNING_SUPPRESS_26100                                                     \
+    if ((filter_context)->client_contexts != NULL) {                                  \
+        ExFreePool((filter_context)->client_contexts);                                \
+    }                                                                                 \
+    PRAGMA_WARNING_POP                                                                \
+    if ((filter_context)->wfp_engine_handle != NULL) {                                \
+        FwpmEngineClose((filter_context)->wfp_engine_handle);                         \
+    }                                                                                 \
+    if ((filter_context)->provider_context != NULL) {                                 \
+        net_ebpf_extension_hook_provider_leave_rundown(                               \
+            (net_ebpf_extension_hook_provider_t*)(filter_context)->provider_context); \
+    }                                                                                 \
     ExFreePool((filter_context));
 
 #define REFERENCE_FILTER_CONTEXT(filter_context)                  \
@@ -186,13 +195,11 @@ typedef struct _net_ebpf_extension_cleanup_state
         InterlockedIncrement(&(filter_context)->reference_count); \
     }
 
-#define DEREFERENCE_FILTER_CONTEXT(filter_context)                                        \
-    if ((filter_context) != NULL) {                                                       \
-        if (InterlockedDecrement(&(filter_context)->reference_count) == 0) {              \
-            net_ebpf_extension_hook_provider_leave_rundown(                               \
-                (net_ebpf_extension_hook_provider_t*)(filter_context)->provider_context); \
-            CLEAN_UP_FILTER_CONTEXT((filter_context));                                    \
-        }                                                                                 \
+#define DEREFERENCE_FILTER_CONTEXT(filter_context)                           \
+    if ((filter_context) != NULL) {                                          \
+        if (InterlockedDecrement(&(filter_context)->reference_count) == 0) { \
+            CLEAN_UP_FILTER_CONTEXT((filter_context));                       \
+        }                                                                    \
     }
 
 /**
