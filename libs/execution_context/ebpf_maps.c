@@ -164,6 +164,7 @@ typedef struct _ebpf_core_object_map
  *
  * ebpf_lru_entry_partition_t is an untyped block of memory containing the following:
  * struct ebpf_lru_entry_t {
+ *  // Keep the generation and last-used-time arrays first for the lookup fast path.
  *  size_t generation[partition_count];
  *  size_t last_used_time[partition_count];
  *  ebpf_list_entry_t list_entry[partition_count];
