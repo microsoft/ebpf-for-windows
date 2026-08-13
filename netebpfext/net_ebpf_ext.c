@@ -1001,19 +1001,17 @@ _IRQL_requires_(PASSIVE_LEVEL) void net_ebpf_extension_uninitialize_wfp_componen
         // and provider they reference. Reclaiming frees a context whose WFP filters may still be installed, so it is
         // only safe once every callout function is unregistered and WFP can no longer reach the context.
         if (all_callouts_unregistered) {
-            KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock);
+            // No lock is needed: the cleanup list is only appended to by
+            // net_ebpf_extension_hook_provider_unregister, which net_ebpf_ext_unregister_providers has already run
+            // to completion for every provider before this function is called, so the list can no longer change.
             PLIST_ENTRY entry = _net_ebpf_ext_cleanup_state.provider_context_cleanup_list.Flink;
             while (entry != &_net_ebpf_ext_cleanup_state.provider_context_cleanup_list) {
                 net_ebpf_extension_hook_provider_t* provider_context =
                     CONTAINING_RECORD(entry, net_ebpf_extension_hook_provider_t, cleanup_list_entry);
                 entry = entry->Flink;
-                ExReleaseSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock, old_irql);
 
                 _net_ebpf_ext_cleanup_zombie_filters(provider_context);
-
-                old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock);
             }
-            ExReleaseSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock, old_irql);
         } else {
             // WFP can still invoke this driver, so freeing a zombie context here would be a use-after-free. The
             // contexts and the provider rundown references they hold are deliberately retained: a callout driver
@@ -1095,23 +1093,17 @@ _IRQL_requires_(PASSIVE_LEVEL) void net_ebpf_ext_wait_for_provider_context_rundo
 {
     EBPF_EXT_LOG_ENTRY();
 
-    // Iterate through the provider list and handle cleanup.
-    KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock);
+    // Iterate through the provider list and handle cleanup. No lock is needed: the cleanup list is only appended to
+    // by net_ebpf_extension_hook_provider_unregister, which net_ebpf_ext_unregister_providers has already run to
+    // completion for every provider before this function is called, so the list can no longer change.
     while (!IsListEmpty(&_net_ebpf_ext_cleanup_state.provider_context_cleanup_list)) {
         PLIST_ENTRY entry = RemoveHeadList(&_net_ebpf_ext_cleanup_state.provider_context_cleanup_list);
         net_ebpf_extension_hook_provider_t* provider_context =
             CONTAINING_RECORD(entry, net_ebpf_extension_hook_provider_t, cleanup_list_entry);
 
-        // Release the lock as waiting for rundown can take time.
-        ExReleaseSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock, old_irql);
         ebpf_ext_wait_for_rundown(&provider_context->rundown);
         ExFreePool(provider_context);
-
-        // Re-acquire the lock.
-        old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock);
     }
-
-    ExReleaseSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock, old_irql);
 
     EBPF_EXT_LOG_EXIT();
 }
