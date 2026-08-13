@@ -331,10 +331,6 @@ net_ebpf_extension_wfp_filter_context_create(
     }
     local_filter_context->provider_context = provider_context;
 
-    // Cache the provider's verdict callback. The dispatch table is fixed when the provider is registered, and the
-    // cached copy is what the WFP classify path uses, so it never has to follow provider_context.
-    local_filter_context->process_verdict = provider_context->dispatch.process_verdict;
-
     // Open the WFP engine handle.
     status = FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, NULL, &local_filter_context->wfp_engine_handle);
     if (!NT_SUCCESS(status)) {
@@ -901,8 +897,8 @@ Exit:
 // The caller must have unregistered every callout function first. That is what makes the forced cleanup below
 // sound: WFP can no longer invoke classify, notify or flow-delete for these filters, so this sweep is the context's
 // sole owner, the reference count carries no information, and the context can be freed outright. It also runs
-// before the callout objects, sub-layers and provider are deleted, which avoids FWP_E_IN_USE and keeps a filter
-// from surviving with a dangling rawContext across a reload.
+// before the callout objects, sub-layers and provider are deleted, which avoids FWP_E_IN_USE for every filter it
+// does delete, and keeps a filter from surviving with a dangling rawContext across a reload.
 //
 // A filter whose delete never succeeds is left installed in WFP; it is marked
 // FWPM_FILTER_FLAG_PERMIT_IF_CALLOUT_UNREGISTERED, so with its callout gone it permits rather than blocks traffic.
@@ -965,49 +961,6 @@ _IRQL_requires_(PASSIVE_LEVEL) static void _net_ebpf_ext_cleanup_zombie_filters(
     EBPF_EXT_LOG_EXIT();
 }
 
-// Abandons the filter contexts on a provider's zombie list when one or more callout functions could not be
-// unregistered. WFP can still invoke classify, notify and flow-delete against these contexts, so freeing them would
-// be a use-after-free. Instead each context is pinned with a reference count that can never reach zero and is
-// deliberately leaked, while the provider rundown reference it owns is released here so that driver unload, and the
-// service stop behind it, can still complete.
-_IRQL_requires_(PASSIVE_LEVEL) static void _net_ebpf_ext_abandon_zombie_filters(
-    _In_ net_ebpf_extension_hook_provider_t* provider_context)
-{
-    EBPF_EXT_LOG_ENTRY();
-
-    ACQUIRE_PUSH_LOCK_EXCLUSIVE(&provider_context->lock);
-
-    while (!IsListEmpty(&provider_context->zombie_filter_context_list)) {
-        PLIST_ENTRY entry = RemoveHeadList(&provider_context->zombie_filter_context_list);
-        net_ebpf_extension_wfp_filter_context_t* filter_context =
-            CONTAINING_RECORD(entry, net_ebpf_extension_wfp_filter_context_t, zombie_link);
-        InitializeListHead(&filter_context->zombie_link);
-
-        // The context keeps the initial reference taken when it was created: _net_ebpf_ext_dispose_filter_context
-        // only releases that reference for a context whose filters were all deleted, and every other reference has
-        // exactly one owner that releases it at most once. The count can therefore never reach zero, so a late
-        // dereference from WFP cannot free the context. The allocation is deliberately leaked.
-        ASSERT(filter_context->reference_count >= 1);
-
-        // WFP can still reach this context, and the provider is freed once the rundown reference below is released,
-        // so the context must not be left pointing at it. Nothing on a WFP callback path reads provider_context.
-        ASSERT(filter_context->context_deleting);
-        filter_context->provider_context = NULL;
-
-        EBPF_EXT_LOG_MESSAGE_UINT64(
-            EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-            "Leaking a zombie WFP filter context because a callout could not be unregistered.",
-            filter_context->filter_ids_count);
-
-        net_ebpf_extension_hook_provider_leave_rundown(provider_context);
-    }
-
-    RELEASE_PUSH_LOCK_EXCLUSIVE(&provider_context->lock);
-
-    EBPF_EXT_LOG_EXIT();
-}
-
 _IRQL_requires_(PASSIVE_LEVEL) void net_ebpf_extension_uninitialize_wfp_components(void)
 {
     size_t index;
@@ -1045,16 +998,9 @@ _IRQL_requires_(PASSIVE_LEVEL) void net_ebpf_extension_uninitialize_wfp_componen
         }
 
         // Step 2: Reclaim zombie filter contexts on each provider before removing the callout objects, sub-layers
-        // and provider they reference. Reclaiming is only safe once every callout function is unregistered; if any
-        // could not be, the contexts are abandoned instead so WFP cannot reach freed memory.
-        if (!all_callouts_unregistered) {
-            EBPF_EXT_LOG_MESSAGE(
-                EBPF_EXT_TRACELOG_LEVEL_ERROR,
-                EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-                "One or more WFP callouts could not be unregistered; zombie filter contexts will be leaked rather "
-                "than freed.");
-        }
-        {
+        // and provider they reference. Reclaiming frees a context whose WFP filters may still be installed, so it is
+        // only safe once every callout function is unregistered and WFP can no longer reach the context.
+        if (all_callouts_unregistered) {
             KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock);
             PLIST_ENTRY entry = _net_ebpf_ext_cleanup_state.provider_context_cleanup_list.Flink;
             while (entry != &_net_ebpf_ext_cleanup_state.provider_context_cleanup_list) {
@@ -1063,19 +1009,25 @@ _IRQL_requires_(PASSIVE_LEVEL) void net_ebpf_extension_uninitialize_wfp_componen
                 entry = entry->Flink;
                 ExReleaseSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock, old_irql);
 
-                if (all_callouts_unregistered) {
-                    _net_ebpf_ext_cleanup_zombie_filters(provider_context);
-                } else {
-                    _net_ebpf_ext_abandon_zombie_filters(provider_context);
-                }
+                _net_ebpf_ext_cleanup_zombie_filters(provider_context);
 
                 old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock);
             }
             ExReleaseSpinLockExclusive(&_net_ebpf_ext_cleanup_state.lock, old_irql);
+        } else {
+            // WFP can still invoke this driver, so freeing a zombie context here would be a use-after-free. The
+            // contexts and the provider rundown references they hold are deliberately retained: a callout driver
+            // must not return from its unload function until every callout it registered has been unregistered.
+            EBPF_EXT_LOG_MESSAGE(
+                EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                "One or more WFP callouts could not be unregistered; zombie filter contexts cannot be reclaimed.");
+            ASSERT(FALSE);
         }
 
-        // Step 3: Delete the callout objects; the filters referencing them are gone, so this should not fail with
-        // FWP_E_IN_USE.
+        // Step 3: Delete the callout objects. A callout object cannot be deleted while a filter still specifies it
+        // for its action, so this fails with FWP_E_IN_USE for a callout referenced by a filter that step 2 could not
+        // delete; that callout object is then left installed alongside the filter.
         for (index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_states); index++) {
             for (int i = 1; i <= max_retries; i++) {
                 status =

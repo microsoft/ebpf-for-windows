@@ -140,11 +140,6 @@ typedef struct _net_ebpf_extension_wfp_filter_context
     _Guarded_by_(lock) uint32_t client_context_count;                   ///< Current number of hook NPI clients.
     const struct _net_ebpf_extension_hook_provider* provider_context;   ///< Pointer to provider binding context.
 
-    /// Cached copy of the provider's verdict callback, taken when the context is created. The WFP classify path uses
-    /// this copy so that it never has to follow provider_context, which is cleared when a context is abandoned at
-    /// unload and whose target is freed once the provider rundown is released.
-    net_ebpf_extension_hook_process_verdict process_verdict;
-
     net_ebpf_ext_wfp_filter_id_t* filter_ids; ///< Array of WFP filter Ids.
     uint32_t filter_ids_count;                ///< Number of WFP filter Ids.
 

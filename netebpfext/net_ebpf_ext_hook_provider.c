@@ -180,7 +180,8 @@ net_ebpf_extension_hook_invoke_filtered_programs(
     bool lock_acquired = FALSE;
     uint32_t client_count = 0;
     net_ebpf_extension_hook_client_t* clients[NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_MULTI_ATTACH] = {0};
-    const net_ebpf_extension_hook_process_verdict process_verdict = filter_context->process_verdict;
+    const net_ebpf_extension_hook_process_verdict process_verdict =
+        filter_context->provider_context->dispatch.process_verdict;
 
     *result = 0;
 
