@@ -125,8 +125,17 @@ jobs:
         shell: cmd
         run: |
           set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
-          for /f "usebackq delims=" %%i in (`"%VSWHERE%" -latest -version "%VS_VERSION_RANGE%" -property installationPath`) do set "VSINSTALLPATH=%%i"
-          if not defined VSINSTALLPATH ( echo Could not locate a Visual Studio %VS_VERSION% installation ^(%VS_VERSION_RANGE%^) via vswhere. & exit /b 1 )
+          rem Write vswhere's output to a file rather than using a for/f loop, and keep
+          rem %VS_VERSION_RANGE% out of any parenthesized block: the ')' in the version range is
+          rem otherwise parsed as the closing paren of the for/f 'in (...)' clause or the if
+          rem block, which breaks the quoting around the vswhere path.
+          "%VSWHERE%" -latest -version "%VS_VERSION_RANGE%" -property installationPath > "%TEMP%\vsinstallpath.txt"
+          set /p VSINSTALLPATH=<"%TEMP%\vsinstallpath.txt"
+          if not defined VSINSTALLPATH (
+            echo Could not locate a Visual Studio %VS_VERSION% installation via vswhere.
+            exit /b 1
+          )
+          echo Visual Studio install path: %VSINSTALLPATH%
           call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvars64.bat"
           powershell.exe "echo 'msvc_tools_path=%VCToolsInstallDir%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
           powershell.exe "echo 'msvc_tools_version=%VCToolsVersion%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
