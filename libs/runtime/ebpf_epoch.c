@@ -405,8 +405,7 @@ _ebpf_epoch_allocate_cpu_entry(uint32_t cpu_id)
     ebpf_list_initialize(&cpu_entry->free_list);
 
     interval.QuadPart = EBPF_EPOCH_FLUSH_DELAY_IN_NANOSECONDS / EBPF_NS_PER_FILETIME;
-    return ebpf_timed_work_queue_allocate(
-        &cpu_entry->work_queue, &interval, _ebpf_epoch_messenger_worker, cpu_entry);
+    return ebpf_timed_work_queue_allocate(&cpu_entry->work_queue, &interval, _ebpf_epoch_messenger_worker, cpu_entry);
 }
 
 static _Must_inspect_result_ ebpf_result_t
