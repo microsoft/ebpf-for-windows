@@ -136,7 +136,7 @@ if ($VerbosePreference -eq "Continue") {
 }
 
 # Forward an explicit WDK version to the generated project when the caller pinned one. The templates
-# otherwise derive it from $(MSBuildToolsVersion); passing it through guarantees the restore and the
+# otherwise derive it from $(MSBuildAssemblyVersion); passing it through guarantees the restore and the
 # build agree, and lets a pipeline override both from one place.
 $WDKVersionArgs = @()
 if ($env:WDKVersion) {
