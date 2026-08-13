@@ -992,6 +992,15 @@ TEST_CASE("epoch_test_hot_add_cpu_failure_rollback", "[platform]")
     REQUIRE(synchronize_scope.wait_for(std::chrono::seconds(30)) == std::future_status::ready);
     REQUIRE(synchronize_scope.get() == EBPF_SUCCESS);
 
+    // A failed add destroys the CPU work queue. Verify that a later add can recreate it.
+    REQUIRE(NT_SUCCESS(usersim_notify_processor_add_start(hot_add_cpu)));
+
+    epoch_hot_add_synchronize_scope_t retry_synchronize_scope(hot_add_cpu);
+    REQUIRE(retry_synchronize_scope.wait_for(std::chrono::milliseconds(100)) == std::future_status::timeout);
+    REQUIRE(NT_SUCCESS(retry_synchronize_scope.notify_complete()));
+    REQUIRE(retry_synchronize_scope.wait_for(std::chrono::seconds(30)) == std::future_status::ready);
+    REQUIRE(retry_synchronize_scope.get() == EBPF_SUCCESS);
+
     ebpf_epoch_synchronize();
     REQUIRE(ebpf_epoch_is_free_list_empty(0));
 }

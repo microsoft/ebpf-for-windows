@@ -576,7 +576,13 @@ _Function_class_(PROCESSOR_CALLBACK_FUNCTION) static void _ebpf_epoch_processor_
 
     switch (change_context->State) {
     case KeProcessorAddStartNotify: {
-        ebpf_result_t result = _ebpf_epoch_initialize_cpu_entry(cpu_id);
+        ebpf_result_t result = _ebpf_epoch_allocate_cpu_entry(cpu_id);
+        if (result != EBPF_SUCCESS) {
+            *operation_status = STATUS_INSUFFICIENT_RESOURCES;
+            return;
+        }
+
+        result = _ebpf_epoch_initialize_cpu_entry(cpu_id);
         if (result != EBPF_SUCCESS) {
             *operation_status = STATUS_INVALID_PARAMETER;
             return;
