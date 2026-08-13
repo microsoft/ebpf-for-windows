@@ -17,9 +17,7 @@ typedef struct _ebpf_ring_section
     void* section_object;  ///< Referenced section object used to reopen region-scoped user handles.
     // System-space section view used as the source for MDL creation.
     void* pageable_kernel_view;
-    // Locked kernel mapping used by hot-path ring operations.
-    void* kernel_view;
-    // MDL that pins pageable_kernel_view while kernel_view is active.
+    // MDL that pins pageable_kernel_view and provides its PFNs for the composite mapping.
     MDL* locked_kernel_view_mdl;
     size_t view_size; ///< Size of this logical region.
 } ebpf_ring_section_t;
@@ -44,11 +42,6 @@ static KDEFERRED_ROUTINE _ebpf_timer_routine;
 static void
 _ebpf_ring_cleanup_section(_Inout_ ebpf_ring_section_t* section)
 {
-    if (section->kernel_view != NULL) {
-        MmUnmapLockedPages(section->kernel_view, section->locked_kernel_view_mdl);
-        section->kernel_view = NULL;
-    }
-
     if (section->locked_kernel_view_mdl != NULL) {
         MmUnlockPages(section->locked_kernel_view_mdl);
         IoFreeMdl(section->locked_kernel_view_mdl);
@@ -77,37 +70,39 @@ static ebpf_result_t
 _ebpf_ring_lock_kernel_section_view(_Inout_ ebpf_ring_section_t* section)
 {
     NTSTATUS status = STATUS_SUCCESS;
+    ebpf_result_t result = EBPF_NO_MEMORY;
+    BOOLEAN pages_locked = FALSE;
 
     section->locked_kernel_view_mdl =
         IoAllocateMdl(section->pageable_kernel_view, (ULONG)section->view_size, FALSE, FALSE, NULL);
     if (section->locked_kernel_view_mdl == NULL) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, IoAllocateMdl, STATUS_NO_MEMORY);
-        return EBPF_NO_MEMORY;
+        goto Exit;
     }
 
+    // Lock the section pages so their PFNs can be copied into the composite MDL.
     __try {
         MmProbeAndLockPages(section->locked_kernel_view_mdl, KernelMode, IoModifyAccess);
+        pages_locked = TRUE;
     } __except (EXCEPTION_EXECUTE_HANDLER) {
         status = GetExceptionCode();
     }
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmProbeAndLockPages, status);
-        IoFreeMdl(section->locked_kernel_view_mdl);
-        section->locked_kernel_view_mdl = NULL;
-        return EBPF_NO_MEMORY;
+        goto Exit;
     }
 
-    section->kernel_view = MmMapLockedPagesSpecifyCache(
-        section->locked_kernel_view_mdl, KernelMode, MmCached, NULL, FALSE, NormalPagePriority | MdlMappingNoExecute);
-    if (section->kernel_view == NULL) {
-        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmMapLockedPagesSpecifyCache, STATUS_NO_MEMORY);
-        MmUnlockPages(section->locked_kernel_view_mdl);
+    result = EBPF_SUCCESS;
+
+Exit:
+    if (result != EBPF_SUCCESS && section->locked_kernel_view_mdl != NULL) {
+        if (pages_locked) {
+            MmUnlockPages(section->locked_kernel_view_mdl);
+        }
         IoFreeMdl(section->locked_kernel_view_mdl);
         section->locked_kernel_view_mdl = NULL;
-        return EBPF_NO_MEMORY;
     }
-
-    return EBPF_SUCCESS;
+    EBPF_RETURN_RESULT(result);
 }
 static ebpf_result_t
 _ebpf_ring_create_kernel_composite_view(_Inout_ ebpf_ring_descriptor_t* ring_descriptor)
