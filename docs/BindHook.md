@@ -198,9 +198,16 @@ The following scenarios are exercised in `tests/socket/socket_tests.cpp`
 | Soft + hard mix | `PROCEED_SOFT` + `PROCEED_HARD` | Bind allowed (hard priority) |
 | Soft permits blocked by WFP | 2× `PROCEED_SOFT` + WFP block | Bind denied |
 | Hard overrides WFP | 2 programs (one returns `PROCEED_HARD`) + WFP block | Bind allowed |
+| Hard permit first overrides WFP | `PROCEED_HARD` + `PROCEED_SOFT` + WFP block | Bind allowed |
+| Reject beats hard permit | `REJECT` + `PROCEED_HARD` | Bind denied |
+| Hard permit then reject | `PROCEED_HARD` + `REJECT` | Bind denied |
 | Detach middle program | 3 programs → detach REJECT middle | Bind recovers |
+| Detach first program | `REJECT` + 2× `PROCEED_SOFT` → detach first | Bind recovers |
+| Detach last program | 2× `PROCEED_SOFT` + `REJECT` → detach last | Bind recovers |
 | Detach and reattach | Detach + reattach with new verdict | Verdict updates |
 | Three soft permits | 3× `PROCEED_SOFT` | Bind allowed |
+| Third program rejects | 2× `PROCEED_SOFT` + `REJECT` | Bind denied |
+| Third program hard permit overrides WFP | 2× `PROCEED_SOFT` + `PROCEED_HARD` + WFP block | Bind allowed |
 
 ## Architecture
 
