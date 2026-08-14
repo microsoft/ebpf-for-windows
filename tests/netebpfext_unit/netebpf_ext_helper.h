@@ -132,6 +132,14 @@ typedef class _netebpf_ext_helper
         }
     }
 
+    // Whether net_ebpf_extension_initialize_wfp_components() succeeded. The constructor cannot use REQUIRE, so
+    // tests that exercise initialization failure check this instead.
+    bool
+    wfp_is_initialized() const
+    {
+        return wfp_initialized;
+    }
+
   private:
     bool trace_initiated = false;
     bool ndis_handle_initialized = false;

@@ -1015,7 +1015,99 @@ TEST_CASE("wfp_filter_delete_failure_unload_deletes_stale_filter", "[netebpfext]
     REQUIRE(usersim_fwp_get_fwpm_filter_count() == 0);
 }
 
+// Verifies that a start following an unload that left filters installed purges them: the stale filters pin the
+// provider, sub-layers and callout objects, so without the purge FwpmProviderAdd fails with FWP_E_ALREADY_EXISTS
+// and the driver comes up with no WFP components at all.
+TEST_CASE("wfp_stale_objects_purged_on_initialize", "[netebpfext][wfp_cleanup]")
+{
+    if (cxplat_fault_injection_is_enabled()) {
+        return;
+    }
+
+    ebpf_extension_data_t npi_specific_characteristics = {
+        .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
+    };
+    test_sock_addr_client_context_header_t client_context_header = {0};
+    client_context_header.context.base.desired_attach_types = {BPF_CGROUP_INET4_CONNECT, BPF_CGROUP_INET6_CONNECT};
+    test_sock_addr_client_context_t* client_context = &client_context_header.context;
+
+    {
+        netebpf_ext_helper_t helper(
+            &npi_specific_characteristics,
+            (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
+            (netebpfext_helper_base_client_context_t*)client_context);
+
+        REQUIRE(usersim_fwp_get_fwpm_filter_count() > 0);
+
+        // Fail every delete so the filters survive detach and unload.
+        usersim_fwp_set_filter_delete_failure_count(UINT32_MAX);
+        helper.detach_hook_client();
+
+        // End of scope runs unload, which cannot delete the filters or the objects they reference.
+    }
+
+    REQUIRE(usersim_fwp_get_fwpm_filter_count() > 0);
+
+    // Deletes succeed again, which is what a real restart looks like once whatever blocked them has cleared.
+    usersim_fwp_set_filter_delete_failure_count(0);
+
+    {
+        // Starting again must purge the stale objects and initialize successfully.
+        netebpf_ext_helper_t helper;
+
+        REQUIRE(helper.wfp_is_initialized());
+        REQUIRE(usersim_fwp_get_fwpm_filter_count() == 0);
+    }
+}
+
+// Verifies the safety invariant behind the purge: if a stale filter cannot be deleted, initialization must fail.
+// Such a filter holds the address of a filter context the previous driver instance freed, so registering a callout
+// it references would hand WFP a dangling pointer. A partial purge followed by a successful start is strictly worse
+// than refusing to start.
+TEST_CASE("wfp_initialize_fails_when_stale_filter_cannot_be_purged", "[netebpfext][wfp_cleanup]")
+{
+    if (cxplat_fault_injection_is_enabled()) {
+        return;
+    }
+
+    ebpf_extension_data_t npi_specific_characteristics = {
+        .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
+    };
+    test_sock_addr_client_context_header_t client_context_header = {0};
+    client_context_header.context.base.desired_attach_types = {BPF_CGROUP_INET4_CONNECT, BPF_CGROUP_INET6_CONNECT};
+    test_sock_addr_client_context_t* client_context = &client_context_header.context;
+
+    {
+        netebpf_ext_helper_t helper(
+            &npi_specific_characteristics,
+            (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
+            (netebpfext_helper_base_client_context_t*)client_context);
+
+        REQUIRE(usersim_fwp_get_fwpm_filter_count() > 0);
+
+        usersim_fwp_set_filter_delete_failure_count(UINT32_MAX);
+        helper.detach_hook_client();
+    }
+
+    REQUIRE(usersim_fwp_get_fwpm_filter_count() > 0);
+
+    {
+        // Deletes still fail, so the purge cannot remove the stale filters and the start must be refused.
+        netebpf_ext_helper_t helper;
+
+        REQUIRE_FALSE(helper.wfp_is_initialized());
+    }
+
+    // The stale filters are still installed, as nothing was able to delete them.
+    REQUIRE(usersim_fwp_get_fwpm_filter_count() > 0);
+
+    // Clear them directly; the next start's purge reclaims the objects they were pinning.
+    usersim_fwp_set_filter_delete_failure_count(0);
+    usersim_fwp_clear_fwpm_filters();
+}
+
 #pragma endregion cgroup_sock_addr
+
 #pragma region sock_ops
 
 typedef enum _sock_ops_test_action
