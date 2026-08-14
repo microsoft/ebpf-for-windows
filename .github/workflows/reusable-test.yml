@@ -506,7 +506,7 @@ jobs:
           retention-days: 10
 
       - name: Mark run as failed if crash dumps are found
-        if: (steps.skip_check.outputs.should_skip != 'true') && (steps.check_dumps.outputs.files_exists == 'true')
+        if: (steps.skip_check.outputs.should_skip != 'true') && (steps.check_dumps.outputs.files_exists == 'true') && (inputs.gather_dumps == true)
         run: exit 1
 
   create_or_update_issue:

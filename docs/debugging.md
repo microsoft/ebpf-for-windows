@@ -9,8 +9,9 @@ on your machine, you're ready for the debugging tutorial.
 
 # 2. Debugging a buggy eBPF program
 
-Let's start with the [droppacket_unsafe.c](../tests/sample/unsafe/droppacket_unsafe.c) program, which
-is compiled as part of building eBPF for Windows, as it is used in the unit tests.
+Let's start with the [droppacket_unsafe.c](https://github.com/microsoft/ebpf-for-windows/blob/5736598117f0590a44feedc5cc57d8efb0d5a752/tests/sample/unsafe/droppacket_unsafe.c) program.
+This sample has since been removed from the repository along with the XDP_TEST hook, so the link above points at
+the last revision that contained it.
 
 If not already configured, install the eBPF netsh provider: `netsh add helper <path>\ebpfnetsh.dll`.
 Provide the absolute <path> for ebpfnetsh.dll.
@@ -244,7 +245,7 @@ and error in instruction 2.
 
 **Step 5)** Where did that code come from?
 
-If we look at the [droppacket_unsafe.c](../tests/sample/unsafe/droppacket_unsafe.c) source code,
+If we look at the [droppacket_unsafe.c](https://github.com/microsoft/ebpf-for-windows/blob/5736598117f0590a44feedc5cc57d8efb0d5a752/tests/sample/unsafe/droppacket_unsafe.c) source code,
 it's not obvious where the instructions in the .text section came from.  Let's use
 llvm-objdump -l -S to find out (in the future, netsh will show this information too but for now
 we'll just use llvm-objdump).  This requires that the eBPF program was compiled with -g on the local
@@ -269,7 +270,7 @@ Disassembly of section .text:
        2:       95 00 00 00 00 00 00 00 exit
 ```
 
-We see that the code the ntohs() function in [tests\sample\ebpf.h](../tests/sample/ebpf.h):
+We see that the code the ntohs() function in [tests\sample\ebpf.h](https://github.com/microsoft/ebpf-for-windows/blob/11971e854e7bc184b95ee89f67065a1a3e08b94e/tests/sample/ebpf.h):
 
 ```c
 uint16_t
@@ -530,7 +531,7 @@ Again we can see the source lines involved using llvm-objdump:
 ```
 
 Thus we could modify the code to add a length check, as is done in the fixed version
-[droppacket.c](../tests/sample/unsafe/droppacket.c#L44).
+[droppacket.c](../tests/sample/droppacket.c#L65).
 
 **Step 9)** Understanding joins between two code paths
 

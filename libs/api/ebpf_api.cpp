@@ -2970,6 +2970,15 @@ typedef struct _ebpf_pe_context
     const bounded_buffer* data_buffer;
 } ebpf_pe_context_t;
 
+static void
+_ebpf_pe_copy_program_entry(
+    _Out_ program_entry_t* destination, _In_reads_bytes_(source_size) const void* source, size_t source_size) noexcept
+{
+    memset(destination, 0, sizeof(*destination));
+    size_t program_copy_size = (source_size < sizeof(*destination)) ? source_size : sizeof(*destination);
+    memcpy(destination, source, program_copy_size);
+}
+
 static int // Returns 0 on success, 1 on error.
 _ebpf_pe_get_map_definitions(
     _Inout_ void* context,
@@ -3126,9 +3135,27 @@ _ebpf_pe_get_section_names(
                 (program_offset > 0 && buffer->buf[program_offset - 1] != 0))) {
             program_offset += 16;
         }
-        int program_count = (section_header.Misc.VirtualSize - program_offset) / sizeof(program_entry_t);
-        for (int i = 0; i < program_count; i++) {
-            program_entry_t* program = (program_entry_t*)(buffer->buf + program_offset + i * sizeof(program_entry_t));
+        if (program_offset + offsetof(program_entry_t, header) + sizeof(ebpf_extension_header_t) >
+            section_header.Misc.VirtualSize) {
+            pe_context->result = EBPF_INVALID_ARGUMENT;
+            return 1;
+        }
+
+        const program_entry_t* first_program = reinterpret_cast<const program_entry_t*>(buffer->buf + program_offset);
+        if (!ebpf_validate_object_header_native_program_entry(&first_program->header) ||
+            first_program->header.total_size < EBPF_SIZE_INCLUDING_FIELD(program_entry_t, program_info_hash_type)) {
+            pe_context->result = EBPF_INVALID_ARGUMENT;
+            return 1;
+        }
+
+        size_t program_entry_size = first_program->header.total_size;
+        size_t program_count = (section_header.Misc.VirtualSize - program_offset) / program_entry_size;
+        for (size_t i = 0; i < program_count; i++) {
+            program_entry_t local_program = {};
+            const program_entry_t* program =
+                reinterpret_cast<const program_entry_t*>(buffer->buf + program_offset + i * program_entry_size);
+            _ebpf_pe_copy_program_entry(&local_program, program, program_entry_size);
+            program = &local_program;
             const char* pe_section_name =
                 _ebpf_get_section_string(pe_context, (uintptr_t)program->pe_section_name, section_header, buffer);
             const char* elf_section_name =
@@ -4873,6 +4900,19 @@ ebpf_get_program_info_from_verifier(_Outptr_ const ebpf_program_info_t** program
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
+_Must_inspect_result_ ebpf_result_t
+ebpf_get_btf_resolved_function_info_from_verifier(
+    int32_t btf_id, _Outptr_ const ebpf_btf_resolved_function_info_t** function_info) NO_EXCEPT_TRY
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    EBPF_LOG_ENTRY();
+
+    result = get_btf_resolved_function_info_from_tls(btf_id, function_info);
+
+    EBPF_RETURN_RESULT(result);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
 _Ret_maybenull_ const ebpf_program_type_t*
 ebpf_get_ebpf_program_type(bpf_prog_type_t bpf_program_type) NO_EXCEPT_TRY
 {
@@ -5994,7 +6034,7 @@ CATCH_NO_MEMORY_EBPF_RESULT
 //
 
 _Ret_maybenull_ struct ring_buffer*
-ebpf_ring_buffer__new(
+ebpf_ring_buffer_new_internal(
     int map_fd, ring_buffer_sample_fn sample_cb, _In_opt_ void* ctx, _In_opt_ const struct ebpf_ring_buffer_opts* opts)
     EBPF_NO_EXCEPT
 {
@@ -6091,6 +6131,14 @@ Exit:
     EBPF_RETURN_POINTER(ring_buffer_t*, local_ring_buffer);
 }
 
+_Ret_maybenull_ struct ring_buffer*
+ebpf_ring_buffer__new(
+    int map_fd, ring_buffer_sample_fn sample_cb, _In_opt_ void* ctx, _In_opt_ const struct ebpf_ring_buffer_opts* opts)
+    EBPF_NO_EXCEPT
+{
+    return ebpf_ring_buffer_new_internal(map_fd, sample_cb, ctx, opts);
+}
+
 ebpf_handle_t
 ebpf_ring_buffer_get_wait_handle(_In_ struct ring_buffer* rb) EBPF_NO_EXCEPT
 {
@@ -6133,7 +6181,7 @@ _Must_inspect_result_ _Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_ring_
 }
 
 _Ret_maybenull_ struct perf_buffer*
-ebpf_perf_buffer__new(
+ebpf_perf_buffer_new_internal(
     int map_fd,
     size_t page_cnt,
     perf_buffer_sample_fn sample_cb,
@@ -6285,6 +6333,18 @@ Exit:
         EBPF_LOG_FUNCTION_ERROR(result);
     }
     EBPF_RETURN_POINTER(struct perf_buffer*, local_perf_buffer);
+}
+
+_Ret_maybenull_ struct perf_buffer*
+ebpf_perf_buffer__new(
+    int map_fd,
+    size_t page_cnt,
+    perf_buffer_sample_fn sample_cb,
+    perf_buffer_lost_fn lost_cb,
+    _In_opt_ void* ctx,
+    _In_opt_ const struct ebpf_perf_buffer_opts* opts) EBPF_NO_EXCEPT
+{
+    return ebpf_perf_buffer_new_internal(map_fd, page_cnt, sample_cb, lost_cb, ctx, opts);
 }
 
 ebpf_handle_t

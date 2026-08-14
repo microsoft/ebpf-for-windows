@@ -36,7 +36,7 @@ Personnel: @alessandrogario @evershalik @hawkinsw @song-jiang
 Minimum Requirements:
 * Has attended a triage meeting
 * Has agreed to have a github issue assigned to them to work on
-* Is approved by the existing [Project Admins](@project-admin)
+* Is approved by the existing [Project Admins](#project-admin)
 
 Responsibilities:
 * Contribute pull requests for any assigned issues
@@ -52,7 +52,7 @@ Personnel: @mingxr
 Minimum Requirements:
 * Consistently participates in weekly triage meetings
 * Has ability and willingness to share screen in Zoom
-* Is approved by the existing [Project Admins](@project-admin)
+* Is approved by the existing [Project Admins](#project-admin)
 
 Responsibilities:
 * Run the weekly [triage meetings](https://github.com/microsoft/ebpf-for-windows/discussions/427).
@@ -74,7 +74,7 @@ Minimum Requirements:
 * Has submitted multiple pull requests across at least 2 months that have been merged
 * Has provided feedback on multiple pull requests from others, across at least 2 months
 * Has demonstrated an understanding of a particular area of the code such as one or more directories
-* Is approved by the existing [Project Admins](@project-admin)
+* Is approved by the existing [Project Admins](#project-admin)
 
 Responsibilities:
 * [Review pull requests](#reviewing-pull-requests) from others.
@@ -94,7 +94,7 @@ Minimum Requirements:
 * Has demonstrated an understanding of MSI installation
 * Has demonstrated an understanding of the eBPF for Windows release process
 * Has access to the Microsoft signing pipeline
-* Is approved by the existing [Project Admins](@project-admin)
+* Is approved by the existing [Project Admins](#project-admin)
 
 Responsibilities:
 * Generate periodic releases according to the [Release Process.md](ReleaseProcess.md) documentation.
@@ -129,13 +129,15 @@ In the weekly triage meetings, new issues should be added to a milestone followi
 
 ## Prioritizing Issues
 
-To help prioritize issues, the triage drivers and maintainers MUST use *special labels* to prioritize issues as follows:
-### P1:
-This label represents highest priority. This label should ONLY be applied to bugs or features with quantifiable business impact. Quantifiable business impact may include number of users, business blocked, or deployment blocked. Bugs with only qualitative impact (descriptions without numbers) will be ranked lower than quantifiable P1 bugs. `P1` issues MUST be set to the *current milestone*.
-### P2:
-This label is used for the next level of priority. Issues marked as `P2` will be set to future milestones.
-### P3:
-This label is used for low priority issues. Issues marked as `P3` can be set to future milestones beyond 3 months or the `Backlog` milestone.
+To help prioritize issues, the triage drivers and maintainers MUST use *GitHub Priority fields* to prioritize issues as follows:
+### Urgent:
+This priority represents the highest priority. This category is reserved for issues that are causing catastrophic impact to customers or blocking development altogether. Urgent priority issues MUST be set to the *current milestone*.
+### High:
+This priority should ONLY be applied to bugs or features with quantifiable business impact. Quantifiable business impact may include number of users, business blocked, or deployment blocked. Bugs with only qualitative impact (descriptions without numbers) will be ranked lower than quantifiable Urgent or High priority bugs. Urgent or High priority issues MUST be set to the *current milestone*.
+### Medium:
+This priority is used for the next level of priority. Medium priority issues will be set to future milestones.
+### Low:
+This priority is used for low priority issues. Low priority issues can be set to future milestones beyond 3 months or the `Backlog` milestone.
 
 ## Closing Active Issues
 
@@ -144,7 +146,7 @@ This label is used for low priority issues. Issues marked as `P3` can be set to 
 * Issues for bugs that cannot be reproduced can be closed as "not planned" after providing relevant details (such as trace logs etc.).
 * Closing an issue for any other reason, including (but not limited to) not fixing the bug, or not completing the task
  requires discussion in a triage meeting, and should not be done purely due to lack of resources for which case moving
- to "P3, Help Wanted, Backlog" is preferred. Closing an issue as "*Won't Fix*" is appropriate when it is decided that
+ to Low priority, and putting a label of "Help Wanted, Backlog" is preferred. Closing an issue as "*Won't Fix*" is appropriate when it is decided that
  the proposal is (or no longer is) a good idea to be done at all.
 
 ## Milestone Issues Limit
@@ -159,11 +161,11 @@ Assuming 6 - 7 active contributors, there should be no more than 20 issues per m
 
 **Note:** This limit is irrespective of the issue state. Closing out an issue, does not "add room" for more issues into the milestone.
 
-A `P2` or `P3` issues must be added to the first milestone that has not reached its limit.
-A `P1` issue can only be added to the current milestone (`N`). If adding a new `P1` issue exceeds the milestone limit,
-one or more open issues must be moved to the future milestones. Open `P2` and `P3` issues in the current milestone
-must the first candidates for moving. If all the open issues in the current milestone are `P1`, the triage drivers
-must *downgrade* one or more of them to `P2` and move them to the next (`N+1`) milestone.
+Medium priority or Low priority issues must be added to the first milestone that has not reached its limit.
+Urgent or High priority issues can only be added to the current milestone (`N`). If adding a new Urgent or High priority issue exceeds the milestone limit,
+one or more open issues must be moved to the future milestones. Open Medium priority and Low priority issues in the current milestone
+must be the first candidates for moving. If all the open issues in the current milestone are Urgent or High priority, the triage drivers
+must *downgrade* one or more of them to Medium priority and move them to the next (`N+1`) milestone.
 
 If all existing milestones have exceeded their limit issues, a new milestone must be created to accommodate new issues.
 
@@ -172,9 +174,9 @@ In the first triage meeting of a month, the previous milestone (`N`) must be clo
 
 Ideally, all issues should be addressed by the end of the designated milestones. However, if that does not happen for any reason,
 triage drivers or administrators must move all overdue issues that do not have an active pull request to a future milestone as follows:
-  - `P1` issues can be moved to the *next* (`N+1`) milestone. This must be done in a triage meeting, after discussing with all maintainers.
-  - `P2` issues can be moved to any of the future milestones.
-  - `P3` issues can be moved to future or `Backlog` milestones.
+  - Urgent or High priority issues can be moved to the *next* (`N+1`) milestone. This must be done in a triage meeting, after discussing with all maintainers.
+  - Medium priority issues can be moved to any of the future milestones.
+  - Low priority issues can be moved to future or `Backlog` milestones.
 
 Moving issues to future milestones should not exceed the per milestone issues limit.
 If any issue has been moved two times already, then the issue must be re-triaged for setting the appropriate priority and/or the milestone.

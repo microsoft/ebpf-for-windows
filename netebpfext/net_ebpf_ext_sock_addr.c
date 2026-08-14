@@ -2491,6 +2491,7 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
             EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "net_ebpf_extension_sock_addr_authorize_connection_classify - Client detach detected.",
             STATUS_INVALID_PARAMETER);
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         goto Exit;
     }
 

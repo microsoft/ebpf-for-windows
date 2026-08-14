@@ -780,6 +780,21 @@ prog_is_subprog(const struct bpf_object* obj, const struct bpf_program* prog)
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_set_flags(fd_t program_fd, uint64_t flags) noexcept;
 
+// Internal constructors for ring/perf buffers to avoid non-deprecated APIs calling deprecated symbols.
+_Ret_maybenull_ struct ring_buffer*
+ebpf_ring_buffer_new_internal(
+    int map_fd, ring_buffer_sample_fn sample_cb, _In_opt_ void* ctx, _In_opt_ const struct ebpf_ring_buffer_opts* opts)
+    EBPF_NO_EXCEPT;
+
+_Ret_maybenull_ struct perf_buffer*
+ebpf_perf_buffer_new_internal(
+    int map_fd,
+    size_t page_cnt,
+    perf_buffer_sample_fn sample_cb,
+    perf_buffer_lost_fn lost_cb,
+    _In_opt_ void* ctx,
+    _In_opt_ const struct ebpf_perf_buffer_opts* opts) EBPF_NO_EXCEPT;
+
 // Shared mapping structure for ring direct access (synchronous mode).
 typedef struct _ebpf_ring_mapping
 {

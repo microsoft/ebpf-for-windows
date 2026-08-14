@@ -221,7 +221,6 @@ The structures and callbacks shown in this section are proposed additions for BT
 ```c
 typedef struct _btf_resolved_function_entry
 {
-    uint64_t zero_marker;      // Marker for section parsing (must precede header per bpf2c convention)
     ebpf_native_module_header_t header;
     const char* name;          // Function name
     GUID module_guid;          // Module GUID for NMR binding

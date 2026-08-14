@@ -134,3 +134,30 @@ EBPF_HELPER(int64_t, sample_ext_helper_map_get_value, (void* map, const void* ke
 #ifndef __doxygen
 #define sample_ext_helper_map_get_value ((sample_ext_helper_map_get_value_t)SAMPLE_EXT_HELPER_FN_BASE + 7)
 #endif
+
+// Sample BTF-resolved function contract shared between the sample provider and test programs.
+#define SAMPLE_EXT_BTF_FUNCTION_NAME "sample_ebpf_extension_btf_lookup"
+#define SAMPLE_EXT_BTF_DECL_TAG "module_id:{8f6c1f83-ce4c-4b58-8b91-654a29e23b7c}"
+#define SAMPLE_EXT_BTF_MODULE_GUID_INITIALIZER                                         \
+    {                                                                                  \
+        0x8f6c1f83, 0xce4c, 0x4b58, { 0x8b, 0x91, 0x65, 0x4a, 0x29, 0xe2, 0x3b, 0x7c } \
+    }
+
+#if defined(__clang__)
+#define SAMPLE_EXT_BTF_DECL_ATTRIBUTES \
+    __attribute__((section(".ksyms"))) __attribute__((btf_decl_tag(SAMPLE_EXT_BTF_DECL_TAG)))
+#else
+#define SAMPLE_EXT_BTF_DECL_ATTRIBUTES
+#endif
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+    extern int
+    sample_ebpf_extension_btf_lookup(uint64_t key, void* value, uint32_t value_size) SAMPLE_EXT_BTF_DECL_ATTRIBUTES;
+
+#ifdef __cplusplus
+}
+#endif

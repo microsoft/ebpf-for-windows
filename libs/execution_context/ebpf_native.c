@@ -103,6 +103,15 @@ typedef struct _ebpf_native_module_instance
     size_t global_variable_count;
 } ebpf_native_module_instance_t;
 
+static void
+_ebpf_copy_program_entry(
+    _Out_ program_entry_t* destination, _In_reads_bytes_(source_size) const void* source, size_t source_size)
+{
+    memset(destination, 0, sizeof(*destination));
+    memcpy(destination, source, min(source_size, sizeof(*destination)));
+    destination->header = (ebpf_native_module_header_t)EBPF_NATIVE_PROGRAM_ENTRY_HEADER;
+}
+
 typedef struct _ebpf_native_authorized_module_entry
 {
     uint8_t expected_module_hash[EBPF_SHA256_HASH_LENGTH]; // SHA256 hash of the module.
@@ -156,7 +165,6 @@ static _Guarded_by_(_ebpf_native_authorized_module_table_lock)
     ebpf_hash_table_t* _ebpf_native_authorized_module_table = NULL;
 static ebpf_timer_work_item_t* _ebpf_native_authorized_module_cleanup_work_item = NULL;
 static bool _ebpf_native_authorized_module_cleanup_work_item_scheduled = false;
-
 #define EBPF_NATIVE_AUTHORIZE_MODULE_ENTRY_TIMEOUT_NANOSECONDS (1000ull * 1000ull * 10000ull) // 10 seconds
 
 _Must_inspect_result_ ebpf_result_t
@@ -223,12 +231,73 @@ _ebpf_native_get_map_data_element_size(_In_ const ebpf_native_module_t* module)
 }
 
 static bool
+_ebpf_native_is_unused_btf_resolved_function_entry(_In_ const btf_resolved_function_entry_t* native_btf_entry)
+{
+    return (
+        (native_btf_entry != NULL) && (native_btf_entry->name != NULL) && (native_btf_entry->name[0] == '\0') &&
+        IsEqualGUID(&native_btf_entry->module_guid, &GUID_NULL));
+}
+
+static bool
 _ebpf_validate_native_helper_function_entry(_In_ const helper_function_entry_t* native_helper_function_entry)
 {
     return (
         (native_helper_function_entry != NULL) &&
         ebpf_validate_object_header_native_helper_function_entry(&native_helper_function_entry->header) &&
         (native_helper_function_entry->name != NULL));
+}
+
+static bool
+_ebpf_validate_native_btf_resolved_function_entry(_In_ const btf_resolved_function_entry_t* native_btf_entry)
+{
+    bool valid_header = false;
+
+    if (native_btf_entry == NULL) {
+        return false;
+    }
+
+    valid_header =
+        ((native_btf_entry->header.version == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION) &&
+         (native_btf_entry->header.size == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_SIZE) &&
+         (native_btf_entry->header.total_size == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE));
+
+    return (
+        valid_header &&
+        ((_ebpf_native_is_unused_btf_resolved_function_entry(native_btf_entry)) ||
+         ((native_btf_entry->name != NULL) && !IsEqualGUID(&native_btf_entry->module_guid, &GUID_NULL))));
+}
+
+static bool
+_ebpf_validate_native_btf_resolved_function_entry_array(
+    _In_reads_(count) const btf_resolved_function_entry_t* native_btf_entry_array, uint16_t count)
+{
+    if (count > 0) {
+        if (native_btf_entry_array == NULL) {
+            return false;
+        }
+
+        size_t entry_size = native_btf_entry_array[0].header.total_size;
+        for (uint16_t i = 0; i < count; i++) {
+            const btf_resolved_function_entry_t* native_btf_entry =
+                (const btf_resolved_function_entry_t*)ARRAY_ELEMENT_INDEX(native_btf_entry_array, i, entry_size);
+            if (!_ebpf_validate_native_btf_resolved_function_entry(native_btf_entry)) {
+                return false;
+            }
+        }
+    } else if (native_btf_entry_array != NULL) {
+        return false;
+    }
+
+    return true;
+}
+
+static void
+_ebpf_copy_btf_resolved_function_entry(
+    _Out_ btf_resolved_function_entry_t* destination, _In_ const btf_resolved_function_entry_t* source)
+{
+    destination->header = (ebpf_native_module_header_t)EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_HEADER;
+    destination->name = source->name;
+    destination->module_guid = source->module_guid;
 }
 
 static bool
@@ -258,11 +327,21 @@ _ebpf_validate_native_helper_function_entry_array(
 static bool
 _ebpf_validate_native_program_entry(_In_opt_ const program_entry_t* native_program_entry)
 {
+    program_entry_t normalized_program_entry = {0};
+
+    if ((native_program_entry == NULL) ||
+        !ebpf_validate_object_header_native_program_entry(&native_program_entry->header)) {
+        return false;
+    }
+
+    // Normalize older program entry layouts before validating optional fields that were added later.
+    _ebpf_copy_program_entry(&normalized_program_entry, native_program_entry, native_program_entry->header.total_size);
+
     return (
-        (native_program_entry != NULL) &&
-        ebpf_validate_object_header_native_program_entry(&native_program_entry->header) &&
         _ebpf_validate_native_helper_function_entry_array(
-            native_program_entry->helpers, native_program_entry->helper_count));
+            normalized_program_entry.helpers, normalized_program_entry.helper_count) &&
+        _ebpf_validate_native_btf_resolved_function_entry_array(
+            normalized_program_entry.btf_resolved_functions, normalized_program_entry.btf_resolved_function_count));
 }
 
 static bool
@@ -391,6 +470,9 @@ _ebpf_validate_global_variable_section_info_array(
 static ebpf_result_t
 _ebpf_native_helper_address_changed(
     size_t address_count, _In_reads_opt_(address_count) helper_function_address_t* addresses, _In_opt_ void* context);
+static ebpf_result_t
+_ebpf_native_btf_resolved_function_address_changed(
+    size_t address_count, _In_reads_opt_(address_count) uint64_t* addresses, _In_opt_ void* context);
 
 static void
 _ebpf_native_unload_work_item(_In_ cxplat_preemptible_work_item_t* work_item, _In_opt_ const void* service)
@@ -474,6 +556,7 @@ _ebpf_native_clean_up_program_handle(_In_opt_ ebpf_native_program_t* program)
             ebpf_program_t* program_object = NULL;
             ebpf_assert_success(EBPF_OBJECT_REFERENCE_BY_HANDLE(
                 program->handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program_object));
+            ebpf_assert_success(ebpf_program_register_for_btf_resolved_function_changes(program_object, NULL, NULL));
             ebpf_assert_success(ebpf_program_register_for_helper_changes(program_object, NULL, NULL));
             EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program_object);
             ebpf_assert_success(ebpf_handle_close(program->handle));
@@ -492,8 +575,11 @@ _ebpf_native_clean_up_program(_In_opt_ _Post_invalid_ ebpf_native_program_t* pro
         ebpf_free(program->runtime_context.helper_data);
         ebpf_free(program->runtime_context.map_data);
         ebpf_free(program->runtime_context.global_variable_section_data);
+        ebpf_free(program->runtime_context.btf_resolved_function_data);
         ebpf_free(program->program_entry.helpers);
+        ebpf_free(program->program_entry.btf_resolved_functions);
         program->program_entry.helpers = NULL;
+        program->program_entry.btf_resolved_functions = NULL;
         ebpf_free(program);
     }
 }
@@ -1807,6 +1893,47 @@ Done:
 }
 
 static ebpf_result_t
+_ebpf_native_resolve_btf_resolved_functions_for_program(_In_ const ebpf_native_program_t* program)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result;
+    uint64_t* addresses = NULL;
+
+    if (program->program_entry.btf_resolved_function_count == 0) {
+        return EBPF_SUCCESS;
+    }
+
+    if (program->runtime_context.btf_resolved_function_data == NULL) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    size_t addresses_length = 0;
+    result = ebpf_safe_size_t_multiply(
+        program->program_entry.btf_resolved_function_count, sizeof(*addresses), &addresses_length);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    addresses = ebpf_allocate_with_tag(addresses_length, EBPF_POOL_TAG_NATIVE);
+    if (addresses == NULL) {
+        return EBPF_NO_MEMORY;
+    }
+
+    result = ebpf_core_resolve_btf_resolved_functions(
+        program->handle, program->program_entry.btf_resolved_function_count, addresses);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    result = _ebpf_native_btf_resolved_function_address_changed(
+        program->program_entry.btf_resolved_function_count, addresses, program->addresses_changed_callback_context);
+
+Done:
+    ebpf_free(addresses);
+    return result;
+}
+
+static ebpf_result_t
 _ebpf_native_initialize_programs(_Inout_ ebpf_native_module_instance_t* instance)
 {
     EBPF_LOG_ENTRY();
@@ -1827,11 +1954,10 @@ _ebpf_native_initialize_programs(_Inout_ ebpf_native_module_instance_t* instance
     for (uint32_t count = 0; count < program_count; count++) {
         ebpf_native_program_t* native_program = native_programs[count];
         const program_entry_t* entry = (program_entry_t*)ARRAY_ELEMENT_INDEX(programs, count, program_entry_size);
-        memcpy(&native_program->program_entry, entry, program_entry_size);
+        _ebpf_copy_program_entry(&native_program->program_entry, entry, program_entry_size);
         entry = NULL;
 
-        // Make a deep copy of each versioned sub-struct. Currently, helper info is the only
-        // versioned sub-struct.
+        // Make a deep copy of each versioned sub-struct.
         if (native_program->program_entry.helper_count > 0) {
             const helper_function_entry_t* helper_info = native_program->program_entry.helpers;
             size_t helper_info_length = 0;
@@ -1853,6 +1979,35 @@ _ebpf_native_initialize_programs(_Inout_ ebpf_native_module_instance_t* instance
                     (const helper_function_entry_t*)ARRAY_ELEMENT_INDEX(helper_info, i, helper_entry_size);
                 memcpy(&native_program->program_entry.helpers[i], helper_entry, helper_entry_size);
                 helper_entry = NULL;
+            }
+        }
+
+        if (native_program->program_entry.btf_resolved_function_count > 0) {
+            const btf_resolved_function_entry_t* btf_info = native_program->program_entry.btf_resolved_functions;
+            size_t btf_info_length = 0;
+            result = ebpf_safe_size_t_multiply(
+                native_program->program_entry.btf_resolved_function_count,
+                sizeof(btf_resolved_function_entry_t),
+                &btf_info_length);
+            if (result != EBPF_SUCCESS) {
+                goto Done;
+            }
+
+            native_program->program_entry.btf_resolved_functions =
+                (btf_resolved_function_entry_t*)ebpf_allocate_with_tag(btf_info_length, EBPF_POOL_TAG_NATIVE);
+            if (native_program->program_entry.btf_resolved_functions == NULL) {
+                result = EBPF_NO_MEMORY;
+                goto Done;
+            }
+            memset(native_program->program_entry.btf_resolved_functions, 0, btf_info_length);
+
+            size_t btf_entry_size = btf_info[0].header.total_size;
+            for (uint32_t i = 0; i < native_program->program_entry.btf_resolved_function_count; i++) {
+                const btf_resolved_function_entry_t* btf_entry =
+                    (const btf_resolved_function_entry_t*)ARRAY_ELEMENT_INDEX(btf_info, i, btf_entry_size);
+                _ebpf_copy_btf_resolved_function_entry(
+                    &native_program->program_entry.btf_resolved_functions[i], btf_entry);
+                btf_entry = NULL;
             }
         }
     }
@@ -1912,10 +2067,12 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
     for (uint32_t count = 0; count < program_count; count++) {
         ebpf_native_program_t* native_program = native_programs[count];
         const program_entry_t* program = &native_program->program_entry;
-        ebpf_program_parameters_t parameters = {0};
+        size_t btf_resolved_function_data_size = 0;
         size_t helper_count = program->helper_count;
         size_t helper_data_size = 0;
         size_t map_data_size = 0;
+
+        native_program->module = module;
 
         // Initialize runtime context for the program.
         if (helper_count > 0) {
@@ -1957,12 +2114,40 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
             }
         }
 
+        if (program->btf_resolved_function_count > 0) {
+            result = ebpf_safe_size_t_multiply(
+                sizeof(btf_resolved_function_data_t),
+                program->btf_resolved_function_count,
+                &btf_resolved_function_data_size);
+            if (result != EBPF_SUCCESS) {
+                EBPF_LOG_MESSAGE_GUID(
+                    EBPF_TRACELOG_LEVEL_ERROR,
+                    EBPF_TRACELOG_KEYWORD_NATIVE,
+                    "_ebpf_native_load_programs: btf_resolved_function_data size overflow",
+                    &module->client_module_id);
+                goto Done;
+            }
+
+            native_program->runtime_context.btf_resolved_function_data =
+                (btf_resolved_function_data_t*)ebpf_allocate_with_tag(
+                    btf_resolved_function_data_size, EBPF_POOL_TAG_NATIVE);
+            if (native_program->runtime_context.btf_resolved_function_data == NULL) {
+                result = EBPF_NO_MEMORY;
+                goto Done;
+            }
+        }
+    }
+    for (uint32_t count = 0; count < program_count; count++) {
+        ebpf_native_program_t* native_program = native_programs[count];
+        const program_entry_t* program = &native_program->program_entry;
+        ebpf_program_parameters_t parameters = {0};
+
         program_name_length = strnlen_s(program->program_name, BPF_OBJ_NAME_LEN);
         section_name_length = strnlen_s(program->section_name, BPF_OBJ_NAME_LEN);
         hash_type_length = strnlen_s(program->program_info_hash_type, BPF_OBJ_NAME_LEN);
 
         if (program_name_length == 0 || program_name_length >= BPF_OBJ_NAME_LEN || section_name_length == 0 ||
-            section_name_length >= BPF_OBJ_NAME_LEN || hash_type_length == 0 || hash_type_length >= BPF_OBJ_NAME_LEN) {
+            section_name_length >= BPF_OBJ_NAME_LEN || hash_type_length >= BPF_OBJ_NAME_LEN) {
             result = EBPF_INVALID_ARGUMENT;
             goto Done;
         }
@@ -1995,14 +2180,16 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
         parameters.program_info_hash = native_program->program_entry.program_info_hash;
         parameters.program_info_hash_length = native_program->program_entry.program_info_hash_length;
 
-        hash_type_name = ebpf_allocate_with_tag(hash_type_length, EBPF_POOL_TAG_NATIVE);
-        if (hash_type_name == NULL) {
-            result = EBPF_NO_MEMORY;
-            goto Done;
+        if (hash_type_length > 0) {
+            hash_type_name = ebpf_allocate_with_tag(hash_type_length, EBPF_POOL_TAG_NATIVE);
+            if (hash_type_name == NULL) {
+                result = EBPF_NO_MEMORY;
+                goto Done;
+            }
+            memcpy(hash_type_name, native_program->program_entry.program_info_hash_type, hash_type_length);
+            parameters.program_info_hash_type.value = hash_type_name;
+            parameters.program_info_hash_type.length = hash_type_length;
         }
-        memcpy(hash_type_name, native_program->program_entry.program_info_hash_type, hash_type_length);
-        parameters.program_info_hash_type.value = hash_type_name;
-        parameters.program_info_hash_type.length = hash_type_length;
 
         result = ebpf_program_create_and_initialize(&parameters, &native_program->handle);
         if (result != EBPF_SUCCESS) {
@@ -2054,6 +2241,23 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
             goto Done;
         }
 
+        result = ebpf_program_set_btf_resolved_function_entries(
+            program_object,
+            native_program->program_entry.btf_resolved_function_count,
+            native_program->program_entry.btf_resolved_functions);
+        if (result != EBPF_SUCCESS) {
+            ebpf_free(context);
+            EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program_object);
+            goto Done;
+        }
+
+        result = ebpf_program_register_for_btf_resolved_function_changes(
+            program_object, _ebpf_native_btf_resolved_function_address_changed, context);
+        if (result != EBPF_SUCCESS) {
+            ebpf_free(context);
+            EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program_object);
+            goto Done;
+        }
         result = ebpf_program_register_for_helper_changes(program_object, _ebpf_native_helper_address_changed, context);
 
         EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program_object);
@@ -2071,11 +2275,15 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
             goto Done;
         }
 
+        result = _ebpf_native_resolve_btf_resolved_functions_for_program(native_program);
+        if (result != EBPF_SUCCESS) {
+            goto Done;
+        }
+
         // Load machine code.
         ebpf_core_code_context_t code_context = {0};
         code_context.native_code_context.runtime_context = &native_program->runtime_context;
         code_context.native_code_context.native_module_context = native_program;
-        native_program->module = module;
 
         result = ebpf_core_load_code(
             native_program->handle,
@@ -2545,6 +2753,51 @@ _ebpf_native_helper_address_changed(
     return_value = EBPF_SUCCESS;
 Done:
     return return_value;
+}
+
+static ebpf_result_t
+_ebpf_native_btf_resolved_function_address_changed(
+    size_t address_count, _In_reads_opt_(address_count) uint64_t* addresses, _In_opt_ void* context)
+{
+    ebpf_native_helper_address_changed_context_t* helper_address_changed_context =
+        (ebpf_native_helper_address_changed_context_t*)context;
+    _Analysis_assume_(context != NULL);
+    ebpf_native_program_t* native_program = helper_address_changed_context->native_program;
+    size_t total_function_count = native_program->program_entry.btf_resolved_function_count;
+
+    if (native_program->runtime_context.btf_resolved_function_data == NULL ||
+        (address_count > 0 && addresses == NULL)) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    for (size_t slot_index = 0; slot_index < total_function_count; slot_index++) {
+        native_program->runtime_context.btf_resolved_function_data[slot_index].address = NULL;
+    }
+
+    if (address_count == 0) {
+        return EBPF_SUCCESS;
+    }
+
+    if (address_count != total_function_count) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    for (size_t slot_index = 0; slot_index < total_function_count; slot_index++) {
+        const btf_resolved_function_entry_t* function_entry =
+            &native_program->program_entry.btf_resolved_functions[slot_index];
+
+        if (_ebpf_native_is_unused_btf_resolved_function_entry(function_entry)) {
+            if (addresses[slot_index] != 0) {
+                return EBPF_INVALID_ARGUMENT;
+            }
+            continue;
+        }
+
+        native_program->runtime_context.btf_resolved_function_data[slot_index].address =
+            (helper_function_t)addresses[slot_index];
+    }
+
+    return EBPF_SUCCESS;
 }
 
 _Must_inspect_result_ ebpf_result_t

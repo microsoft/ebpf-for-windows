@@ -442,6 +442,9 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\undocked\tools\export_program_info_sample\export_program_info_sample.vcxproj">
+      <Project>{21C137EC-9AE3-4C8C-8E74-8BFCC999D856}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\export_program_info_test\export_program_info_test.vcxproj">
       <Project>{8b2f1f1a-3c4d-4e5f-9a6b-1c2d3e4f5a6b}</Project>
     </ProjectReference>

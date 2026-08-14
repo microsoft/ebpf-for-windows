@@ -9,6 +9,10 @@
   <package id="Microsoft.Windows.SDK.CPP" version="$(WDKVersion)" targetFramework="native" />
   <package id="Microsoft.Windows.SDK.CPP.x64" version="$(WDKVersion)" targetFramework="native" />
   <package id="Microsoft.Windows.WDK.x64" version="$(WDKVersion)" targetFramework="native" />
+  <package id="Microsoft.Windows.SDK.CPP.arm64" version="$(WDKVersion)" targetFramework="native" />
+  <package id="Microsoft.Windows.SDK.CPP.x86" version="$(WDKVersion)" targetFramework="native" />
+  <package id="Microsoft.Windows.WDK.ARM64" version="$(WDKVersion)" targetFramework="native" />
+  <package id="Microsoft.Windows.WDK.x86" version="$(WDKVersion)" targetFramework="native" />
   <!-- Last VS2022-compatible WDK: used for ARM64/x86 builds, and for x64 builds under Visual Studio 2022.
        The duplicate Microsoft.Windows.SDK.CPP / .x64 / WDK.x64 ids (also pinned above) are intentional:
        NuGet restore keys on id+version and installs each into its own packages\ folder, and wdk.props
