@@ -5950,10 +5950,15 @@ ebpf_ring_buffer_map_map_buffer_with_index(
         goto Done;
     }
 
-    {
+    try {
         std::scoped_lock lock(_ebpf_ring_mapping_mutex);
-        _ebpf_ring_mappings[consumer_view] = {
-            consumer_handle, producer_handle, data_handle, consumer_view, producer_view, data_view_1, data_view_2};
+        _ebpf_ring_mappings.emplace(
+            consumer_view,
+            ebpf_ring_buffer_user_mapping_t{
+                consumer_handle, producer_handle, data_handle, consumer_view, producer_view, data_view_1, data_view_2});
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
+        goto Done;
     }
 
     *consumer = consumer_view;

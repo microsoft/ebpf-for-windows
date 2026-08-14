@@ -73,6 +73,16 @@ _ebpf_ring_lock_kernel_section_view(_Inout_ ebpf_ring_section_t* section)
     ebpf_result_t result = EBPF_NO_MEMORY;
     BOOLEAN pages_locked = FALSE;
 
+    if (section->view_size > MAXULONG) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_BASE,
+            "Ring section size exceeds MDL limit",
+            section->view_size);
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
     section->locked_kernel_view_mdl =
         IoAllocateMdl(section->pageable_kernel_view, (ULONG)section->view_size, FALSE, FALSE, NULL);
     if (section->locked_kernel_view_mdl == NULL) {

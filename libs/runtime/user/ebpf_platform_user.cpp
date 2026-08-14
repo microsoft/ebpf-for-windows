@@ -112,6 +112,10 @@ _ebpf_ring_create_section(size_t size, _Inout_ ebpf_ring_section_t* section)
     return EBPF_SUCCESS;
 }
 
+static void
+_ebpf_ring_release_composite_placeholders(
+    _In_ uint8_t* composite_base, _In_reads_(5) const size_t* view_lengths);
+
 static _Must_inspect_result_ ebpf_result_t
 _ebpf_ring_create_composite_view(_Inout_ ebpf_ring_descriptor_t* descriptor)
 {
@@ -204,13 +208,28 @@ Exit:
             descriptor->kernel.view = nullptr;
         }
         if (descriptor->composite_base != nullptr) {
-            VirtualFree(descriptor->composite_base, 0, MEM_RELEASE);
+            const size_t composite_view_lengths[] = {
+                PAGE_SIZE, PAGE_SIZE, PAGE_SIZE, descriptor->ring_capacity, descriptor->ring_capacity};
+            _ebpf_ring_release_composite_placeholders(descriptor->composite_base, composite_view_lengths);
             descriptor->composite_base = nullptr;
         }
         descriptor->composite_view_size = 0;
     }
 
     EBPF_RETURN_RESULT(return_value);
+}
+
+static void
+_ebpf_ring_release_composite_placeholders(
+    _In_ uint8_t* composite_base, _In_reads_(5) const size_t* view_lengths)
+{
+    uint8_t* current_address = composite_base;
+    for (size_t index = 0; index < 5; index++) {
+        if (!VirtualFree(current_address, 0, MEM_RELEASE)) {
+            EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, VirtualFree);
+        }
+        current_address += view_lengths[index];
+    }
 }
 
 // This code is derived from the sample at:
@@ -325,7 +344,9 @@ ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
             UnmapViewOfFileEx(descriptor->kernel.view, MEM_PRESERVE_PLACEHOLDER);
             descriptor->kernel.view = nullptr;
         }
-        VirtualFree(descriptor->composite_base, 0, MEM_RELEASE);
+        const size_t view_lengths[] = {
+            PAGE_SIZE, PAGE_SIZE, PAGE_SIZE, descriptor->ring_capacity, descriptor->ring_capacity};
+        _ebpf_ring_release_composite_placeholders(descriptor->composite_base, view_lengths);
         descriptor->composite_base = nullptr;
     }
     _ebpf_ring_cleanup_section(&descriptor->data);
