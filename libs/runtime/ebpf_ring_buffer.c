@@ -334,8 +334,9 @@ _ring_record_at_offset(_In_ const ebpf_ring_buffer_t* ring, size_t offset)
 }
 
 inline static void
-_ring_buffer_notify_consumer(_In_ uint8_t* buffer, uint64_t flags)
+_ring_buffer_notify_consumer(_In_ const uint8_t* buffer, uint64_t flags)
 {
+    ebpf_ring_buffer_consumer_page_t* consumer_page = _ring_buffer_consumer_page(buffer);
     ebpf_ring_buffer_producer_page_t* producer_page = _ring_buffer_producer_page(buffer);
     ebpf_ring_buffer_kernel_page_t* kernel_page = _ring_buffer_kernel_page(buffer);
     PKEVENT wait_event = NULL;
@@ -344,7 +345,6 @@ _ring_buffer_notify_consumer(_In_ uint8_t* buffer, uint64_t flags)
     } else if (!(flags & EBPF_RINGBUF_FLAG_NO_WAKEUP)) {
         // Notify only if ring might not be empty.
         if (kernel_page->wait_event != NULL) {
-            ebpf_ring_buffer_consumer_page_t* consumer_page = _ring_buffer_consumer_page(buffer);
             // Notify the producer that a record is available.
             size_t consumer_offset = ReadULong64Acquire(&consumer_page->consumer_offset);
             size_t producer_offset = ReadULong64Acquire(&producer_page->producer_offset);
@@ -413,11 +413,13 @@ ebpf_ring_buffer_allocate_ring(_Out_writes_bytes_(sizeof(ebpf_ring_buffer_t)) eb
         return EBPF_NO_MEMORY;
     }
 
-    void* base_address = ebpf_ring_descriptor_get_base_address(ring->ring_descriptor);
-    ring->kernel_page = (ebpf_ring_buffer_kernel_page_t*)base_address;
-    ring->consumer_page = (ebpf_ring_buffer_consumer_page_t*)((uint8_t*)base_address + PAGE_SIZE);
-    ring->producer_page = (ebpf_ring_buffer_producer_page_t*)((uint8_t*)base_address + 2 * PAGE_SIZE);
-    ring->data = (uint8_t*)base_address + (EBPF_RING_BUFFER_HEADER_PAGES * PAGE_SIZE);
+    ring->kernel_page =
+        (ebpf_ring_buffer_kernel_page_t*)ebpf_ring_descriptor_get_kernel_page_address(ring->ring_descriptor);
+    ring->consumer_page =
+        (ebpf_ring_buffer_consumer_page_t*)ebpf_ring_descriptor_get_consumer_page_address(ring->ring_descriptor);
+    ring->producer_page =
+        (ebpf_ring_buffer_producer_page_t*)ebpf_ring_descriptor_get_producer_page_address(ring->ring_descriptor);
+    ring->data = ebpf_ring_descriptor_get_data_address(ring->ring_descriptor);
     ring->length = capacity;
     ring->kernel_page->wait_event = NULL;
 
@@ -625,6 +627,16 @@ ebpf_ring_buffer_map_user(
 }
 
 _Must_inspect_result_ ebpf_result_t
+ebpf_ring_buffer_get_user_mapping_handle(
+    _In_ const ebpf_ring_buffer_t* ring_buffer,
+    ebpf_ring_buffer_user_section_t section,
+    _Out_ ebpf_handle_t* handle,
+    _Out_ size_t* view_size)
+{
+    return ebpf_ring_open_user_section(ring_buffer->ring_descriptor, section, handle, view_size);
+}
+
+_Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_unmap_user(_In_ const ebpf_ring_buffer_t* ring)
 {
     return ebpf_ring_unmap_user(ring->ring_descriptor);
@@ -810,7 +822,7 @@ ebpf_ring_buffer_discard(_Frees_ptr_opt_ uint8_t* data, uint64_t flags)
     // Clear the lock bit from the header and set the discard bit.
     header = (header & ~EBPF_RINGBUF_LOCK_BIT) | EBPF_RINGBUF_DISCARD_BIT;
     // Write-release the record header to ensure any writes to the discarded record are completed first.
-    uint8_t* buffer = _ring_record_get_buffer(record); // Get buffer address before we unlock the record.
+    uint8_t* buffer = _ring_record_get_buffer(record);
     _ring_record_write_header_release(record, header);
 
     _ring_buffer_notify_consumer(buffer, flags);
