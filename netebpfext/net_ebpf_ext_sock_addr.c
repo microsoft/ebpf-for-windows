@@ -2110,24 +2110,15 @@ _net_ebpf_extension_sock_addr_accumulate_verdict(_Inout_ void* program_context, 
  * lower-weight callout cannot override them. Any verdict other than PROCEED_SOFT or
  * PROCEED_HARD is treated as a block, matching _normalize_sock_addr_verdict().
  *
- * When a higher-weight callout has already revoked FWPS_RIGHT_ACTION_WRITE, the classify
- * output is left untouched: the program(s) still ran (observation), but the terminating
- * decision belongs to that higher-weight callout. This function is the single choke point
- * for that policy across all four sock_addr classify functions.
+ * Callers must hold FWPS_RIGHT_ACTION_WRITE: the classify routines bail out before invoking
+ * any eBPF program when a higher-weight callout has revoked it.
  *
  * @param[in,out] classify_output Output structure containing the action to take.
  * @param[in] verdict Accumulated BPF_SOCK_ADDR_VERDICT_* value across the attached programs.
- * @param[in] rights_revoked TRUE if FWPS_RIGHT_ACTION_WRITE was already revoked by a
- * higher-weight callout, in which case classify_output is not modified.
  */
 static void
-_net_ebpf_extension_sock_addr_apply_verdict(
-    _Inout_ FWPS_CLASSIFY_OUT* classify_output, uint32_t verdict, bool rights_revoked)
+_net_ebpf_extension_sock_addr_apply_verdict(_Inout_ FWPS_CLASSIFY_OUT* classify_output, uint32_t verdict)
 {
-    if (rights_revoked) {
-        return;
-    }
-
     switch (verdict) {
     case BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT:
         classify_output->actionType = FWP_ACTION_PERMIT;
@@ -2185,22 +2176,16 @@ net_ebpf_extension_sock_addr_authorize_listen_classify(
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(flow_context);
 
-    // A callout with higher weight may have revoked the write permission before this callout
-    // runs. When that happens we still invoke the eBPF program(s) below so observer programs
-    // see the operation, but we must not write classify_output->actionType or clear
-    // FWPS_RIGHT_ACTION_WRITE -- the terminating decision belongs to the higher-weight callout.
-    // Every write to classify_output below is gated on !rights_revoked.
-    const bool rights_revoked = (classify_output->rights & FWPS_RIGHT_ACTION_WRITE) == 0;
-    if (rights_revoked) {
+    if ((classify_output->rights & FWPS_RIGHT_ACTION_WRITE) == 0) {
+        // A callout with higher weight has revoked the write permission. Bail out without
+        // invoking any eBPF program and without touching classify_output->actionType, matching
+        // net_ebpf_extension_sock_addr_redirect_connection_classify().
         EBPF_EXT_LOG_MESSAGE(
-            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "No \"write\" right; invoking eBPF programs for observation only.");
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "No \"write\" right; exiting.");
+        goto Exit;
     }
 
-    if (!rights_revoked) {
-        classify_output->actionType = FWP_ACTION_PERMIT;
-    }
+    classify_output->actionType = FWP_ACTION_PERMIT;
 
     filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter->context;
     ASSERT(filter_context != NULL);
@@ -2245,14 +2230,12 @@ net_ebpf_extension_sock_addr_authorize_listen_classify(
         goto Exit;
     } else if (program_result != EBPF_SUCCESS) {
         // We failed to invoke at least one program in the chain, block the request.
-        if (!rights_revoked) {
-            classify_output->actionType = FWP_ACTION_BLOCK;
-        }
+        classify_output->actionType = FWP_ACTION_BLOCK;
         goto Exit;
     }
 
     // Set action type based on the program verdict.
-    _net_ebpf_extension_sock_addr_apply_verdict(classify_output, result, rights_revoked);
+    _net_ebpf_extension_sock_addr_apply_verdict(classify_output, result);
 
     _net_ebpf_ext_log_sock_addr_classify(
         "listen_classify",
@@ -2304,22 +2287,16 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(flow_context);
 
-    // A callout with higher weight may have revoked the write permission before this callout
-    // runs. When that happens we still invoke the eBPF program(s) below so observer programs
-    // see the operation, but we must not write classify_output->actionType or clear
-    // FWPS_RIGHT_ACTION_WRITE -- the terminating decision belongs to the higher-weight callout.
-    // Every write to classify_output below is gated on !rights_revoked.
-    const bool rights_revoked = (classify_output->rights & FWPS_RIGHT_ACTION_WRITE) == 0;
-    if (rights_revoked) {
+    if ((classify_output->rights & FWPS_RIGHT_ACTION_WRITE) == 0) {
+        // A callout with higher weight has revoked the write permission. Bail out without
+        // invoking any eBPF program and without touching classify_output->actionType, matching
+        // net_ebpf_extension_sock_addr_redirect_connection_classify().
         EBPF_EXT_LOG_MESSAGE(
-            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "No \"write\" right; invoking eBPF programs for observation only.");
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "No \"write\" right; exiting.");
+        goto Exit;
     }
 
-    if (!rights_revoked) {
-        classify_output->actionType = FWP_ACTION_PERMIT;
-    }
+    classify_output->actionType = FWP_ACTION_PERMIT;
 
     filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter->context;
     ASSERT(filter_context != NULL);
@@ -2366,14 +2343,12 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
         goto Exit;
     } else if (program_result != EBPF_SUCCESS) {
         // We failed to invoke at least one program in the chain, block the request.
-        if (!rights_revoked) {
-            classify_output->actionType = FWP_ACTION_BLOCK;
-        }
+        classify_output->actionType = FWP_ACTION_BLOCK;
         goto Exit;
     }
 
     // Set action type based on the program verdict.
-    _net_ebpf_extension_sock_addr_apply_verdict(classify_output, result, rights_revoked);
+    _net_ebpf_extension_sock_addr_apply_verdict(classify_output, result);
 
     _net_ebpf_ext_log_sock_addr_classify(
         "recv_accept_classify",
@@ -2428,22 +2403,16 @@ net_ebpf_extension_sock_addr_bind_classify(
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(flow_context);
 
-    // A callout with higher weight may have revoked the write permission before this callout
-    // runs. When that happens we still invoke the eBPF program(s) below so observer programs
-    // see the operation, but we must not write classify_output->actionType or clear
-    // FWPS_RIGHT_ACTION_WRITE -- the terminating decision belongs to the higher-weight callout.
-    // Every write to classify_output below is gated on !rights_revoked.
-    const bool rights_revoked = (classify_output->rights & FWPS_RIGHT_ACTION_WRITE) == 0;
-    if (rights_revoked) {
+    if ((classify_output->rights & FWPS_RIGHT_ACTION_WRITE) == 0) {
+        // A callout with higher weight has revoked the write permission. Bail out without
+        // invoking any eBPF program and without touching classify_output->actionType, matching
+        // net_ebpf_extension_sock_addr_redirect_connection_classify().
         EBPF_EXT_LOG_MESSAGE(
-            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "No \"write\" right; invoking eBPF programs for observation only.");
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "No \"write\" right; exiting.");
+        goto Exit;
     }
 
-    if (!rights_revoked) {
-        classify_output->actionType = FWP_ACTION_PERMIT;
-    }
+    classify_output->actionType = FWP_ACTION_PERMIT;
 
     filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter->context;
     ASSERT(filter_context != NULL);
@@ -2489,10 +2458,8 @@ net_ebpf_extension_sock_addr_bind_classify(
         goto Exit;
     } else if (program_result != EBPF_SUCCESS) {
         // Failed to invoke at least one program in the chain — block the bind.
-        if (!rights_revoked) {
-            classify_output->actionType = FWP_ACTION_BLOCK;
-            classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
-        }
+        classify_output->actionType = FWP_ACTION_BLOCK;
+        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
         goto Exit;
     }
 
@@ -2500,7 +2467,7 @@ net_ebpf_extension_sock_addr_bind_classify(
     // support address modification: any changes the program made to user_ip/user_port are
     // silently ignored (and restored between programs by the shared accumulator).
     verdict = net_ebpf_sock_addr_ctx.verdict;
-    _net_ebpf_extension_sock_addr_apply_verdict(classify_output, verdict, rights_revoked);
+    _net_ebpf_extension_sock_addr_apply_verdict(classify_output, verdict);
 
     _net_ebpf_ext_log_sock_addr_classify(
         "bind_classify",
@@ -2598,15 +2565,14 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
         incoming_metadata_values->transportEndpointHandle, sock_addr_ctx);
 
     if ((classify_output->rights & FWPS_RIGHT_ACTION_WRITE) == 0) {
-        // A callout with higher weight has revoked the write permission. We still fall through to
-        // invoke the CONNECT_AUTHORIZATION program(s) below so observer programs see the
-        // operation; _net_ebpf_extension_sock_addr_apply_verdict() honors rights_revoked, so
-        // classify_output is left untouched. The cache cleanup above has already run.
+        // A callout with higher weight has revoked the write permission. Bail out without
+        // invoking any eBPF program and without touching classify_output->actionType (the
+        // Exit-block verdict is also skipped via rights_revoked). The cache cleanup above
+        // has already run.
         EBPF_EXT_LOG_MESSAGE(
-            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "No \"write\" right; invoking eBPF programs for observation only.");
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "No \"write\" right; exiting.");
         rights_revoked = TRUE;
+        goto Exit;
     }
 
     // CONNECT_AUTHORIZATION programs run for all non-REJECT verdicts from the redirect layer.
@@ -2651,7 +2617,9 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
 
 Exit:
     // Set action type based on the accumulated verdict.
-    _net_ebpf_extension_sock_addr_apply_verdict(classify_output, verdict, rights_revoked);
+    if (!rights_revoked) {
+        _net_ebpf_extension_sock_addr_apply_verdict(classify_output, verdict);
+    }
 
     _net_ebpf_ext_log_sock_addr_classify(
         "auth_connect_classify",
