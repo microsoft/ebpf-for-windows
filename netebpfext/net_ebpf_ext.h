@@ -130,7 +130,8 @@ typedef struct _net_ebpf_ext_wfp_filter_id
 
 typedef struct _net_ebpf_extension_wfp_filter_context
 {
-    LIST_ENTRY link;                   ///< Entry in the list of filter contexts.
+    LIST_ENTRY link;                   ///< Entry in the provider's active filter context list.
+    LIST_ENTRY zombie_link;            ///< Entry in the provider's zombie filter context list.
     volatile long reference_count;     ///< Reference count.
     EX_SPIN_LOCK lock;                 ///< Lock to protect the client context array.
     uint32_t client_context_count_max; ///< Maximum number of hook NPI clients.
@@ -149,17 +150,13 @@ typedef struct _net_ebpf_extension_wfp_filter_context
 } net_ebpf_extension_wfp_filter_context_t;
 
 /**
- * @brief Structure that holds objects related to WFP that require cleanup.
+ * @brief Structure that holds the provider-context list that requires cleanup at driver unload.
  */
-typedef struct _net_ebpf_extension_wfp_cleanup_state
+typedef struct _net_ebpf_extension_cleanup_state
 {
     EX_SPIN_LOCK lock;
     _Guarded_by_(lock) LIST_ENTRY provider_context_cleanup_list; ///< List of provider contexts to cleanup.
-    _Guarded_by_(lock)
-        LIST_ENTRY filter_cleanup_list; ///< List of filter contexts that are awaiting a WFP filter deletion callback.
-    bool signal_empty_filter_list : 1;  ///< True if the WFP filter cleanup event should be signaled.
-    KEVENT wfp_filter_cleanup_event;    ///< Event to signal when no remaining WFP filters require a deletion callback.
-} net_ebpf_extension_wfp_cleanup_state_t;
+} net_ebpf_extension_cleanup_state_t;
 
 // Macro definition of warning suppression for 26100. This is only used in the cleanup context, for which
 // we are the only reference of the memory
@@ -168,21 +165,24 @@ typedef struct _net_ebpf_extension_wfp_cleanup_state
 #define PRAGMA_WARNING_SUPPRESS_26100 _Pragma("warning(suppress: 26100)")
 #define PRAGMA_WARNING_POP _Pragma("warning(pop)")
 
-#define CLEAN_UP_FILTER_CONTEXT(filter_context)                             \
-    ASSERT((filter_context) != NULL);                                       \
-    net_ebpf_ext_remove_filter_context_from_cleanup_list((filter_context)); \
-    if ((filter_context)->filter_ids != NULL) {                             \
-        ExFreePool((filter_context)->filter_ids);                           \
-    }                                                                       \
-    PRAGMA_WARNING_PUSH                                                     \
-    PRAGMA_WARNING_SUPPRESS_26100                                           \
-    if ((filter_context)->client_contexts != NULL) {                        \
-        ExFreePool((filter_context)->client_contexts);                      \
-    }                                                                       \
-    PRAGMA_WARNING_POP                                                      \
-    if ((filter_context)->wfp_engine_handle != NULL) {                      \
-        FwpmEngineClose((filter_context)->wfp_engine_handle);               \
-    }                                                                       \
+#define CLEAN_UP_FILTER_CONTEXT(filter_context)                                       \
+    ASSERT((filter_context) != NULL);                                                 \
+    if ((filter_context)->filter_ids != NULL) {                                       \
+        ExFreePool((filter_context)->filter_ids);                                     \
+    }                                                                                 \
+    PRAGMA_WARNING_PUSH                                                               \
+    PRAGMA_WARNING_SUPPRESS_26100                                                     \
+    if ((filter_context)->client_contexts != NULL) {                                  \
+        ExFreePool((filter_context)->client_contexts);                                \
+    }                                                                                 \
+    PRAGMA_WARNING_POP                                                                \
+    if ((filter_context)->wfp_engine_handle != NULL) {                                \
+        FwpmEngineClose((filter_context)->wfp_engine_handle);                         \
+    }                                                                                 \
+    if ((filter_context)->provider_context != NULL) {                                 \
+        net_ebpf_extension_hook_provider_leave_rundown(                               \
+            (net_ebpf_extension_hook_provider_t*)(filter_context)->provider_context); \
+    }                                                                                 \
     ExFreePool((filter_context));
 
 #define REFERENCE_FILTER_CONTEXT(filter_context)                  \
@@ -190,13 +190,11 @@ typedef struct _net_ebpf_extension_wfp_cleanup_state
         InterlockedIncrement(&(filter_context)->reference_count); \
     }
 
-#define DEREFERENCE_FILTER_CONTEXT(filter_context)                                        \
-    if ((filter_context) != NULL) {                                                       \
-        if (InterlockedDecrement(&(filter_context)->reference_count) == 0) {              \
-            net_ebpf_extension_hook_provider_leave_rundown(                               \
-                (net_ebpf_extension_hook_provider_t*)(filter_context)->provider_context); \
-            CLEAN_UP_FILTER_CONTEXT((filter_context));                                    \
-        }                                                                                 \
+#define DEREFERENCE_FILTER_CONTEXT(filter_context)                           \
+    if ((filter_context) != NULL) {                                          \
+        if (InterlockedDecrement(&(filter_context)->reference_count) == 0) { \
+            CLEAN_UP_FILTER_CONTEXT((filter_context));                       \
+        }                                                                    \
     }
 
 /**
@@ -219,14 +217,26 @@ net_ebpf_extension_wfp_filter_context_create(
     _Outptr_ net_ebpf_extension_wfp_filter_context_t** filter_context);
 
 /**
- * @brief This function cleans up the input ebpf extension WFP filter context. This should be invoked when the hook
- * client is being detached.
+ * @brief This function marks a filter context as detaching. It sets context_deleting to TRUE so classify callbacks
+ * will not invoke programs. The caller is responsible for deciding whether to release the initial reference (if all
+ * WFP filters were successfully deleted) or transfer ownership to the provider's zombie list (if any filter delete
+ * failed).
  *
- * @param[out] filter_context Pointer to filter_context to clean up.
+ * @param[in,out] filter_context Pointer to filter_context to mark as detaching.
  *
  */
 void
-net_ebpf_extension_wfp_filter_context_cleanup(_Frees_ptr_ net_ebpf_extension_wfp_filter_context_t* filter_context);
+net_ebpf_extension_wfp_filter_context_detach(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context);
+
+/**
+ * @brief Checks whether all WFP filters in a filter context have been successfully deleted (all in DELETED state).
+ *
+ * @param[in] filter_context Pointer to filter_context to check.
+ * @retval TRUE All filters are in DELETED state.
+ * @retval FALSE At least one filter is not in DELETED state.
+ */
+bool
+net_ebpf_ext_filter_context_all_deleted(_In_ net_ebpf_extension_wfp_filter_context_t* filter_context);
 
 /**
  * @brief Structure for WFP flow Id parameters.
@@ -290,8 +300,7 @@ net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id)
  * @retval EBPF_SUCCESS The operation completed successfully.
  * @retval EBPF_INVALID_ARGUMENT One or more arguments are invalid.
  */
-_Must_inspect_result_ ebpf_result_t
-net_ebpf_extension_add_wfp_filters(
+_IRQL_requires_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t net_ebpf_extension_add_wfp_filters(
     _In_ HANDLE wfp_engine_handle,
     uint32_t filter_count,
     _In_count_(filter_count) const net_ebpf_extension_wfp_filter_parameters_t* parameters,
@@ -302,17 +311,16 @@ net_ebpf_extension_add_wfp_filters(
         net_ebpf_ext_wfp_filter_id_t** filter_ids);
 
 /**
- * @brief Deletes WFP filters with specified filter IDs.
+ * @brief Deletes the WFP filters associated with a filter context.
  *
- * @param[in] wfp_filter_handle The WFP filter handle used to delete the filters.
- * @param[in]  filter_count Count of filters to be added.
- * @param[in]  filter_ids ID of the filter being deleted.
+ * Marks each filter as deleting and calls @c FwpmFilterDeleteById; a successful delete releases the per-filter
+ * reference through the synchronous WFP delete notification. A filter whose delete fails is left in the
+ * @c NET_EBPF_EXT_WFP_FILTER_DELETE_FAILED state for the driver-unload sweep to recover.
+ *
+ * @param[in,out] filter_context The filter context whose WFP filters are being deleted.
  */
-void
-net_ebpf_extension_delete_wfp_filters(
-    _In_ HANDLE wfp_engine_handle,
-    uint32_t filter_count,
-    _Frees_ptr_ _In_count_(filter_count) net_ebpf_ext_wfp_filter_id_t* filter_ids);
+_IRQL_requires_(PASSIVE_LEVEL) void net_ebpf_extension_delete_wfp_filters(
+    _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context);
 
 // eBPF WFP Provider GUID.
 // ddb851f5-841a-4b77-8a46-bb7063e9f162
@@ -362,8 +370,13 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object);
  * @brief Unregister the WFP callouts.
  *
  */
-void
-net_ebpf_extension_uninitialize_wfp_components(void);
+_IRQL_requires_(PASSIVE_LEVEL) void net_ebpf_extension_uninitialize_wfp_components(void);
+
+/**
+ * @brief Wait for the rundown of all provider contexts pending cleanup and free them.
+ *
+ */
+_IRQL_requires_(PASSIVE_LEVEL) void net_ebpf_ext_wait_for_provider_context_rundown(void);
 
 /**
  * @brief Register network extension NPI providers with eBPF core.
@@ -417,19 +430,3 @@ net_ebpf_ext_add_client_context(
  */
 void
 net_ebpf_ext_add_provider_context_to_cleanup_list(_Inout_ net_ebpf_extension_hook_provider_t* provider_context);
-
-/**
- * @brief Add a filter context to the cleanup list.
- *
- * @param filter_context Filter context to add.
- */
-void
-net_ebpf_ext_add_filter_context_to_cleanup_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context);
-
-/**
- * @brief Remove a filter context from the cleanup list.
- *
- * @param filter_context Filter context to remove.
- */
-void
-net_ebpf_ext_remove_filter_context_from_cleanup_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context);
