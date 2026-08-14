@@ -273,7 +273,7 @@ Exit:
 }
 
 static void
-_net_ebpf_extension_sock_ops_release_hook_resources(_Inout_opt_ net_ebpf_extension_wfp_filter_context_t* filter_context)
+_net_ebpf_extension_sock_ops_cleanup_filter_context(_Inout_opt_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
     net_ebpf_extension_sock_ops_wfp_filter_context_t* local_filter_context = NULL;
     KIRQL irql;
@@ -336,7 +336,7 @@ net_ebpf_ext_sock_ops_register_providers()
 
     const net_ebpf_extension_hook_provider_dispatch_table_t dispatch_table = {
         .create_filter_context = _net_ebpf_extension_sock_ops_create_filter_context,
-        .release_hook_resources = _net_ebpf_extension_sock_ops_release_hook_resources,
+        .cleanup_filter_context = _net_ebpf_extension_sock_ops_cleanup_filter_context,
         .validate_client_data = _net_ebpf_extension_sock_ops_validate_client_data,
     };
 

@@ -58,7 +58,7 @@ typedef ebpf_result_t (*net_ebpf_extension_create_filter_context)(
  *
  * @param[in,out] filter_context Pointer to the filter context whose hook-specific resources are being released.
  */
-typedef void (*net_ebpf_extension_release_hook_resources)(
+typedef void (*net_ebpf_extension_cleanup_filter_context)(
     _Inout_opt_ net_ebpf_extension_wfp_filter_context_t* filter_context);
 
 /**
@@ -88,7 +88,7 @@ typedef bool (*net_ebpf_extension_hook_process_verdict)(_Inout_ void* program_co
 typedef struct _net_ebpf_extension_hook_provider_dispatch_table
 {
     net_ebpf_extension_create_filter_context create_filter_context;
-    net_ebpf_extension_release_hook_resources release_hook_resources;
+    net_ebpf_extension_cleanup_filter_context cleanup_filter_context;
     net_ebpf_extension_validate_client_data validate_client_data;
     net_ebpf_extension_hook_process_verdict process_verdict;
 } net_ebpf_extension_hook_provider_dispatch_table_t;

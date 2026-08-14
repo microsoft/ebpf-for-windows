@@ -161,7 +161,7 @@ net_ebpf_ext_bind_register_providers()
     const net_ebpf_extension_hook_provider_dispatch_table_t dispatch_table = {
         .create_filter_context = _net_ebpf_ext_bind_create_filter_context,
         // No hook-specific resources to release.
-        .release_hook_resources = NULL,
+        .cleanup_filter_context = NULL,
         .validate_client_data = _net_ebpf_ext_bind_validate_client_data};
 
     status = net_ebpf_extension_program_info_provider_register(

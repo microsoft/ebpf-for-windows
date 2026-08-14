@@ -356,10 +356,10 @@ _net_ebpf_extension_hook_client_cleanup(_In_opt_ _Frees_ptr_opt_ net_ebpf_extens
 /**
  * @brief Tears down a filter context that is no longer referenced by any hook NPI client, and disposes of it.
  *
- * The context is marked as detaching, its WFP filters are deleted, and any hook-specific resources are released.
- * If every WFP filter was deleted the initial reference is released here and the context is freed. If any delete
- * failed the context is transferred to the provider's zombie list without releasing that reference, so it cannot
- * be freed while live WFP filters still point at it; the unload sweep reclaims it.
+ * Marks the context as detaching, deletes its WFP filters and releases any hook-specific resources. If every WFP
+ * filter was deleted, releases the initial reference and frees the context. If any delete failed, transfers the
+ * context to the provider's zombie list without releasing that reference, so it cannot be freed while live WFP
+ * filters still point at it; the unload sweep reclaims it.
  *
  * @param[in] provider_context Provider module's context.
  * @param[in] filter_context Filter context to dispose of. The caller must not use it on return: it is either
@@ -377,8 +377,8 @@ _IRQL_requires_(PASSIVE_LEVEL)
     net_ebpf_extension_delete_wfp_filters(filter_context);
 
     // Release hook-specific resources (redirect handle, flow contexts).
-    if (provider_context->dispatch.release_hook_resources != NULL) {
-        provider_context->dispatch.release_hook_resources(filter_context);
+    if (provider_context->dispatch.cleanup_filter_context != NULL) {
+        provider_context->dispatch.cleanup_filter_context(filter_context);
     }
 
     if (net_ebpf_ext_filter_context_all_deleted(filter_context)) {
