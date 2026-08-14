@@ -113,8 +113,7 @@ _ebpf_ring_create_section(size_t size, _Inout_ ebpf_ring_section_t* section)
 }
 
 static void
-_ebpf_ring_release_composite_placeholders(
-    _In_ uint8_t* composite_base, _In_reads_(5) const size_t* view_lengths);
+_ebpf_ring_release_composite_placeholders(_In_ uint8_t* composite_base, _In_reads_(5) const size_t* view_lengths);
 
 static _Must_inspect_result_ ebpf_result_t
 _ebpf_ring_create_composite_view(_Inout_ ebpf_ring_descriptor_t* descriptor)
@@ -220,15 +219,14 @@ Exit:
 }
 
 static void
-_ebpf_ring_release_composite_placeholders(
-    _In_ uint8_t* composite_base, _In_reads_(5) const size_t* view_lengths)
+_ebpf_ring_release_composite_placeholders(_In_ uint8_t* composite_base, _In_reads_(5) const size_t* view_lengths)
 {
-    uint8_t* current_address = composite_base;
+    size_t offset = 0;
     for (size_t index = 0; index < 5; index++) {
-        if (!VirtualFree(current_address, 0, MEM_RELEASE)) {
+        if (!VirtualFree(composite_base + offset, 0, MEM_RELEASE)) {
             EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, VirtualFree);
         }
-        current_address += view_lengths[index];
+        offset += view_lengths[index];
     }
 }
 
