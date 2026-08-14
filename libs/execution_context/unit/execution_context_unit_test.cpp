@@ -2335,6 +2335,26 @@ TEST_CASE("EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE", "[execution_context][
     }
 }
 
+TEST_CASE("EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE hash map replacement", "[execution_context]")
+{
+    NEGATIVE_TEST_PROLOG();
+
+    std::vector<uint8_t> request(
+        EBPF_OFFSET_OF(ebpf_operation_map_update_element_with_handle_request_t, key) + sizeof(uint32_t));
+    auto map_update_element_with_handle_request =
+        reinterpret_cast<ebpf_operation_map_update_element_with_handle_request_t*>(request.data());
+
+    map_update_element_with_handle_request->map_handle = map_handles["BPF_MAP_TYPE_HASH_OF_MAPS"];
+    map_update_element_with_handle_request->value_handle = map_handles["BPF_MAP_TYPE_ARRAY"];
+    map_update_element_with_handle_request->option = EBPF_ANY;
+
+    uint32_t key = 0;
+    memcpy(map_update_element_with_handle_request->key, &key, sizeof(key));
+
+    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_SUCCESS);
+    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_SUCCESS);
+}
+
 TEST_CASE("EBPF_OPERATION_MAP_DELETE_ELEMENT", "[execution_context][negative]")
 {
     NEGATIVE_TEST_PROLOG();
