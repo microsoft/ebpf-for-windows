@@ -459,10 +459,10 @@ _IRQL_requires_(PASSIVE_LEVEL) void net_ebpf_extension_delete_wfp_filters(
 
     for (uint32_t index = 0; index < filter_count; index++) {
         // State transitions are serialized under the context lock, but the lock is dropped across
-        // FwpmFilterDeleteById because a successful delete re-enters the notification callback, which also takes it.
+        // FwpmFilterDeleteById because the delete notification callback also acquires it.
         old_irql = ExAcquireSpinLockExclusive(&filter_context->lock);
-        // A filter already in the terminal DELETED state has released its per-filter reference; leave it there
-        // instead of resurrecting it to DELETING, which would make the unload sweep over-release the context.
+        // A filter already in the terminal DELETED state no longer owns its per-filter reference; leave it there.
+        // Resurrecting it to DELETING would stop net_ebpf_ext_filter_context_all_deleted from ever succeeding.
         bool already_deleted = (filter_ids[index].state == NET_EBPF_EXT_WFP_FILTER_DELETED);
         if (!already_deleted) {
             filter_ids[index].state = NET_EBPF_EXT_WFP_FILTER_DELETING;
@@ -472,9 +472,8 @@ _IRQL_requires_(PASSIVE_LEVEL) void net_ebpf_extension_delete_wfp_filters(
             continue;
         }
 
-        // A successful delete synchronously invokes net_ebpf_ext_filter_change_notify, which transitions the
-        // filter to DELETED and releases the per-filter reference. FWP_E_FILTER_NOT_FOUND is treated as success
-        // by the helper (the filter is already gone; its notification either already fired or will not fire).
+        // FWP_E_FILTER_NOT_FOUND is treated as success by the helper; the per-filter reference is released by
+        // net_ebpf_ext_filter_change_notify when WFP delivers the delete notification, not here.
         status = _net_ebpf_ext_try_delete_wfp_filter(
             wfp_engine_handle, filter_ids[index].id, NET_EBPF_EXT_DELETE_RETRY_MAX_ATTEMPTS);
         filter_ids[index].error_code = status;
@@ -1120,20 +1119,22 @@ net_ebpf_ext_filter_change_notify(
         net_ebpf_extension_wfp_filter_context_t* filter_context =
             (net_ebpf_extension_wfp_filter_context_t*)(uintptr_t)filter->context;
         bool release_reference = false;
+        bool filter_id_found = false;
         KIRQL old_irql;
 
-        // Exactly one path (this notification or the unload cleanup sweep) releases the per-filter reference; the
-        // idempotent transition to DELETED is the claim.
+        // This notification transitions the filter to DELETED and releases the per-filter reference taken in
+        // net_ebpf_extension_add_wfp_filters. A filter WFP never deletes is never notified and keeps its reference.
         old_irql = ExAcquireSpinLockExclusive(&filter_context->lock);
         for (uint32_t index = 0; index < filter_context->filter_ids_count; index++) {
             net_ebpf_ext_wfp_filter_id_t* cur_filter_id = &filter_context->filter_ids[index];
             if (cur_filter_id->id == filter->filterId) {
-                // Any non-DELETED state still owns the reference (including an external delete or a BFE teardown of
-                // an ADDED filter); claim it by transitioning to DELETED.
-                if (cur_filter_id->state != NET_EBPF_EXT_WFP_FILTER_DELETED) {
-                    cur_filter_id->state = NET_EBPF_EXT_WFP_FILTER_DELETED;
-                    release_reference = true;
-                }
+                filter_id_found = true;
+                // Every state a notified filter can be in (ADDED, DELETING or DELETE_FAILED) still owns the
+                // per-filter reference; claim it by transitioning to DELETED. WFP deletes a filter once, so it
+                // cannot notify a delete for a filter already in the terminal DELETED state.
+                ASSERT(cur_filter_id->state != NET_EBPF_EXT_WFP_FILTER_DELETED);
+                cur_filter_id->state = NET_EBPF_EXT_WFP_FILTER_DELETED;
+                release_reference = true;
                 EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
                     EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
                     EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
@@ -1145,6 +1146,9 @@ net_ebpf_ext_filter_change_notify(
             }
         }
         ExReleaseSpinLockExclusive(&filter_context->lock, old_irql);
+
+        // net_ebpf_extension_add_wfp_filters records every filter that carries this context.
+        ASSERT(filter_id_found);
 
         // Dereference outside the filter lock: it can free the context.
         if (release_reference) {
