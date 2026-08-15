@@ -11,6 +11,9 @@
 void
 net_ebpf_extension_hook_provider_leave_rundown(_Inout_ net_ebpf_extension_hook_provider_t* provider_context);
 
+_Must_inspect_result_ bool
+net_ebpf_extension_hook_provider_enter_rundown(_Inout_ net_ebpf_extension_hook_provider_t* provider_context);
+
 /**
  * @brief Get the attach parameters for the input client.
  *

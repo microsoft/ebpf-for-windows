@@ -4,6 +4,7 @@
 #pragma once
 
 #include "ebpf_api.h"
+#include "ebpf_platform.h"
 #include "ebpf_ring_buffer_record.h"
 #include "ebpf_shared_framework.h"
 
@@ -213,6 +214,23 @@ ebpf_ring_buffer_map_user(
     _Outptr_ void** producer,
     _Outptr_result_buffer_(*data_size) uint8_t** data,
     _Out_ size_t* data_size);
+
+/**
+ * @brief Open a handle for one user-visible ring-buffer region in the calling process.
+ *
+ * @param[in] ring_buffer Ring buffer to query.
+ * @param[in] section Requested section.
+ * @param[out] handle Region-scoped handle valid in the calling process.
+ * @param[out] view_size Size of the returned region.
+ * @retval EBPF_SUCCESS A handle was returned.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters were invalid.
+ */
+_Must_inspect_result_ ebpf_result_t
+ebpf_ring_buffer_get_user_mapping_handle(
+    _In_ const ebpf_ring_buffer_t* ring_buffer,
+    ebpf_ring_buffer_user_section_t section,
+    _Out_ ebpf_handle_t* handle,
+    _Out_ size_t* view_size);
 
 /**
  * @brief Unmap the memory of a ring buffer.
