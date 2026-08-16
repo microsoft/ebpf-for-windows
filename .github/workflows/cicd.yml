@@ -242,6 +242,12 @@ jobs:
       capture_etw: true
     secrets: inherit
 
+  bpf_api_behavior:
+    needs: regular
+    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
+    uses: ./.github/workflows/reusable-bpf-api-behavior.yml
+    secrets: inherit
+
   driver_tests:
     needs: regular
     if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
