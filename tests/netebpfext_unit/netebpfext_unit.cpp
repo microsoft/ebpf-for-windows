@@ -1369,6 +1369,7 @@ TEST_CASE("sock_addr_listen_invoke", "[netebpfext]")
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
         (netebpfext_helper_base_client_context_t*)client_context);
+    REQUIRE(helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR) != nullptr);
 
     netebpfext_initialize_fwp_classify_parameters(&parameters);
 
