@@ -354,7 +354,44 @@ _net_ebpf_extension_hook_client_cleanup(_In_opt_ _Frees_ptr_opt_ net_ebpf_extens
 }
 
 /**
- * @brief Callback invoked when an eBPF hook NPI client (a.k.a eBPF link object) attaches.
+ * @brief Tears down a filter context that is no longer referenced by any hook NPI client, and disposes of it.
+ *
+ * Marks the context as detaching, deletes its WFP filters and releases any hook-specific resources. If every WFP
+ * filter was deleted, releases the initial reference and frees the context. If any delete failed, transfers the
+ * context to the provider's zombie list without releasing that reference, so it cannot be freed while live WFP
+ * filters still point at it; the unload sweep reclaims it.
+ *
+ * @param[in] provider_context Provider module's context.
+ * @param[in] filter_context Filter context to dispose of. The caller must not use it on return: it is either
+ * freed here or transferred to the provider's zombie list.
+ */
+_IRQL_requires_(PASSIVE_LEVEL)
+    _Requires_exclusive_lock_held_(provider_context->lock) static void _net_ebpf_ext_dispose_filter_context(
+        _In_ net_ebpf_extension_hook_provider_t* provider_context,
+        _In_ _Post_ptr_invalid_ net_ebpf_extension_wfp_filter_context_t* filter_context)
+{
+    EBPF_EXT_LOG_ENTRY();
+
+    // Stop invoking eBPF programs before removing the filters that reference this context.
+    net_ebpf_extension_wfp_filter_context_detach(filter_context);
+    net_ebpf_extension_delete_wfp_filters(filter_context);
+
+    // Release hook-specific resources (redirect handle, flow contexts).
+    if (provider_context->dispatch.cleanup_filter_context != NULL) {
+        provider_context->dispatch.cleanup_filter_context(filter_context);
+    }
+
+    if (net_ebpf_ext_filter_context_all_deleted(filter_context)) {
+        DEREFERENCE_FILTER_CONTEXT(filter_context);
+    } else {
+        InsertTailList(&provider_context->zombie_filter_context_list, &filter_context->zombie_link);
+    }
+
+    EBPF_EXT_LOG_EXIT();
+}
+
+/**
+ * @brief Callback invoked when a hook NPI client (a.k.a. eBPF link object) attaches.
  *
  * @param[in] nmr_binding_handle NMR binding between the client module and the provider module.
  * @param[in] provider_context Provider module's context.
@@ -387,7 +424,6 @@ _net_ebpf_extension_hook_provider_attach_client(
     ebpf_extension_data_t* client_data = NULL;
     bool is_wild_card_attach_parameter = FALSE;
     net_ebpf_extension_wfp_filter_context_t* new_filter_context = NULL;
-    bool rundown_acquired = FALSE;
 
     EBPF_EXT_LOG_ENTRY();
 
@@ -514,18 +550,8 @@ _net_ebpf_extension_hook_provider_attach_client(
         }
     }
 
-    // No matching filter context found. Need to create a new filter context.
-    // Acquire rundown reference on provider context. This will be released when the filter context is deleted.
-    rundown_acquired = net_ebpf_extension_hook_provider_enter_rundown(local_provider_context);
-    if (!rundown_acquired) {
-        EBPF_EXT_LOG_MESSAGE(
-            EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-            "ExAcquireRundownProtection failed. Attach attempt rejected.");
-        status = STATUS_ACCESS_DENIED;
-        goto Exit;
-    }
-
+    // No matching filter context found. Need to create a new filter context. It acquires its own rundown reference
+    // on the provider context, which it releases when it is freed.
     result = local_provider_context->dispatch.create_filter_context(
         hook_client, local_provider_context, &new_filter_context);
     if (result != EBPF_SUCCESS) {
@@ -537,6 +563,10 @@ _net_ebpf_extension_hook_provider_attach_client(
         status = STATUS_ACCESS_DENIED;
         goto Exit;
     }
+
+    // Set the filter context as the client's provider data. This is done only now that the context is guaranteed to
+    // outlive the call: every failure path inside create_filter_context frees it.
+    net_ebpf_extension_hook_client_set_provider_data(hook_client, new_filter_context);
 
     // If the attach parameter is a wildcard, set the wildcard flag in the filter context.
     if (is_wild_card_attach_parameter) {
@@ -559,19 +589,15 @@ _net_ebpf_extension_hook_provider_attach_client(
 Exit:
     if (local_provider_context) {
         if (provider_lock_acquired) {
+            // new_filter_context is only non-NULL while the lock is held.
+            if (new_filter_context != NULL) {
+                _net_ebpf_ext_dispose_filter_context(local_provider_context, new_filter_context);
+            }
             RELEASE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->lock);
         }
-
-        local_provider_context->dispatch.delete_filter_context(new_filter_context);
     }
 
     _net_ebpf_extension_hook_client_cleanup(hook_client);
-
-    if (status != STATUS_SUCCESS) {
-        if (rundown_acquired) {
-            net_ebpf_extension_hook_provider_leave_rundown(local_provider_context);
-        }
-    }
 
     EBPF_EXT_RETURN_NTSTATUS(status);
 }
@@ -582,11 +608,11 @@ _Requires_exclusive_lock_held_(provider_context->lock) static void _net_ebpf_ext
 {
     EBPF_EXT_LOG_ENTRY();
 
-    // Remove the list entry from the provider's list of filter contexts.
+    // Remove the list entry from the provider's active list.
     RemoveEntryList(&filter_context->link);
+    InitializeListHead(&filter_context->link);
 
-    // Release the filter context.
-    provider_context->dispatch.delete_filter_context(filter_context);
+    _net_ebpf_ext_dispose_filter_context(provider_context, filter_context);
 
     EBPF_EXT_LOG_EXIT();
 }
@@ -599,8 +625,8 @@ _Requires_exclusive_lock_held_(provider_context->lock) static void _net_ebpf_ext
  * @retval STATUS_PENDING The operation is pending completion.
  * @retval STATUS_INVALID_PARAMETER One or more parameters are invalid.
  */
-static NTSTATUS
-_net_ebpf_extension_hook_provider_detach_client(_In_ const void* provider_binding_context)
+_IRQL_requires_(PASSIVE_LEVEL) static NTSTATUS
+    _net_ebpf_extension_hook_provider_detach_client(_In_ const void* provider_binding_context)
 {
     NTSTATUS status = STATUS_PENDING;
     net_ebpf_extension_hook_provider_t* local_provider_context = NULL;
@@ -708,6 +734,7 @@ net_ebpf_extension_hook_provider_register(
     memset(local_provider_context, 0, sizeof(net_ebpf_extension_hook_provider_t));
     ExInitializePushLock(&local_provider_context->lock);
     InitializeListHead(&local_provider_context->filter_context_list);
+    InitializeListHead(&local_provider_context->zombie_filter_context_list);
     ebpf_ext_init_rundown(&local_provider_context->rundown);
 
     characteristics = &local_provider_context->characteristics;

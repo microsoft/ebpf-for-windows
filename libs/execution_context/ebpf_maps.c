@@ -2010,8 +2010,8 @@ _update_hash_map_entry_with_handle(
         goto Done;
     }
 
-    // Store the old object.
-    ebpf_core_object_t* old_object = (ebpf_core_object_t*)old_value;
+    // The hash table stores the object pointer in the value bytes.
+    ebpf_core_object_t* old_object = old_value ? *(ebpf_core_object_t**)old_value : NULL;
 
     // Store the new entry.
     result =
@@ -3093,6 +3093,43 @@ ebpf_ring_buffer_map_unmap_user(_In_ const ebpf_map_t* map, uint64_t index)
 
 Exit:
     EBPF_RETURN_RESULT(result);
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_map_get_user_mapping_handle(
+    _In_ const ebpf_map_t* map,
+    uint64_t index,
+    ebpf_ring_buffer_user_section_t section,
+    _Out_ ebpf_handle_t* handle,
+    _Out_ size_t* view_size)
+{
+    const ebpf_ring_buffer_t* ring_buffer = NULL;
+
+    if (map == NULL || handle == NULL || view_size == NULL) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    switch (map->ebpf_map_definition.type) {
+    case BPF_MAP_TYPE_RINGBUF:
+        if (index != 0) {
+            return EBPF_INVALID_ARGUMENT;
+        }
+        ring_buffer = (const ebpf_ring_buffer_t*)map->data;
+        break;
+    case BPF_MAP_TYPE_PERF_EVENT_ARRAY: {
+        const ebpf_core_perf_event_array_map_t* perf_event_array_map =
+            EBPF_FROM_FIELD(const ebpf_core_perf_event_array_map_t, core_map, map);
+        if (index >= perf_event_array_map->ring_count) {
+            return EBPF_INVALID_ARGUMENT;
+        }
+        ring_buffer = perf_event_array_map->rings[index].ring;
+        break;
+    }
+    default:
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+
+    return ebpf_ring_buffer_get_user_mapping_handle(ring_buffer, section, handle, view_size);
 }
 
 _Must_inspect_result_ ebpf_result_t
