@@ -2010,8 +2010,8 @@ _update_hash_map_entry_with_handle(
         goto Done;
     }
 
-    // Store the old object.
-    ebpf_core_object_t* old_object = (ebpf_core_object_t*)old_value;
+    // The hash table stores the object pointer in the value bytes.
+    ebpf_core_object_t* old_object = old_value ? *(ebpf_core_object_t**)old_value : NULL;
 
     // Store the new entry.
     result =
