@@ -110,14 +110,8 @@ typedef enum _bind_action
  * @retval BIND_DENY Deny the bind operation.
  * @retval BIND_REDIRECT Change the bind endpoint.
  */
-#ifdef _MSC_VER
-typedef __declspec(deprecated("Use BPF_PROG_TYPE_CGROUP_SOCK_ADDR with "
-                              "BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND instead.")) bind_action_t
-bind_hook_t(bind_md_t* context);
-#else
 typedef bind_action_t
 bind_hook_t(bind_md_t* context);
-#endif
 
 //
 // CGROUP_SOCK_ADDR.

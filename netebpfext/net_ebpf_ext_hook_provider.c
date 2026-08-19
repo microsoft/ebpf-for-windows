@@ -452,13 +452,13 @@ _net_ebpf_extension_hook_provider_attach_client(
         goto Exit;
     }
 
-    // Emit deprecation warning if this hook provider is marked deprecated.
-    if (local_provider_context->deprecated) {
+    // Emit a warning trace if this hook provider has been deprecated.
+    if (local_provider_context->deprecation_message != NULL) {
         EBPF_EXT_LOG_MESSAGE_STRING(
             EBPF_EXT_TRACELOG_LEVEL_WARNING,
             EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-            "Attaching to deprecated hook provider. Migrate to replacement.",
-            local_provider_context->deprecation_message ? local_provider_context->deprecation_message : "");
+            "Attaching a client to a deprecated hook provider.",
+            local_provider_context->deprecation_message);
     }
 
     hook_client = (net_ebpf_extension_hook_client_t*)ExAllocatePoolUninitialized(
@@ -725,7 +725,6 @@ net_ebpf_extension_hook_provider_register(
     _In_ const net_ebpf_extension_hook_provider_dispatch_table_t* dispatch,
     net_ebpf_extension_hook_attach_capability_t attach_capability,
     _In_opt_ const void* custom_data,
-    bool deprecated,
     _In_opt_z_ const char* deprecation_message,
     _Outptr_ net_ebpf_extension_hook_provider_t** provider_context)
 {
@@ -763,7 +762,6 @@ net_ebpf_extension_hook_provider_register(
     local_provider_context->dispatch = *dispatch;
     local_provider_context->custom_data = custom_data;
     local_provider_context->attach_capability = attach_capability;
-    local_provider_context->deprecated = deprecated;
     local_provider_context->deprecation_message = deprecation_message;
     local_provider_context->attach_type = parameters->provider_module_id->Guid;
 
