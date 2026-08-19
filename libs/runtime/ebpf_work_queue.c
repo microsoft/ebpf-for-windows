@@ -1,6 +1,7 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_tracelog.h"
 #include "ebpf_work_queue.h"
 
 typedef struct _ebpf_timed_work_queue
@@ -58,11 +59,13 @@ ebpf_timed_work_queue_initialize(_Inout_ ebpf_timed_work_queue_t* work_queue, ui
     PROCESSOR_NUMBER processor_number;
     NTSTATUS status = KeGetProcessorNumberFromIndex(cpu_id, &processor_number);
     if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, KeGetProcessorNumberFromIndex, status);
         return EBPF_INVALID_ARGUMENT;
     }
 
     status = KeSetTargetProcessorDpcEx(&work_queue->dpc, &processor_number);
     if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, KeSetTargetProcessorDpcEx, status);
         return EBPF_INVALID_ARGUMENT;
     }
 
