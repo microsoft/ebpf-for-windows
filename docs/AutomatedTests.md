@@ -75,3 +75,44 @@ Tests in this category currently include:
 Performance tests check for performance regressions across builds.
 
 This invokes the bpf_performance test suite with a variety of test cases.
+
+## JIT vs native test coverage
+eBPF for Windows intends to withdraw support for JIT compiled programs. Before that can happen,
+every scenario that is currently validated only by a JIT (or interpreter) loaded program must also be
+validated by a native (bpf2c generated) program. See
+[issue 5439](https://github.com/microsoft/ebpf-for-windows/issues/5439).
+
+`scripts/check_jit_native_test_coverage.ps1` enforces this. It runs in CI/CD as the
+`jit_native_test_coverage` job, and can be run locally against a regular build and a native-only
+build:
+
+```ps1
+.\scripts\check_jit_native_test_coverage.ps1 -JitBuildPath x64\Debug -NativeOnlyBuildPath x64\NativeOnlyDebug
+```
+
+The script enumerates the Catch2 test cases exported by each test executable and finds the
+JIT/interpreter-only test cases in two ways:
+* Test cases present in the regular build but absent from the native-only build are compiled out by
+  `CONFIG_BPF_JIT_DISABLED`/`CONFIG_BPF_INTERPRETER_DISABLED`, so they contribute no coverage once
+  JIT is withdrawn.
+* Test cases whose name carries a `jit` or `interpret` token, for example `droppacket-jit`.
+
+For each one it looks for a native counterpart, derived by substituting the execution mode token
+(`jit`/`interpret` becomes `native`) and the program file extension (`.o` becomes `.sys` or
+`_um.dll`).
+
+Test cases without a native counterpart must be listed in
+`scripts/jit_native_coverage_allowlist.json`, which has two sections:
+* `exclusions`: test cases that can never have a native equivalent, each with a reason. For example,
+  tests of the raw byte code loading APIs load eBPF instructions supplied in memory rather than an
+  ELF object, so there is no artifact for bpf2c to compile.
+* `baseline`: the backlog of test cases that should have a native equivalent but do not have one
+  yet. Entries must be removed as native equivalents are added; new entries must not be added.
+
+The check fails if a JIT-only test case appears in neither section, which prevents the JIT-only test
+surface from growing, and it also fails on stale entries, so the backlog stays accurate.
+
+When adding a test that loads an eBPF program, add the native variant at the same time. Use
+`DECLARE_ALL_TEST_CASES` or `DECLARE_JIT_TEST_CASES` (both emit a native variant) rather than a bare
+`TEST_CASE`, and load the program through `native_module_helper_t` so the correct `.o`, `.sys` or
+`_um.dll` is selected for the execution type.
