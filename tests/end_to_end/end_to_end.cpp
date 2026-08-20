@@ -1609,8 +1609,8 @@ TEST_CASE("verify_test1", "[sample_extension]")
     REQUIRE(result == 0);
 }
 
-#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-TEST_CASE("map_pinning_test", "[end_to_end]")
+static void
+_map_pinning_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -1623,13 +1623,9 @@ TEST_CASE("map_pinning_test", "[end_to_end]")
     program_info_provider_t bind_program_info;
     REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
 
-    result = ebpf_program_load(
-        SAMPLE_PATH "bindmonitor.o",
-        BPF_PROG_TYPE_UNSPEC,
-        EBPF_EXECUTION_INTERPRET,
-        &unique_object,
-        &program_fd,
-        &error_message);
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_um.dll" : "bindmonitor.o");
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
@@ -1673,7 +1669,8 @@ TEST_CASE("map_pinning_test", "[end_to_end]")
 
     bpf_object__close(unique_object.release());
 }
-#endif
+
+DECLARE_ALL_TEST_CASES("map_pinning_test", "[end_to_end]", _map_pinning_test);
 
 TEST_CASE("pinned_map_enum", "[end_to_end]")
 {
@@ -2023,8 +2020,8 @@ _implicit_detach_2_test(ebpf_execution_type_t execution_type)
 
 DECLARE_JIT_TEST_CASES("implicit_detach_2", "[end_to_end]", _implicit_detach_2_test);
 
-#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-TEST_CASE("explicit_detach", "[end_to_end]")
+static void
+_explicit_detach_test(ebpf_execution_type_t execution_type)
 {
     // This test case does the following:
     // 1. Call detach API and then close the link handle. The link object
@@ -2045,13 +2042,10 @@ TEST_CASE("explicit_detach", "[end_to_end]")
     program_info_provider_t sample_program_info;
     REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
-    result = ebpf_program_load(
-        SAMPLE_PATH "test_sample_ebpf.o",
-        BPF_PROG_TYPE_UNSPEC,
-        EBPF_EXECUTION_INTERPRET,
-        &unique_object,
-        &program_fd,
-        &error_message);
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o");
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
@@ -2075,7 +2069,10 @@ TEST_CASE("explicit_detach", "[end_to_end]")
     REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);
 }
 
-TEST_CASE("implicit_explicit_detach", "[end_to_end]")
+DECLARE_ALL_TEST_CASES("explicit_detach", "[end_to_end]", _explicit_detach_test);
+
+static void
+_implicit_explicit_detach_test(ebpf_execution_type_t execution_type)
 {
     // This test case does the following:
     // 1. Close the program handle so that an implicit detach happens.
@@ -2096,13 +2093,10 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
     program_info_provider_t sample_program_info;
     REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
-    result = ebpf_program_load(
-        SAMPLE_PATH "test_sample_ebpf.o",
-        BPF_PROG_TYPE_UNSPEC,
-        EBPF_EXECUTION_INTERPRET,
-        &unique_object,
-        &program_fd,
-        &error_message);
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o");
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
@@ -2127,7 +2121,7 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
     REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);
 }
 
-#endif
+DECLARE_ALL_TEST_CASES("implicit_explicit_detach", "[end_to_end]", _implicit_explicit_detach_test);
 
 TEST_CASE("create_map", "[end_to_end]")
 {
@@ -2248,8 +2242,8 @@ TEST_CASE("array_of_maps_large_index_test", "[end_to_end]")
     Platform::_close(outer_map_fd);
 }
 
-#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-TEST_CASE("printk", "[end_to_end]")
+static void
+_printk_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -2258,9 +2252,9 @@ TEST_CASE("printk", "[end_to_end]")
     program_info_provider_t bind_program_info;
     REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
     uint32_t ifindex = 0;
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "printk_um.dll" : "printk.o");
     program_load_attach_helper_t program_helper;
-    program_helper.initialize(
-        SAMPLE_PATH "printk.o", BPF_PROG_TYPE_BIND, "func", EBPF_EXECUTION_INTERPRET, &ifindex, sizeof(ifindex), hook);
+    program_helper.initialize(file_name, BPF_PROG_TYPE_BIND, "func", execution_type, &ifindex, sizeof(ifindex), hook);
 
     // The current bind hook only works with IPv4, so compose a sample IPv4 context.
     SOCKADDR_IN addr = {AF_INET};
@@ -2304,7 +2298,8 @@ TEST_CASE("printk", "[end_to_end]")
     // so subtract 6 from the length to get the expected return value.
     REQUIRE(hook_result == output_length - 6);
 }
-#endif
+
+DECLARE_ALL_TEST_CASES("printk", "[end_to_end]", _printk_test);
 
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 TEST_CASE("link_tests", "[end_to_end]")
