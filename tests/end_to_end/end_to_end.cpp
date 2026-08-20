@@ -1875,6 +1875,129 @@ TEST_CASE("ebpf_get_next_pinned_object_path", "[end_to_end][pinning]")
     bpf_object__close(unique_object.release());
 }
 
+// This test uses ebpf_link_close() to test implicit detach.
+static void
+_implicit_detach_test(ebpf_execution_type_t execution_type)
+{
+    // This test case does the following:
+    // 1. Close program handle. An implicit detach should not happen and program
+    //    object should not be deleted.
+    // 2. Close link handle. The link object should be deleted, the program should be
+    //    detached and the program object should be deleted.
+
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    int result = 0;
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+    const char* error_message = nullptr;
+    bpf_link* link = nullptr;
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o");
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
+
+    // Call bpf_object__close() which will close the program fd. That should not
+    // detach the program from the hook and should not unload the program.
+    bpf_object__close(unique_object.release());
+
+    uint32_t program_id;
+    REQUIRE(bpf_prog_get_next_id(0, &program_id) == 0);
+
+    // Close link handle (without detaching). This should delete the link
+    // object. ebpf_object_tracking_terminate() which is called when the test
+    // exits checks if all the objects in EC have been deleted.
+    hook.close_link(link);
+
+    // Program should be unloaded after link is closed.
+    REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);
+}
+
+DECLARE_JIT_TEST_CASES("implicit_detach", "[end_to_end]", _implicit_detach_test);
+
+// This test uses bpf_link__disconnect() and bpf_link__destroy() to test
+// implicit detach.
+static void
+_implicit_detach_2_test(ebpf_execution_type_t execution_type)
+{
+    // This test case does the following:
+    // 1. Close program handle. An implicit detach should not happen and the
+    // program object should not be deleted.
+    // 2. Close link handle. The link object and the program object should be deleted.
+
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    int result = 0;
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+    const char* error_message = nullptr;
+    bpf_link_ptr link = nullptr;
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o");
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
+
+    // Call bpf_object__close() which will close the program fd. That should not
+    // detach the program from the hook and should not unload the program.
+    bpf_object__close(unique_object.release());
+
+    uint32_t program_id;
+    REQUIRE(bpf_prog_get_next_id(0, &program_id) == 0);
+
+    REQUIRE(bpf_link__pin(link.get(), "test_link") == 0);
+
+    // Close link handle (without detaching).
+    bpf_link__disconnect(link.get());
+    link.reset();
+
+    // Now the program should still be loaded because the link was pinned.
+    REQUIRE(bpf_prog_get_next_id(0, &program_id) == 0);
+
+    link.reset(bpf_link__open("test_link"));
+    REQUIRE(link != nullptr);
+
+    // Unpin and close the link. This should delete the link object and
+    // the program object.
+    REQUIRE(bpf_link__unpin(link.get()) == 0);
+
+    link.reset();
+
+    // Now the program should be unloaded.
+    REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);
+}
+
+DECLARE_JIT_TEST_CASES("implicit_detach_2", "[end_to_end]", _implicit_detach_2_test);
+
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 TEST_CASE("explicit_detach", "[end_to_end]")
 {
