@@ -177,16 +177,6 @@
     },
     {
       "Executable": "unit_tests.exe",
-      "Test": "explicit_detach",
-      "Issue": "https://github.com/microsoft/ebpf-for-windows/issues/5439"
-    },
-    {
-      "Executable": "unit_tests.exe",
-      "Test": "implicit_explicit_detach",
-      "Issue": "https://github.com/microsoft/ebpf-for-windows/issues/5439"
-    },
-    {
-      "Executable": "unit_tests.exe",
       "Test": "libbpf load program-jit",
       "Issue": "https://github.com/microsoft/ebpf-for-windows/issues/5439"
     },
@@ -202,22 +192,12 @@
     },
     {
       "Executable": "unit_tests.exe",
-      "Test": "map_pinning_test",
-      "Issue": "https://github.com/microsoft/ebpf-for-windows/issues/5439"
-    },
-    {
-      "Executable": "unit_tests.exe",
       "Test": "pin all programs",
       "Issue": "https://github.com/microsoft/ebpf-for-windows/issues/5439"
     },
     {
       "Executable": "unit_tests.exe",
       "Test": "pin first program",
-      "Issue": "https://github.com/microsoft/ebpf-for-windows/issues/5439"
-    },
-    {
-      "Executable": "unit_tests.exe",
-      "Test": "printk",
       "Issue": "https://github.com/microsoft/ebpf-for-windows/issues/5439"
     },
     {
