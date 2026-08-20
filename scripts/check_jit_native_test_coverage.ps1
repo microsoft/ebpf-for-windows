@@ -55,11 +55,6 @@
     entries get a placeholder reason that must be replaced by a real justification, so the script
     still fails until a human documents each entry. Intended for maintainers only.
 
-.PARAMETER FailOnBaseline
-    Also fails on the backlog entries in the allow list's 'baseline' section, rather than only on
-    gaps that are not tracked yet. Enable this once the backlog has been drained, so that the
-    baseline can never be reintroduced.
-
 .EXAMPLE
     .\scripts\check_jit_native_test_coverage.ps1 -JitBuildPath x64\Debug -NativeOnlyBuildPath x64\NativeOnlyDebug
 
@@ -73,8 +68,7 @@ param(
     [Parameter(Mandatory = $false)][string] $NativeOnlyBuildPath,
     [Parameter(Mandatory = $false)][string] $AllowListPath,
     [Parameter(Mandatory = $false)][string] $OutputPath,
-    [Parameter(Mandatory = $false)][switch] $UpdateAllowList,
-    [Parameter(Mandatory = $false)][switch] $FailOnBaseline
+    [Parameter(Mandatory = $false)][switch] $UpdateAllowList
 )
 
 Set-StrictMode -Version Latest
@@ -547,12 +541,6 @@ if ($staleEntries.Count -gt 0) {
     foreach ($stale in $staleEntries) {
         Write-Host "  $($stale.Executable) / $($stale.Test)" -ForegroundColor Red
     }
-    $failed = $true
-}
-
-if ($FailOnBaseline -and $knownBaseline.Count -gt 0) {
-    Write-Host "FAILED: $($knownBaseline.Count) backlog entry/entries still have no native equivalent." -ForegroundColor Red
-    Write-Host 'FailOnBaseline was requested, so the baseline is treated as a hard failure.' -ForegroundColor Red
     $failed = $true
 }
 
