@@ -506,20 +506,32 @@ TEST_CASE("ebpf_program_attach_with_attach_data_race_native", "[sample_ext_test]
     (void)hook.detach(program_fd, &attach_data, sizeof(attach_data));
 }
 
-#if !defined(CONFIG_BPF_JIT_DISABLED)
-TEST_CASE("batch_test", "[sample_ext_test]")
+static void
+_batch_test(ebpf_execution_type_t execution_type)
 {
     struct bpf_object* object = nullptr;
     hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
+    native_module_helper_t native_module_helper;
+    native_module_helper.initialize("test_sample_ebpf", execution_type);
     program_load_attach_helper_t _helper;
     _helper.initialize(
-        "test_sample_ebpf.o", BPF_PROG_TYPE_SAMPLE, "test_program_entry", EBPF_EXECUTION_ANY, nullptr, 0, hook);
+        native_module_helper.get_file_name().c_str(),
+        BPF_PROG_TYPE_SAMPLE,
+        "test_program_entry",
+        execution_type,
+        nullptr,
+        0,
+        hook);
 
     object = _helper.get_object();
 
     sample_ebpf_ext_test_batch(object);
 }
+
+#if !defined(CONFIG_BPF_JIT_DISABLED)
+TEST_CASE("batch_test_jit", "[sample_ext_test]") { _batch_test(EBPF_EXECUTION_JIT); }
 #endif
+TEST_CASE("batch_test_native", "[sample_ext_test]") { _batch_test(EBPF_EXECUTION_NATIVE); }
 
 void
 utility_helpers_test(ebpf_execution_type_t execution_type)
@@ -555,13 +567,28 @@ TEST_CASE("utility_helpers_test_jit", "[sample_ext_test]") { utility_helpers_tes
 #endif
 TEST_CASE("utility_helpers_test_native", "[sample_ext_test]") { utility_helpers_test(EBPF_EXECUTION_NATIVE); }
 
-#if !defined(CONFIG_BPF_JIT_DISABLED)
-TEST_CASE("netsh_add_program_test_sample_ebpf", "[sample_ext_test]")
+static void
+_netsh_add_program_test_sample_ebpf(ebpf_execution_type_t execution_type)
 {
+    native_module_helper_t native_module_helper;
+    native_module_helper.initialize("test_sample_ebpf", execution_type);
+    std::string file_name = native_module_helper.get_file_name();
+    std::wstring wide_file_name(file_name.begin(), file_name.end());
+
     int result;
     std::string output =
-        _run_netsh_command(handle_ebpf_add_program, L"test_sample_ebpf.o", L"pinned=none", nullptr, &result);
+        _run_netsh_command(handle_ebpf_add_program, wide_file_name.c_str(), L"pinned=none", nullptr, &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(output.starts_with("Loaded with"));
 }
+
+#if !defined(CONFIG_BPF_JIT_DISABLED)
+TEST_CASE("netsh_add_program_test_sample_ebpf_jit", "[sample_ext_test]")
+{
+    _netsh_add_program_test_sample_ebpf(EBPF_EXECUTION_JIT);
+}
 #endif
+TEST_CASE("netsh_add_program_test_sample_ebpf_native", "[sample_ext_test]")
+{
+    _netsh_add_program_test_sample_ebpf(EBPF_EXECUTION_NATIVE);
+}
