@@ -25,6 +25,8 @@
 // - One subprogram for map operations: update_map.
 //   - Calls bpf_get_current_pid_tgid, bpf_map_lookup_elem, bpf_map_update_elem.
 //   - entry_program3 invokes update_map.
+// - One subprogram for stack-frame isolation: stack_frame_test.
+//   - entry_program4 verifies that the caller's stack value survives the call.
 
 #include "bpf_helpers.h"
 #include "ebpf_nethooks.h"
@@ -51,6 +53,9 @@ ScenarioS4(uint64_t* pid);
 
 int
 update_map(uint64_t* pid_ptr);
+
+uint64_t
+stack_frame_test(uint64_t value);
 
 __attribute__((noinline)) bind_action_t __attribute__((optnone))
 ScenarioS3(uint64_t* pid)
@@ -117,6 +122,13 @@ update_map(uint64_t* pid_ptr)
     }
 }
 
+__attribute__((noinline)) uint64_t __attribute__((optnone))
+stack_frame_test(uint64_t value)
+{
+    uint64_t callee_value = value + 1;
+    return callee_value;
+}
+
 SEC("bind/1")
 bind_action_t
 entry_program1(bind_md_t* ctx)
@@ -170,4 +182,19 @@ entry_program3(bind_md_t* ctx)
     }
 
     return BIND_PERMIT_SOFT;
+}
+
+SEC("bind/4")
+bind_action_t
+entry_program4(bind_md_t* ctx)
+{
+    (void)ctx;
+    volatile uint64_t caller_value = 0x1234;
+    uint64_t callee_result = stack_frame_test(caller_value);
+
+    if (caller_value == 0x1234 && callee_result == 0x1235) {
+        return BIND_PERMIT_SOFT;
+    }
+
+    return BIND_DENY;
 }

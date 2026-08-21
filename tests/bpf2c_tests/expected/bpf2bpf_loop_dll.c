@@ -110,7 +110,7 @@ caller_with_loop(void* context, const program_runtime_context_t* runtime_context
 #line 28 "sample/undocked/bpf2bpf_loop.c"
     // Prologue.
 #line 28 "sample/undocked/bpf2bpf_loop.c"
-    uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
+    uint64_t stack[((UBPF_STACK_SIZE * 2) + 7) / 8];
 #line 28 "sample/undocked/bpf2bpf_loop.c"
     register uint64_t r0 = 0;
 #line 28 "sample/undocked/bpf2bpf_loop.c"
@@ -167,7 +167,7 @@ label_1:
     r1 = r0;
     // EBPF_OP_CALL pc=9 dst=r0 src=r1 offset=0 imm=18
 #line 34 "sample/undocked/bpf2bpf_loop.c"
-    r0 = increment(r1, r2, r3, r4, r5, r10, context, runtime_context);
+    r0 = increment(r1, r2, r3, r4, r5, r10 - UBPF_STACK_SIZE, context, runtime_context);
     // EBPF_OP_LDXW pc=10 dst=r1 src=r10 offset=-12 imm=0
 #line 33 "sample/undocked/bpf2bpf_loop.c"
     READ_ONCE_32(r1, r10, OFFSET(-12));
