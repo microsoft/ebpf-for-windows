@@ -871,6 +871,14 @@ _callgraph_bpf2bpf_test(ebpf_execution_type_t execution_type)
         hook.detach_and_close_link(&link);
         bpf_object__close(unique_object.release());
     }
+
+    // Test entry_program4: verifies that a subprogram does not corrupt the caller's stack.
+    {
+        program_load_attach_helper_t program_helper;
+        program_helper.initialize(file_name, BPF_PROG_TYPE_BIND, "entry_program4", execution_type, nullptr, 0, hook);
+
+        REQUIRE(emulate_bind(invoke, 4004, "callgraph_e4") == BIND_PERMIT_SOFT);
+    }
 }
 
 void
