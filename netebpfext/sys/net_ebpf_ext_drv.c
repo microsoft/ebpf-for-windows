@@ -51,8 +51,6 @@ _net_ebpf_ext_driver_uninitialize_objects()
 
     net_ebpf_ext_uninitialize_ndis_handles();
 
-    ebpf_ext_trace_terminate();
-
     if (_net_ebpf_ext_device != NULL) {
         WdfObjectDelete(_net_ebpf_ext_device);
     }
@@ -63,6 +61,10 @@ static _Function_class_(EVT_WDF_DRIVER_UNLOAD) _IRQL_requires_same_
 {
     UNREFERENCED_PARAMETER(driver_object);
     _net_ebpf_ext_driver_uninitialize_objects();
+
+    // Tracing is torn down last, so that everything above can still be traced. It is started by DriverEntry, and
+    // every path that leaves the driver loaded-and-running ends here.
+    ebpf_ext_trace_terminate();
 }
 
 //
@@ -128,8 +130,24 @@ _net_ebpf_ext_driver_initialize_objects(_Inout_ DRIVER_OBJECT* driver_object, _I
         goto Exit;
     }
 
-    // TODO: https://github.com/microsoft/ebpf-for-windows/issues/521
-    (void)net_ebpf_extension_initialize_wfp_components(_net_ebpf_ext_driver_device_object);
+    // A failure here means no eBPF network hook can work, so fail the driver start rather than running in a
+    // silently inert state. DriverEntry calls _net_ebpf_ext_driver_uninitialize_objects() and returns this
+    // status, so the service start fails with a real error code.
+    //
+    // TODO: https://github.com/microsoft/ebpf-for-windows/issues/521 - this driver still does not register for
+    // BFE service status before adding WFP objects. Failing the start makes that gap visible instead of hiding
+    // it, but it also means a start attempted while BFE is unavailable now fails outright; registering for BFE
+    // status notifications and adding the WFP objects once BFE is ready is the complete fix.
+    status = net_ebpf_extension_initialize_wfp_components(_net_ebpf_ext_driver_device_object);
+    if (!NT_SUCCESS(status)) {
+        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_BASE,
+            "net_ebpf_extension_initialize_wfp_components failed. The driver cannot provide any eBPF network "
+            "hooks, so the start is failed rather than left silently non-functional.",
+            status);
+        goto Exit;
+    }
 
     status = net_ebpf_ext_register_providers();
     if (!NT_SUCCESS(status)) {
@@ -175,5 +193,12 @@ Exit:
     }
 
     EBPF_EXT_LOG_EXIT();
+
+    if (!NT_SUCCESS(status)) {
+        // Terminate tracing only after the exit log above, so that a failed start is fully traced. This is the
+        // reason _net_ebpf_ext_driver_uninitialize_objects() does not terminate tracing itself.
+        ebpf_ext_trace_terminate();
+    }
+
     return status;
 }

@@ -793,6 +793,308 @@ net_ebpf_ext_uninitialize_ndis_handles()
     }
 }
 
+/**
+ * @brief Number of WFP objects requested per enumeration call during the stale-object purge. Purely a batching
+ * choice: the purge loops until the enumeration is drained, so this only trades call count against transient
+ * allocation size.
+ */
+#define NET_EBPF_EXT_PURGE_ENUM_BATCH_SIZE 64
+
+/**
+ * @brief Upper bound on enumeration batches during the purge. A WFP enumerator is a snapshot and always advances,
+ * so this bound is never reached in practice; it exists so that a misbehaving engine cannot spin driver
+ * initialization forever. Reaching it is treated as a purge FAILURE, never as a completed purge: if the
+ * enumeration did not drain, we cannot prove that no stale filter remains.
+ */
+#define NET_EBPF_EXT_PURGE_MAX_ENUM_BATCHES 1024
+
+/**
+ * @brief Deletes every WFP object tagged with the eBPF provider that survived a previous driver instance.
+ *
+ * A WFP filter whose delete permanently failed stays installed after the driver unloads: WFP management objects
+ * are not owned by the driver that created them, and this extension's engine sessions are non-dynamic, so closing
+ * the engine handle does not remove them. Such a filter pins the callout, sub-layer and provider objects it
+ * references, so their deletion at unload fails too, and the next FwpmProviderAdd fails with FWP_E_ALREADY_EXISTS.
+ *
+ * A stale filter is also actively dangerous. Its rawContext still holds the address of a filter context that the
+ * previous driver instance allocated and freed. Nothing revives that pointer, so the moment a callout is
+ * registered under a GUID the stale filter references, WFP starts invoking classifyFn with a dangling pointer.
+ * The caller must therefore treat failure here as fatal: starting with stale filters still installed is strictly
+ * worse than not starting at all.
+ *
+ * This is why the purge must run before any FwpsCalloutRegister call. With no callout function registered, WFP
+ * delivers no delete notification for the filters removed here, so the purge itself never touches the stale
+ * rawContext values.
+ *
+ * Objects are removed in reverse dependency order (filters, callouts, sub-layers, provider) so that each delete
+ * is not blocked by a reference from an object deleted later. On a clean boot there is nothing to remove and this
+ * is a handful of no-op calls, so "not found" is a success at every step.
+ *
+ * Coverage rests on every eBPF WFP object being tagged with EBPF_WFP_PROVIDER, which is what makes a purge by
+ * provider key exhaustive. Two properties keep that true: the provider GUID has never changed since it was
+ * introduced, and these filters are not persistent (no FWPM_FILTER_FLAG_PERSISTENT), so a reboot clears them and
+ * the only instance that can have left one behind is one from the current boot. Making these filters persistent
+ * would break this purge in two ways at once: it would need a sweep by callout GUID to catch objects tagged with
+ * an older provider GUID, and it would have to keep enumerating disabled filters, because BFE disables a
+ * persistent filter at boot when its provider declares no Windows service name, as this one does not.
+ *
+ * @param[in] engine_handle Open WFP engine handle to operate on.
+ * @retval STATUS_SUCCESS No eBPF WFP objects remain from a previous instance.
+ * @retval Other An object could not be removed, or the sweep could not be proven complete. The caller MUST fail
+ * initialization.
+ */
+_IRQL_requires_(PASSIVE_LEVEL) static NTSTATUS _net_ebpf_ext_purge_stale_wfp_objects(_In_ HANDLE engine_handle)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    const int max_retries = 10;
+    HANDLE filter_enum_handle = NULL;
+    HANDLE callout_enum_handle = NULL;
+    BOOLEAN is_in_transaction = FALSE;
+    BOOLEAN enumeration_drained = FALSE;
+    uint32_t stale_filter_count = 0;
+    size_t index;
+
+    EBPF_EXT_LOG_ENTRY();
+
+    // Run in its own transaction so that aborting the initialization transaction cannot roll the purge back and
+    // leave the stale objects behind. Note that this holds for a purge that COMPLETES: the failure paths below
+    // deliberately abort this transaction, discarding whatever was reclaimed, because the caller refuses to start
+    // in that case and inert stale filters are harmless as long as no callout is registered.
+    status = FwpmTransactionBegin(engine_handle, 0);
+    EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmTransactionBegin", status);
+    is_in_transaction = TRUE;
+
+    // Step 1: delete every filter tagged with the eBPF provider.
+    {
+        FWPM_FILTER_ENUM_TEMPLATE filter_enum_template = {0};
+        filter_enum_template.providerKey = (GUID*)&EBPF_WFP_PROVIDER;
+        filter_enum_template.actionMask = 0xFFFFFFFF; // Ignore the filter's action type when enumerating.
+
+        // Include disabled filters. BFE disables a filter at boot when its provider has no associated Windows
+        // service name, which this provider does not set, and a disabled filter is excluded by default. Such a
+        // filter cannot occur today because these filters are non-persistent, but if that ever changes a stale
+        // filter would otherwise be invisible here while still holding a dangling rawContext.
+        filter_enum_template.flags = FWP_FILTER_ENUM_FLAG_INCLUDE_DISABLED;
+
+        status = FwpmFilterCreateEnumHandle(engine_handle, &filter_enum_template, &filter_enum_handle);
+        EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmFilterCreateEnumHandle", status);
+
+        // A WFP enumerator is not live and always advances, so draining it terminates. The bound is defensive
+        // only: this runs during driver initialization, where spinning forever would be unrecoverable.
+        for (uint32_t batch = 0; batch < NET_EBPF_EXT_PURGE_MAX_ENUM_BATCHES; batch++) {
+            FWPM_FILTER** filters = NULL;
+            uint32_t filter_count = 0;
+
+            status = FwpmFilterEnum(
+                engine_handle, filter_enum_handle, NET_EBPF_EXT_PURGE_ENUM_BATCH_SIZE, &filters, &filter_count);
+            if (!NT_SUCCESS(status)) {
+                EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmFilterEnum", status);
+                goto Exit;
+            }
+
+            if (filter_count == 0) {
+                if (filters != NULL) {
+                    FwpmFreeMemory((void**)&filters);
+                }
+                enumeration_drained = TRUE;
+                break;
+            }
+
+            for (uint32_t i = 0; i < filter_count; i++) {
+                uint64_t filter_id = filters[i]->filterId;
+
+                for (int attempt = 1; attempt <= max_retries; attempt++) {
+                    status = FwpmFilterDeleteById(engine_handle, filter_id);
+                    if (NT_SUCCESS(status) || WFP_ERROR(status, FILTER_NOT_FOUND)) {
+                        status = STATUS_SUCCESS;
+                        break;
+                    }
+                }
+
+                if (!NT_SUCCESS(status)) {
+                    // Count rather than bail: the log is far more useful with the full count of what could not
+                    // be reclaimed, and the caller fails initialization either way.
+                    stale_filter_count++;
+                    EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                        EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmFilterDeleteById", status);
+                }
+            }
+
+            FwpmFreeMemory((void**)&filters);
+        }
+
+        status = FwpmFilterDestroyEnumHandle(engine_handle, filter_enum_handle);
+        filter_enum_handle = NULL;
+        if (!NT_SUCCESS(status)) {
+            EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmFilterDestroyEnumHandle", status);
+            goto Exit;
+        }
+
+        if (!enumeration_drained) {
+            // The batch bound was exhausted, so the enumeration was never drained and an unknown number of eBPF
+            // filters was never examined. Any one of them may still carry a dangling rawContext, so this must fail
+            // rather than let the caller reach FwpsCalloutRegister.
+            status = STATUS_UNSUCCESSFUL;
+            EBPF_EXT_LOG_MESSAGE(
+                EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                "Enumeration of stale eBPF WFP filters did not complete. Refusing to initialize, because filters "
+                "that were never examined may still reference freed memory.");
+            goto Exit;
+        }
+    }
+
+    if (stale_filter_count > 0) {
+        // The safety invariant: never proceed to register callouts while any eBPF filter with a dangling
+        // rawContext is still installed.
+        status = STATUS_UNSUCCESSFUL;
+        EBPF_EXT_LOG_MESSAGE_UINT32(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            "Stale eBPF WFP filters from a previous driver instance could not be deleted. Refusing to "
+            "initialize, because registering callouts while they are installed would use freed memory.",
+            stale_filter_count);
+        goto Exit;
+    }
+
+    // Step 2: delete the callout management objects tagged with the eBPF provider. Nothing is registered at this
+    // point, so there is no corresponding FwpsCalloutUnregisterById to perform.
+    {
+        FWPM_CALLOUT_ENUM_TEMPLATE callout_enum_template = {0};
+        callout_enum_template.providerKey = (GUID*)&EBPF_WFP_PROVIDER;
+        enumeration_drained = FALSE;
+
+        status = FwpmCalloutCreateEnumHandle(engine_handle, &callout_enum_template, &callout_enum_handle);
+        EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmCalloutCreateEnumHandle", status);
+
+        for (uint32_t batch = 0; batch < NET_EBPF_EXT_PURGE_MAX_ENUM_BATCHES; batch++) {
+            FWPM_CALLOUT** callouts = NULL;
+            uint32_t callout_count = 0;
+
+            status = FwpmCalloutEnum(
+                engine_handle, callout_enum_handle, NET_EBPF_EXT_PURGE_ENUM_BATCH_SIZE, &callouts, &callout_count);
+            if (!NT_SUCCESS(status)) {
+                EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmCalloutEnum", status);
+                goto Exit;
+            }
+
+            if (callout_count == 0) {
+                if (callouts != NULL) {
+                    FwpmFreeMemory((void**)&callouts);
+                }
+                enumeration_drained = TRUE;
+                break;
+            }
+
+            for (uint32_t i = 0; i < callout_count; i++) {
+                GUID callout_key = callouts[i]->calloutKey;
+
+                for (int attempt = 1; attempt <= max_retries; attempt++) {
+                    status = FwpmCalloutDeleteByKey(engine_handle, &callout_key);
+                    if (NT_SUCCESS(status) || WFP_ERROR(status, CALLOUT_NOT_FOUND)) {
+                        status = STATUS_SUCCESS;
+                        break;
+                    }
+                }
+
+                if (!NT_SUCCESS(status)) {
+                    EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                        EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmCalloutDeleteByKey", status);
+                    FwpmFreeMemory((void**)&callouts);
+                    goto Exit;
+                }
+            }
+
+            FwpmFreeMemory((void**)&callouts);
+        }
+
+        status = FwpmCalloutDestroyEnumHandle(engine_handle, callout_enum_handle);
+        callout_enum_handle = NULL;
+        if (!NT_SUCCESS(status)) {
+            EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmCalloutDestroyEnumHandle", status);
+            goto Exit;
+        }
+
+        if (!enumeration_drained) {
+            // As with the filters above: an incomplete sweep cannot be reported as a successful purge. A stale
+            // callout object left behind would also block the FwpmCalloutAdd calls that follow.
+            status = STATUS_UNSUCCESSFUL;
+            EBPF_EXT_LOG_MESSAGE(
+                EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                "Enumeration of stale eBPF WFP callouts did not complete. Refusing to initialize.");
+            goto Exit;
+        }
+    }
+
+    // Step 3: delete the sub-layers this driver version knows about. There is no sub-layer enumeration by
+    // provider here because the static table is the authoritative list for this version; a sub-layer created by
+    // a different version would be removed by that version's own purge.
+    for (index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_sublayers); index++) {
+        for (int attempt = 1; attempt <= max_retries; attempt++) {
+            status = FwpmSubLayerDeleteByKey(engine_handle, _net_ebpf_ext_sublayers[index].sublayer_guid);
+            if (NT_SUCCESS(status) || WFP_ERROR(status, SUBLAYER_NOT_FOUND)) {
+                status = STATUS_SUCCESS;
+                break;
+            }
+        }
+
+        if (!NT_SUCCESS(status)) {
+            EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmSubLayerDeleteByKey", status);
+            goto Exit;
+        }
+    }
+
+    // Step 4: delete the provider itself, now that nothing references it.
+    for (int attempt = 1; attempt <= max_retries; attempt++) {
+        status = FwpmProviderDeleteByKey(engine_handle, &EBPF_WFP_PROVIDER);
+        if (NT_SUCCESS(status) || WFP_ERROR(status, PROVIDER_NOT_FOUND)) {
+            status = STATUS_SUCCESS;
+            break;
+        }
+    }
+
+    if (!NT_SUCCESS(status)) {
+        EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmProviderDeleteByKey", status);
+        goto Exit;
+    }
+
+    status = FwpmTransactionCommit(engine_handle);
+    EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmTransactionCommit", status);
+    is_in_transaction = FALSE;
+
+Exit:
+
+    // Enumeration handles are closed on the success path above; these fire only when an error left one open.
+    if (filter_enum_handle != NULL) {
+        NTSTATUS destroy_status = FwpmFilterDestroyEnumHandle(engine_handle, filter_enum_handle);
+        if (!NT_SUCCESS(destroy_status)) {
+            EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmFilterDestroyEnumHandle", destroy_status);
+        }
+    }
+
+    if (callout_enum_handle != NULL) {
+        NTSTATUS destroy_status = FwpmCalloutDestroyEnumHandle(engine_handle, callout_enum_handle);
+        if (!NT_SUCCESS(destroy_status)) {
+            EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmCalloutDestroyEnumHandle", destroy_status);
+        }
+    }
+
+    if (is_in_transaction) {
+        NTSTATUS abort_status = FwpmTransactionAbort(engine_handle);
+        if (!NT_SUCCESS(abort_status)) {
+            EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmTransactionAbort", abort_status);
+        }
+    }
+
+    EBPF_EXT_RETURN_NTSTATUS(status);
+}
+
 NTSTATUS
 net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
 /* ++
@@ -821,6 +1123,19 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
     status = FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, NULL, &_fwp_engine_handle);
     EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmEngineOpen", status);
     is_engine_opened = TRUE;
+
+    // Remove any WFP objects left behind by a previous driver instance before adding our own. This MUST happen
+    // before the first FwpsCalloutRegister below: a stale filter still holds the address of a filter context that
+    // the previous instance freed, so registering a callout it references would hand WFP a dangling pointer.
+    // Failure here is fatal by design -- see _net_ebpf_ext_purge_stale_wfp_objects.
+    status = _net_ebpf_ext_purge_stale_wfp_objects(_fwp_engine_handle);
+    if (!NT_SUCCESS(status)) {
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            "Failed to purge stale eBPF WFP objects from a previous driver instance.");
+        goto Exit;
+    }
 
     status = FwpmTransactionBegin(_fwp_engine_handle, 0);
     EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmTransactionBegin", status);

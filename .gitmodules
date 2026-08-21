@@ -20,7 +20,7 @@
 	fetchRecurseSubmodules = no
 [submodule "external/usersim"]
 	path = external/usersim
-	url = https://github.com/microsoft/usersim.git
+	url = https://github.com/mikeagun/usersim.git
 [submodule "external/ebpf-extension-common"]
 	path = external/ebpf-extension-common
 	url =  https://github.com/microsoft/ebpf-extension-common.git
