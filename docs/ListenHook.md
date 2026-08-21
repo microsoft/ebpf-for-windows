@@ -175,6 +175,42 @@ typedef enum _ebpf_sock_addr_verdict
 } ebpf_sock_addr_verdict_t;
 ```
 
+When multiple listen programs are attached, the verdicts are combined using a
+most-restrictive accumulation rule:
+
+- **Priority (highest wins)**: `REJECT` > `PROCEED_HARD` > `PROCEED_SOFT`
+- The accumulated verdict is the highest-priority value returned by any
+  attached program.
+- **Short-circuit on REJECT**: If any program returns `REJECT`, the provider
+  loop stops immediately — subsequent programs are not invoked.
+- If no programs are attached (or all are detached), the default verdict is
+  `PROCEED_SOFT` (permit).
+- An unknown/invalid return value from a program is treated as `REJECT`.
+
+The accumulated eBPF verdict decides whether the listen is permitted
+(`PROCEED_SOFT` or `PROCEED_HARD`) or denied (`REJECT`, surfaced to the caller as
+`WSAEACCES` / `EACCES`). Among eBPF programs the most-restrictive verdict wins, so
+a later program returning `REJECT` still denies a listen that a prior program
+permitted.
+
+Refer to [WFP Filter Arbitration](https://learn.microsoft.com/en-us/windows/win32/fwp/filter-arbitration)
+for the effect of WFP filters in other sublayers on a connection that was
+permitted or rejected by the eBPF programs.
+
+### Multi-Attach Test Coverage
+
+The following scenarios are exercised in `tests/socket/socket_tests.cpp`
+(tagged `[sock_addr_tests][multi_attach]`), for TCP IPv4/IPv6:
+
+| Scenario | Programs | Expected Result |
+|---|---|---|
+| All soft permits | 2× `PROCEED_SOFT` | Listen allowed |
+| Second program rejects | `PROCEED_SOFT` + `REJECT` | Listen denied |
+| First program rejects (short-circuit) | `REJECT` + `PROCEED_SOFT` | Listen denied |
+| Hard overrides WFP | `PROCEED_SOFT` + `PROCEED_HARD` + WFP block | Listen allowed |
+| REJECT beats HARD | `REJECT` + `PROCEED_HARD` | Listen denied |
+| Detach middle program | 3 programs → detach REJECT middle | Listen recovers |
+
 ## Architecture
 
 ### Hook Integration and Flow
