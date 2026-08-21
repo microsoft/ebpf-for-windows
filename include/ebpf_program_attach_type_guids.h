@@ -26,6 +26,7 @@ extern "C"
         0xb9707e04, 0x8127, 0x4c72, { 0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96 } \
     }
     /** @brief Attach type for handling socket bind operations.
+     * @deprecated Use EBPF_ATTACH_TYPE_CGROUP_INET4_BIND / EBPF_ATTACH_TYPE_CGROUP_INET6_BIND instead.
      *
      * Program type: \ref EBPF_PROGRAM_TYPE_BIND
      */
@@ -213,6 +214,8 @@ extern "C"
     }
 
     /** @brief Program type for handling socket bind operations.
+     * @deprecated Use EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR with EBPF_ATTACH_TYPE_CGROUP_INET4_BIND /
+     * EBPF_ATTACH_TYPE_CGROUP_INET6_BIND instead.
      *
      * eBPF program prototype: \ref bind_hook_t
      *
