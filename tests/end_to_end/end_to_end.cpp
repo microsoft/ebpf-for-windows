@@ -1532,6 +1532,72 @@ TEST_CASE("verify program with invalid program type", "[end_to_end]")
     ebpf_free_string(error_message);
 }
 
+void
+cgroup_load_test(
+    _In_z_ const char* file,
+    _In_z_ const char* name,
+    ebpf_program_type_t& program_type,
+    ebpf_attach_type_t& attach_type,
+    ebpf_execution_type_t execution_type)
+{
+    int result;
+    const char* error_message = nullptr;
+    fd_t program_fd;
+
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    single_instance_hook_t hook(program_type, attach_type);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t program_info;
+    REQUIRE(program_info.initialize(program_type) == EBPF_SUCCESS);
+    bpf_object_ptr unique_object;
+
+    result = ebpf_program_load(file, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+
+    REQUIRE(result == 0);
+
+    bpf_program* program = bpf_object__find_program_by_name(unique_object.get(), name);
+    REQUIRE(program != nullptr);
+
+    program_fd = bpf_program__fd(program);
+    REQUIRE(program_fd > 0);
+
+    uint32_t compartment_id = 0;
+    REQUIRE(hook.attach(program, &compartment_id, sizeof(compartment_id)) == EBPF_SUCCESS);
+    REQUIRE(hook.detach(program_fd, &compartment_id, sizeof(compartment_id)) == EBPF_SUCCESS);
+
+    compartment_id = 1;
+    REQUIRE(hook.attach(program, &compartment_id, sizeof(compartment_id)) == EBPF_SUCCESS);
+    REQUIRE(hook.detach(program_fd, &compartment_id, sizeof(compartment_id)) == EBPF_SUCCESS);
+
+    bpf_object__close(unique_object.release());
+}
+
+void
+cgroup_sock_addr_load_test(
+    _In_z_ const char* file,
+    _In_z_ const char* name,
+    ebpf_attach_type_t& attach_type,
+    ebpf_execution_type_t execution_type)
+{
+    cgroup_load_test(file, name, EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, attach_type, execution_type);
+}
+
+static void
+_cgroup_sockops_load_test(ebpf_execution_type_t execution_type)
+{
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "sockops_um.dll" : "sockops.o");
+    cgroup_load_test(
+        file_name, "connection_monitor", EBPF_PROGRAM_TYPE_SOCK_OPS, EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS, execution_type);
+}
+
+DECLARE_JIT_TEST_CASES("cgroup_sockops_load_test", "[cgroup_sockops]", _cgroup_sockops_load_test);
+
 #define DECLARE_CGROUP_SOCK_ADDR_LOAD_NATIVE_TEST(file, name, attach_type) \
     DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST2(file, name, attach_type, "native", "_um.dll", EBPF_EXECUTION_NATIVE)
 
@@ -2301,8 +2367,8 @@ _printk_test(ebpf_execution_type_t execution_type)
 
 DECLARE_ALL_TEST_CASES("printk", "[end_to_end]", _printk_test);
 
-#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-TEST_CASE("link_tests", "[end_to_end]")
+static void
+_link_tests(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -2310,16 +2376,22 @@ TEST_CASE("link_tests", "[end_to_end]")
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
     program_info_provider_t sample_program_info;
     REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    // bpf.c has no section annotation, so bpf2c bakes a bind program type into the native module and the program
+    // type cannot be overridden the way it can be for an ELF file. Use a natively sample typed program instead;
+    // this test is about link and attach semantics, which do not depend on the program itself.
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "bpf.o");
+    const char* program_name = (execution_type == EBPF_EXECUTION_NATIVE ? "test_program_entry" : "func");
+
     program_load_attach_helper_t program_helper;
-    program_helper.initialize(
-        SAMPLE_PATH "bpf.o", BPF_PROG_TYPE_SAMPLE, "func", EBPF_EXECUTION_INTERPRET, nullptr, 0, hook);
+    program_helper.initialize(file_name, BPF_PROG_TYPE_SAMPLE, program_name, execution_type, nullptr, 0, hook);
 
     // Dummy context (not used by the eBPF program).
     INITIALIZE_SAMPLE_CONTEXT
     uint32_t result;
 
     REQUIRE(hook.fire(ctx, &result) == EBPF_SUCCESS);
-    bpf_program* program = bpf_object__find_program_by_name(program_helper.get_object(), "func");
+    bpf_program* program = bpf_object__find_program_by_name(program_helper.get_object(), program_name);
     REQUIRE(program != nullptr);
 
     // Test the case where the provider only permits a single program to be attached.
@@ -2327,7 +2399,77 @@ TEST_CASE("link_tests", "[end_to_end]")
 
     hook.detach();
 }
-#endif
+
+DECLARE_ALL_TEST_CASES("link_tests", "[end_to_end]", _link_tests);
+
+// Native counterpart of enumerate_and_query_programs-jit (end_to_end_jit.cpp), which loads the same file twice to
+// distinguish the JIT and interpreted execution types. Native modules cannot be loaded twice, and there is only one
+// native execution type, so this loads two different native modules and verifies that enumeration and query report
+// each of them correctly.
+TEST_CASE("enumerate_and_query_programs-native", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    uint32_t program_id = 0;
+    uint32_t next_program_id;
+    const char* error_message = nullptr;
+    const char* file_name = nullptr;
+    const char* section_name = nullptr;
+    bpf_object_ptr unique_object[2];
+    fd_t program_fds[2] = {0};
+
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+    program_info_provider_t bind_program_info;
+    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+
+    // Two modules of different program types, so that the query results can be told apart.
+    const char* module_names[2] = {"test_sample_ebpf_um.dll", "bindmonitor_um.dll"};
+    const char* expected_section_names[2] = {"sample_ext", "bind"};
+
+    for (int i = 0; i < 2; i++) {
+        int result = ebpf_program_load(
+            module_names[i],
+            BPF_PROG_TYPE_UNSPEC,
+            EBPF_EXECUTION_NATIVE,
+            &unique_object[i],
+            &program_fds[i],
+            &error_message);
+
+        if (error_message) {
+            printf("ebpf_program_load failed with %s\n", error_message);
+            ebpf_free((void*)error_message);
+            error_message = nullptr;
+        }
+        REQUIRE(result == 0);
+    }
+
+    for (int i = 0; i < 2; i++) {
+        ebpf_execution_type_t type;
+        REQUIRE(bpf_prog_get_next_id(program_id, &next_program_id) == 0);
+        program_id = next_program_id;
+        fd_t program_fd = bpf_prog_get_fd_by_id(program_id);
+        REQUIRE(program_fd > 0);
+        REQUIRE(ebpf_program_query_info(program_fd, &type, &file_name, &section_name) == EBPF_SUCCESS);
+        Platform::_close(program_fd);
+        REQUIRE(type == EBPF_EXECUTION_NATIVE);
+        // Unlike the JIT case, no file name is recorded for a native program: the execution context loads the module
+        // by service name and stores an empty file name (see _ebpf_native_load_programs).
+        REQUIRE(strcmp(file_name, "") == 0);
+        REQUIRE(strcmp(section_name, expected_section_names[i]) == 0);
+        ebpf_free_string(file_name);
+        ebpf_free_string(section_name);
+        file_name = nullptr;
+        section_name = nullptr;
+    }
+
+    REQUIRE(bpf_prog_get_next_id(program_id, &next_program_id) == -ENOENT);
+
+    for (int i = 0; i < _countof(unique_object); i++) {
+        bpf_object__close(unique_object[i].release());
+    }
+}
 
 static void
 _map_reuse_test(ebpf_execution_type_t execution_type)

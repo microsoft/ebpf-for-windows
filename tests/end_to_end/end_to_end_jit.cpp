@@ -75,62 +75,6 @@ ebpf_program_load(
     return 0;
 }
 
-void
-cgroup_load_test(
-    _In_z_ const char* file,
-    _In_z_ const char* name,
-    ebpf_program_type_t& program_type,
-    ebpf_attach_type_t& attach_type,
-    ebpf_execution_type_t execution_type)
-{
-    int result;
-    const char* error_message = nullptr;
-    fd_t program_fd;
-
-    _test_helper_end_to_end test_helper;
-    test_helper.initialize();
-    single_instance_hook_t hook(program_type, attach_type);
-    REQUIRE(hook.initialize() == EBPF_SUCCESS);
-    program_info_provider_t program_info;
-    REQUIRE(program_info.initialize(program_type) == EBPF_SUCCESS);
-    bpf_object_ptr unique_object;
-
-    result = ebpf_program_load(file, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
-
-    if (error_message) {
-        printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free((void*)error_message);
-    }
-
-    REQUIRE(result == 0);
-
-    bpf_program* program = bpf_object__find_program_by_name(unique_object.get(), name);
-    REQUIRE(program != nullptr);
-
-    program_fd = bpf_program__fd(program);
-    REQUIRE(program_fd > 0);
-
-    uint32_t compartment_id = 0;
-    REQUIRE(hook.attach(program, &compartment_id, sizeof(compartment_id)) == EBPF_SUCCESS);
-    REQUIRE(hook.detach(program_fd, &compartment_id, sizeof(compartment_id)) == EBPF_SUCCESS);
-
-    compartment_id = 1;
-    REQUIRE(hook.attach(program, &compartment_id, sizeof(compartment_id)) == EBPF_SUCCESS);
-    REQUIRE(hook.detach(program_fd, &compartment_id, sizeof(compartment_id)) == EBPF_SUCCESS);
-
-    bpf_object__close(unique_object.release());
-}
-
-void
-cgroup_sock_addr_load_test(
-    _In_z_ const char* file,
-    _In_z_ const char* name,
-    ebpf_attach_type_t& attach_type,
-    ebpf_execution_type_t execution_type)
-{
-    cgroup_load_test(file, name, EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, attach_type, execution_type);
-}
-
 static void
 ebpf_program_attach_fds_test(ebpf_execution_type_t execution_type)
 {
@@ -166,15 +110,6 @@ ebpf_program_attach_fds_test(ebpf_execution_type_t execution_type)
 }
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
-TEST_CASE("cgroup_sockops_load_test", "[cgroup_sockops]")
-{
-    cgroup_load_test(
-        "sockops.o",
-        "connection_monitor",
-        EBPF_PROGRAM_TYPE_SOCK_OPS,
-        EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS,
-        EBPF_EXECUTION_JIT);
-}
 
 void
 test_enumerate_and_query_programs()
@@ -259,7 +194,7 @@ test_enumerate_and_query_programs()
     }
 }
 
-TEST_CASE("enumerate_and_query_programs", "[end_to_end]") { test_enumerate_and_query_programs(); }
+TEST_CASE("enumerate_and_query_programs-jit", "[end_to_end]") { test_enumerate_and_query_programs(); }
 
 TEST_CASE("ebpf_program_attach_by_fds-jit", "[end_to_end]") { ebpf_program_attach_fds_test(EBPF_EXECUTION_JIT); }
 #endif
