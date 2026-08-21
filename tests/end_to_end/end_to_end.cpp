@@ -1507,6 +1507,72 @@ TEST_CASE("verify program with invalid program type", "[end_to_end]")
     ebpf_free_string(error_message);
 }
 
+void
+cgroup_load_test(
+    _In_z_ const char* file,
+    _In_z_ const char* name,
+    ebpf_program_type_t& program_type,
+    ebpf_attach_type_t& attach_type,
+    ebpf_execution_type_t execution_type)
+{
+    int result;
+    const char* error_message = nullptr;
+    fd_t program_fd;
+
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    single_instance_hook_t hook(program_type, attach_type);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t program_info;
+    REQUIRE(program_info.initialize(program_type) == EBPF_SUCCESS);
+    bpf_object_ptr unique_object;
+
+    result = ebpf_program_load(file, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+
+    REQUIRE(result == 0);
+
+    bpf_program* program = bpf_object__find_program_by_name(unique_object.get(), name);
+    REQUIRE(program != nullptr);
+
+    program_fd = bpf_program__fd(program);
+    REQUIRE(program_fd > 0);
+
+    uint32_t compartment_id = 0;
+    REQUIRE(hook.attach(program, &compartment_id, sizeof(compartment_id)) == EBPF_SUCCESS);
+    REQUIRE(hook.detach(program_fd, &compartment_id, sizeof(compartment_id)) == EBPF_SUCCESS);
+
+    compartment_id = 1;
+    REQUIRE(hook.attach(program, &compartment_id, sizeof(compartment_id)) == EBPF_SUCCESS);
+    REQUIRE(hook.detach(program_fd, &compartment_id, sizeof(compartment_id)) == EBPF_SUCCESS);
+
+    bpf_object__close(unique_object.release());
+}
+
+void
+cgroup_sock_addr_load_test(
+    _In_z_ const char* file,
+    _In_z_ const char* name,
+    ebpf_attach_type_t& attach_type,
+    ebpf_execution_type_t execution_type)
+{
+    cgroup_load_test(file, name, EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, attach_type, execution_type);
+}
+
+static void
+_cgroup_sockops_load_test(ebpf_execution_type_t execution_type)
+{
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "sockops_um.dll" : "sockops.o");
+    cgroup_load_test(
+        file_name, "connection_monitor", EBPF_PROGRAM_TYPE_SOCK_OPS, EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS, execution_type);
+}
+
+DECLARE_JIT_TEST_CASES("cgroup_sockops_load_test", "[cgroup_sockops]", _cgroup_sockops_load_test);
+
 #define DECLARE_CGROUP_SOCK_ADDR_LOAD_NATIVE_TEST(file, name, attach_type) \
     DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST2(file, name, attach_type, "native", "_um.dll", EBPF_EXECUTION_NATIVE)
 
@@ -1584,8 +1650,8 @@ TEST_CASE("verify_test1", "[sample_extension]")
     REQUIRE(result == 0);
 }
 
-#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-TEST_CASE("map_pinning_test", "[end_to_end]")
+static void
+_map_pinning_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -1598,13 +1664,9 @@ TEST_CASE("map_pinning_test", "[end_to_end]")
     program_info_provider_t bind_program_info;
     REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
 
-    result = ebpf_program_load(
-        SAMPLE_PATH "bindmonitor.o",
-        BPF_PROG_TYPE_UNSPEC,
-        EBPF_EXECUTION_INTERPRET,
-        &unique_object,
-        &program_fd,
-        &error_message);
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_um.dll" : "bindmonitor.o");
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
@@ -1648,7 +1710,8 @@ TEST_CASE("map_pinning_test", "[end_to_end]")
 
     bpf_object__close(unique_object.release());
 }
-#endif
+
+DECLARE_ALL_TEST_CASES("map_pinning_test", "[end_to_end]", _map_pinning_test);
 
 TEST_CASE("pinned_map_enum", "[end_to_end]")
 {
@@ -1875,8 +1938,131 @@ TEST_CASE("ebpf_get_next_pinned_object_path", "[end_to_end][pinning]")
     bpf_object__close(unique_object.release());
 }
 
-#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-TEST_CASE("explicit_detach", "[end_to_end]")
+// This test uses ebpf_link_close() to test implicit detach.
+static void
+_implicit_detach_test(ebpf_execution_type_t execution_type)
+{
+    // This test case does the following:
+    // 1. Close program handle. An implicit detach should not happen and program
+    //    object should not be deleted.
+    // 2. Close link handle. The link object should be deleted, the program should be
+    //    detached and the program object should be deleted.
+
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    int result = 0;
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+    const char* error_message = nullptr;
+    bpf_link* link = nullptr;
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o");
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
+
+    // Call bpf_object__close() which will close the program fd. That should not
+    // detach the program from the hook and should not unload the program.
+    bpf_object__close(unique_object.release());
+
+    uint32_t program_id;
+    REQUIRE(bpf_prog_get_next_id(0, &program_id) == 0);
+
+    // Close link handle (without detaching). This should delete the link
+    // object. ebpf_object_tracking_terminate() which is called when the test
+    // exits checks if all the objects in EC have been deleted.
+    hook.close_link(link);
+
+    // Program should be unloaded after link is closed.
+    REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);
+}
+
+DECLARE_JIT_TEST_CASES("implicit_detach", "[end_to_end]", _implicit_detach_test);
+
+// This test uses bpf_link__disconnect() and bpf_link__destroy() to test
+// implicit detach.
+static void
+_implicit_detach_2_test(ebpf_execution_type_t execution_type)
+{
+    // This test case does the following:
+    // 1. Close program handle. An implicit detach should not happen and the
+    // program object should not be deleted.
+    // 2. Close link handle. The link object and the program object should be deleted.
+
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    int result = 0;
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+    const char* error_message = nullptr;
+    bpf_link_ptr link = nullptr;
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o");
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
+
+    // Call bpf_object__close() which will close the program fd. That should not
+    // detach the program from the hook and should not unload the program.
+    bpf_object__close(unique_object.release());
+
+    uint32_t program_id;
+    REQUIRE(bpf_prog_get_next_id(0, &program_id) == 0);
+
+    REQUIRE(bpf_link__pin(link.get(), "test_link") == 0);
+
+    // Close link handle (without detaching).
+    bpf_link__disconnect(link.get());
+    link.reset();
+
+    // Now the program should still be loaded because the link was pinned.
+    REQUIRE(bpf_prog_get_next_id(0, &program_id) == 0);
+
+    link.reset(bpf_link__open("test_link"));
+    REQUIRE(link != nullptr);
+
+    // Unpin and close the link. This should delete the link object and
+    // the program object.
+    REQUIRE(bpf_link__unpin(link.get()) == 0);
+
+    link.reset();
+
+    // Now the program should be unloaded.
+    REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);
+}
+
+DECLARE_JIT_TEST_CASES("implicit_detach_2", "[end_to_end]", _implicit_detach_2_test);
+
+static void
+_explicit_detach_test(ebpf_execution_type_t execution_type)
 {
     // This test case does the following:
     // 1. Call detach API and then close the link handle. The link object
@@ -1897,13 +2083,10 @@ TEST_CASE("explicit_detach", "[end_to_end]")
     program_info_provider_t sample_program_info;
     REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
-    result = ebpf_program_load(
-        SAMPLE_PATH "test_sample_ebpf.o",
-        BPF_PROG_TYPE_UNSPEC,
-        EBPF_EXECUTION_INTERPRET,
-        &unique_object,
-        &program_fd,
-        &error_message);
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o");
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
@@ -1927,7 +2110,10 @@ TEST_CASE("explicit_detach", "[end_to_end]")
     REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);
 }
 
-TEST_CASE("implicit_explicit_detach", "[end_to_end]")
+DECLARE_ALL_TEST_CASES("explicit_detach", "[end_to_end]", _explicit_detach_test);
+
+static void
+_implicit_explicit_detach_test(ebpf_execution_type_t execution_type)
 {
     // This test case does the following:
     // 1. Close the program handle so that an implicit detach happens.
@@ -1948,13 +2134,10 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
     program_info_provider_t sample_program_info;
     REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
-    result = ebpf_program_load(
-        SAMPLE_PATH "test_sample_ebpf.o",
-        BPF_PROG_TYPE_UNSPEC,
-        EBPF_EXECUTION_INTERPRET,
-        &unique_object,
-        &program_fd,
-        &error_message);
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o");
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
@@ -1979,7 +2162,7 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
     REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);
 }
 
-#endif
+DECLARE_ALL_TEST_CASES("implicit_explicit_detach", "[end_to_end]", _implicit_explicit_detach_test);
 
 TEST_CASE("create_map", "[end_to_end]")
 {
@@ -2100,8 +2283,8 @@ TEST_CASE("array_of_maps_large_index_test", "[end_to_end]")
     Platform::_close(outer_map_fd);
 }
 
-#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-TEST_CASE("printk", "[end_to_end]")
+static void
+_printk_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -2110,9 +2293,9 @@ TEST_CASE("printk", "[end_to_end]")
     program_info_provider_t bind_program_info;
     REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
     uint32_t ifindex = 0;
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "printk_um.dll" : "printk.o");
     program_load_attach_helper_t program_helper;
-    program_helper.initialize(
-        SAMPLE_PATH "printk.o", BPF_PROG_TYPE_BIND, "func", EBPF_EXECUTION_INTERPRET, &ifindex, sizeof(ifindex), hook);
+    program_helper.initialize(file_name, BPF_PROG_TYPE_BIND, "func", execution_type, &ifindex, sizeof(ifindex), hook);
 
     // The current bind hook only works with IPv4, so compose a sample IPv4 context.
     SOCKADDR_IN addr = {AF_INET};
@@ -2156,10 +2339,11 @@ TEST_CASE("printk", "[end_to_end]")
     // so subtract 6 from the length to get the expected return value.
     REQUIRE(hook_result == output_length - 6);
 }
-#endif
 
-#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-TEST_CASE("link_tests", "[end_to_end]")
+DECLARE_ALL_TEST_CASES("printk", "[end_to_end]", _printk_test);
+
+static void
+_link_tests(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -2167,16 +2351,22 @@ TEST_CASE("link_tests", "[end_to_end]")
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
     program_info_provider_t sample_program_info;
     REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    // bpf.c has no section annotation, so bpf2c bakes a bind program type into the native module and the program
+    // type cannot be overridden the way it can be for an ELF file. Use a natively sample typed program instead;
+    // this test is about link and attach semantics, which do not depend on the program itself.
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "bpf.o");
+    const char* program_name = (execution_type == EBPF_EXECUTION_NATIVE ? "test_program_entry" : "func");
+
     program_load_attach_helper_t program_helper;
-    program_helper.initialize(
-        SAMPLE_PATH "bpf.o", BPF_PROG_TYPE_SAMPLE, "func", EBPF_EXECUTION_INTERPRET, nullptr, 0, hook);
+    program_helper.initialize(file_name, BPF_PROG_TYPE_SAMPLE, program_name, execution_type, nullptr, 0, hook);
 
     // Dummy context (not used by the eBPF program).
     INITIALIZE_SAMPLE_CONTEXT
     uint32_t result;
 
     REQUIRE(hook.fire(ctx, &result) == EBPF_SUCCESS);
-    bpf_program* program = bpf_object__find_program_by_name(program_helper.get_object(), "func");
+    bpf_program* program = bpf_object__find_program_by_name(program_helper.get_object(), program_name);
     REQUIRE(program != nullptr);
 
     // Test the case where the provider only permits a single program to be attached.
@@ -2184,7 +2374,77 @@ TEST_CASE("link_tests", "[end_to_end]")
 
     hook.detach();
 }
-#endif
+
+DECLARE_ALL_TEST_CASES("link_tests", "[end_to_end]", _link_tests);
+
+// Native counterpart of enumerate_and_query_programs-jit (end_to_end_jit.cpp), which loads the same file twice to
+// distinguish the JIT and interpreted execution types. Native modules cannot be loaded twice, and there is only one
+// native execution type, so this loads two different native modules and verifies that enumeration and query report
+// each of them correctly.
+TEST_CASE("enumerate_and_query_programs-native", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    uint32_t program_id = 0;
+    uint32_t next_program_id;
+    const char* error_message = nullptr;
+    const char* file_name = nullptr;
+    const char* section_name = nullptr;
+    bpf_object_ptr unique_object[2];
+    fd_t program_fds[2] = {0};
+
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+    program_info_provider_t bind_program_info;
+    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+
+    // Two modules of different program types, so that the query results can be told apart.
+    const char* module_names[2] = {"test_sample_ebpf_um.dll", "bindmonitor_um.dll"};
+    const char* expected_section_names[2] = {"sample_ext", "bind"};
+
+    for (int i = 0; i < 2; i++) {
+        int result = ebpf_program_load(
+            module_names[i],
+            BPF_PROG_TYPE_UNSPEC,
+            EBPF_EXECUTION_NATIVE,
+            &unique_object[i],
+            &program_fds[i],
+            &error_message);
+
+        if (error_message) {
+            printf("ebpf_program_load failed with %s\n", error_message);
+            ebpf_free((void*)error_message);
+            error_message = nullptr;
+        }
+        REQUIRE(result == 0);
+    }
+
+    for (int i = 0; i < 2; i++) {
+        ebpf_execution_type_t type;
+        REQUIRE(bpf_prog_get_next_id(program_id, &next_program_id) == 0);
+        program_id = next_program_id;
+        fd_t program_fd = bpf_prog_get_fd_by_id(program_id);
+        REQUIRE(program_fd > 0);
+        REQUIRE(ebpf_program_query_info(program_fd, &type, &file_name, &section_name) == EBPF_SUCCESS);
+        Platform::_close(program_fd);
+        REQUIRE(type == EBPF_EXECUTION_NATIVE);
+        // Unlike the JIT case, no file name is recorded for a native program: the execution context loads the module
+        // by service name and stores an empty file name (see _ebpf_native_load_programs).
+        REQUIRE(strcmp(file_name, "") == 0);
+        REQUIRE(strcmp(section_name, expected_section_names[i]) == 0);
+        ebpf_free_string(file_name);
+        ebpf_free_string(section_name);
+        file_name = nullptr;
+        section_name = nullptr;
+    }
+
+    REQUIRE(bpf_prog_get_next_id(program_id, &next_program_id) == -ENOENT);
+
+    for (int i = 0; i < _countof(unique_object); i++) {
+        bpf_object__close(unique_object[i].release());
+    }
+}
 
 static void
 _map_reuse_test(ebpf_execution_type_t execution_type)
