@@ -57,6 +57,21 @@ jobs:
       build_nuget: true
       configurations: '["Debug", "FuzzerDebug", "Release"]'
 
+  # Keep a single build lane on Visual Studio 2022 (toolset v143, WDK 10.0.26100) while the
+  # community completes the move to Visual Studio 2026. This keeps the '< 18.0' branch of
+  # wdk.props covered. Remove this job once VS 2022 support is dropped.
+  regular_vs2022:
+    # Always run this job.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      ref: ${{ github.ref }}
+      repository: ${{ github.repository }}
+      build_artifact: Build-x64-vs2022
+      vs_version: '17'
+      configurations: '["Debug"]'
+      download_demo_repository: false
+
   onebranch:
     strategy:
       matrix:
@@ -75,6 +90,9 @@ jobs:
       build_options: /p:BuildOneBranch='True' /t:tools\onebranch /t:installer\ebpf-for-windows
       solution_file: "ebpf-for-windows.sln"
       architecture: ${{ matrix.Architecture }}
+      # ARM64 stays on VS 2022 until the Windows 11 ARM64 image with VS 2026
+      # (windows-11-vs2026-arm) leaves public preview.
+      vs_version: ${{ matrix.Architecture == 'x64' && '18' || '17' }}
       download_demo_repository: false
 
   # Perform the native-only build.
@@ -93,6 +111,9 @@ jobs:
       build_nuget: true
       download_demo_repository: false
       architecture: ${{ matrix.Architecture }}
+      # ARM64 stays on VS 2022 until the Windows 11 ARM64 image with VS 2026
+      # (windows-11-vs2026-arm) leaves public preview.
+      vs_version: ${{ matrix.Architecture == 'x64' && '18' || '17' }}
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
 
   everparse_validation:

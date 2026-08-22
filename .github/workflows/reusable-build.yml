@@ -57,6 +57,10 @@ on:
         required: false
         type: string
         default: 'x64'
+      vs_version:
+        required: false
+        type: string
+        default: '18'
       download_demo_repository:
         required: false
         type: boolean
@@ -84,9 +88,12 @@ jobs:
       matrix:
         configurations: ${{ fromJSON(inputs.configurations) }}
 
-    # Make runs-on conditionally based on the architecture input.
-    # This is needed to support both x64 and ARM64 builds.
-    runs-on: ${{ inputs.architecture == 'x64' && 'windows-2025' || 'windows-11-arm' }}
+    # Make runs-on conditional on both the architecture and the requested Visual Studio
+    # version. This is needed to support x64 and ARM64 builds on VS 2022 and VS 2026.
+    # windows-2025 / windows-11-vs2026-arm ship VS 2026; windows-2022 / windows-11-arm
+    # ship VS 2022. Note that windows-latest now resolves to VS 2026, so images are pinned
+    # explicitly here rather than relying on the default label.
+    runs-on: ${{ inputs.architecture == 'x64' && (inputs.vs_version == '17' && 'windows-2022' || 'windows-2025') || (inputs.vs_version == '17' && 'windows-11-arm' || 'windows-11-vs2026-arm') }}
     env:
       # Path to the solution file relative to the root of the project.
       SOLUTION_FILE_PATH: ${{inputs.solution_file}}
@@ -96,6 +103,10 @@ jobs:
       BUILD_OPTIONS: ${{inputs.build_options}}
       CXX_FLAGS: ${{inputs.cxx_flags}}
       LD_FLAGS: ${{inputs.ld_flags}}
+      VS_VERSION: ${{inputs.vs_version}}
+      # vswhere-style version range used to pin every Visual Studio lookup to the requested
+      # major version, instead of silently taking whatever '-latest' happens to resolve to.
+      VS_VERSION_RANGE: ${{ inputs.vs_version == '17' && '[17.0,18.0)' || '[18.0,19.0)' }}
 
     steps:
       - name: Harden Runner
@@ -114,8 +125,17 @@ jobs:
         shell: cmd
         run: |
           set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
-          for /f "usebackq delims=" %%i in (`"%VSWHERE%" -latest -property installationPath`) do set "VSINSTALLPATH=%%i"
-          if not defined VSINSTALLPATH ( echo Could not locate a Visual Studio installation via vswhere. & exit /b 1 )
+          rem Write vswhere's output to a file rather than using a for/f loop, and keep
+          rem %VS_VERSION_RANGE% out of any parenthesized block: the ')' in the version range is
+          rem otherwise parsed as the closing paren of the for/f 'in (...)' clause or the if
+          rem block, which breaks the quoting around the vswhere path.
+          "%VSWHERE%" -latest -version "%VS_VERSION_RANGE%" -property installationPath > "%TEMP%\vsinstallpath.txt"
+          set /p VSINSTALLPATH=<"%TEMP%\vsinstallpath.txt"
+          if not defined VSINSTALLPATH (
+            echo Could not locate a Visual Studio %VS_VERSION% installation via vswhere.
+            exit /b 1
+          )
+          echo Visual Studio install path: %VSINSTALLPATH%
           call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvars64.bat"
           powershell.exe "echo 'msvc_tools_path=%VCToolsInstallDir%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
           powershell.exe "echo 'msvc_tools_version=%VCToolsVersion%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
@@ -148,6 +168,23 @@ jobs:
         uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce
         with:
           msbuild-architecture: x64
+          vs-version: ${{ env.VS_VERSION_RANGE }}
+
+      # Fail fast and loudly if the runner image resolved to a different Visual Studio than
+      # the one requested. wdk.props selects the platform toolset (v145 vs v143) and WDK
+      # version from $(MSBuildToolsVersion), so a silent toolchain change here would
+      # silently change what is built and shipped.
+      - name: Verify Visual Studio toolchain version
+        if: steps.skip_check.outputs.should_skip != 'true'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $msbuildVersion = (& msbuild -version -nologo | Select-Object -Last 1).Trim()
+          Write-Host "MSBuild version: $msbuildVersion"
+          Write-Host "MSVC toolset: ${{env.msvc_tools_version}} ($env:VCINSTALLDIR)"
+          $major = $msbuildVersion.Split('.')[0]
+          if ($major -ne '${{inputs.vs_version}}') {
+            throw "Expected MSBuild major version ${{inputs.vs_version}} (Visual Studio ${{inputs.vs_version}}.0) but found $msbuildVersion."
+          }
 
       # The hosted runner images do not always ship the Spectre-mitigated VC
       # runtime libraries for the installed MSVC toolset, which causes MSB8040
@@ -176,8 +213,8 @@ jobs:
           }
 
           $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-          $installPath = & $vswhere -latest -property installationPath
-          if (-not $installPath) { throw "Could not locate a Visual Studio installation via vswhere." }
+          $installPath = & $vswhere -latest -version $env:VS_VERSION_RANGE -property installationPath
+          if (-not $installPath) { throw "Could not locate a Visual Studio $env:VS_VERSION installation ($env:VS_VERSION_RANGE) via vswhere." }
           Write-Host "Visual Studio install path: $installPath"
 
           $setup = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe"
@@ -339,6 +376,8 @@ jobs:
         run: Invoke-WebRequest https://github.com/microsoft/ebpf-for-windows-demo/releases/download/v0.0.2/${{env.BUILD_PLATFORM}}-Release-cilium-xdp.zip -OutFile x64-${{env.BUILD_CONFIGURATION}}-cilium-xdp.zip
 
       # Download the bpf_performance repository artifacts.
+      # Note: 'windows-2022' here is the name of an upstream prebuilt release asset, not a
+      # runner image or toolchain selection for this repo.
       - name: Download bpf_performance repository artifacts
         if: steps.skip_check.outputs.should_skip != 'true'
         working-directory: ${{env.GITHUB_WORKSPACE}}
