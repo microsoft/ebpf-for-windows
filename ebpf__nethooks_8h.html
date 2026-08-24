@@ -90,6 +90,7 @@ $(function() {
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="nested-classes" name="nested-classes"></a>
 Data Structures</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__bind__md.html">_bind_md</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Context structure for the legacy bind hook.  <a href="struct__bind__md.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structbpf__sock__addr.html">bpf_sock_addr</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Data structure used as context for BPF_PROG_TYPE_CGROUP_SOCK_ADDR program type.  <a href="structbpf__sock__addr.html#details">More...</a><br /></td></tr>
@@ -123,8 +124,10 @@ Macros</h2></td></tr>
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="typedef-members" name="typedef-members"></a>
 Typedefs</h2></td></tr>
 <tr class="memitem:a02ae42f0379561fed4edf984bebd5649" id="r_a02ae42f0379561fed4edf984bebd5649"><td class="memItemLeft" align="right" valign="top">typedef enum <a class="el" href="ebpf__nethooks_8h.html#a814187ca47e221594a21bde5324d86fc">_bind_operation</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a02ae42f0379561fed4edf984bebd5649">bind_operation_t</a></td></tr>
+<tr class="memdesc:a02ae42f0379561fed4edf984bebd5649"><td class="mdescLeft">&#160;</td><td class="mdescRight">Operations reported by the legacy bind hook.  <br /></td></tr>
 <tr class="separator:a02ae42f0379561fed4edf984bebd5649"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad95b98d2e80f69aeb949bbd2f76197c2" id="r_ad95b98d2e80f69aeb949bbd2f76197c2"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__bind__md.html">_bind_md</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#ad95b98d2e80f69aeb949bbd2f76197c2">bind_md_t</a></td></tr>
+<tr class="memdesc:ad95b98d2e80f69aeb949bbd2f76197c2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Context structure for the legacy bind hook.  <br /></td></tr>
 <tr class="separator:ad95b98d2e80f69aeb949bbd2f76197c2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad76a0927c7e31a4b67e34a7d34d278a2" id="r_ad76a0927c7e31a4b67e34a7d34d278a2"><td class="memItemLeft" align="right" valign="top">typedef enum <a class="el" href="ebpf__nethooks_8h.html#a9e5d69be705b1f7503ab2fd752c41d02">_bind_action</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#ad76a0927c7e31a4b67e34a7d34d278a2">bind_action_t</a></td></tr>
 <tr class="memdesc:ad76a0927c7e31a4b67e34a7d34d278a2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Actions that can be returned by a bind hook program.  <br /></td></tr>
@@ -163,6 +166,7 @@ Enumerations</h2></td></tr>
 , <a class="el" href="ebpf__nethooks_8h.html#a814187ca47e221594a21bde5324d86fcaf72e75e5344e6aa667decfe3ac7a3021">BIND_OPERATION_POST_BIND</a>
 , <a class="el" href="ebpf__nethooks_8h.html#a814187ca47e221594a21bde5324d86fca831fe936535d0c3c26d5b47484c3ac7e">BIND_OPERATION_UNBIND</a>
  }</td></tr>
+<tr class="memdesc:a814187ca47e221594a21bde5324d86fc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Operations reported by the legacy bind hook.  <a href="ebpf__nethooks_8h.html#a814187ca47e221594a21bde5324d86fc">More...</a><br /></td></tr>
 <tr class="separator:a814187ca47e221594a21bde5324d86fc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9e5d69be705b1f7503ab2fd752c41d02" id="r_a9e5d69be705b1f7503ab2fd752c41d02"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a9e5d69be705b1f7503ab2fd752c41d02">_bind_action</a> { <br />
 &#160;&#160;<a class="el" href="ebpf__nethooks_8h.html#a9e5d69be705b1f7503ab2fd752c41d02a0d05f7f142cecae8ae4a7e9ba9268efe">BIND_PERMIT_SOFT</a>
@@ -235,9 +239,9 @@ Functions</h2></td></tr>
 <b>Value:</b><div class="fragment"><div class="line">    {<a class="code hl_define" href="ebpf__nethooks_8h.html#ab99544fd8a7a4718e944229a9026a358">BPF_SOCK_ADDR_TEST_CONTEXT_VERSION</a>,          \</div>
 <div class="line">     <a class="code hl_define" href="ebpf__nethooks_8h.html#afb8b199f4a6c23dd65f3e76b90e41b92">BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE</a>,     \</div>
 <div class="line">     <a class="code hl_define" href="ebpf__nethooks_8h.html#af215a8008f5282701863b537f9bc0938">BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE</a>}</div>
-<div class="ttc" id="aebpf__nethooks_8h_html_ab99544fd8a7a4718e944229a9026a358"><div class="ttname"><a href="ebpf__nethooks_8h.html#ab99544fd8a7a4718e944229a9026a358">BPF_SOCK_ADDR_TEST_CONTEXT_VERSION</a></div><div class="ttdeci">#define BPF_SOCK_ADDR_TEST_CONTEXT_VERSION</div><div class="ttdef"><b>Definition</b> ebpf_nethooks.h:220</div></div>
-<div class="ttc" id="aebpf__nethooks_8h_html_af215a8008f5282701863b537f9bc0938"><div class="ttname"><a href="ebpf__nethooks_8h.html#af215a8008f5282701863b537f9bc0938">BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE</a></div><div class="ttdeci">#define BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE</div><div class="ttdef"><b>Definition</b> ebpf_nethooks.h:223</div></div>
-<div class="ttc" id="aebpf__nethooks_8h_html_afb8b199f4a6c23dd65f3e76b90e41b92"><div class="ttname"><a href="ebpf__nethooks_8h.html#afb8b199f4a6c23dd65f3e76b90e41b92">BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE</a></div><div class="ttdeci">#define BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE</div><div class="ttdef"><b>Definition</b> ebpf_nethooks.h:222</div></div>
+<div class="ttc" id="aebpf__nethooks_8h_html_ab99544fd8a7a4718e944229a9026a358"><div class="ttname"><a href="ebpf__nethooks_8h.html#ab99544fd8a7a4718e944229a9026a358">BPF_SOCK_ADDR_TEST_CONTEXT_VERSION</a></div><div class="ttdeci">#define BPF_SOCK_ADDR_TEST_CONTEXT_VERSION</div><div class="ttdef"><b>Definition</b> ebpf_nethooks.h:233</div></div>
+<div class="ttc" id="aebpf__nethooks_8h_html_af215a8008f5282701863b537f9bc0938"><div class="ttname"><a href="ebpf__nethooks_8h.html#af215a8008f5282701863b537f9bc0938">BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE</a></div><div class="ttdeci">#define BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE</div><div class="ttdef"><b>Definition</b> ebpf_nethooks.h:236</div></div>
+<div class="ttc" id="aebpf__nethooks_8h_html_afb8b199f4a6c23dd65f3e76b90e41b92"><div class="ttname"><a href="ebpf__nethooks_8h.html#afb8b199f4a6c23dd65f3e76b90e41b92">BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE</a></div><div class="ttdeci">#define BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE</div><div class="ttdef"><b>Definition</b> ebpf_nethooks.h:235</div></div>
 </div><!-- fragment -->
 </div>
 </div>
@@ -325,6 +329,7 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Actions that can be returned by a bind hook program. </p>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000026">Deprecated:</a></b></dt><dd>Use BPF_PROG_TYPE_CGROUP_SOCK_ADDR with BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND instead. Use ebpf_sock_addr_verdict_t as the return type for the replacement hook. </dd></dl>
 
 </div>
 </div>
@@ -341,6 +346,7 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Handle IPv4 and IPv6 socket bind operations. </p>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000027">Deprecated:</a></b></dt><dd>Use BPF_PROG_TYPE_CGROUP_SOCK_ADDR with BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND instead.</dd></dl>
 <p>This function type defines the signature for eBPF programs that handle socket bind operations. The program is called before the bind operation completes and can inspect the socket metadata to make policy decisions about whether to allow, deny, or redirect the bind request.</p>
 <p>The program can examine details such as the process ID, socket address, protocol, and interface information to implement custom bind policies. For redirect operations, the program can modify the socket_address field in the context to change the bind target.</p>
 <p>Program type: <a class="el" href="ebpf__program__attach__type__guids_8h.html#ab3f482055c69dbcf858e5aac2ab042ec">EBPF_PROGRAM_TYPE_BIND</a></p>
@@ -375,6 +381,9 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
+<p>Context structure for the legacy bind hook. </p>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000025">Deprecated:</a></b></dt><dd>Use BPF_PROG_TYPE_CGROUP_SOCK_ADDR with BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND instead. Use bpf_sock_addr_t as the context structure for the replacement hook. </dd></dl>
+
 </div>
 </div>
 <a id="a02ae42f0379561fed4edf984bebd5649" name="a02ae42f0379561fed4edf984bebd5649"></a>
@@ -388,6 +397,9 @@ Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+
+<p>Operations reported by the legacy bind hook. </p>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000024">Deprecated:</a></b></dt><dd>Use BPF_PROG_TYPE_CGROUP_SOCK_ADDR with BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND instead. </dd></dl>
 
 </div>
 </div>
@@ -572,6 +584,7 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Actions that can be returned by a bind hook program. </p>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000026">Deprecated:</a></b></dt><dd>Use BPF_PROG_TYPE_CGROUP_SOCK_ADDR with BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND instead. Use ebpf_sock_addr_verdict_t as the return type for the replacement hook. </dd></dl>
 <table class="fieldtable">
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a9e5d69be705b1f7503ab2fd752c41d02a0d05f7f142cecae8ae4a7e9ba9268efe" name="a9e5d69be705b1f7503ab2fd752c41d02a0d05f7f142cecae8ae4a7e9ba9268efe"></a>BIND_PERMIT_SOFT&#160;</td><td class="fielddoc"><p>Permit the bind operation (soft permit). </p>
 <p>Use this when you want to allow the operation but still permit other security policies or filters to make the final decision. </p>
@@ -586,7 +599,7 @@ Functions</h2></td></tr>
 <p>The bind operation is allowed and lower-priority filters or security policies cannot override this decision. </p>
 </td></tr>
 <tr><td class="fieldname"><a id="a9e5d69be705b1f7503ab2fd752c41d02a49c0b0fb8a9731a06a0748b8d88b603a" name="a9e5d69be705b1f7503ab2fd752c41d02a49c0b0fb8a9731a06a0748b8d88b603a"></a>BIND_PERMIT&#160;</td><td class="fielddoc"><p>Backward compatibility alias for BIND_PERMIT_SOFT. </p>
-<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000024">Deprecated:</a></b></dt><dd>Use BIND_PERMIT_SOFT instead for clarity about the permit behavior. </dd></dl>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000028">Deprecated:</a></b></dt><dd>Use BIND_PERMIT_SOFT instead for clarity about the permit behavior. </dd></dl>
 </td></tr>
 </table>
 
@@ -603,6 +616,9 @@ Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+
+<p>Operations reported by the legacy bind hook. </p>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000024">Deprecated:</a></b></dt><dd>Use BPF_PROG_TYPE_CGROUP_SOCK_ADDR with BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND instead. </dd></dl>
 <table class="fieldtable">
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a814187ca47e221594a21bde5324d86fca3e490f90b26afc8d39df8bb5cdd4113f" name="a814187ca47e221594a21bde5324d86fca3e490f90b26afc8d39df8bb5cdd4113f"></a>BIND_OPERATION_BIND&#160;</td><td class="fielddoc"><p>Entry to bind. </p>
 </td></tr>

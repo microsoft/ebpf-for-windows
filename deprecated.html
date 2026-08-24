@@ -73,8 +73,18 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><dl class="reflist">
+<dt>Global <a class="el" href="ebpf__nethooks_8h.html#ad76a0927c7e31a4b67e34a7d34d278a2">bind_action_t</a>  </dt>
+<dd><a class="anchor" id="_deprecated000026"></a>Use BPF_PROG_TYPE_CGROUP_SOCK_ADDR with BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND instead. Use ebpf_sock_addr_verdict_t as the return type for the replacement hook.  </dd>
+<dt>Global <a class="el" href="ebpf__nethooks_8h.html#ab2020fd040b86a3b9b29a31303dabc5b">bind_hook_t</a>  (bind_md_t *context)</dt>
+<dd><a class="anchor" id="_deprecated000027"></a>Use BPF_PROG_TYPE_CGROUP_SOCK_ADDR with BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND instead. </dd>
+<dt>Global <a class="el" href="ebpf__nethooks_8h.html#ad95b98d2e80f69aeb949bbd2f76197c2">bind_md_t</a>  </dt>
+<dd><a class="anchor" id="_deprecated000025"></a>Use BPF_PROG_TYPE_CGROUP_SOCK_ADDR with BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND instead. Use bpf_sock_addr_t as the context structure for the replacement hook.  </dd>
+<dt>Global <a class="el" href="ebpf__nethooks_8h.html#a02ae42f0379561fed4edf984bebd5649">bind_operation_t</a>  </dt>
+<dd><a class="anchor" id="_deprecated000024"></a>Use BPF_PROG_TYPE_CGROUP_SOCK_ADDR with BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND instead.  </dd>
 <dt>Global <a class="el" href="ebpf__nethooks_8h.html#a9e5d69be705b1f7503ab2fd752c41d02a49c0b0fb8a9731a06a0748b8d88b603a">BIND_PERMIT</a>  </dt>
-<dd><a class="anchor" id="_deprecated000024"></a>Use BIND_PERMIT_SOFT instead for clarity about the permit behavior.  </dd>
+<dd><a class="anchor" id="_deprecated000028"></a>Use BIND_PERMIT_SOFT instead for clarity about the permit behavior.  </dd>
+<dt>Global <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa864be97a1886953dbdfe608688fb19d4">BPF_ATTACH_TYPE_BIND</a>  </dt>
+<dd><a class="anchor" id="_deprecated000032"></a>Use BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND instead. </dd>
 <dt>Global <a class="el" href="bpf__legacy_8h.html#a415dcff6da1cf861efbafe33768976af">bpf_create_map</a>  (enum bpf_map_type map_type, int key_size, int value_size, int max_entries, __u32 map_flags)</dt>
 <dd><a class="anchor" id="_deprecated000001"></a>Use <a class="el" href="bpf_2bpf_8h.html#a8396d4a201ad6ba75c30f6344cb4fcaa" title="Create a new map.">bpf_map_create()</a> instead. </dd>
 <dt>Global <a class="el" href="bpf__legacy_8h.html#aa568c1b6f3dddfb439311bd952824f1b">bpf_create_map_in_map</a>  (enum bpf_map_type map_type, const char *name, int key_size, int inner_map_fd, int max_entries, __u32 map_flags)</dt>
@@ -97,6 +107,8 @@ $(function() {
 <dd><a class="anchor" id="_deprecated000012"></a>Use <a class="el" href="libbpf_8h.html#a473872ff7ab53d1ed593e7abd206f31a" title="Close an eBPF object.">bpf_object__close()</a> instead. </dd>
 <dt>Global <a class="el" href="libbpf__legacy_8h.html#a485d38a20dd27d81e569fde97268a4c0">bpf_prog_load_deprecated</a>  (const char *file, enum bpf_prog_type type, struct bpf_object **pobj, int *prog_fd)</dt>
 <dd><a class="anchor" id="_deprecated000013"></a>Use <a class="el" href="libbpf_8h.html#a4cfdd4daf0fcfddfe894ba2a8acc3242" title="Open a file without loading the programs.">bpf_object__open()</a> and <a class="el" href="libbpf_8h.html#a101742f5d81ad187cd879e22d6385031" title="Load all the programs in a given object.">bpf_object__load()</a> instead. </dd>
+<dt>Global <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a2af8d41961c186b1a62fcc54a29446d2">BPF_PROG_TYPE_BIND</a>  </dt>
+<dd><a class="anchor" id="_deprecated000031"></a>Use BPF_PROG_TYPE_CGROUP_SOCK_ADDR with BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND instead. </dd>
 <dt>Global <a class="el" href="libbpf_8h.html#a6a801e0d961347b9ca550a111b4b1148">bpf_program__get_type</a>  (const struct bpf_program *prog)</dt>
 <dd><a class="anchor" id="_deprecated000006"></a>Use <a class="el" href="libbpf_8h.html#a789393546ed103be96e012387b12bdcf" title="Get the program type for an eBPF program.">bpf_program__type()</a> instead. </dd>
 <dt>Global <a class="el" href="libbpf__legacy_8h.html#a7ec479d96add0a9fe5fae71fd3808430">bpf_program__next</a>  (struct bpf_program *prog, const struct bpf_object *obj)</dt>
@@ -107,6 +119,8 @@ $(function() {
 <dd><a class="anchor" id="_deprecated000016"></a>Use <a class="el" href="libbpf_8h.html#a4fea6f040ea2d1ac3288a38f8575855c" title="bpf_program__insn_cnt() returns number of struct bpf_insn&#39;s that form specified BPF program.">bpf_program__insn_cnt()</a> instead.  </dd>
 <dt>Global <a class="el" href="libbpf__legacy_8h.html#a62d680951c5e380caef2d82d97f12d9d">bpf_set_link_xdp_fd</a>  (int ifindex, int fd, __u32 flags)</dt>
 <dd><a class="anchor" id="_deprecated000007"></a>Use <a class="el" href="libbpf_8h.html#a21804429f974038fb1d68004fe3aeea5" title="Attach an XDP program to a given interface.">bpf_xdp_attach()</a> instead. </dd>
+<dt>Global <a class="el" href="ebpf__program__attach__type__guids_8h.html#abfe13edb5136e2739c015dc7ede56073">EBPF_ATTACH_TYPE_BIND</a>  </dt>
+<dd><a class="anchor" id="_deprecated000029"></a>Use EBPF_ATTACH_TYPE_CGROUP_INET4_BIND / EBPF_ATTACH_TYPE_CGROUP_INET6_BIND instead. </dd>
 <dt>Global <a class="el" href="ebpf__api_8h.html#a4be29a278b8a744646b573cbba5dd318">ebpf_perf_buffer__new</a>  (int map_fd, size_t page_cnt, perf_buffer_sample_fn sample_cb, perf_buffer_lost_fn lost_cb, void *ctx, const struct <a class="el" href="structebpf__perf__buffer__opts.html" title="Windows-specific perf buffer options structure.">ebpf_perf_buffer_opts</a> *opts) EBPF_NO_EXCEPT</dt>
 <dd><a class="anchor" id="_deprecated000022"></a>Use <a class="el" href="libbpf_8h.html#a28adc4c0f27a820dbeec22396a904be2" title="Create BPF perfbuf manager.">perf_buffer__new()</a> (or <a class="el" href="ebpf__api_8h.html#a4be29a278b8a744646b573cbba5dd318" title="Create a new perf buffer manager with Windows-specific options.">ebpf_perf_buffer__new()</a> with flags set to 0) and consume records via <a class="el" href="libbpf_8h.html#a7d52462fbb4a483575ec42ec1268491e" title="Poll perf buffer for new data with timeout.">perf_buffer__poll()</a>/perf_buffer__consume(). </dd>
 <dt>Global <a class="el" href="ebpf__api_8h.html#af262088d3fe851336797c964a46465e2">ebpf_perf_buffer_flags</a>  </dt>
@@ -115,6 +129,8 @@ $(function() {
 <dd><a class="anchor" id="_deprecated000018"></a>Use the polling-based perf buffer APIs (perf_buffer__new, perf_buffer__poll, perf_buffer__consume) and BPF helper output path instead. </dd>
 <dt>Global <a class="el" href="ebpf__extension_8h.html#abd51a8ba0db9164bb27605f8e6246662">ebpf_preprocess_map_delete_element_t</a>  )(void *binding_context, void *map_context, size_t key_size, _In_reads_opt_(key_size) const uint8_t *key, size_t value_size, _In_reads_(value_size) const uint8_t *value, uint32_t flags)</dt>
 <dd><a class="anchor" id="_deprecated000023"></a>Use ebpf_postprocess_map_delete_element_t instead. This callback is invoked before the entry is removed from the hash table, under the per-bucket lock. New providers should use ebpf_postprocess_map_delete_element_t, which is invoked after the entry is removed from the hash table. A provider must register exactly one of preprocess_map_delete_element or postprocess_map_delete_element, not both. </dd>
+<dt>Global <a class="el" href="ebpf__program__attach__type__guids_8h.html#ab3f482055c69dbcf858e5aac2ab042ec">EBPF_PROGRAM_TYPE_BIND</a>  </dt>
+<dd><a class="anchor" id="_deprecated000030"></a>Use EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR with EBPF_ATTACH_TYPE_CGROUP_INET4_BIND / EBPF_ATTACH_TYPE_CGROUP_INET6_BIND instead. </dd>
 <dt>Global <a class="el" href="ebpf__api_8h.html#afa992c96d30c64eeefa0bdfb30d7d12f">ebpf_ring_buffer__new</a>  (int map_fd, ring_buffer_sample_fn sample_cb, void *ctx, const struct <a class="el" href="structebpf__ring__buffer__opts.html" title="Windows-specific ring buffer options structure.">ebpf_ring_buffer_opts</a> *opts) EBPF_NO_EXCEPT</dt>
 <dd><a class="anchor" id="_deprecated000020"></a>Use <a class="el" href="libbpf_8h.html#a23c29b5bb71c56a972c7583ee3171e5a" title="Creates a new ring buffer manager with synchronous callbacks.">ring_buffer__new()</a> (or <a class="el" href="ebpf__api_8h.html#afa992c96d30c64eeefa0bdfb30d7d12f" title="Creates a new ring buffer manager (Windows-specific with flags support).">ebpf_ring_buffer__new()</a> with flags set to 0) and consume records via <a class="el" href="libbpf_8h.html#aa387d349828c9ca240eddf92f078eee1" title="Poll ring buffer for available data and consume records by calling sample_cb.">ring_buffer__poll()</a>/ring_buffer__consume(). </dd>
 <dt>Global <a class="el" href="ebpf__api_8h.html#a22c8510f176e45d5a47fdc32b4af0407">ebpf_ring_buffer_flags</a>  </dt>

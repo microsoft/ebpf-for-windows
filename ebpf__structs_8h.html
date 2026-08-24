@@ -680,6 +680,7 @@ Enumerations</h2></td></tr>
 <p><b>Program type:</b> <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a1945ca3d46bd1e589c4d0effe14f18d6">BPF_PROG_TYPE_XDP</a> </p>
 </td></tr>
 <tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aa864be97a1886953dbdfe608688fb19d4" name="aac6b4c09fa267f53c1d213551e0ccd5aa864be97a1886953dbdfe608688fb19d4"></a>BPF_ATTACH_TYPE_BIND&#160;</td><td class="fielddoc"><p>Attach type for handling socket bind operations. </p>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000032">Deprecated:</a></b></dt><dd>Use BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND instead.</dd></dl>
 <p><b>Program type:</b> <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a2af8d41961c186b1a62fcc54a29446d2">BPF_PROG_TYPE_BIND</a> </p>
 </td></tr>
 <tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aae5e0f2387eb5917087c2cbf8bea83bcc" name="aac6b4c09fa267f53c1d213551e0ccd5aae5e0f2387eb5917087c2cbf8bea83bcc"></a>BPF_CGROUP_INET4_CONNECT&#160;</td><td class="fielddoc"><p>Attach type for handling IPv4 TCP connect() or UDP send to a unique remote address/port tuple. </p>
@@ -826,6 +827,7 @@ Enumerations</h2></td></tr>
 <p><b>Helpers available:</b> all helpers defined in <a class="el" href="bpf__helpers_8h.html">bpf_helpers.h</a> </p>
 </td></tr>
 <tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0a2af8d41961c186b1a62fcc54a29446d2" name="a0f8242763b15ec665eaa47c6add861a0a2af8d41961c186b1a62fcc54a29446d2"></a>BPF_PROG_TYPE_BIND&#160;</td><td class="fielddoc"><p>Program type for handling socket bind operations. </p>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000031">Deprecated:</a></b></dt><dd>Use BPF_PROG_TYPE_CGROUP_SOCK_ADDR with BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND instead.</dd></dl>
 <p><b>eBPF program prototype:</b> <a class="el" href="ebpf__nethooks_8h.html#ab2020fd040b86a3b9b29a31303dabc5b">bind_hook_t</a></p>
 <p><b>Attach type(s):</b> <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa864be97a1886953dbdfe608688fb19d4">BPF_ATTACH_TYPE_BIND</a></p>
 <p><b>Helpers available:</b> all helpers defined in <a class="el" href="bpf__helpers_8h.html">bpf_helpers.h</a> </p>
