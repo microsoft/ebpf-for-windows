@@ -11,6 +11,7 @@ set "trace_name=ebpf_diag"
 set "rundown_period=0:35:00"
 set "max_file_size_mb=30"
 set "max_committed_folder_size_mb=200"
+set "max_committed_etl_files=64"
 set "max_committed_rundown_state_files=1"
 set "compress_rundown_state_files=true"
 
@@ -24,6 +25,7 @@ if "%~1" == "/trace_name" set "trace_name=%~2" & shift & shift & goto :parse_arg
 if "%~1" == "/rundown_period" set rundown_period=%~2 & shift & shift & goto :parse_args
 if "%~1" == "/max_file_size_mb" set max_file_size_mb=%~2 & shift & shift & goto :parse_args
 if "%~1" == "/max_committed_folder_size_mb" set max_committed_folder_size_mb=%~2 & shift & shift & goto :parse_args
+if "%~1" == "/max_committed_etl_files" set max_committed_etl_files=%~2 & shift & shift & goto :parse_args
 if "%~1" == "/max_committed_rundown_state_files" set max_committed_rundown_state_files=%~2 & shift & shift & goto :parse_args
 if "%~1" == "/compress_rundown_state_files" set compress_rundown_state_files=%~2 & shift & shift & goto :parse_args
 echo Unknown parameter: "%~1"
@@ -53,6 +55,7 @@ if "%trace_path%" == "" (
 @rem echo rundown_period=%rundown_period%
 @rem echo max_file_size_mb=%max_file_size_mb%
 @rem echo max_committed_folder_size_mb=%max_committed_folder_size_mb%
+@rem echo max_committed_etl_files=%max_committed_etl_files%
 @rem echo max_committed_rundown_state_files=%max_committed_rundown_state_files%
 @rem echo compress_rundown_state_files=%compress_rundown_state_files%
 
@@ -74,12 +77,13 @@ if "%command%"=="periodic" (
 	)
 
 	@rem Get the current date and time in a format suitable for appending to file names.
-	for /f "tokens=2 delims==" %%a in ('wmic OS Get localdatetime /value') do (
-		set "dt=%%a"
-		set "YYYY=!dt:~0,4!" & set "MM=!dt:~4,2!" & set "DD=!dt:~6,2!"
-		set "HH=!dt:~8,2!" & set "Min=!dt:~10,2!" & set "Sec=!dt:~12,2!"
-		set "timestamp=!YYYY!!MM!!DD!_!HH!!Min!!Sec!"
-	)
+	@rem '%DATE%' is rendered in the machine's locale, so it may contain '/' characters and a
+	@rem weekday prefix, neither of which is wanted in a file name. '%TIME%' is always
+	@rem rendered as 'HH:MM:SS.cc', with the hour space-padded before 10:00.
+	set "ts_date=%DATE:/=-%"
+	set "ts_date=!ts_date: =!"
+	set "ts_time=%TIME: =0%"
+	set "timestamp=!ts_date!_!ts_time:~0,2!!ts_time:~3,2!!ts_time:~6,2!"
 
     @rem Run down the WFP state.
     pushd "!trace_path!"
@@ -167,28 +171,34 @@ if "%command%"=="periodic" (
 
 	@rem Iterate over all the .etl files in the 'trace_path' directory, sorted in descending order by name,
 	@rem and skip the first 'num_etl_files_to_keep' files (i.e., the newest 'num_etl_files_to_keep' files).
-	for /f "skip=%num_etl_files_to_keep% delims=" %%f in ('dir /b /o-n "!trace_path!\*.etl"') do (
+	for /f "skip=%num_etl_files_to_keep% delims=" %%f in ('dir /b /o-n "!trace_path!\*.etl" 2^>nul') do (
 		move /y "!trace_path!\%%f" "!traceCommittedPath!" >nul
 	)
 
 	@rem Iterate over all the WFP-state files in the 'traceCommittedPath' directory, and delete files overflowing `max_committed_rundown_state_files`.
-	for /f "skip=%max_committed_rundown_state_files% delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\wfpstate_*.*"') do ( del "!traceCommittedPath!\%%f" )
+	for /f "skip=%max_committed_rundown_state_files% delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\wfpstate_*.*" 2^>nul') do ( del "!traceCommittedPath!\%%f" )
 
 	@rem Iterate over all the bpf state files in the 'traceCommittedPath' directory, and delete files overflowing `max_committed_rundown_state_files`.
-	for /f "skip=%max_committed_rundown_state_files% delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\bpfstate_*.*"') do ( del "!traceCommittedPath!\%%f" )
+	for /f "skip=%max_committed_rundown_state_files% delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\bpfstate_*.*" 2^>nul') do ( del "!traceCommittedPath!\%%f" )
 
 	@rem Iterate over all the .ETL files in the 'traceCommittedPath' directory, and delete the older files overflowing `max_committed_folder_size_mb`.
 	set size=0
 	set /a max_committed_folder_size_kb=!max_committed_folder_size_mb! * 1024
-	for /f "skip=1 delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\*.etl"') do (
-		for /f "skip=1 tokens=2 delims==; " %%g in ('wmic datafile where "name='!traceCommittedPath:\=\\!\\%%f'" get filesize /value') do (
-			set "file_size=%%g"
-			set /a size=!size! + !file_size! / 1024
-			if !size! gtr !max_committed_folder_size_kb! (
-				del "!traceCommittedPath!\%%f"
+	for /f "skip=1 delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\*.etl" 2^>nul') do (
+		for %%g in ("!traceCommittedPath!\%%f") do (
+			@rem Skip the file if its size cannot be read, i.e. if it is no longer present.
+			if not "%%~zg"=="" (
+				set /a size=!size! + %%~zg / 1024
+				if !size! gtr !max_committed_folder_size_kb! (
+					del "!traceCommittedPath!\%%f"
+				)
 			)
 		)
 	)
+
+	@rem Iterate over all the .ETL files in the 'traceCommittedPath' directory, and delete files overflowing `max_committed_etl_files`.
+	@rem This bounds the number of committed files even if their total size stays below `max_committed_folder_size_mb`.
+	for /f "skip=%max_committed_etl_files% delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\*.etl" 2^>nul') do ( del "!traceCommittedPath!\%%f" )
 
 ) else if "%command%"=="start" (
 
@@ -222,17 +232,18 @@ endlocal
 exit /b 0
 
 :usage
-echo Usage: ebpf_tracing.cmd command /trace_path path [/trace_name name] [/rundown_period period] [/max_file_size_mb size] [/max_committed_folder_size_mb count] [/max_committed_rundown_state_files count]
+echo Usage: ebpf_tracing.cmd command /trace_path path [/trace_name name] [/rundown_period period] [/max_file_size_mb size] [/max_committed_folder_size_mb count] [/max_committed_etl_files count] [/max_committed_rundown_state_files count]
 echo:
 echo Valid parameters:
 echo:
-echo   <command>                                  - (mandatory) Valid values are: [start, stop, periodic]
+echo   ^<command^>                                  - (mandatory) Valid values are: [start, stop, periodic]
 echo   /trace_path path                           - (mandatory) Path into which the tracing will be located (creates it if it does not exist).
 echo   /trace_name name                           - Name of the logman trace (Default: "ebpf_diag")
 echo   /rundown_period period                     - Period, expressed as (H:mm:ss), for saving and generating a new ETL log, and for generating a WFP state snapshot (Default: 0:35:00).
-echo   /max_file_size_mb size                     - Maximum size set for an ETL log (Default: 20).
+echo   /max_file_size_mb size                     - Maximum size set for an ETL log (Default: 30).
 echo   /max_committed_folder_size_mb size         - Maximum overall size for (most recent) .ETL files to keep in the main 'trace_path\committed' (Default: 200)
-echo   /max_committed_rundown_state_files count   - Number (most recent) of each type of rundown state file to keep in the main 'trace_path\committed' (Default: 1).
+echo   /max_committed_etl_files count             - Number (most recent) of .ETL files to keep in the main 'trace_path\committed' (Default: 64, minimum: 1).
+echo   /max_committed_rundown_state_files count   - Number (most recent) of each type of rundown state file to keep in the main 'trace_path\committed' (Default: 1, minimum: 1).
 echo   /compress_rundown_state_files [true,false] - Compress the rundown state files (Default: 'true').
 echo:
 echo Behaviour:
@@ -248,6 +259,7 @@ echo    - Run down the program state using bpftool, to capture the program outpu
 echo      NOTE: If the 'compress_rundown_state_files' option is set to 'true', both the WFP and the bpftool state files will be compressed into '.cab' files.
 echo 	- Iterate over all the run down state files in the 'trace_path\committed' subfolder and delete the older files overflowing 'max_committed_rundown_state_files'.
 echo 	- Iterate over all the '.etl' files in the 'trace_path' directory, sorted in descending order by 'date modified', skip the first files summing up to 'max_committed_folder_size_mb' and move the others into the 'trace_path\committed' subfolder.
+echo 	- Iterate over all the '.etl' files in the 'trace_path\committed' subfolder and delete the older files overflowing either 'max_committed_folder_size_mb' or 'max_committed_etl_files'.
 echo:
 echo Examples:
 echo    ebpf_tracing.cmd start /trace_name ebpf_diag /trace_path "%SystemRoot%\Logs\eBPF" /rundown_period 0:35:00 /max_file_size_mb 20
