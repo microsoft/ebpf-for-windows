@@ -29,6 +29,7 @@ on:
 permissions:
   contents: read
   issues: write  # Required to create issues.
+  projects: write  # Required to set Type=Bug on project items.
 
 jobs:
   netperf:
@@ -94,7 +95,7 @@ jobs:
             [Failed Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
             [Codebase](https://github.com/${{ github.repository }}/tree/${{ github.sha }})
             Test name - `netperf`
-          LABELS: bug,ci/cd
+          LABELS: ci/cd
 
         with:
           script: |
@@ -105,6 +106,102 @@ jobs:
             const labels = process.env.LABELS;
             const label_array = labels ? labels.split(',') : [];
             console.log(label_array);
+            async function set_issue_type_bug(issue_node_id) {
+              try {
+                const projects_response = await github.graphql(
+                  `query($owner: String!, $repo: String!) {
+                    repository(owner: $owner, name: $repo) {
+                      projectsV2(first: 20) {
+                        nodes {
+                          id
+                          title
+                        }
+                      }
+                    }
+                  }`,
+                  {owner, repo});
+                const issue_response = await github.graphql(
+                  `query($issueId: ID!) {
+                    node(id: $issueId) {
+                      ... on Issue {
+                        projectItems(first: 100) {
+                          nodes {
+                            id
+                            project {
+                              id
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }`,
+                  {issueId: issue_node_id});
+                const existing_items = new Map(
+                  issue_response.node.projectItems.nodes.map((item) => [item.project.id, item.id]));
+                for (const project of projects_response.repository.projectsV2.nodes) {
+                  const fields_response = await github.graphql(
+                    `query($projectId: ID!) {
+                      node(id: $projectId) {
+                        ... on ProjectV2 {
+                          fields(first: 50) {
+                            nodes {
+                              ... on ProjectV2SingleSelectField {
+                                id
+                                name
+                                options {
+                                  id
+                                  name
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }`,
+                    {projectId: project.id});
+                  const type_field = fields_response.node.fields.nodes.find((field) => field.name === 'Type');
+                  const bug_option = type_field?.options?.find((option) => option.name === 'Bug');
+                  if (!type_field || !bug_option) {
+                    continue;
+                  }
+                  let item_id = existing_items.get(project.id);
+                  if (!item_id) {
+                    const add_response = await github.graphql(
+                      `mutation($projectId: ID!, $issueId: ID!) {
+                        addProjectV2ItemById(input: {projectId: $projectId, contentId: $issueId}) {
+                          item {
+                            id
+                          }
+                        }
+                      }`,
+                      {projectId: project.id, issueId: issue_node_id});
+                    item_id = add_response.addProjectV2ItemById.item.id;
+                  }
+                  await github.graphql(
+                    `mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                      updateProjectV2ItemFieldValue(input: {
+                        projectId: $projectId,
+                        itemId: $itemId,
+                        fieldId: $fieldId,
+                        value: {singleSelectOptionId: $optionId}
+                      }) {
+                        projectV2Item {
+                          id
+                        }
+                      }
+                    }`,
+                    {
+                      projectId: project.id,
+                      itemId: item_id,
+                      fieldId: type_field.id,
+                      optionId: bug_option.id
+                    });
+                  console.log(`Set Type=Bug for issue node ${issue_node_id} in project ${project.title}`);
+                }
+              } catch (error) {
+                console.log(`Unable to set Type=Bug for issue node ${issue_node_id}: ${error.message}`);
+              }
+            }
             // Get all issues that have these labels.
             const opts = github.rest.issues.listForRepo.endpoint.merge({
               ...context.issue,
@@ -122,15 +219,17 @@ jobs:
                   repo,
                   body,
                 });
+                await set_issue_type_bug(issue.node_id);
                 return;
               }
             }
             // Existing issue not found, create a new one.
             console.log(`Creating issue ${title}`);
-            await github.rest.issues.create({
+            const created_issue = await github.rest.issues.create({
               owner: owner,
               repo: repo,
               title: title,
               body: body,
               labels: label_array,
             });
+            await set_issue_type_bug(created_issue.data.node_id);
