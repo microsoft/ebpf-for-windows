@@ -262,6 +262,9 @@ function Write-AllowList {
 
     $document = [ordered]@{
         '_comment'   = @(
+            'Copyright (c) eBPF for Windows contributors',
+            'SPDX-License-Identifier: MIT',
+            '',
             'Tracks JIT/interpreter-only test cases that have no native (bpf2c generated) equivalent.',
             'Maintained by scripts/check_jit_native_test_coverage.ps1. See GitHub issue 5439.',
             '',
