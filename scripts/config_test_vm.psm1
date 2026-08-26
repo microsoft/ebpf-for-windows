@@ -718,11 +718,18 @@ function Initialize-NetworkInterfaces {
         param([Parameter(Mandatory=$true)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$true)][string] $LogFileName)
         Push-Location $WorkingDirectory
-        Import-Module .\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Write-Log "Installing DuoNic driver"
-        .\duonic.ps1 -Install -NumNicPairs 2
-        Set-NetAdapterAdvancedProperty duo? -DisplayName Checksum -RegistryValue 0
-        Pop-Location
+        try {
+            Import-Module .\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+            Write-Log "Installing DuoNic driver"
+            $LASTEXITCODE = 0
+            .\duonic.ps1 -Install -NumNicPairs 2
+            if ($LASTEXITCODE -ne 0) {
+                throw "DuoNic installation failed with exit code $LASTEXITCODE."
+            }
+            Set-NetAdapterAdvancedProperty duo? -DisplayName Checksum -RegistryValue 0
+        } finally {
+            Pop-Location
+        }
     }
 
     $argumentList = @($TestWorkingDirectory, $LogFileName)
