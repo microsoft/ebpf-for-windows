@@ -1054,19 +1054,19 @@ bpf_code_generator::get_maximum_call_depth(const unsafe_string& entry_name) cons
             return it->second;
         }
         if (!active_calls.insert(program_name).second) {
-            throw bpf_code_generator_exception("recursive local function call");
+            throw bpf_code_generator_exception("recursive local function call: " + program_name.raw());
         }
 
         const auto program = programs.find(program_name);
         if (program == programs.end()) {
-            throw bpf_code_generator_exception("local function call target not found");
+            throw bpf_code_generator_exception("local function call target not found: " + program_name.raw());
         }
 
         size_t maximum_depth = 1;
         for (const auto& instruction : program->second.output_instructions) {
             if (instruction.instruction.opcode == INST_OP_CALL && instruction.instruction.src == INST_CALL_LOCAL) {
                 if (instruction.relocation.empty()) {
-                    throw bpf_code_generator_exception("local function call target not found");
+                    throw bpf_code_generator_exception("local function call target not found: " + program_name.raw());
                 }
                 maximum_depth = std::max(maximum_depth, 1 + calculate_depth(instruction.relocation));
             }

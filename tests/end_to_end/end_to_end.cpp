@@ -872,12 +872,29 @@ _callgraph_bpf2bpf_test(ebpf_execution_type_t execution_type)
         bpf_object__close(unique_object.release());
     }
 
-    // Test entry_program4: verifies that a subprogram does not corrupt the caller's stack.
+    // Test stack_frame_test_entry: verifies that a subprogram does not corrupt the caller's stack.
     {
-        program_load_attach_helper_t program_helper;
-        program_helper.initialize(file_name, BPF_PROG_TYPE_BIND, "entry_program4", execution_type, nullptr, 0, hook);
+        program_info_provider_t sample_program_info;
+        REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+        single_instance_hook_t sample_hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+        REQUIRE(sample_hook.initialize() == EBPF_SUCCESS);
 
-        REQUIRE(emulate_bind(invoke, 4004, "callgraph_e4") == BIND_PERMIT_SOFT);
+        program_load_attach_helper_t program_helper;
+        const char* stack_frame_file_name =
+            (execution_type == EBPF_EXECUTION_NATIVE ? "bpf2bpf_loop_um.dll" : "bpf2bpf_loop.o");
+        program_helper.initialize(
+            stack_frame_file_name,
+            BPF_PROG_TYPE_SAMPLE,
+            "stack_frame_test_entry",
+            execution_type,
+            nullptr,
+            0,
+            sample_hook);
+
+        INITIALIZE_SAMPLE_CONTEXT;
+        uint32_t hook_result = 0;
+        REQUIRE(sample_hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+        REQUIRE(hook_result == 0);
     }
 }
 
