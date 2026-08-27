@@ -33,6 +33,24 @@ static map_entry_t _maps[] = {
          0,                 // The id of the inner map template.
      },
      "bind_verdict_map"},
+    {
+     {0, 0},
+     {
+         1,                  // Current Version.
+         80,                 // Struct size up to the last field.
+         80,                 // Total struct size including padding.
+     },
+     {
+         BPF_MAP_TYPE_ARRAY, // Type of map.
+         4,                  // Size in bytes of a map key.
+         8,                  // Size in bytes of a map value.
+         1,                  // Maximum number of entries allowed in the map.
+         0,                  // Inner map index.
+         LIBBPF_PIN_NONE,    // Pinning type for the map.
+         24,                 // Identifier for a map template.
+         0,                  // The id of the inner map template.
+     },
+     "bind_invocation_count_map"},
 };
 #pragma data_seg(pop)
 
@@ -40,7 +58,7 @@ static void
 _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
 {
     *maps = _maps;
-    *count = 1;
+    *count = 2;
 }
 
 static void
@@ -66,88 +84,139 @@ static GUID authorize_bind4_attach_type_guid = {
     0x0d7ce21a, 0x7773, 0x405c, {0x93, 0xb6, 0xd5, 0xbf, 0xb9, 0x2e, 0x74, 0xbc}};
 static uint16_t authorize_bind4_maps[] = {
     0,
+    1,
 };
 
 #pragma code_seg(push, "cgroup~2")
 static uint64_t
 authorize_bind4(void* context, const program_runtime_context_t* runtime_context)
-#line 53 "sample/cgroup_sock_addr_bind.c"
+#line 67 "sample/cgroup_sock_addr_bind.c"
 {
-#line 53 "sample/cgroup_sock_addr_bind.c"
+#line 67 "sample/cgroup_sock_addr_bind.c"
     // Prologue.
-#line 53 "sample/cgroup_sock_addr_bind.c"
+#line 67 "sample/cgroup_sock_addr_bind.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 53 "sample/cgroup_sock_addr_bind.c"
+#line 67 "sample/cgroup_sock_addr_bind.c"
     register uint64_t r0 = 0;
-#line 53 "sample/cgroup_sock_addr_bind.c"
+#line 67 "sample/cgroup_sock_addr_bind.c"
     register uint64_t r1 = 0;
-#line 53 "sample/cgroup_sock_addr_bind.c"
+#line 67 "sample/cgroup_sock_addr_bind.c"
     register uint64_t r2 = 0;
-#line 53 "sample/cgroup_sock_addr_bind.c"
+#line 67 "sample/cgroup_sock_addr_bind.c"
     register uint64_t r3 = 0;
-#line 53 "sample/cgroup_sock_addr_bind.c"
+#line 67 "sample/cgroup_sock_addr_bind.c"
     register uint64_t r4 = 0;
-#line 53 "sample/cgroup_sock_addr_bind.c"
+#line 67 "sample/cgroup_sock_addr_bind.c"
     register uint64_t r5 = 0;
-#line 53 "sample/cgroup_sock_addr_bind.c"
+#line 67 "sample/cgroup_sock_addr_bind.c"
+    register uint64_t r6 = 0;
+#line 67 "sample/cgroup_sock_addr_bind.c"
+    register uint64_t r7 = 0;
+#line 67 "sample/cgroup_sock_addr_bind.c"
     register uint64_t r10 = 0;
 
-#line 53 "sample/cgroup_sock_addr_bind.c"
+#line 67 "sample/cgroup_sock_addr_bind.c"
     r1 = (uintptr_t)context;
-#line 53 "sample/cgroup_sock_addr_bind.c"
+#line 67 "sample/cgroup_sock_addr_bind.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_IMM pc=0 dst=r2 src=r0 offset=0 imm=0
-#line 53 "sample/cgroup_sock_addr_bind.c"
-    r2 = IMMEDIATE(0);
-    // EBPF_OP_STXW pc=1 dst=r10 src=r2 offset=-4 imm=0
-#line 40 "sample/cgroup_sock_addr_bind.c"
-    WRITE_ONCE_32(r10, (uint32_t)r2, OFFSET(-4));
+    // EBPF_OP_MOV64_IMM pc=0 dst=r7 src=r0 offset=0 imm=0
+#line 67 "sample/cgroup_sock_addr_bind.c"
+    r7 = IMMEDIATE(0);
+    // EBPF_OP_STXW pc=1 dst=r10 src=r7 offset=-4 imm=0
+#line 49 "sample/cgroup_sock_addr_bind.c"
+    WRITE_ONCE_32(r10, (uint32_t)r7, OFFSET(-4));
     // EBPF_OP_LDXH pc=2 dst=r2 src=r1 offset=40 imm=0
-#line 41 "sample/cgroup_sock_addr_bind.c"
+#line 50 "sample/cgroup_sock_addr_bind.c"
     READ_ONCE_16(r2, r1, OFFSET(40));
     // EBPF_OP_STXH pc=3 dst=r10 src=r2 offset=-4 imm=0
-#line 41 "sample/cgroup_sock_addr_bind.c"
+#line 50 "sample/cgroup_sock_addr_bind.c"
     WRITE_ONCE_16(r10, (uint16_t)r2, OFFSET(-4));
     // EBPF_OP_LDXW pc=4 dst=r1 src=r1 offset=44 imm=0
-#line 42 "sample/cgroup_sock_addr_bind.c"
+#line 51 "sample/cgroup_sock_addr_bind.c"
     READ_ONCE_32(r1, r1, OFFSET(44));
     // EBPF_OP_STXB pc=5 dst=r10 src=r1 offset=-2 imm=0
-#line 42 "sample/cgroup_sock_addr_bind.c"
+#line 51 "sample/cgroup_sock_addr_bind.c"
     WRITE_ONCE_8(r10, (uint8_t)r1, OFFSET(-2));
     // EBPF_OP_MOV64_REG pc=6 dst=r2 src=r10 offset=0 imm=0
-#line 42 "sample/cgroup_sock_addr_bind.c"
+#line 51 "sample/cgroup_sock_addr_bind.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=7 dst=r2 src=r0 offset=0 imm=-4
-#line 42 "sample/cgroup_sock_addr_bind.c"
+#line 51 "sample/cgroup_sock_addr_bind.c"
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=8 dst=r1 src=r1 offset=0 imm=1
-#line 44 "sample/cgroup_sock_addr_bind.c"
+#line 53 "sample/cgroup_sock_addr_bind.c"
     r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_CALL pc=10 dst=r0 src=r0 offset=0 imm=1
-#line 44 "sample/cgroup_sock_addr_bind.c"
-    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-    // EBPF_OP_MOV64_REG pc=11 dst=r1 src=r0 offset=0 imm=0
-#line 44 "sample/cgroup_sock_addr_bind.c"
-    r1 = r0;
-    // EBPF_OP_MOV64_IMM pc=12 dst=r0 src=r0 offset=0 imm=1
-#line 44 "sample/cgroup_sock_addr_bind.c"
-    r0 = IMMEDIATE(1);
-    // EBPF_OP_JEQ_IMM pc=13 dst=r1 src=r0 offset=1 imm=0
-#line 45 "sample/cgroup_sock_addr_bind.c"
-    if (r1 == IMMEDIATE(0)) {
-#line 45 "sample/cgroup_sock_addr_bind.c"
-        goto label_1;
-#line 45 "sample/cgroup_sock_addr_bind.c"
-    }
-    // EBPF_OP_LDXW pc=14 dst=r0 src=r1 offset=0 imm=0
-#line 46 "sample/cgroup_sock_addr_bind.c"
-    READ_ONCE_32(r0, r1, OFFSET(0));
-label_1:
-    // EBPF_OP_EXIT pc=15 dst=r0 src=r0 offset=0 imm=0
-#line 55 "sample/cgroup_sock_addr_bind.c"
-    return r0;
 #line 53 "sample/cgroup_sock_addr_bind.c"
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
+    // EBPF_OP_MOV64_REG pc=11 dst=r6 src=r0 offset=0 imm=0
+#line 53 "sample/cgroup_sock_addr_bind.c"
+    r6 = r0;
+    // EBPF_OP_MOV64_IMM pc=12 dst=r0 src=r0 offset=0 imm=1
+#line 53 "sample/cgroup_sock_addr_bind.c"
+    r0 = IMMEDIATE(1);
+    // EBPF_OP_JEQ_IMM pc=13 dst=r6 src=r0 offset=11 imm=0
+#line 54 "sample/cgroup_sock_addr_bind.c"
+    if (r6 == IMMEDIATE(0)) {
+#line 54 "sample/cgroup_sock_addr_bind.c"
+        goto label_2;
+#line 54 "sample/cgroup_sock_addr_bind.c"
+    }
+    // EBPF_OP_STXW pc=14 dst=r10 src=r7 offset=-8 imm=0
+#line 55 "sample/cgroup_sock_addr_bind.c"
+    WRITE_ONCE_32(r10, (uint32_t)r7, OFFSET(-8));
+    // EBPF_OP_MOV64_REG pc=15 dst=r2 src=r10 offset=0 imm=0
+#line 55 "sample/cgroup_sock_addr_bind.c"
+    r2 = r10;
+    // EBPF_OP_ADD64_IMM pc=16 dst=r2 src=r0 offset=0 imm=-8
+#line 55 "sample/cgroup_sock_addr_bind.c"
+    r2 += IMMEDIATE(-8);
+    // EBPF_OP_LDDW pc=17 dst=r1 src=r1 offset=0 imm=2
+#line 56 "sample/cgroup_sock_addr_bind.c"
+    r1 = POINTER(runtime_context->map_data[1].address);
+    // EBPF_OP_CALL pc=19 dst=r0 src=r0 offset=0 imm=1
+#line 56 "sample/cgroup_sock_addr_bind.c"
+    {
+#line 56 "sample/cgroup_sock_addr_bind.c"
+        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
+#line 56 "sample/cgroup_sock_addr_bind.c"
+        if (_array_key < 1) {
+#line 56 "sample/cgroup_sock_addr_bind.c"
+            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 8);
+#line 56 "sample/cgroup_sock_addr_bind.c"
+        } else {
+#line 56 "sample/cgroup_sock_addr_bind.c"
+            r0 = 0;
+#line 56 "sample/cgroup_sock_addr_bind.c"
+        }
+#line 56 "sample/cgroup_sock_addr_bind.c"
+    }
+    // EBPF_OP_JEQ_IMM pc=20 dst=r0 src=r0 offset=3 imm=0
+#line 57 "sample/cgroup_sock_addr_bind.c"
+    if (r0 == IMMEDIATE(0)) {
+#line 57 "sample/cgroup_sock_addr_bind.c"
+        goto label_1;
+#line 57 "sample/cgroup_sock_addr_bind.c"
+    }
+    // EBPF_OP_LDXDW pc=21 dst=r1 src=r0 offset=0 imm=0
+#line 58 "sample/cgroup_sock_addr_bind.c"
+    READ_ONCE_64(r1, r0, OFFSET(0));
+    // EBPF_OP_ADD64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1
+#line 58 "sample/cgroup_sock_addr_bind.c"
+    r1 += IMMEDIATE(1);
+    // EBPF_OP_STXDW pc=23 dst=r0 src=r1 offset=0 imm=0
+#line 58 "sample/cgroup_sock_addr_bind.c"
+    WRITE_ONCE_64(r0, (uint64_t)r1, OFFSET(0));
+label_1:
+    // EBPF_OP_LDXW pc=24 dst=r0 src=r6 offset=0 imm=0
+#line 60 "sample/cgroup_sock_addr_bind.c"
+    READ_ONCE_32(r0, r6, OFFSET(0));
+label_2:
+    // EBPF_OP_EXIT pc=25 dst=r0 src=r0 offset=0 imm=0
+#line 69 "sample/cgroup_sock_addr_bind.c"
+    return r0;
+#line 67 "sample/cgroup_sock_addr_bind.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
@@ -166,88 +235,139 @@ static GUID authorize_bind6_attach_type_guid = {
     0x81de64c0, 0x2973, 0x468d, {0x83, 0x82, 0x67, 0x69, 0xf0, 0x33, 0xd7, 0x59}};
 static uint16_t authorize_bind6_maps[] = {
     0,
+    1,
 };
 
 #pragma code_seg(push, "cgroup~1")
 static uint64_t
 authorize_bind6(void* context, const program_runtime_context_t* runtime_context)
-#line 60 "sample/cgroup_sock_addr_bind.c"
+#line 74 "sample/cgroup_sock_addr_bind.c"
 {
-#line 60 "sample/cgroup_sock_addr_bind.c"
+#line 74 "sample/cgroup_sock_addr_bind.c"
     // Prologue.
-#line 60 "sample/cgroup_sock_addr_bind.c"
+#line 74 "sample/cgroup_sock_addr_bind.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 60 "sample/cgroup_sock_addr_bind.c"
+#line 74 "sample/cgroup_sock_addr_bind.c"
     register uint64_t r0 = 0;
-#line 60 "sample/cgroup_sock_addr_bind.c"
+#line 74 "sample/cgroup_sock_addr_bind.c"
     register uint64_t r1 = 0;
-#line 60 "sample/cgroup_sock_addr_bind.c"
+#line 74 "sample/cgroup_sock_addr_bind.c"
     register uint64_t r2 = 0;
-#line 60 "sample/cgroup_sock_addr_bind.c"
+#line 74 "sample/cgroup_sock_addr_bind.c"
     register uint64_t r3 = 0;
-#line 60 "sample/cgroup_sock_addr_bind.c"
+#line 74 "sample/cgroup_sock_addr_bind.c"
     register uint64_t r4 = 0;
-#line 60 "sample/cgroup_sock_addr_bind.c"
+#line 74 "sample/cgroup_sock_addr_bind.c"
     register uint64_t r5 = 0;
-#line 60 "sample/cgroup_sock_addr_bind.c"
+#line 74 "sample/cgroup_sock_addr_bind.c"
+    register uint64_t r6 = 0;
+#line 74 "sample/cgroup_sock_addr_bind.c"
+    register uint64_t r7 = 0;
+#line 74 "sample/cgroup_sock_addr_bind.c"
     register uint64_t r10 = 0;
 
-#line 60 "sample/cgroup_sock_addr_bind.c"
+#line 74 "sample/cgroup_sock_addr_bind.c"
     r1 = (uintptr_t)context;
-#line 60 "sample/cgroup_sock_addr_bind.c"
+#line 74 "sample/cgroup_sock_addr_bind.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_IMM pc=0 dst=r2 src=r0 offset=0 imm=0
-#line 60 "sample/cgroup_sock_addr_bind.c"
-    r2 = IMMEDIATE(0);
-    // EBPF_OP_STXW pc=1 dst=r10 src=r2 offset=-4 imm=0
-#line 40 "sample/cgroup_sock_addr_bind.c"
-    WRITE_ONCE_32(r10, (uint32_t)r2, OFFSET(-4));
+    // EBPF_OP_MOV64_IMM pc=0 dst=r7 src=r0 offset=0 imm=0
+#line 74 "sample/cgroup_sock_addr_bind.c"
+    r7 = IMMEDIATE(0);
+    // EBPF_OP_STXW pc=1 dst=r10 src=r7 offset=-4 imm=0
+#line 49 "sample/cgroup_sock_addr_bind.c"
+    WRITE_ONCE_32(r10, (uint32_t)r7, OFFSET(-4));
     // EBPF_OP_LDXH pc=2 dst=r2 src=r1 offset=40 imm=0
-#line 41 "sample/cgroup_sock_addr_bind.c"
+#line 50 "sample/cgroup_sock_addr_bind.c"
     READ_ONCE_16(r2, r1, OFFSET(40));
     // EBPF_OP_STXH pc=3 dst=r10 src=r2 offset=-4 imm=0
-#line 41 "sample/cgroup_sock_addr_bind.c"
+#line 50 "sample/cgroup_sock_addr_bind.c"
     WRITE_ONCE_16(r10, (uint16_t)r2, OFFSET(-4));
     // EBPF_OP_LDXW pc=4 dst=r1 src=r1 offset=44 imm=0
-#line 42 "sample/cgroup_sock_addr_bind.c"
+#line 51 "sample/cgroup_sock_addr_bind.c"
     READ_ONCE_32(r1, r1, OFFSET(44));
     // EBPF_OP_STXB pc=5 dst=r10 src=r1 offset=-2 imm=0
-#line 42 "sample/cgroup_sock_addr_bind.c"
+#line 51 "sample/cgroup_sock_addr_bind.c"
     WRITE_ONCE_8(r10, (uint8_t)r1, OFFSET(-2));
     // EBPF_OP_MOV64_REG pc=6 dst=r2 src=r10 offset=0 imm=0
-#line 42 "sample/cgroup_sock_addr_bind.c"
+#line 51 "sample/cgroup_sock_addr_bind.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=7 dst=r2 src=r0 offset=0 imm=-4
-#line 42 "sample/cgroup_sock_addr_bind.c"
+#line 51 "sample/cgroup_sock_addr_bind.c"
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=8 dst=r1 src=r1 offset=0 imm=1
-#line 44 "sample/cgroup_sock_addr_bind.c"
+#line 53 "sample/cgroup_sock_addr_bind.c"
     r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_CALL pc=10 dst=r0 src=r0 offset=0 imm=1
-#line 44 "sample/cgroup_sock_addr_bind.c"
+#line 53 "sample/cgroup_sock_addr_bind.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-    // EBPF_OP_MOV64_REG pc=11 dst=r1 src=r0 offset=0 imm=0
-#line 44 "sample/cgroup_sock_addr_bind.c"
-    r1 = r0;
+    // EBPF_OP_MOV64_REG pc=11 dst=r6 src=r0 offset=0 imm=0
+#line 53 "sample/cgroup_sock_addr_bind.c"
+    r6 = r0;
     // EBPF_OP_MOV64_IMM pc=12 dst=r0 src=r0 offset=0 imm=1
-#line 44 "sample/cgroup_sock_addr_bind.c"
+#line 53 "sample/cgroup_sock_addr_bind.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_JEQ_IMM pc=13 dst=r1 src=r0 offset=1 imm=0
-#line 45 "sample/cgroup_sock_addr_bind.c"
-    if (r1 == IMMEDIATE(0)) {
-#line 45 "sample/cgroup_sock_addr_bind.c"
-        goto label_1;
-#line 45 "sample/cgroup_sock_addr_bind.c"
+    // EBPF_OP_JEQ_IMM pc=13 dst=r6 src=r0 offset=11 imm=0
+#line 54 "sample/cgroup_sock_addr_bind.c"
+    if (r6 == IMMEDIATE(0)) {
+#line 54 "sample/cgroup_sock_addr_bind.c"
+        goto label_2;
+#line 54 "sample/cgroup_sock_addr_bind.c"
     }
-    // EBPF_OP_LDXW pc=14 dst=r0 src=r1 offset=0 imm=0
-#line 46 "sample/cgroup_sock_addr_bind.c"
-    READ_ONCE_32(r0, r1, OFFSET(0));
+    // EBPF_OP_STXW pc=14 dst=r10 src=r7 offset=-8 imm=0
+#line 55 "sample/cgroup_sock_addr_bind.c"
+    WRITE_ONCE_32(r10, (uint32_t)r7, OFFSET(-8));
+    // EBPF_OP_MOV64_REG pc=15 dst=r2 src=r10 offset=0 imm=0
+#line 55 "sample/cgroup_sock_addr_bind.c"
+    r2 = r10;
+    // EBPF_OP_ADD64_IMM pc=16 dst=r2 src=r0 offset=0 imm=-8
+#line 55 "sample/cgroup_sock_addr_bind.c"
+    r2 += IMMEDIATE(-8);
+    // EBPF_OP_LDDW pc=17 dst=r1 src=r1 offset=0 imm=2
+#line 56 "sample/cgroup_sock_addr_bind.c"
+    r1 = POINTER(runtime_context->map_data[1].address);
+    // EBPF_OP_CALL pc=19 dst=r0 src=r0 offset=0 imm=1
+#line 56 "sample/cgroup_sock_addr_bind.c"
+    {
+#line 56 "sample/cgroup_sock_addr_bind.c"
+        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
+#line 56 "sample/cgroup_sock_addr_bind.c"
+        if (_array_key < 1) {
+#line 56 "sample/cgroup_sock_addr_bind.c"
+            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 8);
+#line 56 "sample/cgroup_sock_addr_bind.c"
+        } else {
+#line 56 "sample/cgroup_sock_addr_bind.c"
+            r0 = 0;
+#line 56 "sample/cgroup_sock_addr_bind.c"
+        }
+#line 56 "sample/cgroup_sock_addr_bind.c"
+    }
+    // EBPF_OP_JEQ_IMM pc=20 dst=r0 src=r0 offset=3 imm=0
+#line 57 "sample/cgroup_sock_addr_bind.c"
+    if (r0 == IMMEDIATE(0)) {
+#line 57 "sample/cgroup_sock_addr_bind.c"
+        goto label_1;
+#line 57 "sample/cgroup_sock_addr_bind.c"
+    }
+    // EBPF_OP_LDXDW pc=21 dst=r1 src=r0 offset=0 imm=0
+#line 58 "sample/cgroup_sock_addr_bind.c"
+    READ_ONCE_64(r1, r0, OFFSET(0));
+    // EBPF_OP_ADD64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1
+#line 58 "sample/cgroup_sock_addr_bind.c"
+    r1 += IMMEDIATE(1);
+    // EBPF_OP_STXDW pc=23 dst=r0 src=r1 offset=0 imm=0
+#line 58 "sample/cgroup_sock_addr_bind.c"
+    WRITE_ONCE_64(r0, (uint64_t)r1, OFFSET(0));
 label_1:
-    // EBPF_OP_EXIT pc=15 dst=r0 src=r0 offset=0 imm=0
-#line 62 "sample/cgroup_sock_addr_bind.c"
-    return r0;
+    // EBPF_OP_LDXW pc=24 dst=r0 src=r6 offset=0 imm=0
 #line 60 "sample/cgroup_sock_addr_bind.c"
+    READ_ONCE_32(r0, r6, OFFSET(0));
+label_2:
+    // EBPF_OP_EXIT pc=25 dst=r0 src=r0 offset=0 imm=0
+#line 76 "sample/cgroup_sock_addr_bind.c"
+    return r0;
+#line 74 "sample/cgroup_sock_addr_bind.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
@@ -262,10 +382,10 @@ static program_entry_t _programs[] = {
         "cgroup/bind4",
         "authorize_bind4",
         authorize_bind4_maps,
-        1,
+        2,
         authorize_bind4_helpers,
         1,
-        16,
+        26,
         &authorize_bind4_program_type_guid,
         &authorize_bind4_attach_type_guid,
     },
@@ -277,10 +397,10 @@ static program_entry_t _programs[] = {
         "cgroup/bind6",
         "authorize_bind6",
         authorize_bind6_maps,
-        1,
+        2,
         authorize_bind6_helpers,
         1,
-        16,
+        26,
         &authorize_bind6_program_type_guid,
         &authorize_bind6_attach_type_guid,
     },
