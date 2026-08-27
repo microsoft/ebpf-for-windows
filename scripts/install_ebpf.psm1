@@ -191,14 +191,15 @@ function Install-eBPFComponents
           [parameter(Mandatory=$false)] [bool] $KMDFVerifier = $false,
           [parameter(Mandatory=$true)] [string] $TestMode,
           [parameter(Mandatory=$false)] [switch] $SkipRebootOperations,
-          [parameter(Mandatory=$false)] [bool] $GranularTracing = $false)
+          [parameter(Mandatory=$false)] [bool] $GranularTracing = $false,
+          [parameter(Mandatory=$false)] [bool] $TraceAlreadyStarted = $false)
 
     # Print the status of the eBPF drivers and services before installation.
     # This is useful for detecting issues with the runner baselines.
     Print-eBPFComponentsStatus "Querying the status of eBPF drivers and services before the installation (none should be present)..." | Out-Null
 
     # Start granular tracing before installation if enabled.
-    if ($GranularTracing) {
+    if ($GranularTracing -and -not $TraceAlreadyStarted) {
         Start-WPRTrace -KmTracing $KmTracing -KmTraceType $KmTraceType
     }
 
@@ -383,7 +384,7 @@ function Install-eBPFComponents
 
     if ($GranularTracing) {
         Stop-WPRTrace -FileName "install_ebpf"
-    } else {
+    } elseif (-not $TraceAlreadyStarted) {
         # Start regular KM tracing if not using granular tracing
         Start-WPRTrace -KmTracing $KmTracing -KmTraceType $KmTraceType
     }

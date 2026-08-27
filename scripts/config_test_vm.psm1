@@ -282,7 +282,8 @@ function Install-eBPFComponentsOnVM
         [parameter(Mandatory=$true)][bool] $KmTracing,
         [parameter(Mandatory=$true)][string] $KmTraceType,
         [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false,
-        [parameter(Mandatory=$false)][bool] $GranularTracing = $false
+        [parameter(Mandatory=$false)][bool] $GranularTracing = $false,
+        [parameter(Mandatory=$false)][bool] $TraceAlreadyStarted = $false
     )
 
     Write-Log "Installing eBPF components on $VMName"
@@ -294,15 +295,16 @@ function Install-eBPFComponentsOnVM
               [Parameter(Mandatory=$true)] [bool] $KmTracing,
               [Parameter(Mandatory=$true)] [string] $KmTraceType,
               [parameter(Mandatory=$true)][string] $TestMode,
-              [parameter(Mandatory=$false)][bool] $GranularTracing = $false)
+              [parameter(Mandatory=$false)][bool] $GranularTracing = $false,
+              [parameter(Mandatory=$false)][bool] $TraceAlreadyStarted = $false)
         $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
-        Install-eBPFComponents -KmTracing $KmTracing -KmTraceType $KmTraceType -KMDFVerifier $true -TestMode $TestMode -GranularTracing $GranularTracing -ErrorAction Stop
+        Install-eBPFComponents -KmTracing $KmTracing -KmTraceType $KmTraceType -KMDFVerifier $true -TestMode $TestMode -GranularTracing $GranularTracing -TraceAlreadyStarted $TraceAlreadyStarted -ErrorAction Stop
     }
 
-    Invoke-CommandOnVM -VMName $VMName -Credential $TestCredential -VMIsRemote $VMIsRemote -ScriptBlock $scriptBlock -ArgumentList  ("eBPF", $LogFileName, $KmTracing, $KmTraceType, $TestMode, $GranularTracing) -ErrorAction Stop
+    Invoke-CommandOnVM -VMName $VMName -Credential $TestCredential -VMIsRemote $VMIsRemote -ScriptBlock $scriptBlock -ArgumentList  ("eBPF", $LogFileName, $KmTracing, $KmTraceType, $TestMode, $GranularTracing, $TraceAlreadyStarted) -ErrorAction Stop
 
     Write-Log "eBPF components installed on $VMName" -ForegroundColor Green
 }
@@ -711,15 +713,23 @@ function Initialize-NetworkInterfaces {
         [Parameter(Mandatory=$false)][bool] $ExecuteOnVM = $false,
         [Parameter(Mandatory=$false)] $VMList = @(),
         [Parameter(Mandatory=$true)][string] $TestWorkingDirectory,
-        [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false
+        [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false,
+        [Parameter(Mandatory=$false)][bool] $KmTracing = $false,
+        [Parameter(Mandatory=$false)][string] $KmTraceType = "file"
     )
 
     $commandScriptBlock = {
         param([Parameter(Mandatory=$true)] [string] $WorkingDirectory,
-              [Parameter(Mandatory=$true)][string] $LogFileName)
+              [Parameter(Mandatory=$true)][string] $LogFileName,
+              [Parameter(Mandatory=$true)][bool] $KmTracing,
+              [Parameter(Mandatory=$true)][string] $KmTraceType)
         Push-Location $WorkingDirectory
         try {
             Import-Module .\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+            if ($KmTracing) {
+                Import-Module .\tracing_utils.psm1 -ArgumentList ($LogFileName, $WorkingDirectory) -Force -WarningAction SilentlyContinue
+                Start-WPRTrace -TraceType $KmTraceType -FailOnError
+            }
             Write-Log "Installing DuoNic driver"
             $LASTEXITCODE = 0
             .\duonic.ps1 -Install -NumNicPairs 2
@@ -732,7 +742,7 @@ function Initialize-NetworkInterfaces {
         }
     }
 
-    $argumentList = @($TestWorkingDirectory, $LogFileName)
+    $argumentList = @($TestWorkingDirectory, $LogFileName, $KmTracing, $KmTraceType)
 
     if ($ExecuteOnVM) {
         # Execute on VMs.
