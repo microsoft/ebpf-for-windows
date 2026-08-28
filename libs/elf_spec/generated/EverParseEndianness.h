@@ -29,11 +29,12 @@ nswamy, protz, taramana 5-Feb-2020
 
 /* ... for Windows (MSVC)... not targeting XBOX 360! */
 
-#include <stdint.h>
 #include <stdlib.h>
+#include <stdint.h>
+
 #include <windef.h>
 
-typedef const char* EverParseString;
+typedef const char *EverParseString;
 typedef EverParseString PrimsString;
 
 #ifndef KRML_HOST_PRINTF
@@ -47,8 +48,10 @@ typedef EverParseString PrimsString;
 #endif
 
 #define KRML_CHECK_SIZE(size_elt, sz)                                          \
-    do {                                                                       \
-        if (((size_t)(sz)) > ((size_t)(SIZE_MAX / (size_elt)))) {              \
+    do                                                                         \
+    {                                                                          \
+        if (((size_t)(sz)) > ((size_t)(SIZE_MAX / (size_elt))))                \
+        {                                                                      \
             KRML_HOST_PRINTF(                                                  \
                 "Maximum allocatable size exceeded, aborting before overflow " \
                 "at "                                                          \
@@ -75,7 +78,7 @@ typedef EverParseString PrimsString;
 #define le64toh(x) (x)
 
 inline static uint16_t
-Load16(uint8_t* b)
+Load16(uint8_t *b)
 {
     uint16_t x;
     memcpy(&x, b, 2);
@@ -83,7 +86,7 @@ Load16(uint8_t* b)
 }
 
 inline static uint32_t
-Load32(uint8_t* b)
+Load32(uint8_t *b)
 {
     uint32_t x;
     memcpy(&x, b, 4);
@@ -91,7 +94,7 @@ Load32(uint8_t* b)
 }
 
 inline static uint64_t
-Load64(uint8_t* b)
+Load64(uint8_t *b)
 {
     uint64_t x;
     memcpy(&x, b, 8);
@@ -99,19 +102,19 @@ Load64(uint8_t* b)
 }
 
 inline static void
-Store16(uint8_t* b, uint16_t i)
+Store16(uint8_t *b, uint16_t i)
 {
     memcpy(b, &i, 2);
 }
 
 inline static void
-Store32(uint8_t* b, uint32_t i)
+Store32(uint8_t *b, uint32_t i)
 {
     memcpy(b, &i, 4);
 }
 
 inline static void
-Store64(uint8_t* b, uint64_t i)
+Store64(uint8_t *b, uint64_t i)
 {
     memcpy(b, &i, 8);
 }

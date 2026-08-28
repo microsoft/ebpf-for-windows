@@ -175,7 +175,8 @@ _droppacket_stress_thread_function(const stress_test_thread_context& test_params
 
         auto log_error_and_increment_failure_count = [&](int error, const char* function_name) {
             if (error != 0) {
-                LOG_ERROR("{}({}): {} failed with error: {}", __func__, test_params.thread_index, function_name, error);
+                LOG_ERROR(
+                    "{}({}): {} failed with error: {}", __func__, test_params.thread_index, function_name, error);
                 (*test_params.failure_count)++;
             }
         };
