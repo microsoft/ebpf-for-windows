@@ -1967,6 +1967,36 @@ struct bind_filter_scope_scenario
     int expected_error;
 };
 
+static const bind_filter_scope_scenario wildcard_reject_scenarios[] = {
+    {
+        "Wildcard reject overrides specific soft permits",
+        {BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+        {BPF_SOCK_ADDR_VERDICT_REJECT, BPF_SOCK_ADDR_VERDICT_REJECT},
+        WSAEACCES,
+    },
+    {
+        "Wildcard reject overrides specific hard permit",
+        {BPF_SOCK_ADDR_VERDICT_PROCEED_HARD, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+        {BPF_SOCK_ADDR_VERDICT_REJECT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+        WSAEACCES,
+    },
+};
+
+static const bind_filter_scope_scenario specific_reject_scenarios[] = {
+    {
+        "Specific reject overrides wildcard hard permit",
+        {BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, BPF_SOCK_ADDR_VERDICT_REJECT},
+        {BPF_SOCK_ADDR_VERDICT_PROCEED_HARD, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+        WSAEACCES,
+    },
+    {
+        "Specific reject overrides wildcard soft permits",
+        {BPF_SOCK_ADDR_VERDICT_REJECT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+        {BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+        WSAEACCES,
+    },
+};
+
 // Attempt a bind on the test port and return 0 on success or the Winsock error.
 // socket_family selects the socket type the way socket_helper does: IPv4 creates an AF_INET
 // socket, IPv6 an AF_INET6 socket, and Dual an AF_INET6 socket with IPV6_V6ONLY cleared. The
@@ -2041,9 +2071,13 @@ struct _bind_attach_guard
     }
 };
 
+template <size_t scenario_count>
 static void
 test_bind_multi_attach_wildcard_and_specific(
-    ADDRESS_FAMILY address_family, IPPROTO protocol, bool attach_wildcard_first)
+    ADDRESS_FAMILY address_family,
+    IPPROTO protocol,
+    bool attach_wildcard_first,
+    const bind_filter_scope_scenario (&scenarios)[scenario_count])
 {
     // Loads program_count_per_group * 2 programs: program_count_per_group attached to a
     // specific compartment id, and program_count_per_group attached with the wildcard
@@ -2058,33 +2092,6 @@ test_bind_multi_attach_wildcard_and_specific(
     // The compartment the test process runs in, so that the compartment-specific filter
     // matches the same bind as the wildcard filter.
     constexpr uint32_t specific_compartment_id = DEFAULT_COMPARTMENT_ID;
-
-    const bind_filter_scope_scenario scenarios[] = {
-        {
-            "Wildcard reject overrides specific soft permits",
-            {BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
-            {BPF_SOCK_ADDR_VERDICT_REJECT, BPF_SOCK_ADDR_VERDICT_REJECT},
-            WSAEACCES,
-        },
-        {
-            "Wildcard reject overrides specific hard permit",
-            {BPF_SOCK_ADDR_VERDICT_PROCEED_HARD, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
-            {BPF_SOCK_ADDR_VERDICT_REJECT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
-            WSAEACCES,
-        },
-        {
-            "Specific reject overrides wildcard hard permit",
-            {BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, BPF_SOCK_ADDR_VERDICT_REJECT},
-            {BPF_SOCK_ADDR_VERDICT_PROCEED_HARD, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
-            WSAEACCES,
-        },
-        {
-            "Specific reject overrides wildcard soft permits",
-            {BPF_SOCK_ADDR_VERDICT_REJECT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
-            {BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
-            WSAEACCES,
-        },
-    };
 
     native_module_helper_t helpers[program_count];
     struct bpf_object* objects[program_count] = {nullptr};
@@ -2163,16 +2170,38 @@ test_bind_multi_attach_wildcard_and_specific(
     }
 }
 
-// Verifies that matching wildcard and compartment-specific programs can both affect
-// the bind result, in both attach orders.
-TEMPLATE_TEST_CASE(
-    "sock_addr_bind_multi_wildcard_and_specific", "[bind_tests][multi_attach][!mayfail]", ALL_CONNECTION_TEST_PARAMS)
+// Verifies that matching compartment-specific programs affect the bind result in both attach orders.
+TEMPLATE_TEST_CASE("sock_addr_bind_multi_specific_reject", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
 {
     constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
     constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
 
-    SECTION("specific attached first") { test_bind_multi_attach_wildcard_and_specific(family, protocol, false); }
-    SECTION("wildcard attached first") { test_bind_multi_attach_wildcard_and_specific(family, protocol, true); }
+    SECTION("specific attached first")
+    {
+        test_bind_multi_attach_wildcard_and_specific(family, protocol, false, specific_reject_scenarios);
+    }
+    SECTION("wildcard attached first")
+    {
+        test_bind_multi_attach_wildcard_and_specific(family, protocol, true, specific_reject_scenarios);
+    }
+}
+
+// Verifies that matching wildcard programs affect the bind result in both attach orders.
+// This is marked mayfail until wildcard and compartment-specific programs both run.
+TEMPLATE_TEST_CASE(
+    "sock_addr_bind_multi_wildcard_reject", "[bind_tests][multi_attach][!mayfail]", ALL_CONNECTION_TEST_PARAMS)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+
+    SECTION("specific attached first")
+    {
+        test_bind_multi_attach_wildcard_and_specific(family, protocol, false, wildcard_reject_scenarios);
+    }
+    SECTION("wildcard attached first")
+    {
+        test_bind_multi_attach_wildcard_and_specific(family, protocol, true, wildcard_reject_scenarios);
+    }
 }
 
 void
