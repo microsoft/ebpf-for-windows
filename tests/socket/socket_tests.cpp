@@ -1955,8 +1955,7 @@ TEMPLATE_TEST_CASE("sock_addr_bind_multi_detach_last", "[bind_tests][multi_attac
 // ===========================================================================
 // Wildcard and compartment-specific bind attach.
 //
-// Programs attached to either scope can affect a matching bind. These tests are
-// marked mayfail until that behavior is implemented.
+// Programs attached to either scope can affect a matching bind.
 // ===========================================================================
 
 struct bind_filter_scope_scenario
@@ -1965,36 +1964,6 @@ struct bind_filter_scope_scenario
     ebpf_sock_addr_verdict_t specific_verdicts[2];
     ebpf_sock_addr_verdict_t wildcard_verdicts[2];
     int expected_error;
-};
-
-static const bind_filter_scope_scenario wildcard_reject_scenarios[] = {
-    {
-        "Wildcard reject overrides specific soft permits",
-        {BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
-        {BPF_SOCK_ADDR_VERDICT_REJECT, BPF_SOCK_ADDR_VERDICT_REJECT},
-        WSAEACCES,
-    },
-    {
-        "Wildcard reject overrides specific hard permit",
-        {BPF_SOCK_ADDR_VERDICT_PROCEED_HARD, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
-        {BPF_SOCK_ADDR_VERDICT_REJECT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
-        WSAEACCES,
-    },
-};
-
-static const bind_filter_scope_scenario specific_reject_scenarios[] = {
-    {
-        "Specific reject overrides wildcard hard permit",
-        {BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, BPF_SOCK_ADDR_VERDICT_REJECT},
-        {BPF_SOCK_ADDR_VERDICT_PROCEED_HARD, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
-        WSAEACCES,
-    },
-    {
-        "Specific reject overrides wildcard soft permits",
-        {BPF_SOCK_ADDR_VERDICT_REJECT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
-        {BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
-        WSAEACCES,
-    },
 };
 
 // Attempt a bind on the test port and return 0 on success or the Winsock error.
@@ -2175,14 +2144,28 @@ TEMPLATE_TEST_CASE("sock_addr_bind_multi_specific_reject", "[bind_tests][multi_a
 {
     constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
     constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+    const bind_filter_scope_scenario scenarios[] = {
+        {
+            "Specific reject overrides wildcard hard permit",
+            {BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, BPF_SOCK_ADDR_VERDICT_REJECT},
+            {BPF_SOCK_ADDR_VERDICT_PROCEED_HARD, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+            WSAEACCES,
+        },
+        {
+            "Specific reject overrides wildcard soft permits",
+            {BPF_SOCK_ADDR_VERDICT_REJECT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+            {BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+            WSAEACCES,
+        },
+    };
 
     SECTION("specific attached first")
     {
-        test_bind_multi_attach_wildcard_and_specific(family, protocol, false, specific_reject_scenarios);
+        test_bind_multi_attach_wildcard_and_specific(family, protocol, false, scenarios);
     }
     SECTION("wildcard attached first")
     {
-        test_bind_multi_attach_wildcard_and_specific(family, protocol, true, specific_reject_scenarios);
+        test_bind_multi_attach_wildcard_and_specific(family, protocol, true, scenarios);
     }
 }
 
@@ -2193,14 +2176,28 @@ TEMPLATE_TEST_CASE(
 {
     constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
     constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+    const bind_filter_scope_scenario scenarios[] = {
+        {
+            "Wildcard reject overrides specific soft permits",
+            {BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+            {BPF_SOCK_ADDR_VERDICT_REJECT, BPF_SOCK_ADDR_VERDICT_REJECT},
+            WSAEACCES,
+        },
+        {
+            "Wildcard reject overrides specific hard permit",
+            {BPF_SOCK_ADDR_VERDICT_PROCEED_HARD, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+            {BPF_SOCK_ADDR_VERDICT_REJECT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+            WSAEACCES,
+        },
+    };
 
     SECTION("specific attached first")
     {
-        test_bind_multi_attach_wildcard_and_specific(family, protocol, false, wildcard_reject_scenarios);
+        test_bind_multi_attach_wildcard_and_specific(family, protocol, false, scenarios);
     }
     SECTION("wildcard attached first")
     {
-        test_bind_multi_attach_wildcard_and_specific(family, protocol, true, wildcard_reject_scenarios);
+        test_bind_multi_attach_wildcard_and_specific(family, protocol, true, scenarios);
     }
 }
 
