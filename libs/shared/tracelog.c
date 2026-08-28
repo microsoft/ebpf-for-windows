@@ -511,13 +511,13 @@ ebpf_log_message_wstring(
 }
 
 #define _EBPF_LOG_MESSAGE_WSTRING_ERROR(trace_level, keyword, message, wstring, error) \
-    TraceLoggingWrite(                                                                  \
-        ebpf_tracelog_provider,                                                         \
-        EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,                                            \
-        TraceLoggingLevel(trace_level),                                                 \
-        TraceLoggingKeyword((keyword)),                                                 \
-        TraceLoggingString(message, "Message"),                                         \
-        TraceLoggingWideString(wstring, #wstring),                                      \
+    TraceLoggingWrite(                                                                 \
+        ebpf_tracelog_provider,                                                        \
+        EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,                                           \
+        TraceLoggingLevel(trace_level),                                                \
+        TraceLoggingKeyword((keyword)),                                                \
+        TraceLoggingString(message, "Message"),                                        \
+        TraceLoggingWideString(wstring, #wstring),                                     \
         TraceLoggingWinError(error));
 #define EBPF_LOG_MESSAGE_WSTRING_ERROR_KEYWORD_SWITCH(trace_level, message, wstring, error)                 \
     switch (keyword) {                                                                                      \

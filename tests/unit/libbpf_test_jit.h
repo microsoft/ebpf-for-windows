@@ -4,10 +4,11 @@
 #pragma once
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-const int nonexistent_fd = 12345678;
+    const int nonexistent_fd = 12345678;
 
 #define CONCAT(s1, s2) s1 s2
 #define DECLARE_TEST_CASE(_name, _group, _function, _suffix, _execution_type) \
@@ -36,11 +37,11 @@ const int nonexistent_fd = 12345678;
     DECLARE_JIT_TEST(_name, _group, _function)           \
     DECLARE_NATIVE_TEST(_name, _group, _function)
 
-void
-ebpf_test_tail_call(_In_z_ const char* filename, uint32_t expected_result);
+    void
+    ebpf_test_tail_call(_In_z_ const char* filename, uint32_t expected_result);
 
-void
-test_invalid_bpf_action(char log_buffer[]);
+    void
+    test_invalid_bpf_action(char log_buffer[]);
 
 #ifdef __cplusplus
 }

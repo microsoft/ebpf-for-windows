@@ -19,7 +19,6 @@ nswamy, protz, taramana 5-Feb-2020
 
 --*/
 
-
 #ifndef __EverParse_H
 #define __EverParse_H
 
@@ -46,15 +45,13 @@ extern "C"
     static inline uint32_t
     EverParseGetBitfield32(uint32_t Value, uint32_t BitsFrom, uint32_t BitsTo)
     {
-        return Value << ((uint32_t)32U - BitsTo) >>
-               ((uint32_t)32U - BitsTo + BitsFrom);
+        return Value << ((uint32_t)32U - BitsTo) >> ((uint32_t)32U - BitsTo + BitsFrom);
     }
 
     static inline uint64_t
     EverParseGetBitfield64(uint64_t Value, uint32_t BitsFrom, uint32_t BitsTo)
     {
-        return Value << ((uint32_t)64U - BitsTo) >>
-               ((uint32_t)64U - BitsTo + BitsFrom);
+        return Value << ((uint32_t)64U - BitsTo) >> ((uint32_t)64U - BitsTo + BitsFrom);
     }
 
 #define EVERPARSE_VALIDATOR_MAX_LENGTH ((uint64_t)1152921504606846975U)
@@ -74,8 +71,7 @@ extern "C"
     static inline uint64_t
     EverParseSetValidatorErrorPos(uint64_t Error, uint64_t Position)
     {
-        return (Error & (uint64_t)17293822569102704640U) | Position
-                                                               << (uint32_t)0U;
+        return (Error & (uint64_t)17293822569102704640U) | Position << (uint32_t)0U;
     }
 
     static inline uint64_t
@@ -98,27 +94,22 @@ extern "C"
 
 #define EVERPARSE_VALIDATOR_ERROR_GENERIC ((uint64_t)1152921504606846976U)
 
-#define EVERPARSE_VALIDATOR_ERROR_NOT_ENOUGH_DATA                              \
-    ((uint64_t)2305843009213693952U)
+#define EVERPARSE_VALIDATOR_ERROR_NOT_ENOUGH_DATA ((uint64_t)2305843009213693952U)
 
 #define EVERPARSE_VALIDATOR_ERROR_IMPOSSIBLE ((uint64_t)3458764513820540928U)
 
-#define EVERPARSE_VALIDATOR_ERROR_LIST_SIZE_NOT_MULTIPLE                       \
-    ((uint64_t)4611686018427387904U)
+#define EVERPARSE_VALIDATOR_ERROR_LIST_SIZE_NOT_MULTIPLE ((uint64_t)4611686018427387904U)
 
 #define EVERPARSE_VALIDATOR_ERROR_ACTION_FAILED ((uint64_t)5764607523034234880U)
 
-#define EVERPARSE_VALIDATOR_ERROR_CONSTRAINT_FAILED                            \
-    ((uint64_t)6917529027641081856U)
+#define EVERPARSE_VALIDATOR_ERROR_CONSTRAINT_FAILED ((uint64_t)6917529027641081856U)
 
-#define EVERPARSE_VALIDATOR_ERROR_UNEXPECTED_PADDING                           \
-    ((uint64_t)8070450532247928832U)
+#define EVERPARSE_VALIDATOR_ERROR_UNEXPECTED_PADDING ((uint64_t)8070450532247928832U)
 
     static inline PrimsString
     EverParseErrorReasonOfResult(uint64_t Code)
     {
-        switch (EverParseGetValidatorErrorKind(Code))
-        {
+        switch (EverParseGetValidatorErrorKind(Code)) {
         case 1U: {
             return "generic error";
         }
@@ -149,12 +140,10 @@ extern "C"
     static inline uint64_t
     EverParseCheckConstraintOk(BOOLEAN Ok, uint64_t Position)
     {
-        if (Ok)
-        {
+        if (Ok) {
             return Position;
         }
-        return EverParseSetValidatorErrorPos(
-            EVERPARSE_VALIDATOR_ERROR_CONSTRAINT_FAILED, Position);
+        return EverParseSetValidatorErrorPos(EVERPARSE_VALIDATOR_ERROR_CONSTRAINT_FAILED, Position);
     }
 
     static inline BOOLEAN
@@ -172,19 +161,18 @@ extern "C"
         PrimsString reason;
     } EverParseErrorFrame;
 
-    typedef uint8_t *EverParseInputBuffer;
+    typedef uint8_t* EverParseInputBuffer;
 
     static inline void
     EverParseDefaultErrorHandler(
         PrimsString TypenameS,
         PrimsString Fieldname,
         PrimsString Reason,
-        EverParseErrorFrame *Context,
-        uint8_t *Input,
+        EverParseErrorFrame* Context,
+        uint8_t* Input,
         uint64_t StartPos)
     {
-        if (!(*Context).filled)
-        {
+        if (!(*Context).filled) {
             *Context = ((EverParseErrorFrame){
                 .filled = TRUE,
                 .start_pos = StartPos,

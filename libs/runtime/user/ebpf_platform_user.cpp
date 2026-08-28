@@ -106,7 +106,6 @@ ebpf_allocate_ring_buffer_memory(size_t length)
         return nullptr;
     }
 
-
     ebpf_ring_descriptor_t* descriptor =
         (ebpf_ring_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_ring_descriptor_t), EBPF_POOL_TAG_DEFAULT);
     if (!descriptor) {

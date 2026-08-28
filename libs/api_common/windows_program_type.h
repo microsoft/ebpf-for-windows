@@ -7,9 +7,15 @@
 #include "ebpf_program_types.h"
 #include "ebpf_verifier_wrapper.hpp"
 
-#define PTYPE(name, descr, native_type, prefixes) {name, descr, native_type, prefixes}
+#define PTYPE(name, descr, native_type, prefixes) \
+    {                                             \
+        name, descr, native_type, prefixes        \
+    }
 
-#define PTYPE_PRIVILEGED(name, descr, native_type, prefixes) {name, descr, native_type, prefixes, true}
+#define PTYPE_PRIVILEGED(name, descr, native_type, prefixes) \
+    {                                                        \
+        name, descr, native_type, prefixes, true             \
+    }
 
 // Allow for comma as a separator between multiple prefixes, to make
 // the preprocessor treat a prefix list as one macro argument.
