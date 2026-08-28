@@ -2187,7 +2187,7 @@ TEMPLATE_TEST_CASE("sock_addr_bind_multi_specific_reject", "[bind_tests][multi_a
 }
 
 // Verifies that a matching wildcard reject affects the bind result in both attach orders.
-// This is marked mayfail until wildcard and compartment-specific programs both run.
+// This is marked mayfail until a wildcard reject is enforced when compartment-specific programs are also attached.
 TEMPLATE_TEST_CASE(
     "sock_addr_bind_multi_wildcard_reject", "[bind_tests][multi_attach][!mayfail]", ALL_CONNECTION_TEST_PARAMS)
 {
