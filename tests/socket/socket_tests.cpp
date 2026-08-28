@@ -2170,7 +2170,7 @@ test_bind_multi_attach_wildcard_and_specific(
     }
 }
 
-// Verifies that a matching compartment-specific reject affects the bind result in both attach orders.
+// Verifies that a matching compartment-specific reject overrides wildcard permits in both attach orders.
 TEMPLATE_TEST_CASE("sock_addr_bind_multi_specific_reject", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
 {
     constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
