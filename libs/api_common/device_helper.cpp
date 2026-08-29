@@ -135,6 +135,7 @@ _Must_inspect_result_ ebpf_result_t
 register_wait_async_ioctl_operation(_Inout_ async_ioctl_completion_t* async_ioctl_completion)
 {
     ebpf_result_t result = EBPF_SUCCESS;
+    uint32_t win32_error = ERROR_SUCCESS;
 
     EBPF_LOG_ENTRY();
 
@@ -156,18 +157,18 @@ register_wait_async_ioctl_operation(_Inout_ async_ioctl_completion_t* async_ioct
             false,    // not signaled
             nullptr); // no name
         if (async_ioctl_completion->overlapped.hEvent == nullptr) {
-            result = win32_error_code_to_ebpf_result(GetLastError());
+            win32_error = GetLastError();
+            result = win32_error_code_to_ebpf_result(win32_error);
             _Analysis_assume_(result != EBPF_SUCCESS);
-            EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, CreateEvent);
-            goto Exit;
+            EBPF_BAIL_ON_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, CreateEvent, win32_error, Exit);
         }
     } else {
         // Reset the event.
         if (!ResetEvent(event)) {
-            result = win32_error_code_to_ebpf_result(GetLastError());
+            win32_error = GetLastError();
+            result = win32_error_code_to_ebpf_result(win32_error);
             _Analysis_assume_(result != EBPF_SUCCESS);
-            EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, ResetEvent);
-            goto Exit;
+            EBPF_BAIL_ON_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, ResetEvent, win32_error, Exit);
         }
         async_ioctl_completion->overlapped.hEvent = event;
     }
@@ -190,14 +191,17 @@ get_async_ioctl_operation_overlapped(_In_ const async_ioctl_completion_t* async_
 _Must_inspect_result_ ebpf_result_t
 get_async_ioctl_result(_In_ const async_ioctl_completion_t* ioctl_completion)
 {
+    ebpf_result_t result = EBPF_SUCCESS;
     unsigned long dummy;
     if (!GetOverlappedResult(
             reinterpret_cast<HANDLE>(get_async_device_handle()),
             get_async_ioctl_operation_overlapped(ioctl_completion),
             &dummy,
-            FALSE))
-        return win32_error_code_to_ebpf_result(GetLastError());
-    return EBPF_SUCCESS;
+            FALSE)) {
+        result = win32_error_code_to_ebpf_result(GetLastError());
+    }
+
+    EBPF_RETURN_RESULT(result);
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -207,6 +211,7 @@ initialize_async_ioctl_operation(
     _Outptr_ async_ioctl_completion_t** async_ioctl_completion)
 {
     ebpf_result_t result = EBPF_SUCCESS;
+    uint32_t win32_error = ERROR_SUCCESS;
     *async_ioctl_completion = nullptr;
 
     async_ioctl_completion_context_t* local_async_ioctl_completion =
@@ -214,7 +219,7 @@ initialize_async_ioctl_operation(
             sizeof(async_ioctl_completion_context_t), EBPF_POOL_TAG_DEFAULT);
     if (local_async_ioctl_completion == nullptr) {
         result = EBPF_NO_MEMORY;
-        goto Exit;
+        EBPF_BAIL_ON_ALLOC_FAILURE(local_async_ioctl_completion, Exit);
     }
 
     local_async_ioctl_completion->callback_context = callback_context;
@@ -236,10 +241,10 @@ initialize_async_ioctl_operation(
         local_async_ioctl_completion,
         nullptr);
     if (local_async_ioctl_completion->wait == nullptr) {
-        result = win32_error_code_to_ebpf_result(GetLastError());
+        win32_error = GetLastError();
+        result = win32_error_code_to_ebpf_result(win32_error);
         _Analysis_assume_(result != EBPF_SUCCESS);
-        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, CreateThreadpoolWait);
-        goto Exit;
+        EBPF_BAIL_ON_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, CreateThreadpoolWait, win32_error, Exit);
     }
 
     // Register for wait on the completion of the async IOCTL.

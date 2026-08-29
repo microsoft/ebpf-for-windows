@@ -926,7 +926,7 @@ label_6:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 154, 160}, // Version header.
         BindMonitor,
         "bind",
         "bind",
@@ -941,7 +941,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 154, 160}, // Version header.
         BindMonitor_Callee0,
         "bind/0",
         "bind/0",
@@ -956,7 +956,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 154, 160}, // Version header.
         BindMonitor_Callee1,
         "bind/1",
         "bind/1",
@@ -983,7 +983,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 1;
-    version->minor = 4;
+    version->minor = 6;
     version->revision = 0;
 }
 

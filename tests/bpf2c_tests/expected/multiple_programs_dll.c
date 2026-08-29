@@ -207,7 +207,7 @@ program4(void* context, const program_runtime_context_t* runtime_context)
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 154, 160}, // Version header.
         program1,
         "bind_4",
         "bind_4",
@@ -222,7 +222,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 154, 160}, // Version header.
         program2,
         "bind_3",
         "bind_3",
@@ -237,7 +237,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 154, 160}, // Version header.
         program3,
         "bind_2",
         "bind_2",
@@ -252,7 +252,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 154, 160}, // Version header.
         program4,
         "bind_1",
         "bind_1",
@@ -279,7 +279,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 1;
-    version->minor = 4;
+    version->minor = 6;
     version->revision = 0;
 }
 

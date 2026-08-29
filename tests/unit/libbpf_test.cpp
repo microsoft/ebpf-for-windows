@@ -999,6 +999,8 @@ TEST_CASE("ring buffer Linux-compatible APIs", "[libbpf][ring_buffer]")
 
 TEST_CASE("ring buffer Windows-specific APIs", "[libbpf][ring_buffer]")
 {
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
     _test_helper_libbpf test_helper;
     test_helper.initialize();
 
@@ -1092,6 +1094,7 @@ TEST_CASE("ring buffer Windows-specific APIs", "[libbpf][ring_buffer]")
     }
 
     Platform::_close(map_fd);
+#pragma warning(pop)
 }
 
 TEST_CASE("ring buffer memory mapping APIs", "[libbpf][ring_buffer]")
@@ -1134,6 +1137,42 @@ TEST_CASE("ring buffer memory mapping APIs", "[libbpf][ring_buffer]")
         REQUIRE(result == EBPF_SUCCESS);
     }
 
+    SECTION("ebpf_ring_buffer_map_map_buffer should preserve region protections across repeated mappings")
+    {
+        void* consumer1 = nullptr;
+        const void* producer1 = nullptr;
+        const uint8_t* data1 = nullptr;
+        size_t data_size1 = 0;
+        void* consumer2 = nullptr;
+        const void* producer2 = nullptr;
+        const uint8_t* data2 = nullptr;
+        size_t data_size2 = 0;
+        MEMORY_BASIC_INFORMATION producer_info = {};
+        MEMORY_BASIC_INFORMATION data_info = {};
+        MEMORY_BASIC_INFORMATION producer_info2 = {};
+        MEMORY_BASIC_INFORMATION data_info2 = {};
+
+        REQUIRE(ebpf_ring_buffer_map_map_buffer(map_fd, &consumer1, &producer1, &data1, &data_size1) == EBPF_SUCCESS);
+        REQUIRE(ebpf_ring_buffer_map_map_buffer(map_fd, &consumer2, &producer2, &data2, &data_size2) == EBPF_SUCCESS);
+
+        REQUIRE(consumer1 != consumer2);
+        REQUIRE(producer1 != producer2);
+        REQUIRE(data1 != data2);
+        REQUIRE(data_size1 == data_size2);
+
+        REQUIRE(VirtualQuery(producer1, &producer_info, sizeof(producer_info)) == sizeof(producer_info));
+        REQUIRE(VirtualQuery(data1, &data_info, sizeof(data_info)) == sizeof(data_info));
+        REQUIRE(VirtualQuery(producer2, &producer_info2, sizeof(producer_info2)) == sizeof(producer_info2));
+        REQUIRE(VirtualQuery(data2, &data_info2, sizeof(data_info2)) == sizeof(data_info2));
+        REQUIRE((producer_info.Protect & PAGE_READONLY) == PAGE_READONLY);
+        REQUIRE((data_info.Protect & PAGE_READONLY) == PAGE_READONLY);
+        REQUIRE((producer_info2.Protect & PAGE_READONLY) == PAGE_READONLY);
+        REQUIRE((data_info2.Protect & PAGE_READONLY) == PAGE_READONLY);
+
+        REQUIRE(ebpf_ring_buffer_map_unmap_buffer(map_fd, consumer1, producer1, data1) == EBPF_SUCCESS);
+        REQUIRE(ebpf_ring_buffer_map_unmap_buffer(map_fd, consumer2, producer2, data2) == EBPF_SUCCESS);
+    }
+
     SECTION("ebpf_ring_buffer_map_map_buffer with invalid fd should fail")
     {
         void* consumer = nullptr;
@@ -1173,6 +1212,8 @@ TEST_CASE("ring buffer memory mapping APIs", "[libbpf][ring_buffer]")
 
 TEST_CASE("ring buffer manager APIs", "[libbpf][ring_buffer]")
 {
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
     _test_helper_libbpf test_helper;
     test_helper.initialize();
 
@@ -1351,6 +1392,7 @@ TEST_CASE("ring buffer manager APIs", "[libbpf][ring_buffer]")
     // No null parameter tests (violates SAL).
 
     Platform::_close(map_fd);
+#pragma warning(pop)
 }
 
 // Test helper for perf buffer callback.
@@ -1557,6 +1599,8 @@ TEST_CASE("perf buffer Linux-compatible APIs", "[libbpf][perf_event_array]")
 
 TEST_CASE("perf buffer Windows-specific APIs", "[libbpf][perf_event_array]")
 {
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
     _test_helper_libbpf test_helper;
     test_helper.initialize();
 
@@ -1656,6 +1700,7 @@ TEST_CASE("perf buffer Windows-specific APIs", "[libbpf][perf_event_array]")
     }
 
     Platform::_close(map_fd);
+#pragma warning(pop)
 }
 
 TEST_CASE("perf buffer manager APIs", "[libbpf][perf_event_array]")
@@ -1674,6 +1719,7 @@ TEST_CASE("perf buffer manager APIs", "[libbpf][perf_event_array]")
     {
         ebpf_perf_buffer_opts perf_opts = {.sz = sizeof(perf_opts), .flags = 0};
 
+#pragma warning(suppress : 4996) // deprecated
         struct perf_buffer* pb = ebpf_perf_buffer__new(
             map_fd, 0, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, &perf_opts);
         REQUIRE(pb != nullptr);
@@ -1692,6 +1738,7 @@ TEST_CASE("perf buffer manager APIs", "[libbpf][perf_event_array]")
     {
         ebpf_perf_buffer_opts perf_opts{.sz = sizeof(perf_opts), .flags = EBPF_PERFBUF_FLAG_AUTO_CALLBACK};
 
+#pragma warning(suppress : 4996) // deprecated
         struct perf_buffer* pb = ebpf_perf_buffer__new(
             map_fd, 0, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, &perf_opts);
         REQUIRE(pb != nullptr);
@@ -1787,6 +1834,7 @@ TEST_CASE("perf buffer error handling", "[libbpf][perf_event_array]")
         // Test with a flag value that's not defined.
         ebpf_perf_buffer_opts opts_with_unknown_flag{.sz = sizeof(ebpf_perf_buffer_opts), .flags = 0xFFFFFFFF};
 
+#pragma warning(suppress : 4996) // deprecated
         struct perf_buffer* pb = ebpf_perf_buffer__new(
             map_fd,
             0,
@@ -2478,6 +2526,14 @@ _ebpf_test_map_in_map(ebpf_map_type_t type)
 
     // Verify that we can read it back.
     REQUIRE(bpf_map_lookup_elem(outer_map_fd, &outer_key, &inner_map_id) == 0);
+
+    if (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+        // Replacing an existing hash-of-maps entry must release the stored object pointer.
+        REQUIRE(bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0) == 0);
+        ebpf_id_t replaced_inner_map_id;
+        REQUIRE(bpf_map_lookup_elem(outer_map_fd, &outer_key, &replaced_inner_map_id) == 0);
+        REQUIRE(replaced_inner_map_id == inner_map_id);
+    }
 
     // Verify that we can convert the ID to a new fd, so we know it is actually
     // a valid map ID.
@@ -3670,6 +3726,21 @@ TEST_CASE("Map and program information", "[libbpf][bpf]")
     int program_fd = bpf(BPF_PROG_LOAD, &attr, sizeof(attr));
     REQUIRE(program_fd >= 0);
 
+    // Query full program info before any maps are bound. A non-null map_ids pointer must be ignored
+    // when there are no map IDs to return.
+    sys_bpf_prog_info_t program_info = {};
+    attr = {};
+    attr.info.bpf_fd = program_fd;
+    attr.info.info = (uintptr_t)&program_info;
+    attr.info.info_len = sizeof(program_info);
+    program_info.nr_map_ids = 1024 * 1024;
+    program_info.map_ids = (uintptr_t)1;
+    REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
+    REQUIRE(attr.info.info_len == sizeof(program_info));
+    REQUIRE(program_info.id != 0);
+    REQUIRE(program_info.nr_map_ids == 0);
+    REQUIRE(strncmp(program_info.name, "testing", sizeof(program_info.name)) == 0);
+
     // Bind map to the program so that the ID is returned in the info.
     attr = {};
     attr.prog_bind_map.prog_fd = program_fd;
@@ -3677,7 +3748,7 @@ TEST_CASE("Map and program information", "[libbpf][bpf]")
     REQUIRE(bpf(BPF_PROG_BIND_MAP, &attr, sizeof(attr)) == 0);
 
     // Verify that we can query a prefix of fields.
-    sys_bpf_prog_info_t program_info = {};
+    program_info = {};
     attr = {};
     attr.info.bpf_fd = program_fd;
     attr.info.info = (uintptr_t)&program_info;

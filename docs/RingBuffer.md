@@ -1,9 +1,11 @@
 # eBPF Ring Buffer Map
 
 NOTE: With [#4640](https://github.com/microsoft/ebpf-for-windows/pull/4640) The default behavior has been changed to be linux-compatible.
-- Code expecting asynchonous callbacks should switch to `ebpf_ring_buffer__new` with `EBPF_RINGBUF_FLAG_AUTO_CALLBACK` set in the opts flags.
+- The asynchronous callback path (`ebpf_ring_buffer__new` + `EBPF_RINGBUF_FLAG_AUTO_CALLBACK`) is now deprecated.
+  Prefer polling mode via `ring_buffer__new` (or `ebpf_ring_buffer__new` with flags = 0), then call `ring_buffer__poll`
+  / `ring_buffer__consume`.
 
-ebpf-for-windows exposes the [libbpf.h](/include/bpf/libbpf.h) interface for user-mode code.
+ebpf-for-windows exposes the [libbpf.h](../include/bpf/libbpf.h) interface for user-mode code.
 
 *More documentation on user-mode API to be added later.*
 
@@ -17,7 +19,7 @@ ebpf-for-windows now uses linux-compatible synchronous callbacks by default, wit
 
 Asynchronous callback consumer:
 
-1. Call `ebpf_ring_buffer__new` to set up callback with `EBPF_RINGBUF_FLAG_AUTO_CALLBACK` specified.
+1. Call `ebpf_ring_buffer__new` to set up callback with `EBPF_RINGBUF_FLAG_AUTO_CALLBACK` specified (**deprecated**).
     - On Linux synchronous callbacks are always used, so the `EBPF_RINGBUF_FLAG_AUTO_CALLBACK` flag is Windows-specific.
     - Note: automatic callbacks were the original default behavior, but the default has been changed to be source-compatible with Linux.
 2. The callback will be invoked for each record written to the ring buffer.
@@ -50,10 +52,12 @@ Windows now supports both `ring_buffer__poll()` and `ring_buffer__consume()`, wi
 #### Asynchronous callbacks
 
 On Linux ring buffers support only synchronous callbacks (using poll/consume).
-Windows eBPF now supports both synchronous callbacks (default, matching Linux) and asynchronous ring buffer callbacks.
+Windows eBPF now supports both synchronous callbacks (default, matching Linux) and asynchronous ring buffer callbacks
+(asynchronous mode is deprecated).
 
 For synchronous callbacks (Linux-compatible), use the default behavior with `ring_buffer__new()`.
-For asynchronous callbacks (Windows-specific), use `ebpf_ring_buffer__new()` with the `EBPF_RINGBUF_FLAG_AUTO_CALLBACK` flag.
+For asynchronous callbacks (Windows-specific, **deprecated**), use `ebpf_ring_buffer__new()` with the
+`EBPF_RINGBUF_FLAG_AUTO_CALLBACK` flag.
 
 #### Memory mapped consumers
 
@@ -99,7 +103,8 @@ ebpf_ring_buffer_output(_Inout_ ebpf_ring_buffer_t* ring, _In_reads_bytes_(lengt
 
 The default behaviour of these functions has been updated to use synchronous callbacks to match Linux libbpf behavior.
 
-Use `ring_buffer__new()` (defaults to synchronous mode) or `ebpf_ring_buffer__new()` with `EBPF_RINGBUF_FLAG_AUTO_CALLBACK` to set up automatic callbacks for each record.
+Use `ring_buffer__new()` (defaults to synchronous mode) or `ebpf_ring_buffer__new()` with
+`EBPF_RINGBUF_FLAG_AUTO_CALLBACK` to set up automatic callbacks for each record (**deprecated mode**).
 Use `ring_buffer__new()` (default behavior) or `ebpf_ring_buffer__new()` without `EBPF_RINGBUF_FLAG_AUTO_CALLBACK` to set up synchronous callbacks that are invoked via `ring_buffer__poll()` or `ring_buffer__consume()`.
 
 Call `ebpf_ring_buffer_map_map_buffer()` ([New eBPF APIs](#new-ebpf-apis-for-mapped-memory-consumer))
@@ -226,11 +231,12 @@ struct ebpf_ring_buffer_opts
  */
 enum ebpf_ring_buffer_flags
 {
-    EBPF_RINGBUF_FLAG_AUTO_CALLBACK = (uint64_t)1 << 0, /* Automatically invoke callback for each record. */
+    EBPF_RINGBUF_FLAG_AUTO_CALLBACK = (uint64_t)1 << 0, /* Deprecated: Automatically invoke callback for each record. */
 };
 
 /**
  * @brief Creates a new ring buffer manager (Windows-specific with flags support).
+ * @deprecated Prefer polling mode (`ring_buffer__new`) over asynchronous callbacks.
  *
  * @param[in] map_fd File descriptor to ring buffer map.
  * @param[in] sample_cb Pointer to ring buffer notification callback function.
@@ -652,9 +658,9 @@ close(map_fd);
 ## Internal Ring Buffer
 
 The ebpf-for-windows ring buffer map is built on the internal ring buffer implementation in
-[ebpf_ring_buffer.h](/libs/runtime/ebpf_ring_buffer.h) and [ebpf_ring_buffer.c](/libs/runtime/ebpf_ring_buffer.c).
+[ebpf_ring_buffer.h](../libs/runtime/ebpf_ring_buffer.h) and [ebpf_ring_buffer.c](../libs/runtime/ebpf_ring_buffer.c).
 
-- These functions are internal to ebpf-for-windows. User mode code should use [libbpf.h](/include/bpf/libbpf.h).
+- These functions are internal to ebpf-for-windows. User mode code should use [libbpf.h](../include/bpf/libbpf.h).
 
 This section describes the multiple-producer single-consumer internal ring buffer implementation.
 
@@ -706,7 +712,7 @@ typedef struct _ebpf_ring_buffer
 } ebpf_ring_buffer_t;
 ```
 
-- Defined in [ebpf_ring_buffer.c](/libs/runtime/ebpf_ring_buffer.c)
+- Defined in [ebpf_ring_buffer.c](../libs/runtime/ebpf_ring_buffer.c)
 - The producer and consumer offsets are used to synchronize between producers and the consumer.
 - The producer reserve offset is used to serialize producer reservations.
 - Offsets are modulo'd by the length to get the offset of a record in the shared buffer.
@@ -728,7 +734,7 @@ typedef struct _ebpf_ring_buffer_record
 } ebpf_ring_buffer_record_t;
 ```
 
-- Defined in [ebpf_ring_buffer_record.h](/libs/shared/ebpf_ring_buffer_record.h).
+- Defined in [ebpf_ring_buffer_record.h](../libs/shared/ebpf_ring_buffer_record.h).
 - Record includes 8 byte header, with the first 4 bytes indicating the length and lock, discard flags.
   - `page_offset` is for future use with the submit and discard bpf helper functions.
   - 32-2 = 30 bit record length limits records to 1GB.
@@ -794,7 +800,7 @@ To serialize reservations, producers use an interlocked compare-exchange on the 
 
 ### Producer Algorithm
 
-Implemented in [ebpf_ring_buffer.c](/libs/runtime/ebpf_ring_buffer.c).
+Implemented in [ebpf_ring_buffer.c](../libs/runtime/ebpf_ring_buffer.c).
 
 Producers reserve a record, then copy the data, then submit the record.
 

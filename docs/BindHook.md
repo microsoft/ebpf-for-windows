@@ -48,6 +48,11 @@ the multi-attach requirement from [issue #5180](https://github.com/microsoft/ebp
 
 ## Relationship to the Legacy Bind Hook
 
+> **⚠️ DEPRECATED:** The legacy `EBPF_PROGRAM_TYPE_BIND` / `EBPF_ATTACH_TYPE_BIND`
+> hook is deprecated and will be removed in a future release. New programs should use
+> `BPF_PROG_TYPE_CGROUP_SOCK_ADDR` with `BPF_CGROUP_INET4_BIND` / `BPF_CGROUP_INET6_BIND`
+> attach types. See the [Migration Guide](#migration-guide) below.
+
 eBPF for Windows continues to support the legacy `EBPF_PROGRAM_TYPE_BIND` /
 `EBPF_ATTACH_TYPE_BIND` hook with the Windows-specific `bind_md_t` context. Existing
 programs that use the legacy hook continue to work without changes — the legacy hook
@@ -64,9 +69,42 @@ and the new sock_addr-aligned bind hook coexist at the same WFP layers.
 | Address modification | Declared via `BIND_REDIRECT` but not actually enforced by WFP | Not supported |
 | Release / unbind notifications | Yes (`BIND_OPERATION_UNBIND`) | No |
 
-Choose the legacy hook when you need release/unbind notifications or are extending an
-existing Windows-specific program. Choose the new sock_addr-aligned hook for any new
-work, especially when cross-platform compatibility with Linux is desired.
+Choose the legacy hook **only** when you need release/unbind notifications. For all new
+work, use the sock_addr-aligned bind hook for cross-platform compatibility with Linux.
+
+### Migration Guide
+
+To migrate a program from the legacy bind hook to the new sock_addr bind hook:
+
+1. **Change program type and attach type:**
+   - Replace `BPF_PROG_TYPE_BIND` / `BPF_ATTACH_TYPE_BIND` with
+     `BPF_PROG_TYPE_CGROUP_SOCK_ADDR` and `BPF_CGROUP_INET4_BIND` or `BPF_CGROUP_INET6_BIND`
+   - Use `SEC("cgroup/bind4")` or `SEC("cgroup/bind6")` ELF section names
+
+2. **Map context fields (`bind_md_t` → `bpf_sock_addr_t`):**
+
+   | `bind_md_t` field | `bpf_sock_addr_t` equivalent | Notes |
+   |---|---|---|
+   | `socket_address` | `user_ip4` / `user_ip6` | Network byte order in both |
+   | `socket_address_length` | Implied by `family` | `AF_INET`=4 bytes, `AF_INET6`=16 bytes |
+   | `protocol` | `protocol` | Same semantics |
+   | `process_id` | Use `bpf_get_current_pid_tgid()` helper | |
+   | `app_id_start` / `app_id_end` | Not directly available | Use helper functions |
+   | `operation` | Not available | New hook only fires for bind, not unbind |
+
+3. **Map return values (`bind_action_t` → `ebpf_sock_addr_verdict_t`):**
+
+   | `bind_action_t` | `ebpf_sock_addr_verdict_t` | Notes |
+   |---|---|---|
+   | `BIND_PERMIT_SOFT` | `BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT` | |
+   | `BIND_PERMIT_HARD` | `BPF_SOCK_ADDR_VERDICT_PROCEED_HARD` | |
+   | `BIND_DENY` | `BPF_SOCK_ADDR_VERDICT_REJECT` | |
+   | `BIND_REDIRECT` | Not supported | New hook does not support address modification |
+
+4. **Limitations of the new hook:**
+   - No unbind/release notifications (`BIND_OPERATION_UNBIND` has no equivalent)
+   - No address modification (`BIND_REDIRECT` has no equivalent)
+   - Separate IPv4 and IPv6 attach types (instead of a single combined hook)
 
 ## Design Rationale
 

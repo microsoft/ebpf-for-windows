@@ -451,6 +451,27 @@ Done:
 }
 
 _Must_inspect_result_ ebpf_result_t
+ebpf_core_resolve_btf_resolved_functions(
+    ebpf_handle_t program_handle,
+    size_t count_of_functions,
+    _Out_writes_(count_of_functions) uint64_t* function_addresses)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_program_t* program = NULL;
+    ebpf_result_t return_value =
+        EBPF_OBJECT_REFERENCE_BY_HANDLE(program_handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program);
+    if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    return_value = ebpf_program_get_btf_resolved_function_addresses(program, count_of_functions, function_addresses);
+
+Done:
+    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program);
+    EBPF_RETURN_RESULT(return_value);
+}
+
+_Must_inspect_result_ ebpf_result_t
 ebpf_core_resolve_maps(
     ebpf_handle_t program_handle,
     uint32_t count_of_maps,
@@ -1992,9 +2013,7 @@ _ebpf_core_protocol_map_set_wait_handle(_In_ const ebpf_operation_map_set_wait_h
 
     ebpf_result_t result =
         EBPF_OBJECT_REFERENCE_BY_HANDLE(request->map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
-    if (result != EBPF_SUCCESS) {
-        goto Done;
-    }
+    EBPF_BAIL_ON_OBJECT_REF_ERROR(EBPF_TRACELOG_KEYWORD_BASE, result, request->map_handle, Done);
 
     result = ebpf_map_set_wait_handle_internal(map, request->index, request->wait_handle, request->flags);
 
@@ -2110,9 +2129,7 @@ _ebpf_core_protocol_map_query_buffer(
     ebpf_map_t* map = NULL;
     ebpf_result_t result =
         EBPF_OBJECT_REFERENCE_BY_HANDLE(request->map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
-    if (result != EBPF_SUCCESS) {
-        goto Exit;
-    }
+    EBPF_BAIL_ON_OBJECT_REF_ERROR(EBPF_TRACELOG_KEYWORD_BASE, result, request->map_handle, Exit);
 
     result = ebpf_map_query_buffer(
         map, request->index, (uint8_t**)(uintptr_t*)&reply->buffer_address, &reply->consumer_offset);
@@ -2129,6 +2146,8 @@ _ebpf_core_protocol_map_async_query(
     uint16_t reply_length,
     _Inout_ void* async_context)
 {
+    EBPF_LOG_ENTRY();
+
     UNREFERENCED_PARAMETER(reply_length);
 
     ebpf_map_t* map = NULL;
@@ -2136,9 +2155,7 @@ _ebpf_core_protocol_map_async_query(
 
     ebpf_result_t result =
         EBPF_OBJECT_REFERENCE_BY_HANDLE(request->map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
-    if (result != EBPF_SUCCESS) {
-        goto Exit;
-    }
+    EBPF_BAIL_ON_OBJECT_REF_ERROR(EBPF_TRACELOG_KEYWORD_BASE, result, request->map_handle, Exit);
 
     index = request->index;
 
@@ -2157,7 +2174,7 @@ _ebpf_core_protocol_map_async_query(
 
 Exit:
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
-    return result;
+    EBPF_RETURN_RESULT(result);
 }
 
 static ebpf_result_t
@@ -2589,46 +2606,41 @@ _ebpf_core_protocol_ring_buffer_map_map_buffer(
     _In_ const ebpf_operation_ring_buffer_map_map_buffer_request_t* request,
     _Inout_ ebpf_operation_ring_buffer_map_map_buffer_reply_t* reply)
 {
+    EBPF_LOG_ENTRY();
+
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_map_t* map = NULL;
-    void* consumer = NULL;
-    void* producer = NULL;
-    uint8_t* data = NULL;
-    size_t data_size = 0;
+    ebpf_handle_t handle = ebpf_handle_invalid;
+    size_t view_size = 0;
 
     result = EBPF_OBJECT_REFERENCE_BY_HANDLE(request->map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
-    if (result != EBPF_SUCCESS) {
-        return result;
-    }
+    EBPF_BAIL_ON_OBJECT_REF_ERROR(EBPF_TRACELOG_KEYWORD_BASE, result, request->map_handle, Exit);
 
-    // Get the consumer and producer pointers to the mapped ring buffer memory.
-    result = ebpf_ring_buffer_map_map_user(map, request->index, &consumer, &producer, &data, &data_size);
-    if (result != EBPF_SUCCESS) {
-        EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
-        return result;
-    }
+    result = ebpf_map_get_user_mapping_handle(
+        map, request->index, (ebpf_ring_buffer_user_section_t)request->section, &handle, &view_size);
+    reply->section_handle = (uint64_t)handle;
+    reply->view_size = view_size;
 
-    reply->consumer_address = (uint64_t)consumer;
-    reply->producer_address = (uint64_t)producer;
-    reply->data_address = (uint64_t)data;
-    reply->data_size = data_size;
-
+Exit:
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
-    return EBPF_SUCCESS;
+    EBPF_RETURN_RESULT(result);
 }
 
 static ebpf_result_t
 _ebpf_core_protocol_ring_buffer_map_unmap_buffer(
     _In_ const ebpf_operation_ring_buffer_map_unmap_buffer_request_t* request)
 {
+    EBPF_LOG_ENTRY();
+
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_map_t* map = NULL;
     result = EBPF_OBJECT_REFERENCE_BY_HANDLE(request->map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
-    if (result != EBPF_SUCCESS)
-        return result;
+    EBPF_BAIL_ON_OBJECT_REF_ERROR(EBPF_TRACELOG_KEYWORD_BASE, result, request->map_handle, Exit);
     result = ebpf_ring_buffer_map_unmap_user(map, request->index);
+
+Exit:
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
-    return result;
+    EBPF_RETURN_RESULT(result);
 }
 
 static int

@@ -37,3 +37,20 @@ caller_with_loop(sample_program_context_t* ctx)
     bpf_map_update_elem(&bpf2bpf_loop_map, &key, &counter, 0);
     return counter;
 }
+
+__attribute__((noinline)) uint64_t
+stack_frame_test(uint64_t value)
+{
+    return value + 1;
+}
+
+SEC("sample_ext")
+int
+stack_frame_test_entry(sample_program_context_t* ctx)
+{
+    (void)ctx;
+    volatile uint64_t caller_value = 0x1234;
+    uint64_t callee_result = stack_frame_test(caller_value);
+
+    return caller_value == 0x1234 && callee_result == 0x1235 ? 0 : 1;
+}

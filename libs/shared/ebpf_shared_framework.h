@@ -28,6 +28,9 @@ CXPLAT_EXTERN_C_BEGIN
 #define EBPF_SYMBOLIC_DEVICE_NAME L"\\GLOBAL??\\EbpfIoDevice"
 #define EBPF_DEVICE_WIN32_NAME L"\\\\.\\EbpfIoDevice"
 
+#define EBPF_PARAMETERS_REGISTRY_PATH L"Software\\eBPF\\Parameters"
+#define EBPF_PROOF_OF_VERIFICATION_REGISTRY_VALUE L"ProofOfVerification"
+
 #define ebpf_assert_assume(x) \
     ebpf_assert(x);           \
     __analysis_assume(x);
@@ -160,6 +163,13 @@ ebpf_result_from_cxplat_status(cxplat_status_t status);
 
 bool
 ebpf_validate_attach_provider_data(_In_ const ebpf_attach_provider_data_t* attach_provider_data);
+
+bool
+ebpf_validate_btf_resolved_function_prototype_array(
+    _In_reads_(count) const ebpf_btf_resolved_function_prototype_t* function_prototype, uint32_t count);
+
+bool
+ebpf_validate_btf_resolved_function_provider_data(_In_ const ebpf_btf_resolved_function_provider_data_t* provider_data);
 
 bool
 ebpf_validate_program_data(_In_ const ebpf_program_data_t* program_data);

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) eBPF for Windows contributors
+     SPDX-License-Identifier: MIT
+-->
+<!-- This is an aggregator "Utility" project that builds only the shippable eBPF for Windows
+     binaries and packages. It is intended to be built by the internal release pipeline via:
+       msbuild ebpf-for-windows.sln /t:tools\production /p:Configuration=NativeOnlyRelease /p:Platform=x64
+     Building this target compiles only the projects referenced below (plus their transitive
+     dependencies), avoiding the cost of building unit tests, fuzzers, and dev tools that are
+     not required to produce the release artifacts. -->
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(SolutionDir)wdk.props" />
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{26BEE173-5ED1-4EC7-A56C-81D78A0A127B}</ProjectGuid>
+    <RootNamespace>production</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>$(EbpfPlatformToolset)</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>$(EbpfPlatformToolset)</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='NativeOnlyDebug'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>$(EbpfPlatformToolset)</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='NativeOnlyRelease'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>$(EbpfPlatformToolset)</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <ItemGroup>
+    <!-- Shippable runtime binaries. -->
+    <ProjectReference Include="..\..\ebpfapi\ebpfapi.vcxproj">
+      <Project>{75fe223a-3e45-4b0e-a2e8-04285e52e440}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\ebpfcore\EbpfCore.vcxproj">
+      <Project>{97e52abb-2f1e-4ad2-aefd-6eb7fdc0a41d}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\ebpfsvc\eBPFSvc.vcxproj">
+      <Project>{ba065b6a-38f8-4197-8f66-87c84afad513}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\netebpfext\sys\netebpfext.vcxproj">
+      <Project>{55499e36-37d4-4f86-b694-9f2990315758}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\netsh\ebpfnetsh.vcxproj">
+      <Project>{74803f80-a8bd-4a03-862b-fa96648a9bf6}</Project>
+    </ProjectReference>
+    <!-- Shippable packages: MSI installer, developer (SDK) NuGet, and samples NuGet. -->
+    <ProjectReference Include="..\..\installer\ebpf-for-windows.wixproj">
+      <Project>{fe9b26cd-e885-4881-90d7-a096131c5c4a}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\nuget\nuget.vcxproj">
+      <Project>{7629d5d0-5a80-4528-87ed-60fc83c5552b}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\sample-package\sample-package.vcxproj">
+      <Project>{d7a1a443-1c17-4b3e-a835-ec4592e9e4d1}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

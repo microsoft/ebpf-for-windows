@@ -1211,6 +1211,7 @@ TEST_CASE("ring_buffer_async_query", "[execution_context][ring_buffer]")
                     completion->buffer_size,
                     async_query_result->consumer,
                     async_query_result->producer);
+                REQUIRE(record != nullptr);
                 if (!ebpf_ring_buffer_record_is_locked(record)) {
                     completion->value = *(uint64_t*)(record->data);
                 }
@@ -1437,6 +1438,31 @@ TEST_CASE("ring_buffer_map_unmap_remap", "[execution_context][ring_buffer]")
     REQUIRE(consumer2 != nullptr);
     REQUIRE(data2 != nullptr);
     // unmap_guard handles cleanup on scope exit.
+}
+
+TEST_CASE("ring_buffer_get_user_mapping_handle", "[execution_context][ring_buffer]")
+{
+    _ebpf_core_initializer core;
+    core.initialize();
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_RINGBUF, 0, 0, 64 * 1024};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        cxplat_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+
+    ebpf_handle_t handle = ebpf_handle_invalid;
+    size_t view_size = 0;
+    auto result =
+        ebpf_map_get_user_mapping_handle(map.get(), 0, EBPF_RING_BUFFER_USER_SECTION_CONSUMER, &handle, &view_size);
+    INFO("result=" << result << " handle=" << handle << " view_size=" << view_size);
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(handle != ebpf_handle_invalid);
+    REQUIRE(view_size == PAGE_SIZE);
+    CloseHandle((HANDLE)handle);
 }
 
 struct perf_event_array_test_async_context_t
@@ -2102,6 +2128,47 @@ TEST_CASE("perf_event_array_sync_query", "[execution_context][perf_event_array]"
     // Cleanup will be done in the scope_exit block above.
 }
 
+TEST_CASE("perf_event_array_oob_index", "[execution_context][perf_event_array]")
+{
+    _ebpf_core_initializer core;
+    core.initialize();
+    constexpr uint32_t buffer_size = 64 * 1024;
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_PERF_EVENT_ARRAY, 0, 0, buffer_size};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        cxplat_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+
+    uint32_t ring_count = ebpf_get_cpu_count();
+    REQUIRE(ring_count > 0);
+
+    // Verify out-of-range cpu_id is rejected.
+    uint32_t oob_index = ring_count; // First invalid index.
+    uint8_t* buffer = nullptr;
+    size_t consumer_offset = 0;
+    REQUIRE(ebpf_map_query_buffer(map.get(), oob_index, &buffer, &consumer_offset) == EBPF_INVALID_ARGUMENT);
+
+    // async_context is required to be non-null, but the out-of-range check rejects the
+    // request before the context is ever used, so a placeholder is sufficient here.
+    int dummy_async_context = 0;
+    ebpf_map_async_query_result_t async_query_result = {};
+    REQUIRE(
+        ebpf_map_async_query(map.get(), oob_index, &async_query_result, &dummy_async_context) == EBPF_INVALID_ARGUMENT);
+
+    REQUIRE(ebpf_map_return_buffer(map.get(), oob_index, 0) == EBPF_INVALID_ARGUMENT);
+
+    // Also test UINT32_MAX.
+    REQUIRE(ebpf_map_query_buffer(map.get(), UINT32_MAX, &buffer, &consumer_offset) == EBPF_INVALID_ARGUMENT);
+    REQUIRE(
+        ebpf_map_async_query(map.get(), UINT32_MAX, &async_query_result, &dummy_async_context) ==
+        EBPF_INVALID_ARGUMENT);
+    REQUIRE(ebpf_map_return_buffer(map.get(), UINT32_MAX, 0) == EBPF_INVALID_ARGUMENT);
+}
+
 TEST_CASE("EBPF_OPERATION_CREATE_MAP", "[execution_context][negative]")
 {
     NEGATIVE_TEST_PROLOG();
@@ -2266,6 +2333,26 @@ TEST_CASE("EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE", "[execution_context][
         map_update_element_with_handle_request->option = EBPF_NOEXIST;
         REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_INVALID_ARGUMENT);
     }
+}
+
+TEST_CASE("EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE hash map replacement", "[execution_context]")
+{
+    NEGATIVE_TEST_PROLOG();
+
+    std::vector<uint8_t> request(
+        EBPF_OFFSET_OF(ebpf_operation_map_update_element_with_handle_request_t, key) + sizeof(uint32_t));
+    auto map_update_element_with_handle_request =
+        reinterpret_cast<ebpf_operation_map_update_element_with_handle_request_t*>(request.data());
+
+    map_update_element_with_handle_request->map_handle = map_handles["BPF_MAP_TYPE_HASH_OF_MAPS"];
+    map_update_element_with_handle_request->value_handle = map_handles["BPF_MAP_TYPE_ARRAY"];
+    map_update_element_with_handle_request->option = EBPF_ANY;
+
+    uint32_t key = 0;
+    memcpy(map_update_element_with_handle_request->key, &key, sizeof(key));
+
+    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_SUCCESS);
+    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_SUCCESS);
 }
 
 TEST_CASE("EBPF_OPERATION_MAP_DELETE_ELEMENT", "[execution_context][negative]")

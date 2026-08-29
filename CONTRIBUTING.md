@@ -11,7 +11,7 @@ We'd love your help with eBPF for Windows! Here are our contribution guidelines.
   - [Contributor License Agreement](#contributor-license-agreement)
   - [Contributing Code](#contributing-code)
 
- ## Code of Conduct
+## Code of Conduct
 
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
 For more information see the [Microsoft Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/)

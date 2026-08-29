@@ -1,6 +1,7 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_tracelog.h"
 #include "ebpf_work_queue.h"
 
 typedef struct _ebpf_timed_work_queue
@@ -23,26 +24,23 @@ _ebpf_timed_work_queue_timer_callback(
     _In_ KDPC* dpc, _In_opt_ void* deferred_context, _In_opt_ void* system_argument1, _In_opt_ void* system_argument2);
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_timed_work_queue_create(
+ebpf_timed_work_queue_allocate(
     _Out_ ebpf_timed_work_queue_t** work_queue,
-    uint32_t cpu_id,
     _In_ LARGE_INTEGER* interval,
     _In_ ebpf_timed_work_queue_callback_t callback,
     _In_ void* context)
 {
     ebpf_timed_work_queue_t* local_work_queue = NULL;
-    ebpf_result_t return_value;
 
     local_work_queue = ebpf_allocate_with_tag(sizeof(ebpf_timed_work_queue_t), EBPF_POOL_TAG_DEFAULT);
     if (!local_work_queue) {
-        return_value = EBPF_NO_MEMORY;
-        goto Done;
+        return EBPF_NO_MEMORY;
     }
 
     local_work_queue->callback = callback;
     local_work_queue->context = context;
     local_work_queue->interval = *interval;
-    local_work_queue->cpu_id = cpu_id;
+    local_work_queue->cpu_id = UINT32_MAX;
 
     ebpf_lock_create(&local_work_queue->lock);
 
@@ -51,27 +49,28 @@ ebpf_timed_work_queue_create(
     KeInitializeTimer(&local_work_queue->timer);
     KeInitializeDpc(&local_work_queue->dpc, _ebpf_timed_work_queue_timer_callback, local_work_queue);
 
+    *work_queue = local_work_queue;
+    return EBPF_SUCCESS;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_timed_work_queue_initialize(_Inout_ ebpf_timed_work_queue_t* work_queue, uint32_t cpu_id)
+{
     PROCESSOR_NUMBER processor_number;
     NTSTATUS status = KeGetProcessorNumberFromIndex(cpu_id, &processor_number);
     if (!NT_SUCCESS(status)) {
-        return_value = EBPF_INVALID_ARGUMENT;
-        goto Done;
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, KeGetProcessorNumberFromIndex, status);
+        return EBPF_INVALID_ARGUMENT;
     }
 
-    status = KeSetTargetProcessorDpcEx(&local_work_queue->dpc, &processor_number);
+    status = KeSetTargetProcessorDpcEx(&work_queue->dpc, &processor_number);
     if (!NT_SUCCESS(status)) {
-        return_value = EBPF_INVALID_ARGUMENT;
-        goto Done;
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, KeSetTargetProcessorDpcEx, status);
+        return EBPF_INVALID_ARGUMENT;
     }
 
-    *work_queue = local_work_queue;
-    local_work_queue = NULL;
-    return_value = EBPF_SUCCESS;
-
-Done:
-    ebpf_timed_work_queue_destroy(local_work_queue);
-
-    return return_value;
+    work_queue->cpu_id = cpu_id;
+    return EBPF_SUCCESS;
 }
 
 void

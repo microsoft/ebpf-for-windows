@@ -17,6 +17,7 @@
   <ItemGroup>
     <CustomBuild Include="Elf.3d">
       <FileType>Document</FileType>
+      <ExcludedFromBuild Condition="'$(RunEverParseGeneration)' != 'true'">true</ExcludedFromBuild>
       <Command>
        if not exist "$(ProjectDir)generated" mkdir "$(ProjectDir)generated"
        pushd "$(ProjectDir)generated"

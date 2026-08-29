@@ -95,6 +95,19 @@ extern "C"
         bool tail_call;
     } helper_function_data_t;
 
+    typedef struct _btf_resolved_function_entry
+    {
+        ebpf_native_module_header_t header;
+        _Field_z_ const char* name;
+        GUID module_guid;
+    } btf_resolved_function_entry_t;
+
+    typedef struct _btf_resolved_function_data
+    {
+        ebpf_native_module_header_t header;
+        helper_function_t address;
+    } btf_resolved_function_data_t;
+
     /**
      * @brief Map entry.
      * This structure contains the address of the map and the map definition. The address is written into the entry
@@ -153,6 +166,7 @@ extern "C"
         helper_function_data_t* helper_data;
         map_data_t* map_data;
         global_variable_section_data_t* global_variable_section_data;
+        btf_resolved_function_data_t* btf_resolved_function_data;
     } program_runtime_context_t;
 
     /**
@@ -181,6 +195,10 @@ extern "C"
         const uint8_t* program_info_hash;         ///< Hash of the program info.
         size_t program_info_hash_length;          ///< Length of the program info hash.
         const char* program_info_hash_type;       ///< Type of the program info hash
+        _Field_size_(btf_resolved_function_count)
+            btf_resolved_function_entry_t* btf_resolved_functions; ///< List of BTF-resolved functions used by the
+                                                                   ///< program.
+        uint16_t btf_resolved_function_count; ///< Number of BTF-resolved functions used by the program.
     } program_entry_t;
 
     /**
@@ -274,6 +292,24 @@ extern "C"
      EBPF_NATIVE_HELPER_FUNCTION_DATA_CURRENT_VERSION_SIZE, \
      EBPF_NATIVE_HELPER_FUNCTION_DATA_CURRENT_VERSION_TOTAL_SIZE}
 
+#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION 1
+#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_SIZE \
+    EBPF_SIZE_INCLUDING_FIELD(btf_resolved_function_entry_t, module_guid)
+#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE sizeof(btf_resolved_function_entry_t)
+#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_HEADER             \
+    {EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION,      \
+     EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_SIZE, \
+     EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE}
+
+#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_CURRENT_VERSION 1
+#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_CURRENT_VERSION_SIZE \
+    EBPF_SIZE_INCLUDING_FIELD(btf_resolved_function_data_t, address)
+#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_CURRENT_VERSION_TOTAL_SIZE sizeof(btf_resolved_function_data_t)
+#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_HEADER             \
+    {EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_CURRENT_VERSION,      \
+     EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_CURRENT_VERSION_SIZE, \
+     EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_CURRENT_VERSION_TOTAL_SIZE}
+
 #define EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION 1
 #define EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(map_entry_t, name)
 #define EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_TOTAL_SIZE sizeof(map_entry_t)
@@ -282,7 +318,7 @@ extern "C"
      EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_SIZE, \
      EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_TOTAL_SIZE}
 
-#define EBPF_NATIVE_MAP_DATA_CURRENT_VERSION 2
+#define EBPF_NATIVE_MAP_DATA_CURRENT_VERSION 1
 #define EBPF_NATIVE_MAP_DATA_CURRENT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(map_data_t, array_data)
 #define EBPF_NATIVE_MAP_DATA_CURRENT_VERSION_TOTAL_SIZE sizeof(map_data_t)
 #define EBPF_NATIVE_MAP_DATA_HEADER             \
@@ -292,7 +328,7 @@ extern "C"
 
 #define EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION 1
 #define EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE \
-    EBPF_SIZE_INCLUDING_FIELD(program_entry_t, program_info_hash_type)
+    EBPF_SIZE_INCLUDING_FIELD(program_entry_t, btf_resolved_function_count)
 #define EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_TOTAL_SIZE sizeof(program_entry_t)
 #define EBPF_NATIVE_PROGRAM_ENTRY_HEADER             \
     {EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION,      \
@@ -301,7 +337,7 @@ extern "C"
 
 #define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION 1
 #define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION_SIZE \
-    EBPF_SIZE_INCLUDING_FIELD(program_runtime_context_t, map_data)
+    EBPF_SIZE_INCLUDING_FIELD(program_runtime_context_t, btf_resolved_function_data)
 #define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION_TOTAL_SIZE sizeof(program_runtime_context_t)
 #define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_HEADER             \
     {EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION,      \

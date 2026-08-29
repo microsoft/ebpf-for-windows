@@ -219,7 +219,7 @@ label_2:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 154, 160}, // Version header.
         mutate_connect_authorization4,
         "cgroup~2",
         "cgroup/connect_authorization4",
@@ -234,7 +234,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 154, 160}, // Version header.
         mutate_connect_authorization6,
         "cgroup~1",
         "cgroup/connect_authorization6",
@@ -261,7 +261,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 1;
-    version->minor = 4;
+    version->minor = 6;
     version->revision = 0;
 }
 

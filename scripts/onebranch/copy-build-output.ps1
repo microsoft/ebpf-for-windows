@@ -49,8 +49,19 @@ $global:LASTEXITCODE = 0
 # For Fuzzer and AddressSanitizer builds, copy clang runtime DLLs that are
 # required at test execution time. Pass -CopyClangRt to enable.
 if ($CopyClangRt) {
-    $vsBasePath = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise"
-    $clangDlls = Get-ChildItem "$vsBasePath\VC\Tools\MSVC\*\bin\Hostx64\x64\clang_rt.*.dll" -ErrorAction SilentlyContinue
+    # Resolve the Visual Studio installation via vswhere rather than hardcoding a version-specific
+    # path, so this keeps working as the build container moves between VS versions.
+    $vswherePath = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+    $vsBasePath = $null
+    if (Test-Path $vswherePath) {
+        $vsBasePath = & $vswherePath -latest -products * -property installationPath | Select-Object -First 1
+    }
+    if (-not $vsBasePath) {
+        Write-Warning "Could not locate a Visual Studio installation via vswhere. Fuzzer/ASAN tests may fail at runtime."
+    }
+    $clangDlls = if ($vsBasePath) {
+        Get-ChildItem "$vsBasePath\VC\Tools\MSVC\*\bin\Hostx64\x64\clang_rt.*.dll" -ErrorAction SilentlyContinue
+    }
     if ($clangDlls) {
         Write-Host "Copying $($clangDlls.Count) clang runtime DLL(s)..."
         foreach ($dll in $clangDlls) {

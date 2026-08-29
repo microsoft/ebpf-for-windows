@@ -17,6 +17,7 @@
 #include "native_helper.hpp"
 #include "program_helper.h"
 #include "sample_ext_helpers.h"
+#include "sample_test_common.h"
 #include "service_helper.h"
 #include "socket_helper.h"
 #include "watchdog.h"
@@ -31,6 +32,8 @@
 #include <mstcpip.h>
 #include <mutex>
 #define _NTDEF_ // UNICODE_STRING is already defined
+#include "usersim/nt_process_info.h"
+
 #include <ntsecapi.h>
 #include <processthreadsapi.h>
 #include <thread>
@@ -64,6 +67,9 @@ class _api_test_watchdog : public _watchdog
 CATCH_REGISTER_LISTENER(_api_test_watchdog)
 
 #define SAMPLE_PATH ""
+
+#define EBPF_PARAMETERS_REGISTRY_PATH L"Software\\eBPF\\Parameters"
+#define EBPF_PROOF_OF_VERIFICATION_REGISTRY_VALUE L"ProofOfVerification"
 
 #define EBPF_CORE_DRIVER_BINARY_NAME L"ebpfcore.sys"
 #define EBPF_CORE_DRIVER_NAME L"ebpfcore"
@@ -320,6 +326,7 @@ TEMPLATE_TEST_CASE("ring_buffer_sync_api", "[ring_buffer]", ENABLED_EXECUTION_TY
     uint32_t event_count = 0;
     const uint32_t expected_events = 10;
 
+#pragma warning(suppress : 4996) // deprecated
     auto ring = ebpf_ring_buffer__new(
         process_map_fd,
         [](void* ctx, void* /*data*/, size_t /*size */) {
@@ -394,6 +401,7 @@ TEST_CASE("ring_buffer_sync_consume", "[ring_buffer]")
     };
     test_context context;
 
+#pragma warning(suppress : 4996) // deprecated
     auto ring = ebpf_ring_buffer__new(
         map_fd,
         [](void* ctx, void* data, size_t size) {
@@ -424,6 +432,7 @@ TEST_CASE("ring_buffer_sync_consume", "[ring_buffer]")
     std::vector<std::string> test_messages = {"First message", "Second message", "Third message"};
 
     for (const auto& msg : test_messages) {
+#pragma warning(suppress : 4996) // deprecated
         result = ebpf_ring_buffer_map_write(map_fd, msg.c_str(), msg.length());
         REQUIRE(result == EBPF_SUCCESS);
     }
@@ -482,6 +491,8 @@ TEST_CASE("ring_buffer_sync_multiple_maps", "[ring_buffer]")
     };
     multi_map_context context;
 
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
     ring = ebpf_ring_buffer__new(
         map_fd1,
         [](void* ctx, void* data, size_t size) {
@@ -549,6 +560,7 @@ TEST_CASE("ring_buffer_sync_multiple_maps", "[ring_buffer]")
     REQUIRE(result1 == EBPF_SUCCESS);
 
     ebpf_result_t result2 = ebpf_ring_buffer_map_write(map_fd2, msg2.c_str(), msg2.length());
+#pragma warning(pop)
     REQUIRE(result2 == EBPF_SUCCESS);
 
     // Use ring_buffer__consume to process all available events.
@@ -598,6 +610,13 @@ TEST_CASE("ring_buffer_mmap_consumer", "[ring_buffer]")
     REQUIRE(consumer_ptr != nullptr);
     REQUIRE(data != nullptr);
 
+    MEMORY_BASIC_INFORMATION producer_info = {};
+    MEMORY_BASIC_INFORMATION data_info = {};
+    REQUIRE(VirtualQuery((const void*)producer_ptr, &producer_info, sizeof(producer_info)) == sizeof(producer_info));
+    REQUIRE(VirtualQuery(data, &data_info, sizeof(data_info)) == sizeof(data_info));
+    REQUIRE((producer_info.Protect & PAGE_READONLY) == PAGE_READONLY);
+    REQUIRE((data_info.Protect & PAGE_READONLY) == PAGE_READONLY);
+
     // Initialize offsets.
     uint64_t producer_offset = ReadAcquire64(producer_ptr);
     uint64_t consumer_offset = ReadNoFence64(consumer_ptr);
@@ -606,11 +625,13 @@ TEST_CASE("ring_buffer_mmap_consumer", "[ring_buffer]")
 
     // Write some test data to the ring buffer.
     std::string test_data = "Hello, Ring Buffer!";
+#pragma warning(suppress : 4996) // deprecated
     result = ebpf_ring_buffer_map_write(map_fd, test_data.c_str(), test_data.length());
     REQUIRE(result == EBPF_SUCCESS);
 
     // Write another test record.
     std::string test_data2 = "Second record";
+#pragma warning(suppress : 4996) // deprecated
     result = ebpf_ring_buffer_map_write(map_fd, test_data2.c_str(), test_data2.length());
     REQUIRE(result == EBPF_SUCCESS);
 
@@ -669,7 +690,100 @@ TEST_CASE("ring_buffer_mmap_consumer", "[ring_buffer]")
     REQUIRE(
         ebpf_ring_buffer_map_unmap_buffer(map_fd, (void*)consumer_ptr, (void*)producer_ptr, (void*)data) ==
         EBPF_SUCCESS);
+
+    const volatile LONG64* producer_ptr2 = nullptr;
+    volatile LONG64* consumer_ptr2 = nullptr;
+    const uint8_t* data2 = nullptr;
+    size_t data_size2 = 0;
+    REQUIRE(
+        ebpf_ring_buffer_map_map_buffer(
+            map_fd, (void**)&consumer_ptr2, (const void**)&producer_ptr2, &data2, &data_size2) == EBPF_SUCCESS);
+    REQUIRE(data_size2 == data_size);
+    REQUIRE(
+        ebpf_ring_buffer_map_unmap_buffer(map_fd, (void*)consumer_ptr2, (void*)producer_ptr2, (void*)data2) ==
+        EBPF_SUCCESS);
     CloseHandle(wait_handle);
+    _close(map_fd);
+}
+
+static int
+_ring_buffer_mmap_process_exit_child(_In_z_ const char* pin_path)
+{
+    fd_t map_fd = bpf_obj_get(pin_path);
+    if (map_fd < 0) {
+        return 1;
+    }
+
+    void* consumer = nullptr;
+    const void* producer = nullptr;
+    const uint8_t* data = nullptr;
+    size_t data_size = 0;
+    if (ebpf_ring_buffer_map_map_buffer(map_fd, &consumer, &producer, &data, &data_size) != EBPF_SUCCESS ||
+        consumer == nullptr || producer == nullptr || data == nullptr || data_size == 0) {
+        return 1;
+    }
+
+    // Intentionally leave the mapped views and map descriptor for process rundown to reclaim.
+    return 0;
+}
+
+TEST_CASE("ring_buffer_mmap_process_exit_reopen", "[ring_buffer]")
+{
+    fd_t map_fd = bpf_map_create(BPF_MAP_TYPE_RINGBUF, "test_rb_process_exit", 0, 0, 64 * 1024, nullptr);
+    REQUIRE(map_fd > 0);
+
+    std::string pin_path =
+        "BPF:\\ring_buffer_map_process_exit_" + std::to_string(GetCurrentProcessId());
+    REQUIRE(bpf_obj_pin(map_fd, pin_path.c_str()) == 0);
+
+    char module_path[MAX_PATH] = {};
+    REQUIRE(GetModuleFileNameA(nullptr, module_path, ARRAYSIZE(module_path)) != 0);
+    std::string command_line = "\"";
+    command_line += module_path;
+    command_line += "\" --ring-buffer-mmap-process-exit-child \"";
+    command_line += pin_path;
+    command_line += "\"";
+    std::vector<char> command_line_buffer(command_line.begin(), command_line.end());
+    command_line_buffer.push_back('\0');
+
+    STARTUPINFOA startup_info = {sizeof(startup_info)};
+    PROCESS_INFORMATION process_info = {};
+    REQUIRE(CreateProcessA(
+        nullptr,
+        command_line_buffer.data(),
+        nullptr,
+        nullptr,
+        FALSE,
+        0,
+        nullptr,
+        nullptr,
+        &startup_info,
+        &process_info));
+
+    REQUIRE(WaitForSingleObject(process_info.hProcess, WAIT_TIME_IN_MS) == WAIT_OBJECT_0);
+    DWORD exit_code = 1;
+    REQUIRE(GetExitCodeProcess(process_info.hProcess, &exit_code));
+    REQUIRE(exit_code == 0);
+    CloseHandle(process_info.hThread);
+    CloseHandle(process_info.hProcess);
+
+    fd_t reopened_map_fd = bpf_obj_get(pin_path.c_str());
+    REQUIRE(reopened_map_fd > 0);
+
+    void* consumer = nullptr;
+    const void* producer = nullptr;
+    const uint8_t* data = nullptr;
+    size_t data_size = 0;
+    REQUIRE(
+        ebpf_ring_buffer_map_map_buffer(reopened_map_fd, &consumer, &producer, &data, &data_size) == EBPF_SUCCESS);
+    REQUIRE(consumer != nullptr);
+    REQUIRE(producer != nullptr);
+    REQUIRE(data != nullptr);
+    REQUIRE(data_size > 0);
+    REQUIRE(ebpf_ring_buffer_map_unmap_buffer(reopened_map_fd, consumer, producer, (void*)data) == EBPF_SUCCESS);
+
+    _close(reopened_map_fd);
+    REQUIRE(ebpf_object_unpin(pin_path.c_str()) == EBPF_SUCCESS);
     _close(map_fd);
 }
 
@@ -922,8 +1036,6 @@ bind_tailcall_test(_In_ struct bpf_object* object)
     WSACleanup();
 }
 
-#define SOCKET_TEST_PORT 0x3bbf
-
 void
 send_traffic(IPPROTO protocol, bool is_ipv6)
 {
@@ -975,6 +1087,61 @@ send_traffic(IPPROTO protocol, bool is_ipv6)
     }
 }
 
+/**
+ * @brief Look up the process start key for a given PID, for comparison against the value reported by
+ * bpf_get_current_process_start_key (PsGetProcessStartKey in the kernel).
+ * @param[in] pid Process ID whose start key to query.
+ * @param[out] start_key On success, receives the process start key.
+ * @returns true if the start key was obtained; false (with a warning) if the process could not be
+ *  opened or queried.
+ */
+static bool
+try_get_process_start_key(uint32_t pid, uint64_t& start_key)
+{
+    // PROCESS_TELEMETRY_ID_INFORMATION and the NtQueryInformationProcess prototype come from
+    // usersim/nt_process_info.h. They are declared there (rather than pulled from <winternl.h>)
+    // because <winternl.h> redefines _STRING/UNICODE_STRING already provided by <ntsecapi.h>
+    // (used elsewhere in this file), producing C2011. Resolve the function at runtime via
+    // GetProcAddress to avoid an ntdll.lib link dependency.
+    // See https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess
+    static NtQueryInformationProcess_t nt_query_information_process = reinterpret_cast<NtQueryInformationProcess_t>(
+        GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtQueryInformationProcess"));
+    REQUIRE(nt_query_information_process != nullptr);
+
+    HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+    if (process == nullptr) {
+        std::cout << "WARNING: OpenProcess(pid=" << pid << ") failed, err=" << GetLastError()
+                  << "; skipping process start-key consistency check\n";
+        return false;
+    }
+
+    bool succeeded = false;
+    // ProcessTelemetryIdInformation returns the fixed struct followed by variable-length data
+    // (user SID, image path, package/app name, command line) referenced by the trailing *Offset
+    // fields, so the query needs a buffer larger than the struct itself. Start with headroom and
+    // grow once if the process reports it needs more.
+    std::vector<uint8_t> buffer(sizeof(PROCESS_TELEMETRY_ID_INFORMATION) + 1024);
+    ULONG return_length = 0;
+    NTSTATUS status = nt_query_information_process(
+        process, ProcessTelemetryIdInformation, buffer.data(), static_cast<ULONG>(buffer.size()), &return_length);
+    if (status != STATUS_SUCCESS && return_length > buffer.size()) {
+        buffer.resize(return_length);
+        status = nt_query_information_process(
+            process, ProcessTelemetryIdInformation, buffer.data(), static_cast<ULONG>(buffer.size()), &return_length);
+    }
+    if (status == STATUS_SUCCESS && return_length >= sizeof(PROCESS_TELEMETRY_ID_INFORMATION)) {
+        start_key = reinterpret_cast<const PROCESS_TELEMETRY_ID_INFORMATION*>(buffer.data())->ProcessStartKey;
+        succeeded = true;
+    } else {
+        std::cout << "WARNING: NtQueryInformationProcess(ProcessTelemetryIdInformation) failed, status=0x" << std::hex
+                  << static_cast<unsigned long>(status) << std::dec
+                  << "; skipping process start-key consistency check\n";
+    }
+
+    CloseHandle(process);
+    return succeeded;
+}
+
 void
 run_process_start_key_test(IPPROTO protocol, bool is_ipv6)
 {
@@ -1011,33 +1178,23 @@ run_process_start_key_test(IPPROTO protocol, bool is_ipv6)
         REQUIRE(map->map_fd != ebpf_fd_invalid);
 
         uint32_t key = 0;
-        typedef struct _value
-        {
-            uint32_t current_pid;
-            uint64_t start_key;
-        } value_t;
-        value_t found_value{};
+        process_start_key_value_t found_value{};
         std::cout << "bpf_map_lookup_elem(process_start_key_map) key: " << key << "\n";
         REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &found_value) == 0);
 
         std::cout << "bpf_map_delete_elem(process_start_key_map)\n";
         REQUIRE(bpf_map_delete_elem(bpf_map__fd(map), &key) == 0);
 
-        // Verify PID/Start Key values.
-        // We only validate that the start_key is not zero because
-        // otherwise this test case would need to take a dependency on NtQueryInformationProcess
-        // which per documentation can change at any time.
+        // Validate the captured (pid, start_key) pair for self-consistency: look up the captured
+        // PID's process and compare its ProcessStartKey (PsGetProcessStartKey in the kernel) to the
+        // helper-reported start_key. The WFP ALE_AUTH_CONNECT callout is not guaranteed to run on
+        // the caller's process, so we do NOT assume current_pid is ours — only that the reported
+        // pair is internally consistent.
+        REQUIRE(found_value.current_pid > 0);
         REQUIRE(0 < found_value.start_key);
-
-        // For TCP connections, the hook may run on a worker thread/process, not the caller process.
-        // For UDP connections, the hook runs synchronously on the caller process.
-        if (protocol == IPPROTO_TCP) {
-            // For TCP, verify that the PID is valid (non-zero) rather than matching the test process.
-            REQUIRE(found_value.current_pid > 0);
-        } else {
-            // For UDP, verify exact match since the hook runs synchronously.
-            unsigned long pid = GetCurrentProcessId();
-            REQUIRE(pid == found_value.current_pid);
+        uint64_t process_start_key = 0;
+        if (try_get_process_start_key(found_value.current_pid, process_start_key)) {
+            REQUIRE(process_start_key == found_value.start_key);
         }
     }
 }
@@ -1078,37 +1235,31 @@ run_thread_start_time_test(IPPROTO protocol, bool is_ipv6)
         REQUIRE(map->map_fd != ebpf_fd_invalid);
 
         uint32_t key = 0;
-        typedef struct _value
-        {
-            uint32_t current_tid;
-            int64_t start_time;
-        } value_t;
-        value_t found_value{};
+        thread_start_time_value_t found_value{};
         std::cout << "bpf_map_lookup_elem(thread_start_time_map) key: " << key << "\n";
         REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &found_value) == 0);
 
         std::cout << "bpf_map_delete_elem(thread_start_time_map)\n";
         REQUIRE(bpf_map_delete_elem(bpf_map__fd(map), &key) == 0);
 
-        // Verify thread ID and start time values.
-        // For TCP connections, the hook may run on a worker thread, not the caller thread.
-        // For UDP connections, the hook runs synchronously on the caller thread.
-        if (protocol == IPPROTO_TCP) {
-            // For TCP, verify that the thread ID is valid (non-zero) rather than matching a specific value.
-            REQUIRE(found_value.current_tid > 0);
-            // For TCP, verify that the start time is valid (non-zero).
-            REQUIRE(found_value.start_time > 0);
+        // Validate the captured (tid, start_time) pair for self-consistency: open the captured
+        // thread and compare its creation time to the helper-reported start_time
+        // (bpf_get_current_thread_create_time -> PsGetThreadCreateTime, which is FILETIME-compatible
+        // 100ns-since-1601 units). The WFP ALE_AUTH_CONNECT callout is not guaranteed to run on the
+        // caller's thread, so we do NOT assume current_tid is ours — only that the pair is consistent.
+        REQUIRE(found_value.current_tid > 0);
+        REQUIRE(found_value.start_time > 0);
+        HANDLE thread = OpenThread(THREAD_QUERY_LIMITED_INFORMATION, FALSE, found_value.current_tid);
+        if (thread == nullptr) {
+            std::cout << "WARNING: OpenThread(tid=" << found_value.current_tid << ") failed, err=" << GetLastError()
+                      << "; skipping thread create-time consistency check\n";
         } else {
-            // For UDP, verify exact match since the hook runs synchronously.
-            unsigned long tid = GetCurrentThreadId();
-            long long start_time = 0;
-            FILETIME creation, exit, kernel, user;
-            if (GetThreadTimes(GetCurrentThread(), &creation, &exit, &kernel, &user)) {
-                start_time = static_cast<long long>(creation.dwLowDateTime) |
-                             (static_cast<long long>(creation.dwHighDateTime) << 32);
-            }
-            REQUIRE(tid == found_value.current_tid);
-            REQUIRE(start_time == found_value.start_time);
+            FILETIME creation_time, exit_time, kernel_time, user_time;
+            REQUIRE(GetThreadTimes(thread, &creation_time, &exit_time, &kernel_time, &user_time));
+            int64_t creation_time_100ns =
+                (static_cast<int64_t>(creation_time.dwHighDateTime) << 32) | creation_time.dwLowDateTime;
+            REQUIRE(creation_time_100ns == found_value.start_time);
+            CloseHandle(thread);
         }
     }
 }
@@ -1410,6 +1561,7 @@ TEST_CASE("ioctl_stress", "[stress]")
 
     // Subscribe to the ring buffer with empty callback (using async mode for automatic callbacks).
     ebpf_ring_buffer_opts ring_opts{.sz = sizeof(ring_opts), .flags = EBPF_RINGBUF_FLAG_AUTO_CALLBACK};
+#pragma warning(suppress : 4996) // deprecated
     auto ring = ebpf_ring_buffer__new(process_map_fd, [](void*, void*, size_t) { return 0; }, nullptr, &ring_opts);
 
     // Run 4 threads per cpu.
@@ -1419,14 +1571,14 @@ TEST_CASE("ioctl_stress", "[stress]")
 
     std::atomic<size_t> failure_count = 0;
     std::vector<std::jthread> threads;
-    std::atomic<bool> stop_requested;
+    std::atomic<bool> stop_requested = false;
     for (DWORD i = 0; i < sysinfo.dwNumberOfProcessors; i++) {
         for (int j = 0; j < 4; j++) {
             threads.emplace_back([&]() {
                 while (!stop_requested) {
                     int test_case = rand() % 4;
                     uint32_t key = 0;
-                    uint32_t value;
+                    uint32_t value = 0;
                     bpf_test_run_opts opts = {};
                     struct
                     {
@@ -1584,6 +1736,7 @@ TEST_CASE("test_ringbuffer_concurrent_wraparound", "[stress][ring_buffer]")
     auto ring_buffer_event_callback = context.promise.get_future();
     // Subscribe to the ring buffer (using async mode for automatic callbacks).
     ebpf_ring_buffer_opts ring_opts{.sz = sizeof(ring_opts), .flags = EBPF_RINGBUF_FLAG_AUTO_CALLBACK};
+#pragma warning(suppress : 4996) // deprecated
     auto ring = ebpf_ring_buffer__new(
         process_map_fd,
         [](void* ctx, void*, size_t) {
@@ -1633,6 +1786,7 @@ TEST_CASE("test_ringbuffer_wraparound", "[ring_buffer]")
     REQUIRE(data != nullptr);
 
     for (uint32_t i = 0; i < iterations; i++) {
+#pragma warning(suppress : 4996) // deprecated
         REQUIRE(ebpf_ring_buffer_map_write(map_fd, app_id.data(), app_id.size()) == EBPF_SUCCESS);
 
         uint64_t prod = ReadAcquire64(producer_ptr);
@@ -1750,6 +1904,7 @@ class perf_buffer_test_helper
     {
         REQUIRE(_buffer == nullptr);
         ebpf_perf_buffer_opts opts = {.sz = sizeof(opts), .flags = flags};
+#pragma warning(suppress : 4996) // deprecated
         _buffer = ebpf_perf_buffer__new(
             map_fd, 0, perf_buffer_sync_sample_callback, perf_buffer_sync_lost_callback, &context, &opts);
         return _buffer;
@@ -1999,6 +2154,7 @@ TEST_CASE("perf_buffer_async_consume", "[perf_buffer]")
     // Write all test events.
     size_t written = 0;
     for (const auto& msg : test_messages) {
+#pragma warning(suppress : 4996) // deprecated
         if (ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length()) == EBPF_SUCCESS) {
             written++;
         }
@@ -2048,6 +2204,7 @@ TEST_CASE("perf_buffer_async_lost_callback", "[perf_buffer]")
     for (uint32_t cpu_id = 0; cpu_id < num_cpus; cpu_id++) {
         cpu_affinity.switch_cpu(cpu_id);
         for (size_t i = 0; i < per_cpu_event_count; i++) {
+#pragma warning(suppress : 4996) // deprecated
             if (ebpf_perf_event_array_map_write(map_fd, large_message.c_str(), large_message.length()) ==
                 EBPF_SUCCESS) {
                 write_succeeded++;
@@ -2090,6 +2247,7 @@ TEST_CASE("perf_buffer_async_reopen", "[perf_buffer]")
         REQUIRE(pb != nullptr);
 
         for (const auto& msg : test_messages) {
+#pragma warning(suppress : 4996) // deprecated
             REQUIRE(ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length()) == EBPF_SUCCESS);
         }
 
@@ -2108,6 +2266,7 @@ TEST_CASE("perf_buffer_async_reopen", "[perf_buffer]")
         REQUIRE(pb2 != nullptr);
 
         for (const auto& msg : test_messages2) {
+#pragma warning(suppress : 4996) // deprecated
             REQUIRE(ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length()) == EBPF_SUCCESS);
         }
 
@@ -2133,6 +2292,7 @@ TEST_CASE("perf_buffer_sync_reopen", "[perf_buffer]")
         REQUIRE(pb != nullptr);
 
         for (const auto& msg : test_messages) {
+#pragma warning(suppress : 4996) // deprecated
             REQUIRE(ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length()) == EBPF_SUCCESS);
         }
 
@@ -2150,6 +2310,7 @@ TEST_CASE("perf_buffer_sync_reopen", "[perf_buffer]")
         REQUIRE(pb2 != nullptr);
 
         for (const auto& msg : test_messages2) {
+#pragma warning(suppress : 4996) // deprecated
             REQUIRE(ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length()) == EBPF_SUCCESS);
         }
 
@@ -2192,6 +2353,8 @@ TEST_CASE("ring_buffer_async_reopen", "[ring_buffer]")
         auto future = ctx.promise.get_future();
 
         ebpf_ring_buffer_opts opts{.sz = sizeof(opts), .flags = EBPF_RINGBUF_FLAG_AUTO_CALLBACK};
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
         auto* ring = ebpf_ring_buffer__new(map_fd, sample_cb, &ctx, &opts);
         REQUIRE(ring != nullptr);
         auto ring_cleanup = std::unique_ptr<ring_buffer, decltype(&ring_buffer__free)>(ring, ring_buffer__free);
@@ -2219,6 +2382,7 @@ TEST_CASE("ring_buffer_async_reopen", "[ring_buffer]")
         std::vector<std::string> messages = {"rb_async_reopen_1", "rb_async_reopen_2"};
         for (const auto& msg : messages) {
             REQUIRE(ebpf_ring_buffer_map_write(map_fd, msg.c_str(), msg.length()) == EBPF_SUCCESS);
+#pragma warning(pop)
         }
 
         REQUIRE(future.wait_for(5s) == std::future_status::ready);
@@ -2251,6 +2415,8 @@ TEST_CASE("ring_buffer_sync_reopen", "[ring_buffer]")
     {
         rb_sync_context ctx;
         ebpf_ring_buffer_opts opts{.sz = sizeof(opts), .flags = 0};
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
         auto* ring = ebpf_ring_buffer__new(map_fd, sample_cb, &ctx, &opts);
         REQUIRE(ring != nullptr);
         auto ring_cleanup = std::unique_ptr<ring_buffer, decltype(&ring_buffer__free)>(ring, ring_buffer__free);
@@ -2276,6 +2442,7 @@ TEST_CASE("ring_buffer_sync_reopen", "[ring_buffer]")
         std::vector<std::string> messages = {"rb_sync_reopen_1", "rb_sync_reopen_2"};
         for (const auto& msg : messages) {
             REQUIRE(ebpf_ring_buffer_map_write(map_fd, msg.c_str(), msg.length()) == EBPF_SUCCESS);
+#pragma warning(pop)
         }
 
         int consumed = ring_buffer__consume(ring);
@@ -2360,6 +2527,7 @@ TEST_CASE("perf_buffer_sync_consume", "[perf_buffer]")
     std::vector<std::string> test_messages = {"First perf message", "Second perf message", "Third perf message"};
     size_t written = 0;
     for (const auto& msg : test_messages) {
+#pragma warning(suppress : 4996) // deprecated
         if (ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length()) == EBPF_SUCCESS) {
             written++;
         }
@@ -2406,6 +2574,7 @@ TEST_CASE("perf_buffer_sync_multiple_cpus", "[perf_buffer]")
 
     // Write test data.
     const std::string msg = "Test message for CPU buffers";
+#pragma warning(suppress : 4996) // deprecated
     ebpf_result_t write_result = ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length());
     REQUIRE(write_result == EBPF_SUCCESS);
 
@@ -2448,6 +2617,7 @@ TEST_CASE("perf_buffer_sync_poll_timeout", "[perf_buffer]")
 
     // Write data and verify poll returns positive.
     const std::string msg = "Test poll message";
+#pragma warning(suppress : 4996) // deprecated
     ebpf_result_t write_result = ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length());
     REQUIRE(write_result == EBPF_SUCCESS);
 
@@ -2479,6 +2649,7 @@ TEST_CASE("perf_buffer_sync_wait_handle", "[perf_buffer]")
 
         // Write data - wait handle should become signaled.
         const std::string msg = "Test wait handle";
+#pragma warning(suppress : 4996) // deprecated
         ebpf_result_t write_result = ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length());
         REQUIRE(write_result == EBPF_SUCCESS);
 
@@ -2519,6 +2690,7 @@ TEST_CASE("perf_buffer_sync_lost_callback", "[perf_buffer]")
 
     // Write normal event and consume successfully.
     const std::string first_msg = "Test lost callback";
+#pragma warning(suppress : 4996) // deprecated
     ebpf_result_t write_result = ebpf_perf_event_array_map_write(map_fd, first_msg.c_str(), first_msg.length());
     writes_attempted++;
     REQUIRE(write_result == EBPF_SUCCESS);
@@ -2542,6 +2714,7 @@ TEST_CASE("perf_buffer_sync_lost_callback", "[perf_buffer]")
 
         // Write events to this CPU's ring.
         for (const auto& msg : large_messages) {
+#pragma warning(suppress : 4996) // deprecated
             write_result = ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length());
             writes_attempted++;
             if (write_result != EBPF_SUCCESS) {
@@ -3667,6 +3840,8 @@ TEST_CASE("ebpf_perf_event_array_api", "[ebpf_api]")
     if (map_fd > 0) {
         // Test writing to perf event array.
         const char test_data[] = "test perf event data";
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
         ebpf_result_t result = ebpf_perf_event_array_map_write(map_fd, test_data, sizeof(test_data));
 
         REQUIRE(result == EBPF_SUCCESS);
@@ -3680,6 +3855,7 @@ TEST_CASE("ebpf_perf_event_array_api", "[ebpf_api]")
 
         // Negative test: zero size.
         result = ebpf_perf_event_array_map_write(map_fd, test_data, 0);
+#pragma warning(pop)
         REQUIRE(result != EBPF_SUCCESS);
 
         (void)ebpf_close_fd(map_fd);
@@ -3840,6 +4016,119 @@ TEST_CASE("ebpf_verification_memory_apis", "[ebpf_api]")
     ebpf_free_string(error_message);
 }
 
+/**
+ * @brief Set the proof of verification registry value to control whether production signature
+ * verification is required for native module loads.
+ *
+ * @param[in] enable Non-zero to require production signatures, zero to allow test-signed modules.
+ */
+static void
+_set_proof_of_verification(uint32_t enable)
+{
+    HKEY key = nullptr;
+    LSTATUS status = RegCreateKeyExW(
+        HKEY_LOCAL_MACHINE, EBPF_PARAMETERS_REGISTRY_PATH, 0, nullptr, 0, KEY_WRITE, nullptr, &key, nullptr);
+    REQUIRE(status == ERROR_SUCCESS);
+    status = RegSetValueExW(
+        key, EBPF_PROOF_OF_VERIFICATION_REGISTRY_VALUE, 0, REG_DWORD, (const BYTE*)&enable, sizeof(enable));
+    RegCloseKey(key);
+    REQUIRE(status == ERROR_SUCCESS);
+}
+
+/**
+ * @brief Test that validates production-signed native eBPF modules load successfully.
+ *
+ * This test validates that a production-signed bindmonitor driver can be loaded.
+ * It requires that the signed driver exists in the same directory as api_test.exe.
+ */
+TEST_CASE("proof_of_verification_positive", "[native_tests][proof_of_verification]")
+{
+    // Select the architecture and build-type appropriate signed driver.
+    #if defined(_AMD64_) && defined(_DEBUG)
+    const char* signed_driver_name = "bindmonitor_x64_debug_signed.sys";
+    #elif defined(_AMD64_)
+    const char* signed_driver_name = "bindmonitor_x64_signed.sys";
+    #elif defined(_ARM64_) && defined(_DEBUG)
+    const char* signed_driver_name = "bindmonitor_arm64_debug_signed.sys";
+    #elif defined(_ARM64_)
+    const char* signed_driver_name = "bindmonitor_arm64_signed.sys";
+    #else
+    #error "Unsupported architecture"
+    #endif
+
+    // The signed driver must be present in the same directory as api_test.exe.
+    REQUIRE(_access(signed_driver_name, 0) == 0);
+
+    // Require production signature verification for native module loads.
+    _set_proof_of_verification(1);
+
+    int result;
+    struct bpf_object* object = nullptr;
+    fd_t program_fd;
+
+    // Attempt to load the signed driver.
+    result = program_load_helper(signed_driver_name, BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd);
+    INFO("Failed to load production-signed driver " << signed_driver_name << " (error " << result << ")");
+    REQUIRE(result == 0);
+    REQUIRE(program_fd != ebpf_fd_invalid);
+
+    // RAII cleanup for the loaded object so it is freed even if assertions below fail.
+    auto object_cleanup = std::unique_ptr<bpf_object, decltype(&bpf_object__close)>(object, bpf_object__close);
+
+    // Restore default behavior (allow test-signed modules) before further assertions.
+    _set_proof_of_verification(0);
+
+    // Verify the program loaded correctly.
+    uint32_t next_id;
+    REQUIRE(bpf_prog_get_next_id(0, &next_id) == 0);
+
+    fd_t query_fd = bpf_prog_get_fd_by_id(next_id);
+    REQUIRE(query_fd > 0);
+
+    const char* program_file_name;
+    const char* program_section_name;
+    ebpf_execution_type_t program_execution_type;
+    REQUIRE(
+        ebpf_program_query_info(query_fd, &program_execution_type, &program_file_name, &program_section_name) ==
+        EBPF_SUCCESS);
+
+    REQUIRE(program_execution_type == EBPF_EXECUTION_NATIVE);
+    _close(query_fd);
+}
+
+/**
+ * @brief Test that validates non-production-signed native eBPF modules are rejected.
+ *
+ * This test validates that a test-signed (non-production-signed) bindmonitor.sys
+ * is rejected by the proof of verification system.
+ *
+ * The test expects loading to FAIL because bindmonitor.sys is only test-signed,
+ * not production-signed with the required eBPF Verification EKU.
+ */
+TEST_CASE("proof_of_verification_negative", "[native_tests][proof_of_verification]")
+{
+    // Require production signature verification for native module loads.
+    _set_proof_of_verification(1);
+
+    int result;
+    struct bpf_object* object = nullptr;
+    fd_t program_fd;
+
+    result = program_load_helper("bindmonitor.sys", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd);
+
+    // The load should fail because the binary is not production-signed
+    if (result == 0) {
+        std::cout << "ERROR: Test-signed bindmonitor.sys should NOT have loaded successfully!" << std::endl;
+        std::cout << "The proof of verification system should reject non-production-signed binaries." << std::endl;
+        bpf_object__close(object);
+    } else {
+        std::cout << "Test-signed bindmonitor.sys was correctly rejected (error " << result << ")" << std::endl;
+    }
+    REQUIRE(result != 0);
+
+    // Restore default behavior (allow test-signed modules).
+    _set_proof_of_verification(0);
+}
 #define OPERATION_SUCCESS 1
 #define OPERATION_FAILURE 0
 
@@ -4043,6 +4332,10 @@ TEST_CASE("custom_maps_program_load-native", "[custom_maps]") { _test_custom_map
 int
 main(int argc, char* argv[])
 {
+    if (argc == 3 && strcmp(argv[1], "--ring-buffer-mmap-process-exit-child") == 0) {
+        return _ring_buffer_mmap_process_exit_child(argv[2]);
+    }
+
     Catch::Session session;
 
     using namespace Catch::Clara;

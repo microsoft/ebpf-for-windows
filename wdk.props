@@ -8,27 +8,36 @@
     <HostPlatform Condition="'$(HostPlatform)' == ''">$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)</HostPlatform>
     <!-- Target/toolset/WDK selection. All three use the same '>= 18.0' vs '< 18.0' split so we
          never end up partially configured (e.g. WDKVersion set but toolset empty) on an
-         unexpected VisualStudioVersion. Each property can be overridden from the command line. -->
-    <WindowsTargetPlatformVersion Condition="'$(WindowsTargetPlatformVersion)' == '' and '$(VisualStudioVersion)' &gt;= '18.0'">10.0.28000.0</WindowsTargetPlatformVersion>
-    <WindowsTargetPlatformVersion Condition="'$(WindowsTargetPlatformVersion)' == '' and '$(VisualStudioVersion)' &lt; '18.0'">10.0.26100.0</WindowsTargetPlatformVersion>
-    <!-- WDK NuGet package version: VS 2026 (MSBuild 18) requires 10.0.28000.1839;
+         unexpected toolset version. Each property can be overridden from the command line.
+
+         These gate on $(MSBuildAssemblyVersion), which is always defined and evaluates to the
+         MSBuild major version ("17.0" for VS 2022, "18.0" for VS 2026). Two alternatives do NOT
+         work here: $(VisualStudioVersion) is only guaranteed when the build is driven by VS or a
+         Developer Command Prompt, and $(MSBuildToolsVersion) evaluates to the string "Current" on
+         both VS 2022 and VS 2026, so comparing it against '18.0' never distinguishes the two (and
+         can raise MSB4086 on a numeric comparison). Selecting the wrong branch pairs the VS 2022
+         WDK with the VS 2026 toolset, which fails with MSB4062 while loading
+         Microsoft.DriverKit.Build.Tasks.18.0.dll, an assembly the 26100 package does not ship. -->
+    <WindowsTargetPlatformVersion Condition="'$(WindowsTargetPlatformVersion)' == '' and '$(MSBuildAssemblyVersion)' &gt;= '18.0'">10.0.28000.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion Condition="'$(WindowsTargetPlatformVersion)' == '' and '$(MSBuildAssemblyVersion)' &lt; '18.0'">10.0.26100.0</WindowsTargetPlatformVersion>
+    <!-- WDK NuGet package version: VS 2026 (MSBuild 18) requires 10.0.28000.2526;
          VS 2022 (MSBuild 17) uses 10.0.26100.6584. -->
-    <WDKVersion Condition="'$(WDKVersion)' == '' and '$(VisualStudioVersion)' &gt;= '18.0'">10.0.28000.1839</WDKVersion>
-    <WDKVersion Condition="'$(WDKVersion)' == '' and '$(VisualStudioVersion)' &lt; '18.0'">10.0.26100.6584</WDKVersion>
+    <WDKVersion Condition="'$(WDKVersion)' == '' and '$(MSBuildAssemblyVersion)' &gt;= '18.0'">10.0.28000.2526</WDKVersion>
+    <WDKVersion Condition="'$(WDKVersion)' == '' and '$(MSBuildAssemblyVersion)' &lt; '18.0'">10.0.26100.6584</WDKVersion>
     <!-- Provide DDK_INC_PATH for user-mode projects that simulate kernel code (usersim) -->
     <DDK_INC_PATH Condition="'$(DDK_INC_PATH)' == ''">$(SolutionDir)packages\Microsoft.Windows.WDK.$(Platform).$(WDKVersion)\c\Include\$(WindowsTargetPlatformVersion)\km</DDK_INC_PATH>
     <!-- Default platform toolset for user-mode projects. Kernel-mode projects override this
          with WindowsKernelModeDriver10.0 in their vcxproj Configuration PropertyGroups. -->
-    <EbpfPlatformToolset Condition="'$(EbpfPlatformToolset)' == '' and '$(VisualStudioVersion)' &gt;= '18.0'">v145</EbpfPlatformToolset>
-    <EbpfPlatformToolset Condition="'$(EbpfPlatformToolset)' == '' and '$(VisualStudioVersion)' &lt; '18.0'">v143</EbpfPlatformToolset>
+    <EbpfPlatformToolset Condition="'$(EbpfPlatformToolset)' == '' and '$(MSBuildAssemblyVersion)' &gt;= '18.0'">v145</EbpfPlatformToolset>
+    <EbpfPlatformToolset Condition="'$(EbpfPlatformToolset)' == '' and '$(MSBuildAssemblyVersion)' &lt; '18.0'">v143</EbpfPlatformToolset>
     <!-- Platform toolset consumed by the ebpf-extension-common submodule. Its Directory.Build.props
          imports "$(SolutionDir)wdk.props", which resolves to THIS file when the submodule is built as
          part of the eBPF-for-Windows solution, so the toolset variable its vcxproj files reference
          ($(EbpfExtPlatformToolset)) must be defined here. Without it the toolset is empty and MSBuild
          falls back to v100, causing MSB8020. (usersim is self-contained: its projects import their own
          wdk.props via a relative path, so no equivalent definition is needed here.) -->
-    <EbpfExtPlatformToolset Condition="'$(EbpfExtPlatformToolset)' == '' and '$(VisualStudioVersion)' &gt;= '18.0'">v145</EbpfExtPlatformToolset>
-    <EbpfExtPlatformToolset Condition="'$(EbpfExtPlatformToolset)' == '' and '$(VisualStudioVersion)' &lt; '18.0'">v143</EbpfExtPlatformToolset>
+    <EbpfExtPlatformToolset Condition="'$(EbpfExtPlatformToolset)' == '' and '$(MSBuildAssemblyVersion)' &gt;= '18.0'">v145</EbpfExtPlatformToolset>
+    <EbpfExtPlatformToolset Condition="'$(EbpfExtPlatformToolset)' == '' and '$(MSBuildAssemblyVersion)' &lt; '18.0'">v143</EbpfExtPlatformToolset>
   </PropertyGroup>
   <!-- Log the WDK version -->
   <Target Name="LogWDKVersion" BeforeTargets="PrepareForBuild">

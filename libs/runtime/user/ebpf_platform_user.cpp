@@ -48,169 +48,261 @@ ebpf_get_code_integrity_state(_Out_ bool* test_signing_enabled, _Out_ bool* hype
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
+typedef struct _ebpf_ring_section
+{
+    HANDLE section_handle;
+    void* view;
+    size_t view_size;
+} ebpf_ring_section_t;
+
 struct _ebpf_ring_descriptor
 {
-    void* primary_view;
-    void* secondary_view;
+    size_t ring_capacity;         ///< Data ring-buffer capacity in bytes.
+    ebpf_ring_section_t kernel;   ///< Kernel section that contains the control pages ebpf_ring_buffer_kernel_page_t.
+    ebpf_ring_section_t consumer; ///< Kernel section that contains the control pages ebpf_ring_buffer_consumer_page_t.
+    ebpf_ring_section_t producer; ///< Kernel section that contains the control pages ebpf_ring_buffer_producer_page_t.
+    ebpf_ring_section_t data;     ///< Kernel section that contains the data pages.
+    uint8_t* composite_base;
+    size_t composite_view_size;
+    void* data_secondary_view;
 };
 typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
+
+static void
+_ebpf_ring_cleanup_section(_Inout_ ebpf_ring_section_t* section)
+{
+    if (section->view != nullptr) {
+        UnmapViewOfFile(section->view);
+        section->view = nullptr;
+    }
+
+    if (section->section_handle != nullptr) {
+        CloseHandle(section->section_handle);
+        section->section_handle = nullptr;
+    }
+
+    section->view_size = 0;
+}
+
+static _Must_inspect_result_ ebpf_result_t
+_ebpf_ring_create_section(size_t size, _Inout_ ebpf_ring_section_t* section)
+{
+    uint64_t section_size = size;
+
+    section->section_handle = CreateFileMapping(
+        INVALID_HANDLE_VALUE,
+        nullptr,
+        PAGE_READWRITE,
+        static_cast<unsigned long>(section_size >> 32),
+        static_cast<unsigned long>(section_size & MAXUINT32),
+        nullptr);
+    if (section->section_handle == nullptr) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, CreateFileMapping);
+        return win32_error_code_to_ebpf_result(GetLastError());
+    }
+
+    section->view = MapViewOfFile(section->section_handle, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, size);
+    if (section->view == nullptr) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MapViewOfFile);
+        _ebpf_ring_cleanup_section(section);
+        return win32_error_code_to_ebpf_result(GetLastError());
+    }
+
+    section->view_size = size;
+    return EBPF_SUCCESS;
+}
+
+static void
+_ebpf_ring_release_composite_placeholders(_In_ uint8_t* composite_base, _In_reads_(5) const size_t* view_lengths);
+
+static _Must_inspect_result_ ebpf_result_t
+_ebpf_ring_create_composite_view(_Inout_ ebpf_ring_descriptor_t* descriptor)
+{
+    static const size_t _ring_header_size = EBPF_RING_BUFFER_HEADER_PAGES * PAGE_SIZE;
+    uint8_t* current_address = nullptr;
+    uint8_t* composite_base = nullptr;
+    HANDLE section_handles[] = {
+        descriptor->kernel.section_handle,
+        descriptor->consumer.section_handle,
+        descriptor->producer.section_handle,
+        descriptor->data.section_handle,
+        // Map the data section twice contiguously so wrapped records can be read linearly.
+        descriptor->data.section_handle};
+    size_t view_lengths[] = {PAGE_SIZE, PAGE_SIZE, PAGE_SIZE, descriptor->ring_capacity, descriptor->ring_capacity};
+    void** target_views[] = {
+        &descriptor->kernel.view,
+        &descriptor->consumer.view,
+        &descriptor->producer.view,
+        &descriptor->data.view,
+        &descriptor->data_secondary_view};
+    ebpf_result_t return_value = EBPF_SUCCESS;
+
+    descriptor->composite_view_size = _ring_header_size + (descriptor->ring_capacity * 2);
+    composite_base = reinterpret_cast<uint8_t*>(VirtualAlloc2(
+        nullptr,
+        nullptr,
+        descriptor->composite_view_size,
+        MEM_RESERVE | MEM_RESERVE_PLACEHOLDER,
+        PAGE_NOACCESS,
+        nullptr,
+        0));
+    if (composite_base == nullptr) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, VirtualAlloc2);
+        return win32_error_code_to_ebpf_result(GetLastError());
+    }
+    descriptor->composite_base = composite_base;
+    current_address = composite_base;
+
+    for (size_t index = 0; index < ARRAYSIZE(section_handles); index++) {
+#pragma warning(push)
+#pragma warning(disable : 6333)
+#pragma warning(disable : 28160)
+        if ((index + 1) < ARRAYSIZE(section_handles) &&
+            !VirtualFree(current_address, view_lengths[index], MEM_RELEASE | MEM_PRESERVE_PLACEHOLDER)) {
+            EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, VirtualFree);
+            return_value = win32_error_code_to_ebpf_result(GetLastError());
+            goto Exit;
+        }
+#pragma warning(pop)
+
+        *target_views[index] = MapViewOfFile3(
+            section_handles[index],
+            nullptr,
+            current_address,
+            0,
+            view_lengths[index],
+            MEM_REPLACE_PLACEHOLDER,
+            PAGE_READWRITE,
+            nullptr,
+            0);
+        if (*target_views[index] == nullptr) {
+            EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MapViewOfFile3);
+            return_value = win32_error_code_to_ebpf_result(GetLastError());
+            goto Exit;
+        }
+
+        current_address += view_lengths[index];
+    }
+
+Exit:
+    if (return_value != EBPF_SUCCESS) {
+        if (descriptor->data_secondary_view != nullptr) {
+            UnmapViewOfFileEx(descriptor->data_secondary_view, MEM_PRESERVE_PLACEHOLDER);
+            descriptor->data_secondary_view = nullptr;
+        }
+        if (descriptor->data.view != nullptr) {
+            UnmapViewOfFileEx(descriptor->data.view, MEM_PRESERVE_PLACEHOLDER);
+            descriptor->data.view = nullptr;
+        }
+        if (descriptor->producer.view != nullptr) {
+            UnmapViewOfFileEx(descriptor->producer.view, MEM_PRESERVE_PLACEHOLDER);
+            descriptor->producer.view = nullptr;
+        }
+        if (descriptor->consumer.view != nullptr) {
+            UnmapViewOfFileEx(descriptor->consumer.view, MEM_PRESERVE_PLACEHOLDER);
+            descriptor->consumer.view = nullptr;
+        }
+        if (descriptor->kernel.view != nullptr) {
+            UnmapViewOfFileEx(descriptor->kernel.view, MEM_PRESERVE_PLACEHOLDER);
+            descriptor->kernel.view = nullptr;
+        }
+        if (descriptor->composite_base != nullptr) {
+            const size_t composite_view_lengths[] = {
+                PAGE_SIZE, PAGE_SIZE, PAGE_SIZE, descriptor->ring_capacity, descriptor->ring_capacity};
+            _ebpf_ring_release_composite_placeholders(descriptor->composite_base, composite_view_lengths);
+            descriptor->composite_base = nullptr;
+        }
+        descriptor->composite_view_size = 0;
+    }
+
+    EBPF_RETURN_RESULT(return_value);
+}
+
+static void
+_ebpf_ring_release_composite_placeholders(_In_ uint8_t* composite_base, _In_reads_(5) const size_t* view_lengths)
+{
+    size_t offset = 0;
+    for (size_t index = 0; index < 5; index++) {
+        if (!VirtualFree(composite_base + offset, 0, MEM_RELEASE)) {
+            EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, VirtualFree);
+        }
+        offset += view_lengths[index];
+    }
+}
 
 // This code is derived from the sample at:
 // https://docs.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc2
 
 _Ret_maybenull_ ebpf_ring_descriptor_t*
-ebpf_allocate_ring_buffer_memory(size_t length)
+ebpf_allocate_ring_buffer_memory(size_t ring_capacity)
 {
     EBPF_LOG_ENTRY();
-    bool result = false;
-    HANDLE section = nullptr;
     SYSTEM_INFO sysInfo;
-    uint8_t* placeholder1 = nullptr;
-    uint8_t* placeholder2 = nullptr;
-    void* view1 = nullptr;
-    void* view2 = nullptr;
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_ring_descriptor_t* descriptor = nullptr;
 
     // Skip fault injection for this VirtualAlloc2 OS API, as ebpf_allocate already does that.
     GetSystemInfo(&sysInfo);
     ebpf_assert(sysInfo.dwPageSize == PAGE_SIZE);
 
-    if (length == 0) {
-        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "Ring buffer length is zero");
+    if (ring_capacity == 0) {
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "Ring buffer capacity is zero");
         return nullptr;
     }
 
-    if (length % PAGE_SIZE != 0) {
+    if (ring_capacity % PAGE_SIZE != 0) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_BASE,
-            "Ring buffer length doesn't match page size",
-            length);
+            "Ring buffer capacity doesn't match page size",
+            ring_capacity);
         return nullptr;
     }
 
-    size_t kernel_pages = 1;
-    size_t user_pages = 2;
-    size_t total_page_count = 0;
-    size_t header_length = 0;
-    size_t data_section_length = 0;
-    size_t total_mapped_size = 0;
-    size_t view_length = 0;
-
-    if ((ebpf_safe_size_t_add(kernel_pages, user_pages, &total_page_count) != EBPF_SUCCESS) ||
-        (ebpf_safe_size_t_multiply(total_page_count, PAGE_SIZE, &header_length) != EBPF_SUCCESS) ||
-        (ebpf_safe_size_t_multiply(length, 2, &data_section_length) != EBPF_SUCCESS) ||
-        (ebpf_safe_size_t_add(header_length, data_section_length, &total_mapped_size) != EBPF_SUCCESS) ||
-        (ebpf_safe_size_t_add(header_length, length, &view_length) != EBPF_SUCCESS) || (view_length > UINT32_MAX)) {
-        EBPF_LOG_MESSAGE_UINT64(
-            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "Ring buffer length exceeds maximum", length);
-        return nullptr;
-    }
-
-
-    ebpf_ring_descriptor_t* descriptor =
-        (ebpf_ring_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_ring_descriptor_t), EBPF_POOL_TAG_DEFAULT);
+    descriptor = (ebpf_ring_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_ring_descriptor_t), EBPF_POOL_TAG_DEFAULT);
     if (!descriptor) {
+        return nullptr;
+    }
+    memset(descriptor, 0, sizeof(*descriptor));
+    descriptor->ring_capacity = ring_capacity;
+
+    result = _ebpf_ring_create_section(PAGE_SIZE, &descriptor->kernel);
+    if (result != EBPF_SUCCESS) {
         goto Exit;
     }
 
-    //
-    // Reserve a placeholder region where the buffer will be mapped.
-    //
-    placeholder1 = reinterpret_cast<uint8_t*>(VirtualAlloc2(
-        nullptr, nullptr, total_mapped_size, MEM_RESERVE | MEM_RESERVE_PLACEHOLDER, PAGE_NOACCESS, nullptr, 0));
-
-    if (placeholder1 == nullptr) {
-        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, VirtualAlloc2);
+    result = _ebpf_ring_create_section(PAGE_SIZE, &descriptor->consumer);
+    if (result != EBPF_SUCCESS) {
         goto Exit;
     }
 
-#pragma warning(push)
-#pragma warning(disable : 6333)  // Invalid parameter:  passing MEM_RELEASE and a non-zero dwSize parameter to
-                                 // 'VirtualFree' is not allowed.  This causes the call to fail.
-#pragma warning(disable : 28160) // Passing MEM_RELEASE and a non-zero dwSize parameter to VirtualFree is not allowed.
-                                 // This results in the failure of this call.
-    //
-    // Split the part of the placeholder region after the header into two regions of equal size.
-    //
-    result = VirtualFree(placeholder1, view_length, MEM_RELEASE | MEM_PRESERVE_PLACEHOLDER);
-    if (result == FALSE) {
-        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, VirtualFree);
-        goto Exit;
-    }
-#pragma warning(pop)
-    placeholder2 = placeholder1 + view_length;
-
-    //
-    // Create a pagefile-backed section for the buffer.
-    //
-
-    section = CreateFileMapping(
-        INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, static_cast<unsigned long>(view_length), nullptr);
-    if (section == nullptr) {
-        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, CreateFileMapping);
+    result = _ebpf_ring_create_section(PAGE_SIZE, &descriptor->producer);
+    if (result != EBPF_SUCCESS) {
         goto Exit;
     }
 
-    //
-    // Map the header + data into the first placeholder region.
-    //
-    view1 = MapViewOfFile3(
-        section, nullptr, placeholder1, 0, view_length, MEM_REPLACE_PLACEHOLDER, PAGE_READWRITE, nullptr, 0);
-    if (view1 == nullptr) {
-        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MapViewOfFile3);
+    result = _ebpf_ring_create_section(ring_capacity, &descriptor->data);
+    if (result != EBPF_SUCCESS) {
         goto Exit;
     }
 
-    //
-    // Ownership transferred, don't free this now.
-    //
-    placeholder1 = nullptr;
-
-    //
-    // Map the data a second time into the second placeholder region.
-    //
-    view2 = MapViewOfFile3(
-        section, nullptr, placeholder2, header_length, length, MEM_REPLACE_PLACEHOLDER, PAGE_READWRITE, nullptr, 0);
-    if (view2 == nullptr) {
-        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MapViewOfFile3);
+    UnmapViewOfFile(descriptor->kernel.view);
+    descriptor->kernel.view = nullptr;
+    UnmapViewOfFile(descriptor->consumer.view);
+    descriptor->consumer.view = nullptr;
+    UnmapViewOfFile(descriptor->producer.view);
+    descriptor->producer.view = nullptr;
+    UnmapViewOfFile(descriptor->data.view);
+    descriptor->data.view = nullptr;
+    result = _ebpf_ring_create_composite_view(descriptor);
+    if (result != EBPF_SUCCESS) {
         goto Exit;
     }
 
-    result = true;
-
-    //
-    // Success, return both mapped views to the caller.
-    //
-    descriptor->primary_view = view1;
-    descriptor->secondary_view = view2;
-
-    placeholder2 = nullptr;
-    view1 = nullptr;
-    view2 = nullptr;
 Exit:
-    if (!result) {
-        ebpf_free(descriptor);
+    if (result != EBPF_SUCCESS) {
+        ebpf_free_ring_buffer_memory(descriptor);
         descriptor = nullptr;
-    }
-
-    if (section != nullptr) {
-        CloseHandle(section);
-    }
-
-    if (placeholder1 != nullptr) {
-        VirtualFree(placeholder1, 0, MEM_RELEASE);
-    }
-
-    if (placeholder2 != nullptr) {
-        VirtualFree(placeholder2, 0, MEM_RELEASE);
-    }
-
-    if (view1 != nullptr) {
-        UnmapViewOfFileEx(view1, 0);
-    }
-
-    if (view2 != nullptr) {
-        UnmapViewOfFileEx(view2, 0);
     }
 
     EBPF_RETURN_POINTER(ebpf_ring_descriptor_t*, descriptor);
@@ -223,17 +315,116 @@ ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
     if (!ring) {
         EBPF_RETURN_VOID();
     }
+    ebpf_ring_descriptor_t* descriptor = ring;
+    __analysis_assume(descriptor != NULL);
 
-    UnmapViewOfFile(ring->primary_view);
-    UnmapViewOfFile(ring->secondary_view);
-    ebpf_free(ring);
+#pragma warning(push)
+#pragma warning(suppress : 6001) // Ring descriptors are zero-initialized on allocation, so partially constructed
+                                 // descriptors can be cleaned up by testing members against nullptr.
+    if (descriptor->composite_base != nullptr) {
+        if (descriptor->data_secondary_view != nullptr) {
+            UnmapViewOfFileEx(descriptor->data_secondary_view, MEM_PRESERVE_PLACEHOLDER);
+            descriptor->data_secondary_view = nullptr;
+        }
+        if (descriptor->data.view != nullptr) {
+            UnmapViewOfFileEx(descriptor->data.view, MEM_PRESERVE_PLACEHOLDER);
+            descriptor->data.view = nullptr;
+        }
+        if (descriptor->producer.view != nullptr) {
+            UnmapViewOfFileEx(descriptor->producer.view, MEM_PRESERVE_PLACEHOLDER);
+            descriptor->producer.view = nullptr;
+        }
+        if (descriptor->consumer.view != nullptr) {
+            UnmapViewOfFileEx(descriptor->consumer.view, MEM_PRESERVE_PLACEHOLDER);
+            descriptor->consumer.view = nullptr;
+        }
+        if (descriptor->kernel.view != nullptr) {
+            UnmapViewOfFileEx(descriptor->kernel.view, MEM_PRESERVE_PLACEHOLDER);
+            descriptor->kernel.view = nullptr;
+        }
+        const size_t view_lengths[] = {
+            PAGE_SIZE, PAGE_SIZE, PAGE_SIZE, descriptor->ring_capacity, descriptor->ring_capacity};
+        _ebpf_ring_release_composite_placeholders(descriptor->composite_base, view_lengths);
+        descriptor->composite_base = nullptr;
+    }
+    _ebpf_ring_cleanup_section(&descriptor->data);
+    _ebpf_ring_cleanup_section(&descriptor->producer);
+    _ebpf_ring_cleanup_section(&descriptor->consumer);
+    _ebpf_ring_cleanup_section(&descriptor->kernel);
+#pragma warning(pop)
+    ebpf_free(descriptor);
     EBPF_RETURN_VOID();
 }
 
 void*
-ebpf_ring_descriptor_get_base_address(_In_ const ebpf_ring_descriptor_t* ring_descriptor)
+ebpf_ring_descriptor_get_kernel_page_address(_In_ const ebpf_ring_descriptor_t* ring_descriptor)
 {
-    return ring_descriptor->primary_view;
+    return ring_descriptor->kernel.view;
+}
+
+void*
+ebpf_ring_descriptor_get_consumer_page_address(_In_ const ebpf_ring_descriptor_t* ring_descriptor)
+{
+    return ring_descriptor->consumer.view;
+}
+
+void*
+ebpf_ring_descriptor_get_producer_page_address(_In_ const ebpf_ring_descriptor_t* ring_descriptor)
+{
+    return ring_descriptor->producer.view;
+}
+
+uint8_t*
+ebpf_ring_descriptor_get_data_address(_In_ const ebpf_ring_descriptor_t* ring_descriptor)
+{
+    return (uint8_t*)ring_descriptor->data.view;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_ring_open_user_section(
+    _In_ const ebpf_ring_descriptor_t* ring,
+    ebpf_ring_buffer_user_section_t section,
+    _Out_ ebpf_handle_t* handle,
+    _Out_ size_t* view_size)
+{
+    const ebpf_ring_section_t* source_section = nullptr;
+    DWORD desired_access = FILE_MAP_READ;
+    HANDLE duplicated_handle = nullptr;
+
+    if (ring == nullptr || handle == nullptr || view_size == nullptr) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    switch (section) {
+    case EBPF_RING_BUFFER_USER_SECTION_CONSUMER:
+        source_section = &ring->consumer;
+        desired_access = FILE_MAP_READ | FILE_MAP_WRITE;
+        break;
+    case EBPF_RING_BUFFER_USER_SECTION_PRODUCER:
+        source_section = &ring->producer;
+        break;
+    case EBPF_RING_BUFFER_USER_SECTION_DATA:
+        source_section = &ring->data;
+        break;
+    default:
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    if (!DuplicateHandle(
+            GetCurrentProcess(),
+            source_section->section_handle,
+            GetCurrentProcess(),
+            &duplicated_handle,
+            desired_access,
+            FALSE,
+            0)) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, DuplicateHandle);
+        return win32_error_code_to_ebpf_result(GetLastError());
+    }
+
+    *handle = (ebpf_handle_t)duplicated_handle;
+    *view_size = source_section->view_size;
+    return EBPF_SUCCESS;
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -244,9 +435,9 @@ ebpf_ring_map_user(
     if (!ring || !consumer || !producer || !data) {
         EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
-    *consumer = (uint8_t*)ring->primary_view + PAGE_SIZE;
-    *producer = (uint8_t*)ring->primary_view + PAGE_SIZE + PAGE_SIZE;
-    *data = (uint8_t*)ring->primary_view + PAGE_SIZE + PAGE_SIZE + PAGE_SIZE;
+    *consumer = ebpf_ring_descriptor_get_consumer_page_address(ring);
+    *producer = ebpf_ring_descriptor_get_producer_page_address(ring);
+    *data = ebpf_ring_descriptor_get_data_address(ring);
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 

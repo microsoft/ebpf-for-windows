@@ -13,15 +13,22 @@ jump down to [Using eBPF in development](#using-ebpf-in-development).
 The following must be installed in order to build this project:
 
 1. Git (e.g., [Git for Windows 64-bit](https://git-scm.com/download/win))
-1. **Visual Studio 2022** - one of the following editions should be installed (once installed, upgrade to **v17.4.2 or later**):
+1. **Visual Studio 2026** - one of the following editions should be installed:
 
-   - [Download Visual Studio Community 2022](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=17) (free)
-   - [Download Visual Studio Professional 2022](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Professional&rel=17)
-   - [Download Visual Studio Enterprise 2022](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Enterprise&rel=17)
-   
+   - [Download Visual Studio Community 2026](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=18) (free)
+   - [Download Visual Studio Professional 2026](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Professional&rel=18)
+   - [Download Visual Studio Enterprise 2026](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Enterprise&rel=18)
+
+   >**Note**: **Visual Studio 2022** (v17.4.2 or later) is also still supported, and is validated by a
+    dedicated CI build. The project selects the platform toolset and Windows Driver Kit version from the
+    Visual Studio version you build with: VS 2026 uses toolset `v145` with WDK `10.0.28000`, and VS 2022
+    uses toolset `v143` with WDK `10.0.26100`. See [wdk.props](../wdk.props). Support for VS 2022 will be
+    removed in a future release.
+
 Visual Studio will [prompt you to install](https://learn.microsoft.com/en-us/visualstudio/install/import-export-installation-configurations?view=vs-2019#use-a-configuration-file-to-automatically-install-missing-components) the necessary dependencies when opening the main solution file for the
 first time.
 1. Install [Clang for Windows 64-bit](https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/LLVM-18.1.8-win64.exe) (version **18.1.8**). The latest version of clang that ships with the Visual Studio installer does not support `bpf` as a target.
+1. CMake **4.2 or later** is required when building with Visual Studio 2026, as earlier versions do not support the `Visual Studio 18 2026` generator.
 
 You should add the paths to `git.exe`, `cmake.exe` and `nuget.exe` to the Windows PATH environment variable after the software packages
  above have been installed.
@@ -39,8 +46,19 @@ You should add the paths to `git.exe`, `cmake.exe` and `nuget.exe` to the Window
 
    ```ps
    Invoke-WebRequest 'https://raw.githubusercontent.com/microsoft/ebpf-for-windows/main/scripts/Setup-DevEnv.ps1' -OutFile $env:TEMP\Setup-DeveEnv.ps1
-   if ((get-filehash -Algorithm SHA256 $env:TEMP\Setup-DeveEnv.ps1).Hash -eq 'B12416D3C84660BE33C88772B3E7D3571A10899A57BC9DDFE218DB751483FD71') { &"$env:TEMP\Setup-DeveEnv.ps1" }
+   if ((get-filehash -Algorithm SHA256 $env:TEMP\Setup-DeveEnv.ps1).Hash -eq '6384A8BA507B8C1FB48AAE8BA298C7A79E3927BC92B3BFAB47552371208D8AEB') { &"$env:TEMP\Setup-DeveEnv.ps1" }
    ```
+
+   This installs Visual Studio 2026 by default. To set up a Visual Studio 2022 environment instead, pass
+   `-VisualStudioVersion 2022`:
+
+   ```ps
+   &"$env:TEMP\Setup-DeveEnv.ps1" -VisualStudioVersion 2022
+   ```
+
+   >**Note**: the hash above must match the current contents of
+    [`scripts/Setup-DevEnv.ps1`](../scripts/Setup-DevEnv.ps1); if the script is changed, update this hash in
+    the same pull request, otherwise the snippet silently does nothing.
 
    >**Note**: the WDK for Windows 11 is [not currently available on Chocolatey](https://community.chocolatey.org/packages?q=windowsdriverkit),
     please install manually with the link in the [Prerequisites](#prerequisites) section above.
@@ -71,7 +89,7 @@ PE parse directory includes some malformed PE images as a part of the test suite
 
 The following steps need to be executed *once* before the first build on a new clone:
 
-1. Launch a `Developer PowerShell for VS 2022` session.
+1. Launch a `Developer PowerShell for VS 2026` session (or `Developer PowerShell for VS 2022` if building with Visual Studio 2022).
 1. Change directory to where the project is cloned (e.g. "`cd ebpf-for-windows`").
 1. Run the following script:
 
@@ -87,9 +105,9 @@ The following steps need to be executed *once* before the first build on a new c
 
 > TIP: In case you need to "reset" the repo, without re-cloning it, you can just delete all the folders under the `\external` directory (but keep the files), and then re-run the above script.
 
-#### Building using Developer Command Prompt for VS 2022
+#### Building using Developer Command Prompt for VS
 
-1. Launch `Developer Command Prompt for VS 2022`.
+1. Launch `Developer Command Prompt for VS 2026` (or `Developer Command Prompt for VS 2022` if building with Visual Studio 2022).
 1. Change directory to where the project is cloned (e.g. `cd ebpf-for-windows`), and run the following command:
 
    ```cmd

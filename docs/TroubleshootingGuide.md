@@ -89,7 +89,7 @@ If the objects are still not present, check the [eBPF diagnostic traces](./Diagn
 any errors.
 
 **Next Steps**: If you have verified that the WFP objects are present, but the eBPF progarm is still not getting
-invoked, see [troubleshooting eBPF program issues](#Troubleshooting-general-eBPF-Program-Issues).
+invoked, see [troubleshooting eBPF program issues](#troubleshooting-general-ebpf-program-issues).
 
 --------------------
 

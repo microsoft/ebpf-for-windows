@@ -12,17 +12,21 @@
     },
     {
       "matchManagers": ["git-submodules"],
-      "matchPaths": [
-        "external/win-c",
-        "external/Catch2",
-        "external/pe-parse",
-        "tests/external/kissfft"
+      "matchDepNames": ["external/ebpf-verifier"],
+      "groupName": "prevail"
+    },
+    {
+      "matchManagers": ["git-submodules"],
+      "matchDepNames": [
+        "external/**",
+        "tests/external/**",
+        "!external/ebpf-verifier"
       ],
       "groupName": "git-submodules"
     },
     {
       "matchManagers": ["dockerfile"],
-      "matchPaths": ["images/**"],
+      "matchFileNames": ["images/**"],
       "groupName": "docker"
     }
   ]

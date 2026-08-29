@@ -1,6 +1,8 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 #pragma once
+#include "ebpf_windows.h"
+
 #include <stdint.h>
 
 // This file contains APIs for hooks and helpers that are
@@ -11,7 +13,12 @@
 #endif
 
 // BIND hook.
+// @deprecated Use BPF_PROG_TYPE_CGROUP_SOCK_ADDR with BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND instead.
 
+/**
+ * @brief Operations reported by the legacy bind hook.
+ * @deprecated Use BPF_PROG_TYPE_CGROUP_SOCK_ADDR with BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND instead.
+ */
 typedef enum _bind_operation
 {
     BIND_OPERATION_BIND,      ///< Entry to bind.
@@ -19,6 +26,11 @@ typedef enum _bind_operation
     BIND_OPERATION_UNBIND,    ///< Release port.
 } bind_operation_t;
 
+/**
+ * @brief Context structure for the legacy bind hook.
+ * @deprecated Use BPF_PROG_TYPE_CGROUP_SOCK_ADDR with BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND instead.
+ * Use bpf_sock_addr_t as the context structure for the replacement hook.
+ */
 typedef struct _bind_md
 {
     uint8_t* app_id_start;         ///< Pointer to start of App ID.
@@ -32,6 +44,8 @@ typedef struct _bind_md
 
 /**
  * @brief Actions that can be returned by a bind hook program.
+ * @deprecated Use BPF_PROG_TYPE_CGROUP_SOCK_ADDR with BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND instead.
+ * Use ebpf_sock_addr_verdict_t as the return type for the replacement hook.
  */
 typedef enum _bind_action
 {
@@ -76,6 +90,7 @@ typedef enum _bind_action
 
 /**
  * @brief Handle IPv4 and IPv6 socket bind operations.
+ * @deprecated Use BPF_PROG_TYPE_CGROUP_SOCK_ADDR with BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND instead.
  *
  * This function type defines the signature for eBPF programs that handle socket bind operations.
  * The program is called before the bind operation completes and can inspect the socket metadata
@@ -189,6 +204,40 @@ typedef struct _bpf_sock_addr_network_context
 } bpf_sock_addr_network_context_t;
 
 #define BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION 1
+
+/**
+ * @brief Header of an eBPF sock_addr test context structure.
+ * @see bpf_sock_addr_test_context_t.
+ * Every eBPF sock_addr test context structure must start with this header.
+ * New fields can be added to the end of the data structure without breaking
+ * backward compatibility. The version field must be updated only if the new
+ * data structure is not backward compatible.
+ * @note Original bpf_sock_addr_t context does not have the header.
+ * @see bpf_sock_addr_t.
+ */
+typedef ebpf_extension_header_t bpf_sock_addr_test_context_header_t;
+
+/**
+ * @brief Extended test context for for BPF_PROG_TYPE_CGROUP_SOCK_ADDR program type.
+ * This context can be used for testing eBPF programs that call \ref bpf_sock_addr_get_network_context helper function.
+ * eBPF programs that do not call \ref bpf_sock_addr_get_network_context helper function, can use \ref bpf_sock_addr_t
+ * context.
+ */
+typedef struct _bpf_sock_addr_test_context
+{
+    bpf_sock_addr_test_context_header_t header;      ///< Standard versioning header.
+    bpf_sock_addr_t context;                         ///< Socket address context.
+    bpf_sock_addr_network_context_t network_context; ///< Network context.
+} bpf_sock_addr_test_context_t;
+
+#define BPF_SOCK_ADDR_TEST_CONTEXT_VERSION 1
+
+#define BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(bpf_sock_addr_test_context_t, network_context)
+#define BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE sizeof(bpf_sock_addr_test_context_t)
+#define BPF_SOCK_ADDR_TEST_CONTEXT_HEADER_VERSION \
+    {BPF_SOCK_ADDR_TEST_CONTEXT_VERSION,          \
+     BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE,     \
+     BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE}
 
 /**
  * @brief Get the network context for the connection (CONNECT_AUTHORIZATION, RECV_ACCEPT, BIND, and LISTEN).

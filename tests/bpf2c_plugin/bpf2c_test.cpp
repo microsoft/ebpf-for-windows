@@ -83,6 +83,21 @@ _unwind(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
     return a;
 }
 
+static uint64_t
+_my_driver_lookup(
+    uint64_t key, uint64_t value, uint64_t value_size, uint64_t reserved1, uint64_t reserved2, _In_opt_ void* context)
+{
+    UNREFERENCED_PARAMETER(reserved1);
+    UNREFERENCED_PARAMETER(reserved2);
+    UNREFERENCED_PARAMETER(context);
+
+    if (value != 0 && value_size >= sizeof(uint64_t)) {
+        *reinterpret_cast<uint64_t*>(value) = key;
+    }
+
+    return key + value_size;
+}
+
 static std::map<uint32_t, uint64_t (*)(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5)>
     _helper_functions = {
         {0, _gather_bytes},
@@ -93,6 +108,10 @@ static std::map<uint32_t, uint64_t (*)(uint64_t r1, uint64_t r2, uint64_t r3, ui
         {5, _unwind},
 };
 
+static std::map<std::string, helper_function_t> _btf_resolved_functions = {
+    {"my_driver_lookup", _my_driver_lookup},
+};
+
 /**
  * @brief Read in a string of hex bytes and return a vector of bytes.
  *
@@ -100,7 +119,7 @@ static std::map<uint32_t, uint64_t (*)(uint64_t r1, uint64_t r2, uint64_t r3, ui
  * @return Vector of bytes.
  */
 static std::vector<uint8_t>
-_base16_decode(const std::string& input)
+_base16_decode(_In_ const std::string& input)
 {
     std::vector<uint8_t> output;
     std::stringstream ss(input);
@@ -147,10 +166,12 @@ main(int argc, char** argv)
     size_t program_entry_count = 0;
     std::vector<program_runtime_context_t> runtime_contexts;
     std::vector<std::vector<helper_function_data_t>> helper_function_array;
+    std::vector<std::vector<btf_resolved_function_data_t>> btf_resolved_function_array;
 
     metadata_table.programs(&program_entries, &program_entry_count);
     runtime_contexts.resize(program_entry_count);
     helper_function_array.resize(program_entry_count);
+    btf_resolved_function_array.resize(program_entry_count);
 
     if (program_entry_count != 1) {
         std::cerr << "Expected 1 program, found " << program_entry_count << std::endl;
@@ -161,10 +182,14 @@ main(int argc, char** argv)
     for (size_t i = 0; i < program_entry_count; i++) {
         helper_function_entry_t* helper_function_entries = program_entries[i].helpers;
         size_t helper_function_entry_count = program_entries[i].helper_count;
+        auto* btf_resolved_function_entries = program_entries[i].btf_resolved_functions;
+        size_t btf_resolved_function_entry_count = program_entries[i].btf_resolved_function_count;
 
         program_runtime_context_t* runtime_context = &runtime_contexts[i];
         helper_function_array[i].resize(helper_function_entry_count);
         runtime_context->helper_data = helper_function_array[i].data();
+        btf_resolved_function_array[i].resize(btf_resolved_function_entry_count);
+        runtime_context->btf_resolved_function_data = btf_resolved_function_array[i].data();
 
         for (size_t j = 0; j < helper_function_entry_count; j++) {
             if (helper_function_entries[j].helper_id == -1) {
@@ -178,6 +203,17 @@ main(int argc, char** argv)
                 runtime_context->helper_data[j].address =
                     reinterpret_cast<helper_function_t>(_helper_functions[helper_function_entries[j].helper_id]);
             }
+        }
+
+        for (size_t j = 0; j < btf_resolved_function_entry_count; j++) {
+            auto function = _btf_resolved_functions.find(btf_resolved_function_entries[j].name);
+            if (function == _btf_resolved_functions.end()) {
+                std::cout << "bpf_test doesn't support BTF-resolved function " << btf_resolved_function_entries[j].name
+                          << std::endl;
+                return -1;
+            }
+
+            runtime_context->btf_resolved_function_data[j].address = function->second;
         }
     }
 
