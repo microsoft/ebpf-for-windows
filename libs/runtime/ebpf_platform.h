@@ -127,11 +127,11 @@ extern "C"
      * @brief Allocate pages from physical memory and create a mapping into the
      * system address space with the same pages mapped twice.
      *
-     * @param[in] length Size of memory to allocate, which must be a multiple of the page size.
+     * @param[in] ring_capacity Data ring-buffer capacity in bytes, which must be a multiple of the page size.
      * @return Pointer to an ebpf_memory_descriptor_t on success, NULL on failure.
      */
     _Ret_maybenull_ ebpf_ring_descriptor_t*
-    ebpf_allocate_ring_buffer_memory(size_t length);
+    ebpf_allocate_ring_buffer_memory(size_t ring_capacity);
 
     /**
      * @brief Release physical memory previously allocated via ebpf_allocate_ring_buffer_memory.
@@ -142,16 +142,69 @@ extern "C"
     void
     ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring);
 
+    typedef enum _ebpf_ring_buffer_user_section
+    {
+        EBPF_RING_BUFFER_USER_SECTION_CONSUMER,
+        EBPF_RING_BUFFER_USER_SECTION_PRODUCER,
+        EBPF_RING_BUFFER_USER_SECTION_DATA,
+    } ebpf_ring_buffer_user_section_t;
+
     /**
      * @brief Given an ebpf_ring_descriptor_t allocated via ebpf_allocate_ring_buffer_memory
-     * obtain the base virtual address.
+     * obtain the kernel-only page virtual address.
      *
-     * @param[in] memory_descriptor Pointer to an ebpf_ring_descriptor_t
-     * describing allocated pages.
-     * @return Base virtual address of pages that have been allocated.
+     * @param[in] ring Pointer to an ebpf_ring_descriptor_t describing allocated pages.
+     * @return Base virtual address of the kernel-only page allocation.
      */
     void*
-    ebpf_ring_descriptor_get_base_address(_In_ const ebpf_ring_descriptor_t* ring);
+    ebpf_ring_descriptor_get_kernel_page_address(_In_ const ebpf_ring_descriptor_t* ring);
+
+    /**
+     * @brief Given an ebpf_ring_descriptor_t allocated via ebpf_allocate_ring_buffer_memory
+     * obtain the shared consumer page virtual address.
+     *
+     * @param[in] ring Pointer to an ebpf_ring_descriptor_t describing allocated pages.
+     * @return Base virtual address of the consumer page allocation.
+     */
+    void*
+    ebpf_ring_descriptor_get_consumer_page_address(_In_ const ebpf_ring_descriptor_t* ring);
+
+    /**
+     * @brief Given an ebpf_ring_descriptor_t allocated via ebpf_allocate_ring_buffer_memory
+     * obtain the shared producer page virtual address.
+     *
+     * @param[in] ring Pointer to an ebpf_ring_descriptor_t describing allocated pages.
+     * @return Base virtual address of the producer page allocation.
+     */
+    void*
+    ebpf_ring_descriptor_get_producer_page_address(_In_ const ebpf_ring_descriptor_t* ring);
+
+    /**
+     * @brief Given an ebpf_ring_descriptor_t allocated via ebpf_allocate_ring_buffer_memory
+     * obtain the shared data region virtual address.
+     *
+     * @param[in] ring Pointer to an ebpf_ring_descriptor_t describing allocated pages.
+     * @return Base virtual address of the data region allocation.
+     */
+    uint8_t*
+    ebpf_ring_descriptor_get_data_address(_In_ const ebpf_ring_descriptor_t* ring);
+
+    /**
+     * @brief Open a user-visible handle for one logical ring-buffer region in the calling process.
+     *
+     * @param[in] ring Ring buffer to query.
+     * @param[in] section Section to open.
+     * @param[out] handle Region-scoped handle valid in the calling process.
+     * @param[out] view_size Size of the region view to map.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT One or more parameters are invalid.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_ring_open_user_section(
+        _In_ const ebpf_ring_descriptor_t* ring,
+        ebpf_ring_buffer_user_section_t section,
+        _Out_ ebpf_handle_t* handle,
+        _Out_ size_t* view_size);
 
     /**
      * @brief Create a mapping in the calling process of the ring buffer.

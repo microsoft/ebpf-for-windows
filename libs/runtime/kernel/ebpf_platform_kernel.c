@@ -5,186 +5,283 @@
 #include "ebpf_ring_buffer.h"
 #include "ebpf_tracelog.h"
 
+// Must be included last to avoid macro redefinition errors for ntstatus.
+#include "ebpf_error.h"
+
 extern _Ret_notnull_ DEVICE_OBJECT*
 ebpf_driver_get_device_object();
 
+typedef struct _ebpf_ring_section
+{
+    HANDLE section_handle; ///< Kernel handle to the backing section.
+    void* section_object;  ///< Referenced section object used to reopen region-scoped user handles.
+    // System-space section view used as the source for MDL creation.
+    void* pageable_kernel_view;
+    // MDL that pins pageable_kernel_view and provides its PFNs for the composite mapping.
+    MDL* locked_kernel_view_mdl;
+    size_t view_size; ///< Size of this logical region.
+} ebpf_ring_section_t;
+
 struct _ebpf_ring_descriptor
 {
-    MDL* kernel_mdl;
-    MDL* user_mdl_consumer;
-    MDL* user_mdl_producer;
-    MDL* memory;
-    void* base_address;
-    // User-mode mapping state: captures the process and addresses returned from MmMapLockedPagesSpecifyCache.
-    PEPROCESS user_process;
-    uint64_t user_pid;
-    void* user_consumer_address;
-    void* user_producer_address;
+    size_t ring_capacity;         ///< Data ring-buffer capacity in bytes.
+    ebpf_ring_section_t kernel;   ///< Kernel section that contains the control pages ebpf_ring_buffer_kernel_page_t.
+    ebpf_ring_section_t consumer; ///< Kernel section that contains the control pages ebpf_ring_buffer_consumer_page_t.
+    ebpf_ring_section_t producer; ///< Kernel section that contains the control pages ebpf_ring_buffer_producer_page_t.
+    ebpf_ring_section_t data;     ///< Kernel section that contains the data pages.
+    // Synthetic MDL that maps kernel, consumer, producer, and a double-mapped data view contiguously.
+    MDL* composite_mdl;
+    // Locked composite mapping used by kernel producers and consumers.
+    uint8_t* composite_view;
 };
 typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
 
 static KDEFERRED_ROUTINE _ebpf_deferred_routine;
 static KDEFERRED_ROUTINE _ebpf_timer_routine;
 
-_Ret_maybenull_ ebpf_ring_descriptor_t*
-ebpf_allocate_ring_buffer_memory(size_t length)
+static void
+_ebpf_ring_cleanup_section(_Inout_ ebpf_ring_section_t* section)
 {
-    EBPF_LOG_ENTRY();
-    NTSTATUS status;
-    ebpf_result_t result;
-
-    ebpf_ring_descriptor_t* ring_descriptor =
-        ebpf_allocate_with_tag(sizeof(ebpf_ring_descriptor_t), EBPF_POOL_TAG_DEFAULT);
-    MDL* source_mdl = NULL;
-    MDL* kernel_mdl = NULL;
-
-    if (!ring_descriptor) {
-        status = STATUS_NO_MEMORY;
-        goto Done;
+    if (section->locked_kernel_view_mdl != NULL) {
+        MmUnlockPages(section->locked_kernel_view_mdl);
+        IoFreeMdl(section->locked_kernel_view_mdl);
+        section->locked_kernel_view_mdl = NULL;
     }
 
-    const size_t kernel_pages = 1;
-    const size_t user_pages = 2; // consumer, producer
-    size_t requested_page_count = 0;
-    size_t mapped_memory_length = 0;
-    size_t data_mapped_length = 0;
-    size_t header_page_count = 0;
-    size_t header_mapped_length = 0;
-    size_t total_mapped_size = 0;
-    size_t user_mdl_producer_length = 0;
+    if (section->pageable_kernel_view != NULL) {
+        MmUnmapViewInSystemSpace(section->pageable_kernel_view);
+        section->pageable_kernel_view = NULL;
+    }
 
-    if (length % PAGE_SIZE != 0) {
-        status = STATUS_NO_MEMORY;
+    if (section->section_object != NULL) {
+        ObDereferenceObject(section->section_object);
+        section->section_object = NULL;
+    }
+
+    if (section->section_handle != NULL) {
+        ZwClose(section->section_handle);
+        section->section_handle = NULL;
+    }
+
+    section->view_size = 0;
+}
+
+static ebpf_result_t
+_ebpf_ring_lock_kernel_section_view(_Inout_ ebpf_ring_section_t* section)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    ebpf_result_t result = EBPF_NO_MEMORY;
+    BOOLEAN pages_locked = FALSE;
+
+    if (section->view_size > MAXULONG) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_BASE,
-            "Ring buffer length doesn't match allocation granularity",
-            length);
-        goto Done;
+            "Ring section size exceeds MDL limit",
+            section->view_size);
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
     }
 
-    size_t data_pages = length / PAGE_SIZE;
-    result = ebpf_safe_size_t_add(kernel_pages, user_pages, &requested_page_count);
-    if (result == EBPF_SUCCESS) {
-        result = ebpf_safe_size_t_add(requested_page_count, data_pages, &requested_page_count);
-    }
-    if (result == EBPF_SUCCESS) {
-        result = ebpf_safe_size_t_multiply(requested_page_count, PAGE_SIZE, &mapped_memory_length);
-    }
-    if (result == EBPF_SUCCESS) {
-        result = ebpf_safe_size_t_multiply(length, 2, &data_mapped_length);
-    }
-    if (result == EBPF_SUCCESS) {
-        result = ebpf_safe_size_t_add(kernel_pages, user_pages, &header_page_count);
-    }
-    if (result == EBPF_SUCCESS) {
-        result = ebpf_safe_size_t_multiply(header_page_count, PAGE_SIZE, &header_mapped_length);
-    }
-    if (result == EBPF_SUCCESS) {
-        result = ebpf_safe_size_t_add(header_mapped_length, data_mapped_length, &total_mapped_size);
-    }
-    if (result == EBPF_SUCCESS) {
-        result = ebpf_safe_size_t_add(PAGE_SIZE, data_mapped_length, &user_mdl_producer_length);
-    }
-    if ((result != EBPF_SUCCESS) || (total_mapped_size > MAXULONG) || (user_mdl_producer_length > MAXULONG)) {
-        status = STATUS_NO_MEMORY;
-        EBPF_LOG_MESSAGE_UINT64(
-            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "Ring buffer length is too large", length);
-        goto Done;
-    }
-
-    // Allocate pages using ebpf_map_memory.
-    ring_descriptor->memory = ebpf_map_memory(mapped_memory_length);
-    if (!ring_descriptor->memory) {
-        status = STATUS_NO_MEMORY;
-        goto Done;
-    }
-    source_mdl = ring_descriptor->memory;
-
-    // Create a MDL big enough to include the header and double-mapped pages.
-    ring_descriptor->kernel_mdl = IoAllocateMdl(NULL, (ULONG)total_mapped_size, FALSE, FALSE, NULL);
-    if (!ring_descriptor->kernel_mdl) {
+    section->locked_kernel_view_mdl =
+        IoAllocateMdl(section->pageable_kernel_view, (ULONG)section->view_size, FALSE, FALSE, NULL);
+    if (section->locked_kernel_view_mdl == NULL) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, IoAllocateMdl, STATUS_NO_MEMORY);
-        status = STATUS_NO_MEMORY;
-        goto Done;
+        goto Exit;
     }
-    kernel_mdl = ring_descriptor->kernel_mdl;
 
-    ring_descriptor->user_mdl_consumer = IoAllocateMdl(NULL, PAGE_SIZE, FALSE, FALSE, NULL);
-    if (!ring_descriptor->user_mdl_consumer) {
+    // Lock the section pages so their PFNs can be copied into the composite MDL.
+    __try {
+        MmProbeAndLockPages(section->locked_kernel_view_mdl, KernelMode, IoModifyAccess);
+        pages_locked = TRUE;
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+        status = GetExceptionCode();
+    }
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmProbeAndLockPages, status);
+        goto Exit;
+    }
+
+    result = EBPF_SUCCESS;
+
+Exit:
+    if (result != EBPF_SUCCESS && section->locked_kernel_view_mdl != NULL) {
+        if (pages_locked) {
+            MmUnlockPages(section->locked_kernel_view_mdl);
+        }
+        IoFreeMdl(section->locked_kernel_view_mdl);
+        section->locked_kernel_view_mdl = NULL;
+    }
+    EBPF_RETURN_RESULT(result);
+}
+static ebpf_result_t
+_ebpf_ring_create_kernel_composite_view(_Inout_ ebpf_ring_descriptor_t* ring_descriptor)
+{
+    uint32_t page_count = (uint32_t)(ring_descriptor->ring_capacity / PAGE_SIZE);
+    size_t pfn_array_size = sizeof(PFN_NUMBER) * page_count;
+    size_t composite_view_size = (EBPF_RING_BUFFER_HEADER_PAGES * PAGE_SIZE) + (ring_descriptor->ring_capacity * 2);
+    PFN_NUMBER* composite_pfn_array = NULL;
+
+    ring_descriptor->composite_mdl = IoAllocateMdl(NULL, (ULONG)composite_view_size, FALSE, FALSE, NULL);
+    if (ring_descriptor->composite_mdl == NULL) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, IoAllocateMdl, STATUS_NO_MEMORY);
-        status = STATUS_NO_MEMORY;
-        goto Done;
+        return EBPF_NO_MEMORY;
     }
 
-    ring_descriptor->user_mdl_producer = IoAllocateMdl(NULL, (ULONG)user_mdl_producer_length, FALSE, FALSE, NULL);
-    if (!ring_descriptor->user_mdl_producer) {
-        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, IoAllocateMdl, STATUS_NO_MEMORY);
-        status = STATUS_NO_MEMORY;
-        goto Done;
-    }
-
-    // Black magic to create an MDL where the data pages are mapped twice.
-    // We set MDL_PAGES_LOCKED here, but crucially never unlock the MDL.
-    // Instead this happens via ebpf_unmap_memory.
-    memcpy(MmGetMdlPfnArray(kernel_mdl), MmGetMdlPfnArray(source_mdl), sizeof(PFN_NUMBER) * requested_page_count);
-
-    // Double map the data pages.
-    memcpy(
-        MmGetMdlPfnArray(kernel_mdl) + requested_page_count,
-        MmGetMdlPfnArray(kernel_mdl) + kernel_pages + user_pages,
-        sizeof(PFN_NUMBER) * data_pages);
+    composite_pfn_array = MmGetMdlPfnArray(ring_descriptor->composite_mdl);
+    // Composite view order: kernel control page, consumer page, producer page, data pages, then the data pages again.
+    memcpy(composite_pfn_array, MmGetMdlPfnArray(ring_descriptor->kernel.locked_kernel_view_mdl), sizeof(PFN_NUMBER));
+    composite_pfn_array += 1;
+    memcpy(composite_pfn_array, MmGetMdlPfnArray(ring_descriptor->consumer.locked_kernel_view_mdl), sizeof(PFN_NUMBER));
+    composite_pfn_array += 1;
+    memcpy(composite_pfn_array, MmGetMdlPfnArray(ring_descriptor->producer.locked_kernel_view_mdl), sizeof(PFN_NUMBER));
+    composite_pfn_array += 1;
+    memcpy(composite_pfn_array, MmGetMdlPfnArray(ring_descriptor->data.locked_kernel_view_mdl), pfn_array_size);
+    composite_pfn_array += page_count;
+    memcpy(composite_pfn_array, MmGetMdlPfnArray(ring_descriptor->data.locked_kernel_view_mdl), pfn_array_size);
 
 #pragma warning(push)
-#pragma warning(disable : 28145) /* The opaque MDL structure should not be modified by a driver except for \
-                                    MDL_PAGES_LOCKED and MDL_MAPPING_CAN_FAIL. */
-    kernel_mdl->MdlFlags |= MDL_PAGES_LOCKED;
+#pragma warning(disable : 28145)
+    /*
+     * The opaque MDL structure should not be modified by a driver except for
+     * MDL_PAGES_LOCKED and MDL_MAPPING_CAN_FAIL.
+     */
+    ring_descriptor->composite_mdl->MdlFlags |= MDL_PAGES_LOCKED;
 #pragma warning(pop)
 
-    // Create separate user mappings to allow different protection settings.
-    IoBuildPartialMdl(
-        kernel_mdl,
-        ring_descriptor->user_mdl_consumer,
-        (PVOID)((ULONG_PTR)MmGetMdlVirtualAddress(kernel_mdl) + PAGE_SIZE),
-        PAGE_SIZE);
+    ring_descriptor->composite_view = (uint8_t*)MmMapLockedPagesSpecifyCache(
+        ring_descriptor->composite_mdl, KernelMode, MmCached, NULL, FALSE, NormalPagePriority | MdlMappingNoExecute);
+    if (ring_descriptor->composite_view == NULL) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmMapLockedPagesSpecifyCache, STATUS_NO_MEMORY);
+        return EBPF_NO_MEMORY;
+    }
 
-    IoBuildPartialMdl(
-        kernel_mdl,
-        ring_descriptor->user_mdl_producer,
-        (PVOID)((ULONG_PTR)MmGetMdlVirtualAddress(kernel_mdl) + 2 * PAGE_SIZE),
-        (ULONG)(PAGE_SIZE + length * 2));
+    return EBPF_SUCCESS;
+}
 
-    // Map the kernel MDL to system memory.
-    ring_descriptor->base_address = MmGetSystemAddressForMdlSafe(kernel_mdl, NormalPagePriority | MdlMappingNoExecute);
-    if (!ring_descriptor->base_address) {
-        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmGetSystemAddressForMdlSafe, STATUS_NO_MEMORY);
-        status = STATUS_NO_MEMORY;
+static ebpf_result_t
+_ebpf_ring_create_section(size_t size, _Inout_ ebpf_ring_section_t* section)
+{
+    NTSTATUS status;
+    LARGE_INTEGER section_size = {0};
+    SIZE_T view_size = size;
+    OBJECT_ATTRIBUTES object_attributes;
+
+    InitializeObjectAttributes(&object_attributes, NULL, OBJ_KERNEL_HANDLE, NULL, NULL);
+
+    section_size.QuadPart = size;
+    status = ZwCreateSection(
+        &section->section_handle,
+        SECTION_MAP_READ | SECTION_MAP_WRITE | SECTION_QUERY,
+        &object_attributes,
+        &section_size,
+        PAGE_READWRITE,
+        SEC_COMMIT,
+        NULL);
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, ZwCreateSection, status);
+        return EBPF_NO_MEMORY;
+    }
+
+    status = ObReferenceObjectByHandle(
+        section->section_handle,
+        SECTION_MAP_READ | SECTION_MAP_WRITE | SECTION_QUERY,
+        NULL,
+        KernelMode,
+        &section->section_object,
+        NULL);
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, ObReferenceObjectByHandle, status);
+        _ebpf_ring_cleanup_section(section);
+        return EBPF_NO_MEMORY;
+    }
+
+    status = MmMapViewInSystemSpace(section->section_object, &section->pageable_kernel_view, &view_size);
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmMapViewInSystemSpace, status);
+        _ebpf_ring_cleanup_section(section);
+        return EBPF_NO_MEMORY;
+    }
+
+    section->view_size = view_size;
+    return EBPF_SUCCESS;
+}
+
+_Ret_maybenull_ ebpf_ring_descriptor_t*
+ebpf_allocate_ring_buffer_memory(size_t ring_capacity)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_ring_descriptor_t* ring_descriptor =
+        ebpf_allocate_with_tag(sizeof(ebpf_ring_descriptor_t), EBPF_POOL_TAG_DEFAULT);
+    ebpf_result_t result;
+
+    if (!ring_descriptor) {
+        EBPF_RETURN_POINTER(ebpf_ring_descriptor_t*, NULL);
+    }
+
+    if (ring_capacity == 0 || (ring_capacity % PAGE_SIZE) != 0) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_BASE,
+            "Ring buffer capacity doesn't match allocation granularity",
+            ring_capacity);
+        ebpf_free(ring_descriptor);
+        EBPF_RETURN_POINTER(ebpf_ring_descriptor_t*, NULL);
+    }
+
+    memset(ring_descriptor, 0, sizeof(*ring_descriptor));
+    ring_descriptor->ring_capacity = ring_capacity;
+
+    result = _ebpf_ring_create_section(PAGE_SIZE, &ring_descriptor->kernel);
+    if (result != EBPF_SUCCESS) {
         goto Done;
     }
 
-    status = STATUS_SUCCESS;
+    result = _ebpf_ring_lock_kernel_section_view(&ring_descriptor->kernel);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
 
-Done:
-    if (!NT_SUCCESS(status)) {
-        if (ring_descriptor) {
-            if (ring_descriptor->kernel_mdl) {
-                IoFreeMdl(ring_descriptor->kernel_mdl);
-            }
-            if (ring_descriptor->user_mdl_consumer) {
-                IoFreeMdl(ring_descriptor->user_mdl_consumer);
-            }
-            if (ring_descriptor->user_mdl_producer) {
-                IoFreeMdl(ring_descriptor->user_mdl_producer);
-            }
-            if (ring_descriptor->memory) {
-                ebpf_unmap_memory(ring_descriptor->memory);
-            }
-            ebpf_free(ring_descriptor);
-            ring_descriptor = NULL;
-        }
+    result = _ebpf_ring_create_section(PAGE_SIZE, &ring_descriptor->consumer);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    result = _ebpf_ring_lock_kernel_section_view(&ring_descriptor->consumer);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    result = _ebpf_ring_create_section(PAGE_SIZE, &ring_descriptor->producer);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    result = _ebpf_ring_lock_kernel_section_view(&ring_descriptor->producer);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    result = _ebpf_ring_create_section(ring_capacity, &ring_descriptor->data);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    result = _ebpf_ring_lock_kernel_section_view(&ring_descriptor->data);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    result = _ebpf_ring_create_kernel_composite_view(ring_descriptor);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
     }
 
     EBPF_RETURN_POINTER(ebpf_ring_descriptor_t*, ring_descriptor);
+
+Done:
+    ebpf_free_ring_buffer_memory(ring_descriptor);
+    EBPF_RETURN_POINTER(ebpf_ring_descriptor_t*, NULL);
 }
 
 void
@@ -195,125 +292,120 @@ ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
         EBPF_RETURN_VOID();
     }
 
-    // Release process reference if still held (user never called unmap).
-    // False positive: ring is allocated via ebpf_allocate_with_tag/cxplat_allocate and is zero-initialized.
-#pragma warning(suppress : 6001)
-    if (ring->user_process != NULL) {
-        ObDereferenceObject(ring->user_process);
-        ring->user_process = NULL;
+    ebpf_ring_descriptor_t* descriptor = ring;
+    __analysis_assume(descriptor != NULL);
+
+#pragma warning(push)
+#pragma warning(suppress : 6001) // Ring descriptors are zero-initialized on allocation, so partially constructed
+                                 // descriptors can be cleaned up by testing members against NULL.
+    if (descriptor->composite_view != NULL) {
+        MmUnmapLockedPages(descriptor->composite_view, descriptor->composite_mdl);
     }
-
-    IoFreeMdl(ring->user_mdl_consumer);
-    IoFreeMdl(ring->user_mdl_producer);
-
-    MmUnmapLockedPages(ring->base_address, ring->kernel_mdl);
-    IoFreeMdl(ring->kernel_mdl);
-    ebpf_unmap_memory(ring->memory);
-    ebpf_free(ring);
+    if (descriptor->composite_mdl != NULL) {
+        IoFreeMdl(descriptor->composite_mdl);
+    }
+    _ebpf_ring_cleanup_section(&descriptor->kernel);
+    _ebpf_ring_cleanup_section(&descriptor->consumer);
+    _ebpf_ring_cleanup_section(&descriptor->producer);
+    _ebpf_ring_cleanup_section(&descriptor->data);
+#pragma warning(pop)
+    ebpf_free(descriptor);
     EBPF_RETURN_VOID();
 }
 
 void*
-ebpf_ring_descriptor_get_base_address(_In_ const ebpf_ring_descriptor_t* memory_descriptor)
+ebpf_ring_descriptor_get_kernel_page_address(_In_ const ebpf_ring_descriptor_t* ring)
 {
-    return memory_descriptor->base_address;
+    return ring->composite_view;
+}
+
+void*
+ebpf_ring_descriptor_get_consumer_page_address(_In_ const ebpf_ring_descriptor_t* ring)
+{
+    return ring->composite_view + PAGE_SIZE;
+}
+
+void*
+ebpf_ring_descriptor_get_producer_page_address(_In_ const ebpf_ring_descriptor_t* ring)
+{
+    return ring->composite_view + (2 * PAGE_SIZE);
+}
+
+uint8_t*
+ebpf_ring_descriptor_get_data_address(_In_ const ebpf_ring_descriptor_t* ring)
+{
+    return ring->composite_view + (EBPF_RING_BUFFER_HEADER_PAGES * PAGE_SIZE);
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_ring_open_user_section(
+    _In_ const ebpf_ring_descriptor_t* ring,
+    ebpf_ring_buffer_user_section_t section,
+    _Out_ ebpf_handle_t* handle,
+    _Out_ size_t* view_size)
+{
+    // In the protected-region model the kernel opens one handle per requested
+    // region and leaves view lifetime to user mode. Closing those
+    // user-mode views/handles, or letting process rundown do it, is sufficient
+    // cleanup, so ebpf_ring_unmap_user has no later ring-specific teardown
+    // state to reverse in kernel mode.
+    ebpf_ring_section_t* source_section = NULL;
+    ACCESS_MASK desired_access = SECTION_MAP_READ | SECTION_QUERY;
+    HANDLE user_handle = NULL;
+    NTSTATUS status;
+
+    if (ring == NULL || handle == NULL || view_size == NULL) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    *handle = ebpf_handle_invalid;
+    *view_size = 0;
+
+    switch (section) {
+    case EBPF_RING_BUFFER_USER_SECTION_CONSUMER:
+        source_section = (ebpf_ring_section_t*)&ring->consumer;
+        desired_access = SECTION_MAP_READ | SECTION_MAP_WRITE | SECTION_QUERY;
+        break;
+    case EBPF_RING_BUFFER_USER_SECTION_PRODUCER:
+        source_section = (ebpf_ring_section_t*)&ring->producer;
+        break;
+    case EBPF_RING_BUFFER_USER_SECTION_DATA:
+        source_section = (ebpf_ring_section_t*)&ring->data;
+        break;
+    default:
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    status =
+        ObOpenObjectByPointer(source_section->section_object, 0, NULL, desired_access, NULL, KernelMode, &user_handle);
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, ObOpenObjectByPointer, status);
+        return _ntstatus_to_ebpf_result(status);
+    }
+
+    *handle = (ebpf_handle_t)user_handle;
+    *view_size = source_section->view_size;
+    return EBPF_SUCCESS;
 }
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_map_user(
     _In_ ebpf_ring_descriptor_t* ring, _Outptr_ void** consumer, _Outptr_ void** producer, _Outptr_ uint8_t** data)
 {
-    EBPF_LOG_ENTRY();
-    ebpf_result_t result = EBPF_SUCCESS;
-    NTSTATUS status = STATUS_SUCCESS;
-
-    if (!ring || !consumer || !producer || !data) {
-        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "Invalid ring map user arguments");
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
+    if (ring == NULL || consumer == NULL || producer == NULL || data == NULL) {
+        return EBPF_INVALID_ARGUMENT;
     }
 
-    *consumer = NULL;
-    *producer = NULL;
-    *data = NULL;
-
-    // Check if already mapped.
-    if (ring->user_consumer_address != NULL) {
-        EBPF_LOG_MESSAGE_UINT64(
-            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "Ring already mapped to user mode", ring->user_pid);
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
-
-    __try {
-        *consumer =
-            MmMapLockedPagesSpecifyCache(ring->user_mdl_consumer, UserMode, MmCached, NULL, FALSE, NormalPagePriority);
-    } __except (EXCEPTION_EXECUTE_HANDLER) {
-        status = GetExceptionCode();
-        *consumer = NULL;
-    }
-    if (!*consumer) {
-        if (NT_SUCCESS(status)) {
-            status = STATUS_NO_MEMORY;
-        }
-        result = EBPF_INVALID_ARGUMENT;
-        EBPF_BAIL_ON_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmMapLockedPagesSpecifyCache, status, Exit);
-    }
-
-    status = STATUS_SUCCESS;
-    __try {
-        *producer = MmMapLockedPagesSpecifyCache(
-            ring->user_mdl_producer, UserMode, MmCached, NULL, FALSE, NormalPagePriority | MdlMappingNoWrite);
-    } __except (EXCEPTION_EXECUTE_HANDLER) {
-        status = GetExceptionCode();
-        *producer = NULL;
-    }
-    if (!*producer) {
-        MmUnmapLockedPages(*consumer, ring->user_mdl_consumer);
-        *consumer = NULL;
-        if (NT_SUCCESS(status)) {
-            status = STATUS_NO_MEMORY;
-        }
-        result = EBPF_INVALID_ARGUMENT;
-        EBPF_BAIL_ON_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmMapLockedPagesSpecifyCache, status, Exit);
-    }
-
-    // Capture process reference and addresses for secure unmapping.
-    ring->user_process = PsGetCurrentProcess();
-    ObReferenceObject(ring->user_process);
-    ring->user_pid = (uint64_t)(uintptr_t)PsGetCurrentProcessId();
-    ring->user_consumer_address = *consumer;
-    ring->user_producer_address = *producer;
-
-    *data = (uint8_t*)*producer + PAGE_SIZE;
-    result = EBPF_SUCCESS;
-
-Exit:
-    EBPF_RETURN_RESULT(result);
+    *consumer = ring->composite_view + PAGE_SIZE;
+    *producer = ring->composite_view + (2 * PAGE_SIZE);
+    *data = ring->composite_view + (EBPF_RING_BUFFER_HEADER_PAGES * PAGE_SIZE);
+    return EBPF_SUCCESS;
 }
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_unmap_user(_In_ ebpf_ring_descriptor_t* ring)
 {
-    // Verify that the ring was mapped to user mode.
-    if (ring->user_consumer_address == NULL) {
-        return EBPF_INVALID_ARGUMENT;
-    }
-
-    // Verify the call is from the same process that mapped the ring.
-    if (PsGetCurrentProcess() != ring->user_process) {
-        return EBPF_INVALID_ARGUMENT;
-    }
-
-    // Use the stored addresses, not the user-provided ones.
-    MmUnmapLockedPages(ring->user_consumer_address, ring->user_mdl_consumer);
-    MmUnmapLockedPages(ring->user_producer_address, ring->user_mdl_producer);
-
-    ObDereferenceObject(ring->user_process);
-    ring->user_process = NULL;
-    ring->user_consumer_address = NULL;
-    ring->user_producer_address = NULL;
-
+    UNREFERENCED_PARAMETER(ring);
     return EBPF_SUCCESS;
 }
 

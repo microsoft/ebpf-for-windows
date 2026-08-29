@@ -57,6 +57,21 @@ jobs:
       build_nuget: true
       configurations: '["Debug", "FuzzerDebug", "Release"]'
 
+  # Keep a single build lane on Visual Studio 2022 (toolset v143, WDK 10.0.26100) while the
+  # community completes the move to Visual Studio 2026. This keeps the '< 18.0' branch of
+  # wdk.props covered. Remove this job once VS 2022 support is dropped.
+  regular_vs2022:
+    # Always run this job.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      ref: ${{ github.ref }}
+      repository: ${{ github.repository }}
+      build_artifact: Build-x64-vs2022
+      vs_version: '17'
+      configurations: '["Debug"]'
+      download_demo_repository: false
+
   onebranch:
     strategy:
       matrix:
@@ -75,6 +90,9 @@ jobs:
       build_options: /p:BuildOneBranch='True' /t:tools\onebranch /t:installer\ebpf-for-windows
       solution_file: "ebpf-for-windows.sln"
       architecture: ${{ matrix.Architecture }}
+      # ARM64 stays on VS 2022 until the Windows 11 ARM64 image with VS 2026
+      # (windows-11-vs2026-arm) leaves public preview.
+      vs_version: ${{ matrix.Architecture == 'x64' && '18' || '17' }}
       download_demo_repository: false
 
   # Perform the native-only build.
@@ -93,6 +111,9 @@ jobs:
       build_nuget: true
       download_demo_repository: false
       architecture: ${{ matrix.Architecture }}
+      # ARM64 stays on VS 2022 until the Windows 11 ARM64 image with VS 2026
+      # (windows-11-vs2026-arm) leaves public preview.
+      vs_version: ${{ matrix.Architecture == 'x64' && '18' || '17' }}
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
 
   everparse_validation:
@@ -320,7 +341,7 @@ jobs:
     if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/reusable-test.yml
     with:
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -TestMode "Regression" -RegressionArtifactsVersion "1.3.0" -GranularTracing
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -TestMode "Regression" -RegressionArtifactsVersion "1.4.0" -GranularTracing
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Regression" -Options @("ProofOfVerification") -GranularTracing
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: regression_driver_ws2022
@@ -588,7 +609,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: quick_user_mode_multi_threaded_stress
-      test_command: .\ebpf_stress_tests_um -tt=8 -td=2
+      test_command: .\ebpf_stress_tests_um -tt=8 -td=2 -er=1
       build_artifact: Build-x64
       environment: '["windows-2025"]'
       code_coverage: false
@@ -634,7 +655,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: user_mode_multi_threaded_stress
-      test_command: .\ebpf_stress_tests_um -tt=8 -td=10
+      test_command: .\ebpf_stress_tests_um -tt=8 -td=10 -er=1
       build_artifact: Build-x64
       environment: '["windows-2025"]'
       code_coverage: false

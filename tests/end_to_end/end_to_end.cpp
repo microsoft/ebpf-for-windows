@@ -871,6 +871,31 @@ _callgraph_bpf2bpf_test(ebpf_execution_type_t execution_type)
         hook.detach_and_close_link(&link);
         bpf_object__close(unique_object.release());
     }
+
+    // Test stack_frame_test_entry: verifies that a subprogram does not corrupt the caller's stack.
+    {
+        program_info_provider_t sample_program_info;
+        REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+        single_instance_hook_t sample_hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+        REQUIRE(sample_hook.initialize() == EBPF_SUCCESS);
+
+        program_load_attach_helper_t program_helper;
+        const char* stack_frame_file_name =
+            (execution_type == EBPF_EXECUTION_NATIVE ? "bpf2bpf_loop_um.dll" : "bpf2bpf_loop.o");
+        program_helper.initialize(
+            stack_frame_file_name,
+            BPF_PROG_TYPE_SAMPLE,
+            "stack_frame_test_entry",
+            execution_type,
+            nullptr,
+            0,
+            sample_hook);
+
+        INITIALIZE_SAMPLE_CONTEXT;
+        uint32_t hook_result = 0;
+        REQUIRE(sample_hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+        REQUIRE(hook_result == 0);
+    }
 }
 
 void
@@ -5286,7 +5311,7 @@ TEST_CASE("multi_attach_sample_extension", "[sample_ext]")
 
     // Verify that an unoccupied attach_data fails.
     uint8_t attach_data2 = 2;
-    REQUIRE(hook.fire(&attach_data2, sizeof(attach_data2), ctx1, &hook_result) == EBPF_EXTENSION_FAILED_TO_LOAD);
+    REQUIRE(hook.fire(&attach_data2, sizeof(attach_data2), ctx1, &hook_result) == EBPF_KEY_NOT_FOUND);
 
     // Detach and close.
     (void)hook.detach(program_fd1, &attach_data0, sizeof(attach_data0));

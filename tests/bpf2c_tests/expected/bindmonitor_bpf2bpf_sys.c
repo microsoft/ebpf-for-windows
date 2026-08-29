@@ -212,7 +212,7 @@ BindMonitor_Caller(void* context, const program_runtime_context_t* runtime_conte
 #line 45 "sample/bindmonitor_bpf2bpf.c"
     // Prologue.
 #line 45 "sample/bindmonitor_bpf2bpf.c"
-    uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
+    uint64_t stack[((UBPF_STACK_SIZE * 8) + 7) / 8];
 #line 45 "sample/bindmonitor_bpf2bpf.c"
     register uint64_t r0 = 0;
 #line 45 "sample/bindmonitor_bpf2bpf.c"
@@ -264,7 +264,7 @@ BindMonitor_Caller(void* context, const program_runtime_context_t* runtime_conte
     r1 += IMMEDIATE(16);
     // EBPF_OP_CALL pc=9 dst=r0 src=r1 offset=0 imm=35
 #line 53 "sample/bindmonitor_bpf2bpf.c"
-    r0 = BindMonitor_Callee1(r1, r2, r3, r4, r5, r10, context, runtime_context);
+    r0 = BindMonitor_Callee1(r1, r2, r3, r4, r5, r10 - UBPF_STACK_SIZE, context, runtime_context);
     // EBPF_OP_LSH64_IMM pc=10 dst=r0 src=r0 offset=0 imm=32
 #line 53 "sample/bindmonitor_bpf2bpf.c"
     r0 <<= (IMMEDIATE(32) & 63);
@@ -420,7 +420,7 @@ BindMonitor_Callee1(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t
     READ_ONCE_64(r1, r10, OFFSET(-8));
     // EBPF_OP_CALL pc=5 dst=r0 src=r1 offset=0 imm=1
 #line 77 "sample/bindmonitor_bpf2bpf.c"
-    r0 = BindMonitor_Callee2(r1, r2, r3, r4, r5, r10, context, runtime_context);
+    r0 = BindMonitor_Callee2(r1, r2, r3, r4, r5, r10 - UBPF_STACK_SIZE, context, runtime_context);
     // EBPF_OP_EXIT pc=6 dst=r0 src=r0 offset=0 imm=0
 #line 77 "sample/bindmonitor_bpf2bpf.c"
     return r0;
@@ -449,7 +449,7 @@ BindMonitor_Callee2(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t
     READ_ONCE_64(r1, r10, OFFSET(-8));
     // EBPF_OP_CALL pc=5 dst=r0 src=r1 offset=0 imm=1
 #line 77 "sample/bindmonitor_bpf2bpf.c"
-    r0 = BindMonitor_Callee3(r1, r2, r3, r4, r5, r10, context, runtime_context);
+    r0 = BindMonitor_Callee3(r1, r2, r3, r4, r5, r10 - UBPF_STACK_SIZE, context, runtime_context);
     // EBPF_OP_EXIT pc=6 dst=r0 src=r0 offset=0 imm=0
 #line 77 "sample/bindmonitor_bpf2bpf.c"
     return r0;
@@ -478,7 +478,7 @@ BindMonitor_Callee3(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t
     READ_ONCE_64(r1, r10, OFFSET(-8));
     // EBPF_OP_CALL pc=5 dst=r0 src=r1 offset=0 imm=1
 #line 77 "sample/bindmonitor_bpf2bpf.c"
-    r0 = BindMonitor_Callee4(r1, r2, r3, r4, r5, r10, context, runtime_context);
+    r0 = BindMonitor_Callee4(r1, r2, r3, r4, r5, r10 - UBPF_STACK_SIZE, context, runtime_context);
     // EBPF_OP_EXIT pc=6 dst=r0 src=r0 offset=0 imm=0
 #line 77 "sample/bindmonitor_bpf2bpf.c"
     return r0;
@@ -507,7 +507,7 @@ BindMonitor_Callee4(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t
     READ_ONCE_64(r1, r10, OFFSET(-8));
     // EBPF_OP_CALL pc=5 dst=r0 src=r1 offset=0 imm=1
 #line 77 "sample/bindmonitor_bpf2bpf.c"
-    r0 = BindMonitor_Callee5(r1, r2, r3, r4, r5, r10, context, runtime_context);
+    r0 = BindMonitor_Callee5(r1, r2, r3, r4, r5, r10 - UBPF_STACK_SIZE, context, runtime_context);
     // EBPF_OP_EXIT pc=6 dst=r0 src=r0 offset=0 imm=0
 #line 77 "sample/bindmonitor_bpf2bpf.c"
     return r0;
@@ -536,7 +536,7 @@ BindMonitor_Callee5(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t
     READ_ONCE_64(r1, r10, OFFSET(-8));
     // EBPF_OP_CALL pc=5 dst=r0 src=r1 offset=0 imm=1
 #line 77 "sample/bindmonitor_bpf2bpf.c"
-    r0 = BindMonitor_Callee6(r1, r2, r3, r4, r5, r10, context, runtime_context);
+    r0 = BindMonitor_Callee6(r1, r2, r3, r4, r5, r10 - UBPF_STACK_SIZE, context, runtime_context);
     // EBPF_OP_EXIT pc=6 dst=r0 src=r0 offset=0 imm=0
 #line 77 "sample/bindmonitor_bpf2bpf.c"
     return r0;
@@ -565,7 +565,7 @@ BindMonitor_Callee6(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t
     READ_ONCE_64(r1, r10, OFFSET(-8));
     // EBPF_OP_CALL pc=5 dst=r0 src=r1 offset=0 imm=1
 #line 77 "sample/bindmonitor_bpf2bpf.c"
-    r0 = BindMonitor_Callee7(r1, r2, r3, r4, r5, r10, context, runtime_context);
+    r0 = BindMonitor_Callee7(r1, r2, r3, r4, r5, r10 - UBPF_STACK_SIZE, context, runtime_context);
     // EBPF_OP_EXIT pc=6 dst=r0 src=r0 offset=0 imm=0
 #line 77 "sample/bindmonitor_bpf2bpf.c"
     return r0;
@@ -648,7 +648,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 1;
-    version->minor = 5;
+    version->minor = 6;
     version->revision = 0;
 }
 

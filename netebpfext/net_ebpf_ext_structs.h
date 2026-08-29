@@ -51,13 +51,15 @@ typedef ebpf_result_t (*net_ebpf_extension_create_filter_context)(
     _Outptr_ net_ebpf_extension_wfp_filter_context_t** filter_context);
 
 /**
- * @brief Callback function to delete hook specific filter context. This callback is invoked when a hook NPI client
-          is detaching from the hook NPI provider.
+ * @brief Optional callback to release hook-specific resources held by a filter context. Invoked by the hook provider
+          when the last NPI client detaches, after the context has been marked as detaching and its WFP filters have
+          been deleted. It must NOT free the filter context. May be NULL if the hook holds no hook-specific
+          resources.
  *
- * @param[in] filter_context Pointer to the filter context being deleted.
+ * @param[in,out] filter_context Pointer to the filter context whose hook-specific resources are being released.
  */
-typedef void (*net_ebpf_extension_delete_filter_context)(
-    _In_opt_ _Frees_ptr_opt_ net_ebpf_extension_wfp_filter_context_t* filter_context);
+typedef void (*net_ebpf_extension_cleanup_filter_context)(
+    _Inout_opt_ net_ebpf_extension_wfp_filter_context_t* filter_context);
 
 /**
  * @brief Callback function to validate if the attach parameters (i.e., client data) is valid, and to get information
@@ -86,7 +88,7 @@ typedef bool (*net_ebpf_extension_hook_process_verdict)(_Inout_ void* program_co
 typedef struct _net_ebpf_extension_hook_provider_dispatch_table
 {
     net_ebpf_extension_create_filter_context create_filter_context;
-    net_ebpf_extension_delete_filter_context delete_filter_context;
+    net_ebpf_extension_cleanup_filter_context cleanup_filter_context;
     net_ebpf_extension_validate_client_data validate_client_data;
     net_ebpf_extension_hook_process_verdict process_verdict;
 } net_ebpf_extension_hook_provider_dispatch_table_t;
@@ -127,11 +129,15 @@ typedef struct _net_ebpf_extension_hook_provider
     EX_PUSH_LOCK lock;                                             ///< Lock for serializing attach / detach calls.
     net_ebpf_extension_hook_provider_dispatch_table_t dispatch;    ///< Hook specific dispatch table.
     net_ebpf_extension_hook_attach_capability_t attach_capability; ///< Attach capability for specific hook provider.
-    const void* custom_data; ///< Opaque pointer to hook specific data associated for this provider.
+    const void* custom_data;                   ///< Opaque pointer to hook specific data associated for this provider.
+    _Field_z_ const char* deprecation_message; ///< Deprecation/migration message, or NULL if not deprecated.
+                                               ///< Must point to a string with static lifetime.
     _Guarded_by_(lock)
         LIST_ENTRY filter_context_list; ///< Linked list of filter contexts that are attached to this provider.
-    LIST_ENTRY cleanup_list_entry;      ///< List entry for cleanup.
-    ebpf_attach_type_t attach_type;     ///< Attach type of the eBPF program.
+    _Guarded_by_(lock)
+        LIST_ENTRY zombie_filter_context_list; ///< Filter contexts with leaked WFP filters awaiting unload cleanup.
+    LIST_ENTRY cleanup_list_entry;             ///< List entry for cleanup.
+    ebpf_attach_type_t attach_type;            ///< Attach type of the eBPF program.
 } net_ebpf_extension_hook_provider_t;
 
 typedef struct _net_ebpf_extension_invoke_programs_parameters
