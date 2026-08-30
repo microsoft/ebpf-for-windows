@@ -1488,6 +1488,26 @@ Exit:
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
+/**
+ * @brief Emit a WARNING trace if the supplied program type has been deprecated.
+ *
+ * @param[in] program_type Program type being loaded.
+ * @param[in] program_name Optional name of the program being loaded.
+ */
+static void
+_ebpf_log_deprecated_program_type(
+    _In_ const ebpf_program_type_t* program_type, _In_opt_z_ const char* program_name) noexcept
+{
+    if (IsEqualGUID(*program_type, EBPF_PROGRAM_TYPE_BIND)) {
+        EBPF_LOG_MESSAGE_STRING(
+            EBPF_TRACELOG_LEVEL_WARNING,
+            EBPF_TRACELOG_KEYWORD_API,
+            "Loading deprecated program type BPF_PROG_TYPE_BIND. "
+            "Migrate to BPF_PROG_TYPE_CGROUP_SOCK_ADDR with BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND.",
+            program_name != nullptr ? program_name : "");
+    }
+}
+
 #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 static ebpf_result_t
 _create_program(
@@ -1507,6 +1527,8 @@ _create_program(
     size_t program_name_offset = 0;
     ebpf_assert(program_handle);
     *program_handle = ebpf_handle_invalid;
+
+    _ebpf_log_deprecated_program_type(&program_type, program_name.c_str());
 
     result = _ebpf_safe_size_t_add3(
         offsetof(ebpf_operation_create_program_request_t, data),
@@ -2625,6 +2647,8 @@ _initialize_ebpf_programs_native(
         program_handles[i] = ebpf_handle_invalid;
         program->program_type = info.type_uuid;
         program->attach_type = info.attach_type_uuid;
+
+        _ebpf_log_deprecated_program_type(&program->program_type, program->program_name);
     }
 
 Exit:

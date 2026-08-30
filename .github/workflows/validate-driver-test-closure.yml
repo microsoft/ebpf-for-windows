@@ -1,0 +1,36 @@
+# Copyright (c) eBPF for Windows contributors
+# SPDX-License-Identifier: MIT
+#
+# The internal release validation pipeline builds only the `tools\driver-test` target
+# rather than the full solution. A binary or script the driver validation tests launch at
+# run time but that is missing from that target's project closure is not caught by any
+# build; it surfaces much later as an opaque "The system cannot find the file specified"
+# test failure. This workflow runs a static (build-free) closure check to catch it in PR.
+---
+name: Validate-Driver-Test-Closure
+
+on:
+  pull_request:
+  merge_group:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-driver-test-closure:
+    runs-on: windows-2025
+
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c  # v2.21.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          submodules: false
+
+      - name: Check driver-test build closure
+        run: .\scripts\check_driver_test_closure.ps1
+        shell: pwsh

@@ -90,7 +90,7 @@ _single_instance_hook::invoke_client(
     client->invoke_count++;
     if (client->detached) {
         client->invoke_count--;
-        return EBPF_EXTENSION_FAILED_TO_LOAD;
+        return EBPF_KEY_NOT_FOUND;
     }
     auto invoke_program = reinterpret_cast<ebpf_result_t (*)(_In_ const void*, _Inout_ void*, _Out_ uint32_t*)>(
         client->dispatch_table->function[0]);
@@ -119,7 +119,7 @@ _single_instance_hook::fire(
 {
     std::shared_ptr<client_entry_t> client = find_client_by_params(params, params_size);
     if (!client) {
-        return EBPF_EXTENSION_FAILED_TO_LOAD;
+        return EBPF_KEY_NOT_FOUND;
     }
     return invoke_client(client, context, result);
 }
