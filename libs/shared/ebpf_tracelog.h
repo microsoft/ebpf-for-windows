@@ -162,6 +162,17 @@ extern "C"
         return local_result;                       \
     } while (false);
 
+#define EBPF_RETURN_ENUMERATION_RESULT(status)          \
+    do {                                                \
+        ebpf_result_t local_result = (status);          \
+        if (local_result == EBPF_SUCCESS) {             \
+            EBPF_LOG_FUNCTION_SUCCESS();                \
+        } else if (local_result != EBPF_NO_MORE_KEYS) { \
+            EBPF_LOG_FUNCTION_ERROR(local_result);      \
+        }                                               \
+        return local_result;                            \
+    } while (false);
+
 #define EBPF_RETURN_NTSTATUS(status)               \
     do {                                           \
         NTSTATUS local_status = (status);          \

@@ -1484,7 +1484,7 @@ ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_opt_ 
     }
 
 Exit:
-    EBPF_RETURN_RESULT(result);
+    EBPF_RETURN_ENUMERATION_RESULT(result);
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
@@ -4863,7 +4863,7 @@ _get_next_id(ebpf_operation_id_t operation, ebpf_id_t start_id, _Out_ ebpf_id_t*
     uint32_t error = invoke_ioctl(request, reply);
     ebpf_result_t result = win32_error_code_to_ebpf_result(error);
     if (result != EBPF_SUCCESS) {
-        EBPF_RETURN_RESULT(result);
+        EBPF_RETURN_ENUMERATION_RESULT(result);
     }
     ebpf_assert(reply.header.id == operation);
     *next_id = reply.next_id;
@@ -4876,7 +4876,8 @@ ebpf_get_next_link_id(ebpf_id_t start_id, _Out_ ebpf_id_t* next_id) NO_EXCEPT_TR
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(next_id);
-    EBPF_RETURN_RESULT(_get_next_id(ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_LINK_ID, start_id, next_id));
+    EBPF_RETURN_ENUMERATION_RESULT(
+        _get_next_id(ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_LINK_ID, start_id, next_id));
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
@@ -4885,7 +4886,8 @@ ebpf_get_next_map_id(ebpf_id_t start_id, _Out_ ebpf_id_t* next_id) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(next_id);
-    EBPF_RETURN_RESULT(_get_next_id(ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_MAP_ID, start_id, next_id));
+    EBPF_RETURN_ENUMERATION_RESULT(
+        _get_next_id(ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_MAP_ID, start_id, next_id));
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
@@ -4894,7 +4896,8 @@ ebpf_get_next_program_id(ebpf_id_t start_id, _Out_ ebpf_id_t* next_id) NO_EXCEPT
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(next_id);
-    EBPF_RETURN_RESULT(_get_next_id(ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM_ID, start_id, next_id));
+    EBPF_RETURN_ENUMERATION_RESULT(
+        _get_next_id(ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PROGRAM_ID, start_id, next_id));
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
