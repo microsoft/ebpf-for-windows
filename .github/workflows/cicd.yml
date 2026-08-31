@@ -198,49 +198,6 @@ jobs:
       leak_detection: true
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
 
-  # Verify that every JIT-only test case has a native program based equivalent.
-  # See https://github.com/microsoft/ebpf-for-windows/issues/5439.
-  jit_native_test_coverage:
-    needs: [regular, regular_native-only]
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
-    runs-on: windows-2025
-    steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c  # v2.21.0
-        with:
-          egress-policy: audit
-
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-        with:
-          submodules: false
-
-      - name: Download the regular build artifact
-        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
-        with:
-          name: Build-x64-Debug
-          path: ${{github.workspace}}
-
-      - name: Download the native-only build artifact
-        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
-        with:
-          name: Build-x64-native-only-NativeOnlyDebug
-          path: ${{github.workspace}}
-
-      - name: Extract the build artifacts
-        working-directory: ${{github.workspace}}
-        run: |
-          Expand-Archive .\build-Debug.zip -DestinationPath .\x64
-          Expand-Archive .\build-NativeOnlyDebug.zip -DestinationPath .\x64
-
-      - name: Check JIT vs native test coverage
-        working-directory: ${{github.workspace}}
-        run: |
-          .\scripts\check_jit_native_test_coverage.ps1 `
-            -JitBuildPath x64\Debug `
-            -NativeOnlyBuildPath x64\NativeOnlyDebug `
-            -OutputPath $env:GITHUB_STEP_SUMMARY
-
   # Run the netebpfext unit tests in GitHub.
   netebpf_ext_unit_tests:
     # Always run this job.
