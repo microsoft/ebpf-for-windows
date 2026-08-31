@@ -125,7 +125,7 @@ $Job = Start-Job -ScriptBlock {
         # Install eBPF components on host, but skip anything that requires reboot.
         # Note that installing ebpf components requires psexec which does not run in a powershell job.
         Write-Log "Installing eBPF components on host"
-        Install-eBPFComponents -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -SkipRebootOperations -GranularTracing:$GranularTracing -TraceAlreadyStarted:$KmTracing
+        Install-eBPFComponents -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -SkipRebootOperations -GranularTracing:$GranularTracing
         return
     }
 
@@ -137,7 +137,7 @@ $Job = Start-Job -ScriptBlock {
     # Install eBPF Components on the test VM.
     foreach($VM in $VMList) {
         $VMName = $VM.Name
-        Install-eBPFComponentsOnVM -VMName $VMName -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -VMIsRemote:$VMIsRemote -GranularTracing:$GranularTracing -TraceAlreadyStarted:$KmTracing -ErrorAction Stop
+        Install-eBPFComponentsOnVM -VMName $VMName -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -VMIsRemote:$VMIsRemote -GranularTracing:$GranularTracing -ErrorAction Stop
     }
 
     # Log OS build information on the test VMs.
