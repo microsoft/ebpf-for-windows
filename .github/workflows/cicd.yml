@@ -36,7 +36,6 @@ permissions:
   id-token: write  # Required to log in to Azure.
   contents: read
   checks: read  # Required by reusable-test.yml to check build status.
-  security-events: write  # Required by codeql task.
   issues: write  # Required to create issues.
 
 jobs:
@@ -358,6 +357,10 @@ jobs:
     # Always run this job.
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    permissions:
+      checks: read
+      contents: read
+      security-events: write
     uses: ./.github/workflows/ossar-scan.yml
     with:
       build_artifact: Build-x64
