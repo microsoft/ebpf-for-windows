@@ -1,0 +1,190 @@
+# Copyright (c) eBPF for Windows contributors
+# SPDX-License-Identifier: MIT
+
+# This workflow checks for LLVM updates and files issues when updates are needed.
+---
+
+name: Check for updates to LLVM/Clang toolchain
+
+on:
+  # Run script every Sunday at midnight
+  schedule:
+    - cron: '0 0 * * 0'
+  # Allow manual triggering of the script
+  workflow_dispatch:
+
+permissions:
+  contents: read  # Required by actions/checkout to fetch code.
+  issues: write  # Required to create issues.
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76  # v2.14.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v4.2.2
+
+      - name: Get latest LLVM release version
+        id: check_llvm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Query GitHub Releases API for llvm/llvm-project
+          # Filter to get only stable releases (not pre-releases)
+          # Parse tag_name like "llvmorg-21.1.1" to extract version "21.1.1"
+          LATEST_RELEASE=$(curl -s \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/llvm/llvm-project/releases?per_page=100 | \
+            jq -r '[.[] | select(.prerelease == false)] | first | .tag_name')
+
+          if [ -z "$LATEST_RELEASE" ] || [ "$LATEST_RELEASE" = "null" ]; then
+            echo "Error: Could not fetch latest LLVM release"
+            exit 1
+          fi
+
+          # Extract version number from tag (e.g., llvmorg-21.1.1 -> 21.1.1)
+          LLVM_VERSION=$(echo "$LATEST_RELEASE" | sed 's/^llvmorg-//')
+
+          # Validate that the extracted version contains only numbers and dots
+          if ! echo "$LLVM_VERSION" | grep -Eq '^[0-9]+(\.[0-9]+)*$'; then
+            echo "Error: Parsed LLVM version '$LLVM_VERSION' from tag '$LATEST_RELEASE' is invalid"
+            exit 1
+          fi
+
+          echo "Latest LLVM release: $LLVM_VERSION"
+          echo "llvm_version=$LLVM_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Check the version of LLVM in the repo
+        id: check_repo_llvm
+        run: |
+          # Parse the pinned LLVM version from reusable-build.yml
+          # Look for the choco install llvm --version=X.Y.Z line
+          REPO_VERSION=$(grep -oP 'choco install llvm --version=\K[0-9.]+' .github/workflows/reusable-build.yml | head -1)
+
+          if [ -z "$REPO_VERSION" ]; then
+            echo "Error: Could not parse LLVM version from reusable-build.yml"
+            exit 1
+          fi
+
+          echo "Repository LLVM version: $REPO_VERSION"
+          echo "llvm_version=$REPO_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Compare LLVM versions semantically
+        id: compare_llvm
+        run: |
+          LATEST="${{ steps.check_llvm.outputs.llvm_version }}"
+          CURRENT="${{ steps.check_repo_llvm.outputs.llvm_version }}"
+
+          version_gt() {
+            local IFS=.
+            local i
+            local ver1=($1)
+            local ver2=($2)
+
+            # Pad shorter version with zeros
+            for ((i=${#ver1[@]}; i<${#ver2[@]}; i++)); do
+              ver1[i]=0
+            done
+            for ((i=${#ver2[@]}; i<${#ver1[@]}; i++)); do
+              ver2[i]=0
+            done
+
+            for ((i=0; i<${#ver1[@]}; i++)); do
+              # Strip leading zeros to avoid octal interpretation issues
+              local num1=$((10#${ver1[i]:-0}))
+              local num2=$((10#${ver2[i]:-0}))
+              if ((num1 > num2)); then
+                return 0
+              elif ((num1 < num2)); then
+                return 1
+              fi
+            done
+            return 1
+          }
+
+          if version_gt "$LATEST" "$CURRENT"; then
+            echo "is_newer=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_newer=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+        if: steps.compare_llvm.outputs.is_newer == 'true'
+        env:
+          TITLE: 'Update LLVM/Clang toolchain'
+          BODY: |
+            A new stable version of LLVM/Clang is available. The repository should be updated to use the latest version.
+
+            **Latest upstream version:** ${{steps.check_llvm.outputs.llvm_version}}
+            **Current pinned version:** ${{steps.check_repo_llvm.outputs.llvm_version}}
+
+            ## Files to update:
+
+            - [ ] `.github/workflows/reusable-build.yml`
+              - Update the `choco install llvm --version=X.Y.Z` line
+              - Update the cache key: `${{ runner.os }}-choco-llvm-X.Y.Z`
+              - Update the step name: `Install LLVM X.Y.Z`
+
+            - [ ] `scripts/Setup-DevEnv.ps1`
+              - Update the `choco install llvm --version=X.Y.Z` line
+
+            - [ ] `docs/GettingStarted.md`
+              - Update the download link: `https://github.com/llvm/llvm-project/releases/download/llvmorg-X.Y.Z/LLVM-X.Y.Z-win64.exe`
+              - Update version references in text (currently mentions "version **18.1.8**")
+
+            - [ ] `docs/DevelopmentGuide.md`
+              - Update the clang-format version guidance (currently "version ```18.1.8```")
+
+            - [ ] `scripts/format-code.ps1`
+              - Update the `$required_cfver` variable
+
+            ## Validation steps:
+
+            - [ ] Verify CI build completes successfully with new LLVM version
+            - [ ] Test that `clang -target bpf` still works correctly
+            - [ ] Verify the code formatting script (`./scripts/format-code.ps1`) runs without errors
+            - [ ] Check for any breaking changes in LLVM release notes that might affect eBPF compilation
+          LABELS: dependencies,ci/cd
+        with:
+          script: |
+            const owner = process.env.GITHUB_REPOSITORY.split('/')[0]
+            const repo = process.env.GITHUB_REPOSITORY.split('/')[1]
+            const body = process.env.BODY;
+            const title = process.env.TITLE;
+            const labels = process.env.LABELS;
+            const label_array = labels ? labels.split(',') : [];
+            console.log(label_array);
+            // Get all issues that have these labels.
+            const opts = github.rest.issues.listForRepo.endpoint.merge({
+              ...context.issue,
+              state: 'open',
+              labels: label_array,
+            });
+            const issues = await github.paginate(opts);
+            // Look for an existing issue with the title.
+            for (const issue of issues) {
+              if (issue.title === title) {
+                console.log(`Updating issue ${title}`);
+                await github.rest.issues.createComment({
+                  issue_number: issue.number,
+                  owner,
+                  repo,
+                  body,
+                });
+                return;
+              }
+            }
+            // Existing issue not found, create a new one.
+            console.log(`Creating issue ${title}`);
+            await github.rest.issues.create({
+              owner: owner,
+              repo: repo,
+              title: title,
+              body: body,
+              labels: label_array,
+            });
