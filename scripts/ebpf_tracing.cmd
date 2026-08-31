@@ -77,9 +77,9 @@ if "%command%"=="periodic" (
 	)
 
 	@rem Get the current date and time in a format suitable for appending to file names.
-	@rem '%DATE%' is rendered in the machine's locale, so it may contain '/' characters and a
-	@rem weekday prefix, neither of which is wanted in a file name. '%TIME%' is always
-	@rem rendered as 'HH:MM:SS.cc', with the hour space-padded before 10:00.
+	@rem '%DATE%' is rendered in the machine's locale, so replace the '/' characters and remove
+	@rem any spaces, so that the result is valid in a file name. '%TIME%' is always rendered as
+	@rem 'HH:MM:SS.cc', with the hour space-padded before 10:00.
 	set "ts_date=%DATE:/=-%"
 	set "ts_date=!ts_date: =!"
 	set "ts_time=%TIME: =0%"
@@ -186,7 +186,7 @@ if "%command%"=="periodic" (
 	set /a max_committed_folder_size_kb=!max_committed_folder_size_mb! * 1024
 	for /f "skip=1 delims=" %%f in ('dir /b /o-d "!traceCommittedPath!\*.etl" 2^>nul') do (
 		for %%g in ("!traceCommittedPath!\%%f") do (
-			@rem Skip the file if its size cannot be read, i.e. if it is no longer present.
+			@rem Skip the file if its size cannot be read, i.e., if it is no longer present.
 			if not "%%~zg"=="" (
 				set /a size=!size! + %%~zg / 1024
 				if !size! gtr !max_committed_folder_size_kb! (
@@ -258,7 +258,7 @@ echo 	- Run 'netsh wfp show state' into the 'trace_path' directory, and if the f
 echo    - Run down the program state using bpftool, to capture the program output: link, map, and map content outputs, and store them in "bpf_state.txt". Like done for the WFP state, if the file is under 'max_file_size_mb', it will move it into the 'trace_path\committed' subfolder, adding a timestamp to its name.
 echo      NOTE: If the 'compress_rundown_state_files' option is set to 'true', both the WFP and the bpftool state files will be compressed into '.cab' files.
 echo 	- Iterate over all the run down state files in the 'trace_path\committed' subfolder and delete the older files overflowing 'max_committed_rundown_state_files'.
-echo 	- Iterate over all the '.etl' files in the 'trace_path' directory, sorted in descending order by 'date modified', skip the first files summing up to 'max_committed_folder_size_mb' and move the others into the 'trace_path\committed' subfolder.
+echo 	- Iterate over all the '.etl' files in the 'trace_path' directory, sorted in descending order by name, skip the newest file and move the others into the 'trace_path\committed' subfolder.
 echo 	- Iterate over all the '.etl' files in the 'trace_path\committed' subfolder and delete the older files overflowing either 'max_committed_folder_size_mb' or 'max_committed_etl_files'.
 echo:
 echo Examples:
