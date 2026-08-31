@@ -5,7 +5,7 @@
 -->
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
-    <WDKVersion Condition="'$(WDKVersion)' == '' and '$(MSBuildAssemblyVersion)' &gt;= '18.0'">10.0.28000.1839</WDKVersion>
+    <WDKVersion Condition="'$(WDKVersion)' == '' and '$(MSBuildAssemblyVersion)' &gt;= '18.0'">10.0.28000.2526</WDKVersion>
     <WDKVersion Condition="'$(WDKVersion)' == '' and '$(MSBuildAssemblyVersion)' &lt; '18.0'">10.0.26100.6584</WDKVersion>
   </PropertyGroup>
   <ItemGroup Label="ProjectConfigurations">
