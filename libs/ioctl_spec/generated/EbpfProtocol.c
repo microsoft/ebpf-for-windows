@@ -406,7 +406,7 @@ ValidateCreateMapBody(
         {
             /* Validating field MapDefinition */
             BOOLEAN
-            hasEnoughBytes0 = (uint64_t)(uint32_t)(uint8_t)24U <=
+            hasEnoughBytes0 = (uint64_t)(uint32_t)32U <=
                               (InputLength - positionAfternone1);
             uint64_t positionAfterCreateMapBody0;
             if (!hasEnoughBytes0)
@@ -419,7 +419,7 @@ ValidateCreateMapBody(
             {
                 uint8_t *truncatedInput = Input;
                 uint64_t truncatedInputLength =
-                    positionAfternone1 + (uint64_t)(uint32_t)(uint8_t)24U;
+                    positionAfternone1 + (uint64_t)(uint32_t)32U;
                 uint64_t result = positionAfternone1;
                 while (TRUE)
                 {

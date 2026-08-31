@@ -82,6 +82,10 @@ enum bpf_cmd_id
     BPF_PROG_RUN = BPF_PROG_TEST_RUN,
 };
 
+#ifndef BPF_F_NO_MAX_ENTRIES
+#define BPF_F_NO_MAX_ENTRIES (1U << 13)
+#endif
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(default : 4820) // reject implicit padding
@@ -94,7 +98,7 @@ typedef struct
     uint32_t key_size;                   ///< Size in bytes of keys.
     uint32_t value_size;                 ///< Size in bytes of values.
     uint32_t max_entries;                ///< Maximum number of entries in the map.
-    uint32_t map_flags;                  ///< Not supported, must be zero.
+    uint32_t map_flags;                  ///< Map flags. Supported: BPF_F_NO_MAX_ENTRIES.
     uint32_t inner_map_fd;               ///< File descriptor of inner map.
     uint32_t numa_node;                  ///< Not supported, must be zero.
     char map_name[SYS_BPF_OBJ_NAME_LEN]; ///< Map name.

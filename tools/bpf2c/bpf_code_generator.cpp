@@ -2193,6 +2193,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             width = std::max(width, std::log10((size_t)entry.definition.id));
 
             width = std::max(width, std::log10((size_t)entry.definition.inner_id));
+            width = std::max(width, std::log10((size_t)entry.definition.map_flags));
             auto stream_width = static_cast<std::streamsize>(std::floor(width) + 1);
             stream_width += 2; // Add space for the trailing ", "
 
@@ -2231,6 +2232,8 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
                           << std::to_string(entry.definition.inner_id) + "," << "// The id of the inner map template."
                           << std::endl;
+            output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
+                          << std::to_string(entry.definition.map_flags) + "," << "// Map creation flags." << std::endl;
             output_stream << INDENT " }," << std::endl;
             output_stream << INDENT " " << name.quoted() << "}," << std::endl;
         }

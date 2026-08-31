@@ -1654,6 +1654,7 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_instance_t* instance)
         map_definition.key_size = native_map->entry.definition.key_size;
         map_definition.value_size = native_map->entry.definition.value_size;
         map_definition.max_entries = native_map->entry.definition.max_entries;
+        map_definition.map_flags = native_map->entry.definition.map_flags;
 
         result = ebpf_core_create_map(&map_name, &map_definition, inner_map_handle, &native_map->handle);
         if (result != EBPF_SUCCESS) {

@@ -1273,8 +1273,17 @@ _create_hash_map(
     if (inner_map_handle != ebpf_handle_invalid) {
         return EBPF_INVALID_ARGUMENT;
     }
+    bool no_max_entries = (map_definition->map_flags & BPF_F_NO_MAX_ENTRIES) != 0;
     return _create_hash_map_internal(
-        sizeof(ebpf_core_map_t), map_definition, 0, 0, false, NULL, NULL, EBPF_HASH_TABLE_NOTIFICATION_TYPE_NONE, map);
+        sizeof(ebpf_core_map_t),
+        map_definition,
+        0,
+        0,
+        !no_max_entries,
+        NULL,
+        NULL,
+        EBPF_HASH_TABLE_NOTIFICATION_TYPE_NONE,
+        map);
 }
 
 static void
@@ -1343,12 +1352,13 @@ _create_object_hash_map(
 
     *map = NULL;
 
+    bool no_max_entries = (map_definition->map_flags & BPF_F_NO_MAX_ENTRIES) != 0;
     result = _create_hash_map_internal(
         sizeof(ebpf_core_object_map_t),
         map_definition,
         actual_value_size,
         0,
-        false,
+        !no_max_entries,
         NULL,
         NULL,
         EBPF_HASH_TABLE_NOTIFICATION_TYPE_NONE,
@@ -2215,12 +2225,13 @@ _create_lpm_map(
         goto Exit;
     }
 
+    bool no_max_entries = (map_definition->map_flags & BPF_F_NO_MAX_ENTRIES) != 0;
     result = _create_hash_map_internal(
         lpm_data_size,
         map_definition,
         0,
         0,
-        false,
+        !no_max_entries,
         _lpm_extract,
         NULL,
         EBPF_HASH_TABLE_NOTIFICATION_TYPE_NONE,
@@ -3781,6 +3792,21 @@ ebpf_map_create(
         goto Exit;
     }
 
+    // Validate map_flags. Only BPF_F_NO_MAX_ENTRIES is supported, and only for hash-based map types.
+    if (ebpf_map_definition->map_flags != 0) {
+        if (ebpf_map_definition->map_flags & ~(uint32_t)BPF_F_NO_MAX_ENTRIES) {
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
+        if (ebpf_map_definition->map_flags & BPF_F_NO_MAX_ENTRIES) {
+            if (type != BPF_MAP_TYPE_HASH && type != BPF_MAP_TYPE_PERCPU_HASH && type != BPF_MAP_TYPE_HASH_OF_MAPS &&
+                type != BPF_MAP_TYPE_LPM_TRIE) {
+                result = EBPF_INVALID_ARGUMENT;
+                goto Exit;
+            }
+        }
+    }
+
     const ebpf_map_metadata_table_properties_t* properties = _ebpf_map_metadata_table_query(type);
 
     if (properties == NULL) {
@@ -4190,7 +4216,7 @@ ebpf_map_get_info(
     info->key_size = map->ebpf_map_definition.key_size;
     info->value_size = map->original_value_size;
     info->max_entries = map->ebpf_map_definition.max_entries;
-    info->map_flags = 0;
+    info->map_flags = map->ebpf_map_definition.map_flags;
     if (info->type == BPF_MAP_TYPE_ARRAY_OF_MAPS || info->type == BPF_MAP_TYPE_HASH_OF_MAPS) {
         ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
         info->inner_map_id = object_map->core_map.ebpf_map_definition.inner_map_id

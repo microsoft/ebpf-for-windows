@@ -75,7 +75,7 @@ _test_crud_operations(ebpf_map_type_t map_type)
     case BPF_MAP_TYPE_HASH:
         is_array = false;
         supports_find_and_delete = true;
-        behavior_on_max_entries = MAP_BEHAVIOR_INSERT;
+        behavior_on_max_entries = MAP_BEHAVIOR_FAIL;
         run_at_dpc = false;
         error_on_full = EBPF_OUT_OF_SPACE;
         break;
@@ -88,7 +88,7 @@ _test_crud_operations(ebpf_map_type_t map_type)
     case BPF_MAP_TYPE_PERCPU_HASH:
         is_array = false;
         supports_find_and_delete = true;
-        behavior_on_max_entries = MAP_BEHAVIOR_INSERT;
+        behavior_on_max_entries = MAP_BEHAVIOR_FAIL;
         run_at_dpc = true;
         error_on_full = EBPF_OUT_OF_SPACE;
         break;
@@ -325,6 +325,99 @@ MAP_TEST(BPF_MAP_TYPE_PERCPU_HASH);
 MAP_TEST(BPF_MAP_TYPE_PERCPU_ARRAY);
 MAP_TEST(BPF_MAP_TYPE_LRU_HASH);
 MAP_TEST(BPF_MAP_TYPE_LRU_PERCPU_HASH);
+
+TEST_CASE("map_no_max_entries_flag", "[execution_context]")
+{
+    _ebpf_core_initializer core;
+    core.initialize();
+
+    // Create a hash map with BPF_F_NO_MAX_ENTRIES flag - should allow inserts beyond max_entries.
+    ebpf_map_definition_in_memory_t map_definition{
+        BPF_MAP_TYPE_HASH,
+        sizeof(uint32_t),
+        sizeof(uint64_t),
+        _test_map_size,
+        0,
+        LIBBPF_PIN_NONE,
+        BPF_F_NO_MAX_ENTRIES};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        cxplat_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+    std::vector<uint8_t> value(ebpf_map_get_definition(map.get())->value_size);
+
+    // Fill the map to max_entries.
+    for (uint32_t key = 0; key < _test_map_size; key++) {
+        *reinterpret_cast<uint64_t*>(value.data()) = static_cast<uint64_t>(key) * static_cast<uint64_t>(key);
+        REQUIRE(
+            ebpf_map_update_entry(
+                map.get(),
+                sizeof(key),
+                reinterpret_cast<const uint8_t*>(&key),
+                value.size(),
+                value.data(),
+                EBPF_ANY,
+                0) == EBPF_SUCCESS);
+    }
+
+    // Insert beyond max_entries should succeed with BPF_F_NO_MAX_ENTRIES.
+    uint32_t extra_key = _test_map_size;
+    *reinterpret_cast<uint64_t*>(value.data()) = 0xdeadbeef;
+    REQUIRE(
+        ebpf_map_update_entry(
+            map.get(),
+            sizeof(extra_key),
+            reinterpret_cast<const uint8_t*>(&extra_key),
+            value.size(),
+            value.data(),
+            EBPF_ANY,
+            0) == EBPF_SUCCESS);
+
+    // Verify the extra entry is present.
+    REQUIRE(
+        ebpf_map_find_entry(
+            map.get(),
+            sizeof(extra_key),
+            reinterpret_cast<const uint8_t*>(&extra_key),
+            value.size(),
+            value.data(),
+            0) == EBPF_SUCCESS);
+    REQUIRE(*reinterpret_cast<uint64_t*>(value.data()) == 0xdeadbeef);
+}
+
+TEST_CASE("map_no_max_entries_flag_invalid_for_array", "[execution_context][negative]")
+{
+    _ebpf_core_initializer core;
+    core.initialize();
+
+    // BPF_F_NO_MAX_ENTRIES should be rejected for array maps.
+    ebpf_map_definition_in_memory_t map_definition{
+        BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint64_t), 10, 0, LIBBPF_PIN_NONE, BPF_F_NO_MAX_ENTRIES};
+    ebpf_map_t* local_map;
+    cxplat_utf8_string_t map_name = {0};
+    REQUIRE(
+        ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
+        EBPF_INVALID_ARGUMENT);
+}
+
+TEST_CASE("map_invalid_flags_rejected", "[execution_context][negative]")
+{
+    _ebpf_core_initializer core;
+    core.initialize();
+
+    // Unknown flags should be rejected.
+    ebpf_map_definition_in_memory_t map_definition{
+        BPF_MAP_TYPE_HASH, sizeof(uint32_t), sizeof(uint64_t), 10, 0, LIBBPF_PIN_NONE, (1U << 14)};
+    ebpf_map_t* local_map;
+    cxplat_utf8_string_t map_name = {0};
+    REQUIRE(
+        ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
+        EBPF_INVALID_ARGUMENT);
+}
 
 TEST_CASE("map_create_invalid", "[execution_context][negative]")
 {
