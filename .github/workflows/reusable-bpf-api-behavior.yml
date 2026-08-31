@@ -1,0 +1,202 @@
+name: BPF API behavior
+
+on:
+  workflow_call:
+
+jobs:
+  stable_linux:
+    name: stable Linux
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c
+        with:
+          egress-policy: audit
+
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Read stable kernel version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          version=$(tr -d '[:space:]' <.github/linux-stable-version.txt)
+          [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+
+          echo "BPF_API_KERNEL_VERSION=$version" >>"$GITHUB_ENV"
+
+      - name: Install Linux test dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          sudo apt-get update
+          sudo apt-get install --yes \
+            bc \
+            bison \
+            build-essential \
+            curl \
+            flex \
+            libbpf-dev \
+            libelf-dev \
+            libssl-dev \
+            pkg-config \
+            python3-argcomplete \
+            python3-requests \
+            python3-setuptools \
+            qemu-system-x86 \
+            rsync
+
+      - name: Build stable Linux kernel
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          major_version=${BPF_API_KERNEL_VERSION%%.*}
+          kernel_root="$RUNNER_TEMP/linux-$BPF_API_KERNEL_VERSION"
+          archive="$RUNNER_TEMP/linux-$BPF_API_KERNEL_VERSION.tar.xz"
+
+          curl \
+            --fail \
+            --location \
+            --retry 3 \
+            --output "$archive" \
+            "https://cdn.kernel.org/pub/linux/kernel/v${major_version}.x/linux-$BPF_API_KERNEL_VERSION.tar.xz"
+
+          tar \
+            --extract \
+            --file "$archive" \
+            --directory "$RUNNER_TEMP"
+
+          make \
+            --directory "$kernel_root" \
+            defconfig
+
+          "$kernel_root/scripts/config" \
+            --file "$kernel_root/.config" \
+            --disable MODULES \
+            --enable BPF \
+            --enable BPF_SYSCALL \
+            --enable BPF_JIT
+
+          make \
+            --directory "$kernel_root" \
+            olddefconfig
+
+          make \
+            --directory "$kernel_root" \
+            --jobs 2 \
+            bzImage
+
+          test -s "$kernel_root/arch/x86/boot/bzImage"
+
+      - name: Prepare pinned virtme-ng
+        shell: bash
+        env:
+          VIRTME_NG_COMMIT: 3d9bb3abd51f156bd7071f48ff665739cb2b1db5
+        run: |
+          set -euo pipefail
+
+          virtme_root="$RUNNER_TEMP/virtme-ng"
+
+          git init "$virtme_root"
+          git -C "$virtme_root" remote add origin \
+            https://github.com/arighi/virtme-ng.git
+          git -C "$virtme_root" fetch \
+            --depth 1 \
+            origin \
+            "$VIRTME_NG_COMMIT"
+          git -C "$virtme_root" checkout \
+            --detach \
+            FETCH_HEAD
+          git -C "$virtme_root" submodule update \
+            --init \
+            --recursive \
+            --depth 1
+
+          "$virtme_root/vng" --version
+
+      - name: Run behavior matrix on stable Linux
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tests/bpf_api_behavior/run-stable-linux.sh \
+            --kernel-tree "$RUNNER_TEMP/linux-$BPF_API_KERNEL_VERSION" \
+            --virtme-ng "$RUNNER_TEMP/virtme-ng/vng" \
+            --expected-version "$BPF_API_KERNEL_VERSION" \
+            --output "$RUNNER_TEMP/bpf-api-linux.tsv"
+
+      - name: Upload stable Linux behavior
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        with:
+          name: bpf-api-linux
+          path: ${{ runner.temp }}/bpf-api-linux.tsv
+          if-no-files-found: error
+          retention-days: 10
+
+  windows:
+    name: Windows Server 2025
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -GranularTracing
+      test_command: ..\..\tests\bpf_api_behavior\run-cicd.ps1
+      post_test: .\cleanup_ebpf_cicd_tests.ps1
+      name: bpf_api_behavior_windows
+      build_artifact: Build-x64
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2025_v2", "JobId=bpf-api-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-{0}"]'
+      configurations: '["Debug"]'
+      gather_dumps: false
+      code_coverage: false
+      capture_etw: false
+    secrets: inherit
+
+  compare:
+    name: compare Linux and Windows
+    needs:
+      - stable_linux
+      - windows
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c
+        with:
+          egress-policy: audit
+
+      - name: Download stable Linux behavior
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
+        with:
+          name: bpf-api-linux
+          path: artifacts/linux
+
+      - name: Download Windows behavior
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
+        with:
+          name: Artifacts-bpf_api_behavior_windows-x64-Debug
+          path: artifacts/windows
+
+      - name: Compare Linux and Windows behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          linux_result=artifacts/linux/bpf-api-linux.tsv
+          windows_result=artifacts/windows/bpf-api-windows.tsv
+
+          test -s "$linux_result"
+          test -s "$windows_result"
+
+          if ! cmp --silent "$linux_result" "$windows_result"; then
+            diff \
+              --unified \
+              "$linux_result" \
+              "$windows_result" || true
+
+            echo "Windows bpf API behavior differs from stable Linux" >&2
+            exit 1
+          fi
+
+          echo "Windows bpf API behavior matches stable Linux"
