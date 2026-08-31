@@ -61,11 +61,17 @@ network context (via `bpf_sock_addr_get_network_context()`) and returns
 
 ## Testing
 
-The sample pairs with an intended addition to the
-`tests/connect_redirect/connect_redirect_tests.cpp` suite that loads the
-`connect_redirect_mesh` native module, populates `proxy_pid_map` /
-`proxy_config_map`, and asserts both "target process is redirected" and "proxy
-process is not redirected" (loop avoidance) using `redirect_counter_map`.
+The `connect_redirect_mesh` native module is loaded and verified by the
+`connect_mesh_redirect_program_load` test case in
+`tests/connect_redirect/connect_redirect_tests.cpp`: it opens and loads the
+module and asserts that all four programs and all three maps resolve with valid
+fds. A behavioral (real-socket) assertion is deliberately not added here: the
+sample unconditionally redirects to `127.0.0.1:15001`, and this suite's
+real-socket harness already owns the `BPF_CGROUP_INET4_CONNECT` attach point
+via `connection_redirection_tests_*`, which cannot be held simultaneously
+with a second module at the same attach point. The redirect + proxy-PID loop
+avoidance behavior therefore belongs to the connection-redirection integration
+suite.
 
 > Note: this change was authored without a WDK/CMake/VS build environment, so the
 > program has not been compiled or run here. It will be validated by the
