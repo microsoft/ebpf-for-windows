@@ -51,10 +51,17 @@ fi
 result_directory="$(dirname "$output")"
 mkdir -p "$result_directory"
 
-temporary_directory="$(mktemp -d)"
+temporary_directory="$(
+  mktemp -d "$result_directory/.bpf-api-behavior.XXXXXXXXXX"
+)"
 trap 'rm -rf -- "$temporary_directory"' EXIT
 
-mapfile -t cases < <("$executable" --list)
+case_list="$temporary_directory/cases"
+if ! "$executable" --list >"$case_list"; then
+  echo 'failed to list behavior test cases' >&2
+  exit 1
+fi
+mapfile -t cases <"$case_list"
 
 ((${#cases[@]} > 0)) || {
   echo 'no behavior test cases were discovered' >&2
