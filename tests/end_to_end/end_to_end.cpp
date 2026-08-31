@@ -4018,15 +4018,13 @@ test_map_synchronized_update(ebpf_execution_type_t execution_type)
 DECLARE_ALL_TEST_CASES("test_map_synchronized_update", "[end_to_end]", test_map_synchronized_update);
 
 /**
- * @brief This function tests that reference from outer map to inner map is maintained
- * even when the inner map FD is closed. Also, when the outer map FD id closed, the inner
+ * @brief This test verifies that reference from outer map to inner map is maintained
+ * even when the inner map FD is closed. Also, when the outer map FD is closed, the inner
  * map reference is released.
- *
- * @param map_type The type of the outer map.
  */
-void
-_test_nested_maps_user_reference(bpf_map_type map_type)
+TEMPLATE_TEST_CASE("map_of_maps_user_reference", "[libbpf]", MAP_OF_MAPS_TYPES)
 {
+    constexpr bpf_map_type map_type = TestType::value;
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
     const int num_inner_maps = 5;
@@ -4096,15 +4094,6 @@ _test_nested_maps_user_reference(bpf_map_type map_type)
 
     // Now all the maps should be closed.
     REQUIRE(bpf_map_get_next_id(0, &map_id) < 0);
-}
-
-TEST_CASE("array_map_of_maps_user_reference", "[libbpf]")
-{
-    _test_nested_maps_user_reference(BPF_MAP_TYPE_ARRAY_OF_MAPS);
-}
-TEST_CASE("hash_map_of_maps_user_reference", "[libbpf]")
-{
-    _test_nested_maps_user_reference(BPF_MAP_TYPE_HASH_OF_MAPS);
 }
 
 /**
