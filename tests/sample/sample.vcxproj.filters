@@ -99,6 +99,9 @@
     <CustomBuild Include="cgroup_connect_authorization_readonly.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
+    <CustomBuild Include="connect_redirect_mesh.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
     <CustomBuild Include="printk_legacy.c">
       <Filter>Source Files</Filter>
     </CustomBuild>

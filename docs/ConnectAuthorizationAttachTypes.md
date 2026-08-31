@@ -353,3 +353,6 @@ int interface_aware_authorization(struct bpf_sock_addr *ctx)
 ## See Also
 
 - [eBPF Extensions Documentation](eBpfExtensions.md)
+- [Transparent Mesh Redirection Sample](ConnectRedirectMeshSample.md) - a first-party
+  sample combining CONNECT redirection to a loopback proxy with a CONNECT_AUTHORIZATION
+  reauth allow-policy (loop avoidance via proxy PID set).
