@@ -1425,7 +1425,9 @@ TEST_CASE("connect_mesh_redirect_real_socket_ipv4", "[connect_mesh_redirect_test
     SAFE_REQUIRE(proxy_addr.ss_family == AF_INET);
 
     mesh_proxy_config_t config = {0};
-    config.proxy_ipv4 = INETADDR_ADDRESS((PSOCKADDR)&proxy_addr);
+    uint32_t config_ipv4_value = 0;
+    memcpy(&config_ipv4_value, INETADDR_ADDRESS((PSOCKADDR)&proxy_addr), sizeof(config_ipv4_value));
+    config.proxy_ipv4 = config_ipv4_value; // Network byte order.
     config.proxy_port = proxy_port;
     module.set_proxy_config(config);
 
@@ -1461,7 +1463,9 @@ TEST_CASE("connect_mesh_redirect_real_socket_ipv4", "[connect_mesh_redirect_test
         int result = proxy_server.query_redirect_context(&original, sizeof(original));
         SAFE_REQUIRE(result == 0);
         SAFE_REQUIRE(original.family == AF_INET);
-        SAFE_REQUIRE(original.address.ipv4 == INETADDR_ADDRESS((PSOCKADDR)&original_dest));
+        uint32_t original_ipv4_value = 0;
+        memcpy(&original_ipv4_value, INETADDR_ADDRESS((PSOCKADDR)&original_dest), sizeof(original_ipv4_value));
+        SAFE_REQUIRE(original.address.ipv4 == original_ipv4_value);
         SAFE_REQUIRE(original.port == htons(29999));
 
         // A redirect happened.
