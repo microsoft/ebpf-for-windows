@@ -1389,24 +1389,15 @@ TEST_CASE("connect_mesh_redirect_ipv6_all_sixteen_bytes", "[connect_mesh_redirec
     SAFE_REQUIRE(memcmp(output.user_ip6, test_proxy_ipv6, sizeof(test_proxy_ipv6)) == 0);
     SAFE_REQUIRE(output.user_port == htons(test_proxy_port));
 
-    // Proxy-PID loop avoidance: register the socket-owner PROCESS id (upper 32
-    // bits of bpf_get_current_pid_tgid()) and confirm the program no longer
-    // rewrites the destination. This fully exercises finding 5's process-id fix:
-    // with the old (lower-32-bit thread-id) extraction the registered process id
-    // would not match and the redirect would still be applied.
-    uint64_t process_id = get_current_pid_tgid() >> 32;
-    module.set_proxy_pid(process_id, true);
-
-    bpf_sock_addr_t noop_input = input;
-    bpf_sock_addr_t noop_output = {0};
-    uint64_t before_noop = module.read_redirect_counter();
-    _mesh_synthetic_run(module, "mesh_redirect_connect6", noop_input, noop_output);
-
-    SAFE_REQUIRE(memcmp(noop_output.user_ip6, noop_input.user_ip6, sizeof(noop_input.user_ip6)) == 0);
-    SAFE_REQUIRE(noop_output.user_port == noop_input.user_port);
-    SAFE_REQUIRE(module.read_redirect_counter() == before_noop);
-
-    module.set_proxy_pid(process_id, false);
+    // Loop avoidance is intentionally NOT asserted here: this is a synthetic
+    // bpf_prog_test_run_opts run, which executes the program on a deferred
+    // runtime work item and therefore does not attribute the test process PID to
+    // bpf_get_current_pid_tgid(). A proxy_pid_map seeded with the test PID cannot
+    // be matched under test_run, so the program necessarily rewrites user_ip6.
+    // Loop avoidance is verified instead by connect_mesh_redirect_real_socket_ipv4
+    // (a real attached socket runs the WFP callout in the owning process context,
+    // where the PID IS attributed); the sample's IPv4 and IPv6 programs share the
+    // identical is_proxy_process() path, so IPv4 real-socket coverage exercises it.
 }
 
 // Real-socket integration for IPv4: a connect() through the attached mesh program
