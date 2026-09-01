@@ -11,7 +11,7 @@ set "trace_name=ebpf_diag"
 set "rundown_period=0:35:00"
 set "max_file_size_mb=30"
 set "max_committed_folder_size_mb=200"
-set "max_committed_etl_files=64"
+set "max_committed_etl_files=128"
 set "max_committed_rundown_state_files=1"
 set "compress_rundown_state_files=true"
 
@@ -242,7 +242,7 @@ echo   /trace_name name                           - Name of the logman trace (De
 echo   /rundown_period period                     - Period, expressed as (H:mm:ss), for saving and generating a new ETL log, and for generating a WFP state snapshot (Default: 0:35:00).
 echo   /max_file_size_mb size                     - Maximum size set for an ETL log (Default: 30).
 echo   /max_committed_folder_size_mb size         - Maximum overall size for (most recent) .ETL files to keep in the main 'trace_path\committed' (Default: 200)
-echo   /max_committed_etl_files count             - Number (most recent) of .ETL files to keep in the main 'trace_path\committed' (Default: 64, minimum: 1).
+echo   /max_committed_etl_files count             - Number (most recent) of .ETL files to keep in the main 'trace_path\committed' (Default: 128, minimum: 1).
 echo   /max_committed_rundown_state_files count   - Number (most recent) of each type of rundown state file to keep in the main 'trace_path\committed' (Default: 1, minimum: 1).
 echo   /compress_rundown_state_files [true,false] - Compress the rundown state files (Default: 'true').
 echo:
