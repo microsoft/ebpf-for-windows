@@ -1087,48 +1087,410 @@ DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP(
 DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6, true, connection_type_t::CONNECTED_UDP)
 
 // ---------------------------------------------------------------------------
-// connect_redirect_mesh sample: verifies it loads and all of its programs and
-// maps resolve. The redirect behavior (loopback-proxy rewrite plus
-// proxy-PID loop avoidance) is instead exercised by the real-hook connection
-// redirection suite (connection_redirection_tests_*); this suite does not
-// support synthetic bpf_prog_test_run_opts propagation or user-mode reads of
-// the redirect_counter_map for the CONNECT attach point, so no behavioral
-// assertion is made here.
+// connect_redirect_mesh sample: real behavioral tests.
+//
+// The mesh sample is exercised end-to-end for BOTH IPv4 and IPv6, replacing the
+// former load-only ("best-effort") check. Coverage includes:
+//   - configuration of the proxy endpoint (proxy_config_map),
+//   - the protocol / attachment scope guard (TCP only; UDP is left untouched),
+//   - the original-destination tuple handed to the proxy through the WFP
+//     REDIRECT_CONTEXT (SIO_QUERY_WFP_CONNECTION_REDIRECT_CONTEXT),
+//   - the FULL 16-byte IPv6 proxy destination the program writes,
+//   - proxy PID loop avoidance (proxy_pid_map) using the real socket-owner
+//     process id (the upper 32 bits of bpf_get_current_pid_tgid()),
+//   - the redirect counter map (read tolerantly so a yet-unseeded key 0 reports
+//     zero rather than tripping a -ENOENT failure).
+//
+// These mirror the repo's real-socket harness (stream_client_socket_t /
+// stream_server_socket_t) and the bpf_prog_test_run_opts pattern used by
+// tests/socket/socket_tests.cpp for the CONNECT family. The CONNECT and
+// CONNECT_AUTHORIZATION attach points are single-slot, so this module attaches
+// the mesh programs and detaches them on completion; these cases are tagged
+// [connect_mesh_redirect_tests] and are expected to run in isolation from the
+// cgroup_sock_addr2 redirection suite.
 //
 // NOTE: This test needs the repository build environment to produce the
 // connect_redirect_mesh native module.
 // ---------------------------------------------------------------------------
-TEST_CASE("connect_mesh_redirect_program_load", "[connect_mesh_redirect_tests]")
-{
-    native_module_helper_t mesh_helper;
-    mesh_helper.initialize("connect_redirect_mesh");
-    bpf_object_ptr mesh_object(bpf_object__open(mesh_helper.get_file_name().c_str()));
-    SAFE_REQUIRE(mesh_object.get() != nullptr);
-    SAFE_REQUIRE(bpf_object__load(mesh_object.get()) == 0);
 
-    // All four programs (IPv4/IPv6 connect redirect + IPv4/IPv6 connect
-    // authorization) must resolve and produce valid program fds.
+// Mirrors mesh_original_destination_t in connect_redirect_mesh.c.
+typedef struct _mesh_original_destination
+{
+    uint32_t family; ///< AF_INET or AF_INET6.
+    union
+    {
+        uint32_t ipv4;    ///< Network byte order.
+        uint32_t ipv6[4]; ///< Network byte order.
+    } address;
+    uint16_t port; ///< Network byte order (original destination port).
+} mesh_original_destination_t;
+
+// Mirrors mesh_proxy_config_t in connect_redirect_mesh.c.
+typedef struct _mesh_proxy_config
+{
+    uint32_t proxy_ipv4;    ///< Network byte order (0 => 127.0.0.1).
+    uint32_t proxy_ipv6[4]; ///< Network byte order (all 0 => IPv4-mapped loopback).
+    uint16_t proxy_port;    ///< Host byte order (0 => 15001).
+} mesh_proxy_config_t;
+
+// RAII helper that opens/loads the connect_redirect_mesh module and manages the
+// CONNECT / CONNECT_AUTHORIZATION program attachments at the cgroup connect hooks.
+typedef class _mesh_module
+{
+  public:
+    void
+    initialize()
+    {
+        _helper.initialize("connect_redirect_mesh");
+        bpf_object_ptr object(bpf_object__open(_helper.get_file_name().c_str()));
+        SAFE_REQUIRE(object.get() != nullptr);
+        SAFE_REQUIRE(bpf_object__load(object.get()) == 0);
+        _object = std::move(object);
+    }
+
+    ~_mesh_module()
+    {
+        // Detach whatever we attached. Detach is idempotent and safe even if the
+        // caller detached only a subset.
+        if (_auth6_attached) {
+            _detach_program("mesh_authorize_connect6", BPF_CGROUP_INET6_CONNECT_AUTHORIZATION);
+        }
+        if (_auth4_attached) {
+            _detach_program("mesh_authorize_connect4", BPF_CGROUP_INET4_CONNECT_AUTHORIZATION);
+        }
+        if (_connect6_attached) {
+            _detach_program("mesh_redirect_connect6", BPF_CGROUP_INET6_CONNECT);
+        }
+        if (_connect4_attached) {
+            _detach_program("mesh_redirect_connect4", BPF_CGROUP_INET4_CONNECT);
+        }
+    }
+
+    // Attach the IPv4 and/or IPv6 programs (redirect + authorization).
+    void
+    attach(bool attach_v4, bool attach_v6)
+    {
+        if (attach_v4) {
+            _attach_program("mesh_redirect_connect4", BPF_CGROUP_INET4_CONNECT);
+            _attach_program("mesh_authorize_connect4", BPF_CGROUP_INET4_CONNECT_AUTHORIZATION);
+        }
+        if (attach_v6) {
+            _attach_program("mesh_redirect_connect6", BPF_CGROUP_INET6_CONNECT);
+            _attach_program("mesh_authorize_connect6", BPF_CGROUP_INET6_CONNECT_AUTHORIZATION);
+        }
+    }
+
+    bpf_object*
+    object() const
+    {
+        return _object.get();
+    }
+
+    bpf_program*
+    find_program(const char* name)
+    {
+        bpf_program* program = bpf_object__find_program_by_name(_object.get(), name);
+        SAFE_REQUIRE(program != nullptr);
+        return program;
+    }
+
+    // Configure proxy_config_map[0].
+    void
+    set_proxy_config(_In_ const mesh_proxy_config_t& config)
+    {
+        bpf_map* map = bpf_object__find_map_by_name(_object.get(), "proxy_config_map");
+        SAFE_REQUIRE(map != nullptr);
+        uint32_t key = 0;
+        SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(map), &key, &config, BPF_ANY) == 0);
+    }
+
+    // Register or remove a proxy PID used for loop avoidance. The key is the
+    // 8-byte process id (upper 32 bits of bpf_get_current_pid_tgid()).
+    void
+    set_proxy_pid(uint64_t process_id, bool is_proxy)
+    {
+        bpf_map* map = bpf_object__find_map_by_name(_object.get(), "proxy_pid_map");
+        SAFE_REQUIRE(map != nullptr);
+        fd_t map_fd = bpf_map__fd(map);
+        if (is_proxy) {
+            uint8_t value = 1;
+            SAFE_REQUIRE(bpf_map_update_elem(map_fd, &process_id, &value, BPF_ANY) == 0);
+        } else {
+            SAFE_REQUIRE(bpf_map_delete_elem(map_fd, &process_id) == 0);
+        }
+    }
+
+    // Read the redirect counter for key 0. A yet-unseeded key (bpf_map_lookup_elem
+    // returning -ENOENT) is reported as zero rather than failing the test.
+    uint64_t
+    read_redirect_counter()
+    {
+        bpf_map* map = bpf_object__find_map_by_name(_object.get(), "redirect_counter_map");
+        SAFE_REQUIRE(map != nullptr);
+        fd_t map_fd = bpf_map__fd(map);
+        uint32_t key = 0;
+        uint64_t count = 0;
+        int result = bpf_map_lookup_elem(map_fd, &key, &count);
+        if (result < 0) {
+            return 0;
+        }
+        return count;
+    }
+
+  private:
+    void
+    _attach_program(const char* name, bpf_attach_type_t attach_type)
+    {
+        bpf_program* program = find_program(name);
+        int result = bpf_prog_attach(
+            bpf_program__fd(const_cast<const bpf_program*>(program)), 0, attach_type, 0);
+        SAFE_REQUIRE(result == 0);
+        if (attach_type == BPF_CGROUP_INET4_CONNECT) {
+            _connect4_attached = true;
+        } else if (attach_type == BPF_CGROUP_INET6_CONNECT) {
+            _connect6_attached = true;
+        } else if (attach_type == BPF_CGROUP_INET4_CONNECT_AUTHORIZATION) {
+            _auth4_attached = true;
+        } else {
+            _auth6_attached = true;
+        }
+    }
+
+    void
+    _detach_program(const char* name, bpf_attach_type_t attach_type)
+    {
+        bpf_program* program = find_program(name);
+        bpf_prog_detach2(bpf_program__fd(const_cast<const bpf_program*>(program)), 0, attach_type);
+    }
+
+    native_module_helper_t _helper;
+    bpf_object_ptr _object;
+    bool _connect4_attached = false;
+    bool _connect6_attached = false;
+    bool _auth4_attached = false;
+    bool _auth6_attached = false;
+} mesh_module_t;
+
+// Run a mesh redirect program against a synthetic bpf_sock_addr_t context and
+// return the mutated output so the test can compare the program's FULL output.
+static void _mesh_synthetic_run(mesh_module_t& module, const char* program_name, _In_ const bpf_sock_addr_t& input, _Inout_ bpf_sock_addr_t& output)
+{
+    bpf_program* program = module.find_program(program_name);
+    bpf_test_run_opts opts{.repeat = 1};
+    opts.ctx_in = const_cast<bpf_sock_addr_t*>(&input);
+    opts.ctx_size_in = sizeof(bpf_sock_addr_t);
+    opts.ctx_out = &output;
+    opts.ctx_size_out = sizeof(bpf_sock_addr_t);
+    SAFE_REQUIRE(bpf_prog_test_run_opts(bpf_program__fd(const_cast<const bpf_program*>(program)), &opts) == 0);
+}
+
+// Open/load the module and sanity-check program and map resolution.
+static void
+_mesh_load_and_verify(mesh_module_t& module)
+{
+    module.initialize();
+
     const char* program_names[] = {
         "mesh_redirect_connect4", "mesh_redirect_connect6", "mesh_authorize_connect4", "mesh_authorize_connect6"};
-
     for (const char* name : program_names) {
         CAPTURE(name);
-        bpf_program* program = bpf_object__find_program_by_name(mesh_object.get(), name);
-        SAFE_REQUIRE(program != nullptr);
-        fd_t program_fd = bpf_program__fd(static_cast<const bpf_program*>(program));
+        fd_t program_fd = bpf_program__fd(static_cast<const bpf_program*>(module.find_program(name)));
         SAFE_REQUIRE(program_fd > 0);
     }
 
-    // All three maps must resolve and produce valid fds.
     const char* map_names[] = {"proxy_config_map", "proxy_pid_map", "redirect_counter_map"};
-
     for (const char* name : map_names) {
         CAPTURE(name);
-        bpf_map* map = bpf_object__find_map_by_name(mesh_object.get(), name);
+        bpf_map* map = bpf_object__find_map_by_name(module.object(), name);
         SAFE_REQUIRE(map != nullptr);
-        fd_t map_fd = bpf_map__fd(map);
-        SAFE_REQUIRE(map_fd > 0);
+        SAFE_REQUIRE(bpf_map__fd(map) > 0);
     }
+}
+
+TEST_CASE("connect_mesh_redirect_ipv4_config_and_protocol_scope", "[connect_mesh_redirect_tests]")
+{
+    mesh_module_t module;
+    _mesh_load_and_verify(module);
+
+    // Configure a DISTINCT IPv4 endpoint so the test proves proxy_config_map is
+    // honored rather than the hardcoded default (127.0.0.1:15001).
+    constexpr uint32_t test_proxy_ipv4 = 0x0A000002; // 10.0.0.2 in host order; converted below.
+    constexpr uint16_t test_proxy_port = 16001;
+
+    mesh_proxy_config_t config = {0};
+    config.proxy_ipv4 = htonl(test_proxy_ipv4);
+    config.proxy_ipv6[0] = 0;
+    config.proxy_ipv6[1] = 0;
+    config.proxy_ipv6[2] = 0;
+    config.proxy_ipv6[3] = 0;
+    config.proxy_port = test_proxy_port;
+    module.set_proxy_config(config);
+
+    // A TCP IPv4 outbound socket must be redirected to the configured endpoint.
+    bpf_sock_addr_t input = {0};
+    input.family = AF_INET;
+    input.protocol = IPPROTO_TCP;
+    input.user_ip4 = htonl(0x0A000001); // 10.0.0.1 original destination.
+    input.user_port = htons(80);
+
+    bpf_sock_addr_t output = {0};
+    _mesh_synthetic_run(module, "mesh_redirect_connect4", input, output);
+
+    SAFE_REQUIRE(output.family == AF_INET);
+    SAFE_REQUIRE(output.user_ip4 == htonl(test_proxy_ipv4));
+    SAFE_REQUIRE(output.user_port == htons(test_proxy_port));
+
+    // Redirect counter must have been set/incremented (key 0 never -ENOENT here).
+    SAFE_REQUIRE(module.read_redirect_counter() >= 1);
+
+    // Protocol scope guard: a UDP connection is NOT redirected even for the same
+    // address family, and must not increment the counter.
+    bpf_sock_addr_t udp_input = input;
+    udp_input.protocol = IPPROTO_UDP;
+    bpf_sock_addr_t udp_output = {0};
+    uint64_t before_udp = module.read_redirect_counter();
+    _mesh_synthetic_run(module, "mesh_redirect_connect4", udp_input, udp_output);
+    SAFE_REQUIRE(udp_output.user_ip4 == udp_input.user_ip4);
+    SAFE_REQUIRE(udp_output.user_port == udp_input.user_port);
+    SAFE_REQUIRE(module.read_redirect_counter() == before_udp);
+}
+
+TEST_CASE("connect_mesh_redirect_ipv6_all_sixteen_bytes", "[connect_mesh_redirect_tests]")
+{
+    mesh_module_t module;
+    _mesh_load_and_verify(module);
+
+    // Configure a DISTINCT full 16-byte IPv6 proxy endpoint: all four words are
+    // non-trivial so the test verifies the FULL 16-byte output rather than masking
+    // a bug where only a subset of the IPv6 address is written.
+    const uint32_t test_proxy_ipv6[4] = {
+        htonl(0x20010DB8), htonl(0x00001111), htonl(0x00002222), htonl(0x00003333)};
+    constexpr uint16_t test_proxy_port = 16002;
+
+    mesh_proxy_config_t config = {0};
+    memcpy(config.proxy_ipv6, test_proxy_ipv6, sizeof(test_proxy_ipv6));
+    config.proxy_port = test_proxy_port;
+    module.set_proxy_config(config);
+
+    // A TCP IPv6 outbound socket to an arbitrary original destination.
+    bpf_sock_addr_t input = {0};
+    input.family = AF_INET6;
+    input.protocol = IPPROTO_TCP;
+    input.user_ip6[0] = htonl(0x20010DB8);
+    input.user_ip6[1] = htonl(0x0000AAAA);
+    input.user_ip6[2] = htonl(0x0000BBBB);
+    input.user_ip6[3] = htonl(0x0000CCCC);
+    input.user_port = htons(200);
+
+    bpf_sock_addr_t output = {0};
+    _mesh_synthetic_run(module, "mesh_redirect_connect6", input, output);
+
+    SAFE_REQUIRE(output.family == AF_INET6);
+    SAFE_REQUIRE(memcmp(output.user_ip6, test_proxy_ipv6, sizeof(test_proxy_ipv6)) == 0);
+    SAFE_REQUIRE(output.user_port == htons(test_proxy_port));
+
+    // Proxy-PID loop avoidance: register the socket-owner PROCESS id (upper 32
+    // bits of bpf_get_current_pid_tgid()) and confirm the program no longer
+    // rewrites the destination. This fully exercises finding 5's process-id fix:
+    // with the old (lower-32-bit thread-id) extraction the registered process id
+    // would not match and the redirect would still be applied.
+    uint64_t process_id = get_current_pid_tgid() >> 32;
+    module.set_proxy_pid(process_id, true);
+
+    bpf_sock_addr_t noop_input = input;
+    bpf_sock_addr_t noop_output = {0};
+    uint64_t before_noop = module.read_redirect_counter();
+    _mesh_synthetic_run(module, "mesh_redirect_connect6", noop_input, noop_output);
+
+    SAFE_REQUIRE(memcmp(noop_output.user_ip6, noop_input.user_ip6, sizeof(noop_input.user_ip6)) == 0);
+    SAFE_REQUIRE(noop_output.user_port == noop_input.user_port);
+    SAFE_REQUIRE(module.read_redirect_counter() == before_noop);
+
+    module.set_proxy_pid(process_id, false);
+}
+
+// Real-socket integration for IPv4: a connect() through the attached mesh program
+// must land on the loopback proxy, hand off the original tuple in the WFP redirect
+// context, and be loop-avoided once the owning PID is registered as the proxy.
+TEST_CASE("connect_mesh_redirect_real_socket_ipv4", "[connect_mesh_redirect_tests][real_socket]")
+{
+    mesh_module_t module;
+    _mesh_load_and_verify(module);
+
+    // IPv4 loopback proxy listener.
+    constexpr uint16_t proxy_port = 16010;
+    sockaddr_storage proxy_addr = {};
+    std::string loopback_str = "127.0.0.1";
+    get_address_from_string(loopback_str, proxy_addr, false);
+    SAFE_REQUIRE(proxy_addr.ss_family == AF_INET);
+
+    mesh_proxy_config_t config = {0};
+    config.proxy_ipv4 = INETADDR_ADDRESS((PSOCKADDR)&proxy_addr);
+    config.proxy_port = proxy_port;
+    module.set_proxy_config(config);
+
+    // Attach the IPv4 mesh programs (single-slot CONNECT hooks; detached on exit).
+    module.attach(true, false);
+
+    // A decoy destination the client asks for; the mesh program rewrites it to the
+    // loopback proxy. The address is distinct from the proxy so the original-tuple
+    // handoff is observable.
+    sockaddr_storage original_dest{};
+    std::string decoy_str = "10.9.8.7";
+    get_address_from_string(decoy_str, original_dest, false);
+
+    // First connect: the test process is NOT the registered proxy, so it must be
+    // redirected; the proxy server learns the original tuple via the redirect
+    // context and the counter is incremented.
+    {
+        uint64_t before = module.read_redirect_counter();
+
+        stream_server_socket_t proxy_server(
+            SOCK_STREAM, IPPROTO_TCP, proxy_port, proxy_addr, 0, 0, socket_family_t::IPv4);
+        proxy_server.post_async_receive();
+
+        stream_client_socket_t sender(SOCK_STREAM, IPPROTO_TCP, 0, socket_family_t::IPv4);
+        sender.send_message_to_remote_host(CLIENT_MESSAGE, original_dest, 29999);
+        sender.complete_async_send(2000, expected_result_t::SUCCESS);
+
+        proxy_server.complete_async_receive(5000, false);
+
+        // The accepted connection lands on the proxy; its WFP redirect context must
+        // carry the original (decoy) destination tuple.
+        mesh_original_destination_t original = {0};
+        int result = proxy_server.query_redirect_context(&original, sizeof(original));
+        SAFE_REQUIRE(result == 0);
+        SAFE_REQUIRE(original.family == AF_INET);
+        SAFE_REQUIRE(original.address.ipv4 == INETADDR_ADDRESS((PSOCKADDR)&original_dest));
+        SAFE_REQUIRE(original.port == htons(29999));
+
+        // A redirect happened.
+        SAFE_REQUIRE(module.read_redirect_counter() == before + 1);
+    }
+
+    // Scenario: register the socket-owner PROCESS id as the mesh proxy so the
+    // proxy's own outbound dial is loop-avoided (not redirected). The connection
+    // reaches the loopback listener directly and the counter does not move.
+    uint64_t process_id = get_current_pid_tgid() >> 32;
+    module.set_proxy_pid(process_id, true);
+    {
+        uint64_t before_counter = module.read_redirect_counter();
+
+        stream_server_socket_t proxy_server2(
+            SOCK_STREAM, IPPROTO_TCP, proxy_port, proxy_addr, 0, 0, socket_family_t::IPv4);
+        proxy_server2.post_async_receive();
+
+        // The proxy dials the proxy listener itself; destination is left untouched.
+        stream_client_socket_t sender2(SOCK_STREAM, IPPROTO_TCP, 0, socket_family_t::IPv4);
+        sender2.send_message_to_remote_host(CLIENT_MESSAGE, proxy_addr, proxy_port);
+        sender2.complete_async_send(2000, expected_result_t::SUCCESS);
+
+        proxy_server2.complete_async_receive(5000, false);
+
+        // Loop avoidance: the counter must NOT have grown.
+        SAFE_REQUIRE(module.read_redirect_counter() == before_counter);
+    }
+    module.set_proxy_pid(process_id, false);
 }
 
 int
