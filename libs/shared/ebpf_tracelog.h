@@ -167,7 +167,9 @@ extern "C"
         ebpf_result_t local_result = (status);          \
         if (local_result == EBPF_SUCCESS) {             \
             EBPF_LOG_FUNCTION_SUCCESS();                \
-        } else if (local_result != EBPF_NO_MORE_KEYS) { \
+        } else if (local_result == EBPF_NO_MORE_KEYS) { \
+            EBPF_LOG_FUNCTION_RESULT(local_result);     \
+        } else {                                        \
             EBPF_LOG_FUNCTION_ERROR(local_result);      \
         }                                               \
         return local_result;                            \

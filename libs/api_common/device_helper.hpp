@@ -134,8 +134,7 @@ invoke_ioctl(request_t& request, reply_t& reply = _empty_reply, _Inout_opt_ OVER
         return_value = GetLastError();
         if (request_ptr != nullptr && request_size >= sizeof(ebpf_operation_header_t)) {
             const ebpf_operation_header_t* header = reinterpret_cast<const ebpf_operation_header_t*>(request_ptr);
-            expected_enumeration_end =
-                return_value == ERROR_NO_MORE_MATCHES && ebpf_operation_is_enumeration(header->id);
+            expected_enumeration_end = EBPF_OPERATION_IS_WIN32_ENUMERATION_END(header->id, return_value);
         }
         if (!expected_enumeration_end) {
             EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, DeviceIoControl);
@@ -150,6 +149,7 @@ invoke_ioctl(request_t& request, reply_t& reply = _empty_reply, _Inout_opt_ OVER
 
 Exit:
     if (expected_enumeration_end) {
+        EBPF_LOG_FUNCTION_RESULT(return_value);
         return return_value;
     }
     EBPF_RETURN_ERROR(return_value);

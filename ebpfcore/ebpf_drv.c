@@ -1001,8 +1001,7 @@ _ebpf_driver_io_device_control(
                     (uint16_t)actual_output_length,
                     async_context,
                     _ebpf_driver_io_device_control_complete));
-                if (status != STATUS_SUCCESS &&
-                    !(status == STATUS_NO_MORE_MATCHES && ebpf_operation_is_enumeration(user_request->id))) {
+                if (status != STATUS_SUCCESS && !EBPF_OPERATION_IS_NTSTATUS_ENUMERATION_END(user_request->id, status)) {
                     EBPF_LOG_NTSTATUS_API_FAILURE(
                         EBPF_TRACELOG_KEYWORD_ERROR, "ebpf_core_invoke_protocol_handler", status);
                 }

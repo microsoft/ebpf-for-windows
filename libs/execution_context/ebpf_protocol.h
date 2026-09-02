@@ -74,6 +74,12 @@ ebpf_operation_is_enumeration(ebpf_operation_id_t operation_id)
     }
 }
 
+#define EBPF_OPERATION_IS_WIN32_ENUMERATION_END(operation_id, error) \
+    ((error) == ERROR_NO_MORE_MATCHES && ebpf_operation_is_enumeration(operation_id))
+
+#define EBPF_OPERATION_IS_NTSTATUS_ENUMERATION_END(operation_id, status) \
+    ((status) == STATUS_NO_MORE_MATCHES && ebpf_operation_is_enumeration(operation_id))
+
 typedef enum _ebpf_code_type
 {
     EBPF_CODE_NONE,
