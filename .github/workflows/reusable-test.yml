@@ -449,6 +449,23 @@ jobs:
         run: |
             copy ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\*.log ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs
 
+      - name: Copy fault injection logs to TestLogs
+        if: always() && (inputs.fault_injection == true) && (steps.skip_check.outputs.should_skip != 'true')
+        shell: pwsh
+        run: |
+          $outputDirectory = "${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}"
+          [array]$faultInjectionLogs =
+            Get-ChildItem -LiteralPath $outputDirectory -File |
+            Where-Object { $_.Name -match '\.(fault|passed)\.log$' }
+          if ($faultInjectionLogs.Count -eq 0) {
+            Write-Warning "No fault injection logs were found in $outputDirectory"
+            return
+          }
+
+          $testLogDirectory = Join-Path $outputDirectory "TestLogs"
+          New-Item -ItemType Directory -Path $testLogDirectory -Force | Out-Null
+          Copy-Item -LiteralPath $faultInjectionLogs.FullName -Destination $testLogDirectory
+
       - name: Check for crash dumps
         # Check for crash dumps even if the workflow failed.
         if: always() && (steps.skip_check.outputs.should_skip != 'true')
