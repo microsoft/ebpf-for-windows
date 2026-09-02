@@ -68,6 +68,37 @@ uint16_t _supported_ebpf_extension_version[] = {
     EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_DATA_CURRENT_VERSION,
 };
 
+// Maximum "total_size" for each extension object type. An object's total_size covers the structure including any
+// trailing padding, so it can never exceed the size of the current version of that structure.
+size_t _ebpf_extension_type_max_total_size[] = {
+    // eBPF extension object maximum total sizes.
+    EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_TOTAL_SIZE,
+    EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_TOTAL_SIZE,
+    EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_TOTAL_SIZE,
+    EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_TOTAL_SIZE,
+    EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_TOTAL_SIZE,
+    EBPF_PROGRAM_DATA_CURRENT_VERSION_TOTAL_SIZE,
+    EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_TOTAL_SIZE,
+    EBPF_MAP_PROVIDER_DATA_CURRENT_VERSION_TOTAL_SIZE,
+    EBPF_MAP_CLIENT_DATA_CURRENT_VERSION_TOTAL_SIZE,
+    EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_CURRENT_VERSION_TOTAL_SIZE,
+    EBPF_BASE_MAP_PROVIDER_PROPERTIES_CURRENT_VERSION_TOTAL_SIZE,
+    EBPF_BASE_MAP_CLIENT_DISPATCH_TABLE_CURRENT_VERSION_TOTAL_SIZE,
+    EBPF_BTF_RESOLVED_FUNCTION_PROTOTYPE_CURRENT_VERSION_TOTAL_SIZE,
+    EBPF_BTF_RESOLVED_FUNCTION_PROVIDER_DATA_CURRENT_VERSION_TOTAL_SIZE,
+
+    // eBPF native module object maximum total sizes.
+    EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE,
+    EBPF_NATIVE_HELPER_FUNCTION_DATA_CURRENT_VERSION_TOTAL_SIZE,
+    EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_TOTAL_SIZE,
+    EBPF_NATIVE_MAP_DATA_CURRENT_VERSION_TOTAL_SIZE,
+    EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_TOTAL_SIZE,
+    EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION_TOTAL_SIZE,
+    EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION_TOTAL_SIZE,
+    EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION_TOTAL_SIZE,
+    EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_DATA_CURRENT_VERSION_TOTAL_SIZE,
+};
+
 #define EBPF_ATTACH_PROVIDER_DATA_SIZE_1 EBPF_SIZE_INCLUDING_FIELD(ebpf_attach_provider_data_t, link_type)
 size_t _ebpf_attach_provider_data_supported_size[] = {EBPF_ATTACH_PROVIDER_DATA_SIZE_1};
 
@@ -215,9 +246,22 @@ _ebpf_validate_extension_object_header(
     uint16_t count = _ebpf_extension_type_supported_sizes[object_type].count;
     __analysis_assume(supported_sizes != NULL);
 
-    return (
-        (header->version == _supported_ebpf_extension_version[object_type]) &&
-        (_ebpf_is_size_supported(supported_sizes, count, header->size)));
+    if (header->version != _supported_ebpf_extension_version[object_type]) {
+        return false;
+    }
+
+    if (!_ebpf_is_size_supported(supported_sizes, count, header->size)) {
+        return false;
+    }
+
+    // "total_size" is used as an array stride and as a copy length, so it must be bounded above: it can never
+    // exceed the size of the current version of the structure being copied into. Values smaller than "size"
+    // (including 0, which existing producers may leave unset) are not memory-unsafe and are tolerated.
+    if (header->total_size > _ebpf_extension_type_max_total_size[object_type]) {
+        return false;
+    }
+
+    return true;
 }
 
 #ifndef GUID_NULL
@@ -300,6 +344,10 @@ ebpf_validate_helper_function_prototype_array(
     if (count > 0) {
         // The helper_prototype_array cannot be NULL.
         if (helper_prototype_array == NULL) {
+            return false;
+        }
+        // Validate the first element before using its "total_size" as the array stride.
+        if (!_ebpf_validate_helper_function_prototype(helper_prototype_array)) {
             return false;
         }
         // Use "total_size" to calculate the actual size of the ebpf_helper_function_prototype_t struct.
@@ -528,7 +576,7 @@ _duplicate_helper_function_prototype_array(
     for (uint32_t i = 0; i < count; i++) {
         ebpf_helper_function_prototype_t* helper_prototype =
             (ebpf_helper_function_prototype_t*)ARRAY_ELEMENT_INDEX(helper_prototype_array, i, helper_prototype_size);
-        memcpy(&local_helper_prototype_array[i], helper_prototype, helper_prototype_size);
+        memcpy(&local_helper_prototype_array[i], helper_prototype, min(helper_prototype_size, sizeof(*helper_prototype)));
         local_helper_prototype_array[i].header.version = EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION;
         local_helper_prototype_array[i].header.size = EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE;
         local_helper_prototype_array[i].header.total_size = EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_TOTAL_SIZE;
@@ -538,8 +586,9 @@ _duplicate_helper_function_prototype_array(
             result = EBPF_NO_MEMORY;
             goto Exit;
         }
-        if (local_helper_prototype_array[i].header.size == EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION) {
-            local_helper_prototype_array[i].flags = helper_prototype[i].flags;
+        // Only copy the "flags" field if the source prototype is large enough to contain it.
+        if (helper_prototype->header.size >= EBPF_HELPER_FUNCTION_PROTOTYPE_SIZE_1) {
+            local_helper_prototype_array[i].flags = helper_prototype->flags;
         }
     }
 

@@ -276,6 +276,11 @@ _ebpf_validate_native_btf_resolved_function_entry_array(
             return false;
         }
 
+        // Validate the first element before using its "total_size" as the array stride.
+        if (!_ebpf_validate_native_btf_resolved_function_entry(native_btf_entry_array)) {
+            return false;
+        }
+
         size_t entry_size = native_btf_entry_array[0].header.total_size;
         for (uint16_t i = 0; i < count; i++) {
             const btf_resolved_function_entry_t* native_btf_entry =
@@ -307,6 +312,10 @@ _ebpf_validate_native_helper_function_entry_array(
     if (count > 0) {
         // The native_helper_function_entry_array cannot be NULL.
         if (native_helper_function_entry_array == NULL) {
+            return false;
+        }
+        // Validate the first element before using its "total_size" as the array stride.
+        if (!_ebpf_validate_native_helper_function_entry(native_helper_function_entry_array)) {
             return false;
         }
         // Use "total_size" to calculate the actual size of the helper_function_entry_t struct.
@@ -353,6 +362,10 @@ _ebpf_validate_native_program_entry_array(
         if (native_program_entry_array == NULL) {
             return false;
         }
+        // Validate the first element before using its "total_size" as the array stride.
+        if (!_ebpf_validate_native_program_entry(native_program_entry_array)) {
+            return false;
+        }
         // Use "total_size" to calculate the actual size of the program_entry_t struct.
         size_t program_entry_size = native_program_entry_array[0].header.total_size;
         for (size_t i = 0; i < count; i++) {
@@ -382,6 +395,10 @@ _ebpf_validate_native_map_entry_array(_In_reads_(count) const map_entry_t* nativ
     if (count > 0) {
         // The native_map_entry_array cannot be NULL.
         if (native_map_entry_array == NULL) {
+            return false;
+        }
+        // Validate the first element before using its "total_size" as the array stride.
+        if (!_ebpf_validate_native_map_entry(native_map_entry_array)) {
             return false;
         }
         // Use "total_size" to calculate the actual size of the map_entry_t struct.
@@ -417,6 +434,10 @@ _ebpf_validate_native_map_initial_values_array(
         if (native_map_initial_values_array == NULL) {
             return false;
         }
+        // Validate the first element before using its "total_size" as the array stride.
+        if (!_ebpf_validate_native_map_initial_values(native_map_initial_values_array)) {
+            return false;
+        }
         // Use "total_size" to calculate the actual size of the map_initial_values_t struct.
         size_t map_initial_values_size = native_map_initial_values_array[0].header.total_size;
         for (size_t i = 0; i < count; i++) {
@@ -449,6 +470,10 @@ _ebpf_validate_global_variable_section_info_array(
     if (count > 0) {
         // The native_global_variable_section_info_array cannot be NULL.
         if (native_global_variable_section_info_array == NULL) {
+            return false;
+        }
+        // Validate the first element before using its "total_size" as the array stride.
+        if (!_ebpf_validate_native_global_variable_section_info(native_global_variable_section_info_array)) {
             return false;
         }
         // Use "total_size" to calculate the actual size of the global_variable_section_info_t struct.
@@ -1256,7 +1281,7 @@ _ebpf_native_initialize_maps(
     for (uint32_t i = 0; i < map_count; i++) {
         // Copy the map_entry_t from native module to ebpf_native_map_t.
         map_entry_t* map_entry = (map_entry_t*)ARRAY_ELEMENT_INDEX(maps, i, map_entry_size);
-        memcpy(&native_maps[i].entry, map_entry, map_entry_size);
+        memcpy(&native_maps[i].entry, map_entry, min(map_entry_size, sizeof(native_maps[i].entry)));
         map_entry_t* entry = &native_maps[i].entry;
 
         if (entry->definition.pinning != LIBBPF_PIN_NONE && entry->definition.pinning != LIBBPF_PIN_BY_NAME) {
@@ -1555,7 +1580,10 @@ _ebpf_native_initialize_global_variables(
                 global_variables, i, global_variable_section_info_size);
 
         // Copy the global variable section info.
-        memcpy(&local_global_section_info, global_variable_section_info, global_variable_section_info_size);
+        memcpy(
+            &local_global_section_info,
+            global_variable_section_info,
+            min(global_variable_section_info_size, sizeof(local_global_section_info)));
         global_variable_section_info = NULL;
 
         const ebpf_native_map_t* native_map = _ebpf_native_find_map_by_name(instance, local_global_section_info.name);
@@ -1825,7 +1853,7 @@ _ebpf_native_resolve_helpers_for_program(
             helper_function_entry_t local_helper_entry = {0};
             const helper_function_entry_t* entry =
                 (const helper_function_entry_t*)ARRAY_ELEMENT_INDEX(helper_info, i, helper_entry_size);
-            memcpy(&local_helper_entry, entry, helper_entry_size);
+            memcpy(&local_helper_entry, entry, min(helper_entry_size, sizeof(local_helper_entry)));
 
             if (local_helper_entry.helper_id == 0) {
                 // Sentinel entry — this helper is not used by this program.
@@ -1977,7 +2005,10 @@ _ebpf_native_initialize_programs(_Inout_ ebpf_native_module_instance_t* instance
             for (uint32_t i = 0; i < native_program->program_entry.helper_count; i++) {
                 const helper_function_entry_t* helper_entry =
                     (const helper_function_entry_t*)ARRAY_ELEMENT_INDEX(helper_info, i, helper_entry_size);
-                memcpy(&native_program->program_entry.helpers[i], helper_entry, helper_entry_size);
+                memcpy(
+                    &native_program->program_entry.helpers[i],
+                    helper_entry,
+                    min(helper_entry_size, sizeof(native_program->program_entry.helpers[i])));
                 helper_entry = NULL;
             }
         }
@@ -2717,7 +2748,7 @@ _ebpf_native_helper_address_changed(
             helper_function_entry_t local_helper_entry = {0};
             const helper_function_entry_t* entry =
                 (const helper_function_entry_t*)ARRAY_ELEMENT_INDEX(helper_info, i, helper_entry_size);
-            memcpy(&local_helper_entry, entry, helper_entry_size);
+            memcpy(&local_helper_entry, entry, min(helper_entry_size, sizeof(local_helper_entry)));
 
             if (local_helper_entry.helper_id == 0) {
                 // Sentinel entry — skip.
