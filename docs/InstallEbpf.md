@@ -37,8 +37,8 @@ An **command line install/uninstall** is also supported, through the direct use 
     ADDLOCAL=eBPF_Runtime_Components,eBPF_Runtime_Components_JIT
     ```
 
-* The installer stops if an `eBPFCore` service that it does not own is already registered. To replace existing
-  eBPF services on a test system, pass `FORCE=1`. This stops `NetEbpfExt`, `eBPFSvc`, and `eBPFCore`, then points
+* The installer stops if an `eBPFCore` service is already registered. To replace existing eBPF services, pass
+  `FORCE=1`. This stops `NetEbpfExt`, `eBPFSvc`, and `eBPFCore`, then points
   the driver services at the drivers installed under `INSTALLFOLDER`. The installation fails if a service cannot
   be stopped.
 
