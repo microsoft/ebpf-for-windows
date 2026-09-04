@@ -26,7 +26,7 @@ struct
     __uint(type, BPF_MAP_TYPE_HASH);
     __type(key, uint32_t);
     __type(value, uint32_t);
-    __uint(max_entries, 1);
+    __uint(max_entries, 2);
 } map_2 SEC(".maps");
 
 // Stats map to track failures when the inner map lookup fails.

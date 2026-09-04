@@ -603,21 +603,21 @@ TEST_CASE("map_crud_operations_lpm_trie_32", "[execution_context]")
         CHECK(return_value == correct_value);
     }
 
+    lpm_trie_32_key_t extra_key = {32, 192, 168, 15, 1};
     {
         // Insert a new key.
-        lpm_trie_32_key_t key = {32, 192, 168, 15, 1};
-        std::string key_string = _ip32_prefix_string(key.prefix_length, key.value);
+        std::string key_string = _ip32_prefix_string(extra_key.prefix_length, extra_key.value);
         CAPTURE(key_string);
         key_string.resize(max_string);
         REQUIRE(
             ebpf_map_update_entry(
                 map.get(),
                 0,
-                reinterpret_cast<const uint8_t*>(&key),
+                reinterpret_cast<const uint8_t*>(&extra_key),
                 0,
                 reinterpret_cast<const uint8_t*>(key_string.c_str()),
                 EBPF_ANY,
-                EBPF_MAP_FLAG_HELPER) == EBPF_SUCCESS);
+                EBPF_MAP_FLAG_HELPER) == EBPF_OUT_OF_SPACE);
     }
 
     // Re-insert the same keys (to test update)
@@ -641,6 +641,72 @@ TEST_CASE("map_crud_operations_lpm_trie_32", "[execution_context]")
         CHECK(
             ebpf_map_delete_entry(map.get(), 0, reinterpret_cast<const uint8_t*>(&key), EBPF_MAP_FLAG_HELPER) ==
             EBPF_SUCCESS);
+    }
+
+    // LPM lookup falls back to less-specific prefixes, so check the rejected key after removing those entries.
+    char* return_value = nullptr;
+    REQUIRE(
+        ebpf_map_find_entry(
+            map.get(),
+            0,
+            reinterpret_cast<const uint8_t*>(&extra_key),
+            0,
+            reinterpret_cast<uint8_t*>(&return_value),
+            EBPF_MAP_FLAG_HELPER) == EBPF_KEY_NOT_FOUND);
+}
+
+TEST_CASE("map_lpm_trie_no_max_entries_flag", "[execution_context]")
+{
+    _ebpf_core_initializer core;
+    core.initialize();
+
+    ebpf_map_definition_in_memory_t map_definition{
+        BPF_MAP_TYPE_LPM_TRIE,
+        sizeof(lpm_trie_32_key_t),
+        sizeof(uint64_t),
+        1,
+        0,
+        LIBBPF_PIN_NONE,
+        BPF_F_NO_MAX_ENTRIES};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        cxplat_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+
+    std::vector<lpm_trie_32_key_t> keys{
+        {32, {192, 168, 15, 1}},
+        {32, {192, 168, 15, 2}},
+        {32, {192, 168, 15, 3}},
+    };
+
+    for (size_t index = 0; index < keys.size(); index++) {
+        uint64_t value = index + 1;
+        REQUIRE(
+            ebpf_map_update_entry(
+                map.get(),
+                0,
+                reinterpret_cast<const uint8_t*>(&keys[index]),
+                0,
+                reinterpret_cast<const uint8_t*>(&value),
+                EBPF_ANY,
+                EBPF_MAP_FLAG_HELPER) == EBPF_SUCCESS);
+    }
+
+    for (size_t index = 0; index < keys.size(); index++) {
+        uint8_t* return_value = nullptr;
+        REQUIRE(
+            ebpf_map_find_entry(
+                map.get(),
+                0,
+                reinterpret_cast<const uint8_t*>(&keys[index]),
+                0,
+                reinterpret_cast<uint8_t*>(&return_value),
+                EBPF_MAP_FLAG_HELPER) == EBPF_SUCCESS);
+        REQUIRE(*reinterpret_cast<uint64_t*>(return_value) == index + 1);
     }
 }
 
@@ -939,9 +1005,10 @@ TEST_CASE("map_crud_operations_lpm_trie_128", "[execution_context]")
                 EBPF_ANY,
                 EBPF_MAP_FLAG_HELPER) == EBPF_SUCCESS);
     }
+    auto extra_lpm_pair = _lpm_128_prefix_pair(33, 0xBB);
     {
-        // Add a new entry to the map, it should succeed.
-        auto lpm_pair = _lpm_128_prefix_pair(33, 0xBB);
+        // Add a new entry to the full map, it should fail.
+        auto& lpm_pair = extra_lpm_pair;
         std::string key_string = lpm_pair.second;
         CAPTURE(key_string);
         REQUIRE(
@@ -952,7 +1019,7 @@ TEST_CASE("map_crud_operations_lpm_trie_128", "[execution_context]")
                 0,
                 reinterpret_cast<const uint8_t*>(lpm_pair.second.c_str()),
                 EBPF_ANY,
-                EBPF_MAP_FLAG_HELPER) == EBPF_SUCCESS);
+                EBPF_MAP_FLAG_HELPER) == EBPF_OUT_OF_SPACE);
     }
 
     // Delete all the keys we originally inserted.
@@ -962,6 +1029,17 @@ TEST_CASE("map_crud_operations_lpm_trie_128", "[execution_context]")
             ebpf_map_delete_entry(map.get(), 0, reinterpret_cast<const uint8_t*>(&key), EBPF_MAP_FLAG_HELPER) ==
             EBPF_SUCCESS);
     }
+
+    // LPM lookup falls back to less-specific prefixes, so check the rejected key after removing those entries.
+    char* return_value = nullptr;
+    REQUIRE(
+        ebpf_map_find_entry(
+            map.get(),
+            0,
+            reinterpret_cast<const uint8_t*>(&extra_lpm_pair.first),
+            0,
+            reinterpret_cast<uint8_t*>(&return_value),
+            EBPF_MAP_FLAG_HELPER) == EBPF_KEY_NOT_FOUND);
 }
 
 TEST_CASE("map_crud_operations_queue", "[execution_context]")
