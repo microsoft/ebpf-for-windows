@@ -10,6 +10,7 @@
 #include "bpf2c.h"
 #include "device_helper.hpp"
 #include "ebpf_api.h"
+#include "ebpf_native_structs.h"
 #include "ebpf_protocol.h"
 #include "ebpf_ring_buffer_record.h"
 #include "ebpf_serialize.h"
@@ -3060,15 +3061,26 @@ _ebpf_pe_get_map_definitions(
             map_offset += 8;
         }
         if (pe_context->object != nullptr) {
-            for (int map_index = 0; map_offset + sizeof(map_entry_t) <= section_header.Misc.VirtualSize;
-                 map_offset += sizeof(map_entry_t), map_index++) {
-                map_entry_t* entry = (map_entry_t*)(buffer->buf + map_offset);
-                if (entry->zero_marker[0] != 0 || entry->zero_marker[1] != 0) {
+            for (int map_index = 0;
+                 map_offset + EBPF_OFFSET_OF(map_entry_t, header) + sizeof(ebpf_native_module_header_t) <=
+                 section_header.Misc.VirtualSize;
+                 map_index++) {
+                const map_entry_t* source_entry = (const map_entry_t*)(buffer->buf + map_offset);
+                if (source_entry->zero_marker[0] != 0 || source_entry->zero_marker[1] != 0) {
                     // bpf2c generates a section that has map names longer than sizeof(map_entry_t)
                     // at the end of the section. This entry seems to be a map name string, so we've
                     // reached the end of the maps.
                     break;
                 }
+
+                map_entry_t normalized_entry = {};
+                if (source_entry->header.total_size > section_header.Misc.VirtualSize - map_offset ||
+                    !ebpf_native_map_entry_to_current(&normalized_entry, source_entry)) {
+                    pe_context->result = EBPF_INVALID_OBJECT;
+                    goto Error;
+                }
+                map_offset += (uint32_t)source_entry->header.total_size;
+                const map_entry_t* entry = &normalized_entry;
 
                 map = (ebpf_map_t*)ebpf_allocate_with_tag(sizeof(ebpf_map_t), EBPF_POOL_TAG_DEFAULT);
                 if (map == nullptr) {
@@ -3083,7 +3095,7 @@ _ebpf_pe_get_map_definitions(
                 map->map_definition.max_entries = entry->definition.max_entries;
                 map->map_definition.pinning = entry->definition.pinning;
                 map->map_definition.inner_map_id = entry->definition.inner_id;
-                map->map_definition.map_flags = entry->definition.map_flags;
+                map->map_definition.map_flags = entry->map_flags;
                 map->inner_map_original_fd = map_idx_to_original_fd(entry->definition.inner_map_idx);
                 map->pinned = false;
                 map->reused = false;

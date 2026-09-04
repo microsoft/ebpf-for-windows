@@ -3,13 +3,16 @@
 
 #define EBPF_FILE_ID EBPF_FILE_ID_EXECUTION_CONTEXT_UNIT_TESTS
 
+#include "bpf2c.h"
 #include "catch_wrapper.hpp"
 #include "ebpf_async.h"
 #include "ebpf_core.h"
 #include "ebpf_maps.h"
+#include "ebpf_native_structs.h"
 #include "ebpf_object.h"
 #include "ebpf_program.h"
 #include "ebpf_ring_buffer.h"
+#include "ebpf_shared_framework.h"
 #include "execution_context_unit_test_jit.h"
 #include "helpers.h"
 #include "test_helper.hpp"
@@ -3001,3 +3004,37 @@ TEST_CASE("INVALID_GENERAL_HELPER_PROGRAM_DATA", "[execution_context][negative]"
 // https://github.com/microsoft/ebpf-for-windows/issues/1139
 // EBPF_OPERATION_LOAD_NATIVE_MODULE
 // EBPF_OPERATION_LOAD_NATIVE_PROGRAMS
+
+TEST_CASE("native map entry header layouts", "[execution_context]")
+{
+    STATIC_REQUIRE(EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION == 1);
+    STATIC_REQUIRE(EBPF_OFFSET_OF(ebpf_native_map_entry_legacy_t, name) == EBPF_OFFSET_OF(map_entry_t, name));
+    STATIC_REQUIRE(EBPF_OFFSET_OF(map_entry_t, map_flags) > EBPF_OFFSET_OF(map_entry_t, name));
+
+    ebpf_native_map_entry_legacy_t legacy_entry = {
+        {0, 0},
+        {EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION,
+         EBPF_NATIVE_MAP_ENTRY_LEGACY_SIZE,
+         EBPF_NATIVE_MAP_ENTRY_LEGACY_TOTAL_SIZE},
+        {BPF_MAP_TYPE_HASH, 4, 8, 16, 0, LIBBPF_PIN_NONE, 1, 0},
+        "legacy_map"};
+    map_entry_t normalized_entry = {};
+    REQUIRE(ebpf_native_map_entry_to_current(&normalized_entry, &legacy_entry));
+    REQUIRE(normalized_entry.header.version == EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION);
+    REQUIRE(normalized_entry.definition.type == legacy_entry.definition.type);
+    REQUIRE(normalized_entry.name == legacy_entry.name);
+    REQUIRE(normalized_entry.map_flags == 0);
+
+    map_entry_t current_entry = {
+        {0, 0},
+        EBPF_NATIVE_MAP_ENTRY_HEADER,
+        {BPF_MAP_TYPE_HASH, 4, 8, 16, 0, LIBBPF_PIN_NONE, 1, 0},
+        "current_map",
+        BPF_F_NO_MAX_ENTRIES};
+    REQUIRE(ebpf_native_map_entry_to_current(&normalized_entry, &current_entry));
+    REQUIRE(normalized_entry.name == current_entry.name);
+    REQUIRE(normalized_entry.map_flags == BPF_F_NO_MAX_ENTRIES);
+
+    legacy_entry.header.size++;
+    REQUIRE_FALSE(ebpf_native_map_entry_to_current(&normalized_entry, &legacy_entry));
+}
