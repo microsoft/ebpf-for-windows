@@ -884,7 +884,7 @@ TEST_CASE("libbpf map_no_max_entries_flag", "[libbpf]")
 
     // Fill the map to max_entries.
     for (uint32_t key = 0; key < max_entries; key++) {
-        uint64_t value = key * key;
+        uint64_t value = static_cast<uint64_t>(key) * key;
         REQUIRE(bpf_map_update_elem(map_fd, &key, &value, 0) == 0);
     }
 
@@ -907,7 +907,7 @@ TEST_CASE("libbpf map_no_max_entries_flag", "[libbpf]")
 
     // Fill the map.
     for (uint32_t key = 0; key < max_entries; key++) {
-        uint64_t value = key * key;
+        uint64_t value = static_cast<uint64_t>(key) * key;
         REQUIRE(bpf_map_update_elem(bounded_fd, &key, &value, 0) == 0);
     }
 

@@ -406,7 +406,7 @@ ValidateCreateMapBody(
         {
             /* Validating field MapDefinition */
             BOOLEAN
-            hasEnoughBytes0 = (uint64_t)(uint32_t)32U <=
+            hasEnoughBytes0 = (uint64_t)(uint32_t)(uint8_t)28U <=
                               (InputLength - positionAfternone1);
             uint64_t positionAfterCreateMapBody0;
             if (!hasEnoughBytes0)
@@ -419,7 +419,7 @@ ValidateCreateMapBody(
             {
                 uint8_t *truncatedInput = Input;
                 uint64_t truncatedInputLength =
-                    positionAfternone1 + (uint64_t)(uint32_t)32U;
+                    positionAfternone1 + (uint64_t)(uint32_t)(uint8_t)28U;
                 uint64_t result = positionAfternone1;
                 while (TRUE)
                 {
@@ -497,9 +497,9 @@ ValidateCreateMapBody(
             }
             else
             {
-                /* Validating field InnerMapHandle */
+                /* Validating field Padding */
                 BOOLEAN
-                hasEnoughBytes0 = (uint64_t)(uint32_t)(uint8_t)8U <=
+                hasEnoughBytes0 = (uint64_t)(uint32_t)(uint8_t)4U <=
                                   (InputLength - positionAfterMapDefinition);
                 uint64_t positionAfterCreateMapBody0;
                 if (!hasEnoughBytes0)
@@ -513,7 +513,7 @@ ValidateCreateMapBody(
                     uint8_t *truncatedInput = Input;
                     uint64_t truncatedInputLength =
                         positionAfterMapDefinition +
-                        (uint64_t)(uint32_t)(uint8_t)8U;
+                        (uint64_t)(uint32_t)(uint8_t)4U;
                     uint64_t result = positionAfterMapDefinition;
                     while (TRUE)
                     {
@@ -552,7 +552,7 @@ ValidateCreateMapBody(
                             else
                             {
                                 Err("_CREATE_MAP_BODY",
-                                    "InnerMapHandle.element",
+                                    "Padding.element",
                                     EverParseErrorReasonOfResult(
                                         positionAfterCreateMapBody),
                                     Ctxt,
@@ -572,53 +572,47 @@ ValidateCreateMapBody(
                     uint64_t res = result;
                     positionAfterCreateMapBody0 = res;
                 }
-                uint64_t positionAfterInnerMapHandle;
+                uint64_t positionAfterPadding;
                 if (EverParseIsSuccess(positionAfterCreateMapBody0))
                 {
-                    positionAfterInnerMapHandle = positionAfterCreateMapBody0;
+                    positionAfterPadding = positionAfterCreateMapBody0;
                 }
                 else
                 {
                     Err("_CREATE_MAP_BODY",
-                        "InnerMapHandle",
+                        "Padding",
                         EverParseErrorReasonOfResult(
                             positionAfterCreateMapBody0),
                         Ctxt,
                         Input,
                         positionAfterMapDefinition);
-                    positionAfterInnerMapHandle = positionAfterCreateMapBody0;
+                    positionAfterPadding = positionAfterCreateMapBody0;
                 }
-                if (EverParseIsError(positionAfterInnerMapHandle))
+                if (EverParseIsError(positionAfterPadding))
                 {
-                    positionAfterCreateMapBody = positionAfterInnerMapHandle;
+                    positionAfterCreateMapBody = positionAfterPadding;
                 }
                 else
                 {
-                    /* Validating field Data */
+                    /* Validating field InnerMapHandle */
                     BOOLEAN
-                    hasEnoughBytes =
-                        (uint64_t)(uint32_t)(
-                            MessageLength -
-                            (uint16_t)EBPFPROTOCOL____CREATE_MAP_DATA_OFFSET) <=
-                        (InputLength - positionAfterInnerMapHandle);
+                    hasEnoughBytes0 = (uint64_t)(uint32_t)(uint8_t)8U <=
+                                      (InputLength - positionAfterPadding);
                     uint64_t positionAfterCreateMapBody0;
-                    if (!hasEnoughBytes)
+                    if (!hasEnoughBytes0)
                     {
                         positionAfterCreateMapBody0 =
                             EverParseSetValidatorErrorPos(
                                 EVERPARSE_VALIDATOR_ERROR_NOT_ENOUGH_DATA,
-                                positionAfterInnerMapHandle);
+                                positionAfterPadding);
                     }
                     else
                     {
                         uint8_t *truncatedInput = Input;
                         uint64_t truncatedInputLength =
-                            positionAfterInnerMapHandle +
-                            (uint64_t)(uint32_t)(
-                                MessageLength -
-                                (uint16_t)
-                                    EBPFPROTOCOL____CREATE_MAP_DATA_OFFSET);
-                        uint64_t result = positionAfterInnerMapHandle;
+                            positionAfterPadding +
+                            (uint64_t)(uint32_t)(uint8_t)8U;
+                        uint64_t result = positionAfterPadding;
                         while (TRUE)
                         {
                             uint64_t position = *&result;
@@ -657,7 +651,7 @@ ValidateCreateMapBody(
                                 else
                                 {
                                     Err("_CREATE_MAP_BODY",
-                                        "Data.element",
+                                        "InnerMapHandle.element",
                                         EverParseErrorReasonOfResult(
                                             positionAfterCreateMapBody),
                                         Ctxt,
@@ -677,22 +671,132 @@ ValidateCreateMapBody(
                         uint64_t res = result;
                         positionAfterCreateMapBody0 = res;
                     }
+                    uint64_t positionAfterInnerMapHandle;
                     if (EverParseIsSuccess(positionAfterCreateMapBody0))
                     {
-                        positionAfterCreateMapBody =
+                        positionAfterInnerMapHandle =
                             positionAfterCreateMapBody0;
                     }
                     else
                     {
                         Err("_CREATE_MAP_BODY",
-                            "Data",
+                            "InnerMapHandle",
                             EverParseErrorReasonOfResult(
                                 positionAfterCreateMapBody0),
                             Ctxt,
                             Input,
-                            positionAfterInnerMapHandle);
-                        positionAfterCreateMapBody =
+                            positionAfterPadding);
+                        positionAfterInnerMapHandle =
                             positionAfterCreateMapBody0;
+                    }
+                    if (EverParseIsError(positionAfterInnerMapHandle))
+                    {
+                        positionAfterCreateMapBody =
+                            positionAfterInnerMapHandle;
+                    }
+                    else
+                    {
+                        /* Validating field Data */
+                        BOOLEAN
+                        hasEnoughBytes =
+                            (uint64_t)(uint32_t)(
+                                MessageLength -
+                                (uint16_t)
+                                    EBPFPROTOCOL____CREATE_MAP_DATA_OFFSET) <=
+                            (InputLength - positionAfterInnerMapHandle);
+                        uint64_t positionAfterCreateMapBody0;
+                        if (!hasEnoughBytes)
+                        {
+                            positionAfterCreateMapBody0 =
+                                EverParseSetValidatorErrorPos(
+                                    EVERPARSE_VALIDATOR_ERROR_NOT_ENOUGH_DATA,
+                                    positionAfterInnerMapHandle);
+                        }
+                        else
+                        {
+                            uint8_t *truncatedInput = Input;
+                            uint64_t truncatedInputLength =
+                                positionAfterInnerMapHandle +
+                                (uint64_t)(uint32_t)(
+                                    MessageLength -
+                                    (uint16_t)
+                                        EBPFPROTOCOL____CREATE_MAP_DATA_OFFSET);
+                            uint64_t result = positionAfterInnerMapHandle;
+                            while (TRUE)
+                            {
+                                uint64_t position = *&result;
+                                BOOLEAN ite;
+                                if (!((uint64_t)1U <=
+                                      (truncatedInputLength - position)))
+                                {
+                                    ite = TRUE;
+                                }
+                                else
+                                {
+                                    /* Checking that we have enough space for a
+                                     * UINT8, i.e., 1 byte */
+                                    BOOLEAN hasBytes =
+                                        (uint64_t)1U <=
+                                        (truncatedInputLength - position);
+                                    uint64_t positionAfterCreateMapBody;
+                                    if (hasBytes)
+                                    {
+                                        positionAfterCreateMapBody =
+                                            position + (uint64_t)1U;
+                                    }
+                                    else
+                                    {
+                                        positionAfterCreateMapBody =
+                                            EverParseSetValidatorErrorPos(
+                                                EVERPARSE_VALIDATOR_ERROR_NOT_ENOUGH_DATA,
+                                                position);
+                                    }
+                                    uint64_t res;
+                                    if (EverParseIsSuccess(
+                                            positionAfterCreateMapBody))
+                                    {
+                                        res = positionAfterCreateMapBody;
+                                    }
+                                    else
+                                    {
+                                        Err("_CREATE_MAP_BODY",
+                                            "Data.element",
+                                            EverParseErrorReasonOfResult(
+                                                positionAfterCreateMapBody),
+                                            Ctxt,
+                                            truncatedInput,
+                                            position);
+                                        res = positionAfterCreateMapBody;
+                                    }
+                                    uint64_t result1 = res;
+                                    result = result1;
+                                    ite = EverParseIsError(result1);
+                                }
+                                if (ite)
+                                {
+                                    break;
+                                }
+                            }
+                            uint64_t res = result;
+                            positionAfterCreateMapBody0 = res;
+                        }
+                        if (EverParseIsSuccess(positionAfterCreateMapBody0))
+                        {
+                            positionAfterCreateMapBody =
+                                positionAfterCreateMapBody0;
+                        }
+                        else
+                        {
+                            Err("_CREATE_MAP_BODY",
+                                "Data",
+                                EverParseErrorReasonOfResult(
+                                    positionAfterCreateMapBody0),
+                                Ctxt,
+                                Input,
+                                positionAfterInnerMapHandle);
+                            positionAfterCreateMapBody =
+                                positionAfterCreateMapBody0;
+                        }
                     }
                 }
             }
