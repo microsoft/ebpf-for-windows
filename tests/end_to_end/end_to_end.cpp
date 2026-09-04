@@ -3500,8 +3500,9 @@ TEST_CASE("multiple_map_insert", "[close_cleanup]")
 }
 
 void
-test_no_limit_map_entries(ebpf_map_type_t type, bool max_entries_limited)
+test_map_entries_limit(ebpf_map_type_t type, bool no_max_entries)
 {
+    CAPTURE(type, no_max_entries);
     uint32_t max_entries = 2;
     fd_t inner_map_fd = ebpf_fd_invalid;
     fd_t map_fd = ebpf_fd_invalid;
@@ -3522,23 +3523,30 @@ test_no_limit_map_entries(ebpf_map_type_t type, bool max_entries_limited)
     } lpm_trie_key_t;
 
     lpm_trie_key_t trie_key = {0};
+    bpf_map_create_opts opts = {sizeof(opts)};
+    opts.map_flags = no_max_entries ? BPF_F_NO_MAX_ENTRIES : 0;
 
     if (IS_NESTED_MAP(type)) {
         // First create and pin the maps manually.
         inner_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(int32_t), sizeof(int32_t), 1, nullptr);
         REQUIRE(inner_map_fd > 0);
 
-        bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd};
+        opts.inner_map_fd = (uint32_t)inner_map_fd;
         key_size = sizeof(int32_t);
         value_size = sizeof(fd_t);
-        map_fd = bpf_map_create(BPF_MAP_TYPE_HASH_OF_MAPS, nullptr, key_size, value_size, 1, &opts);
+        map_fd = bpf_map_create(BPF_MAP_TYPE_HASH_OF_MAPS, nullptr, key_size, value_size, max_entries, &opts);
         REQUIRE(map_fd > 0);
     } else {
         key_size = IS_LPM_MAP(type) ? sizeof(lpm_trie_key_t) : sizeof(int32_t);
         value_size = sizeof(int32_t);
-        map_fd = bpf_map_create(type, nullptr, key_size, value_size, max_entries, nullptr);
+        map_fd = bpf_map_create(type, nullptr, key_size, value_size, max_entries, &opts);
         REQUIRE(map_fd > 0);
     }
+
+    bpf_map_info map_info{};
+    uint32_t map_info_size = sizeof(map_info);
+    REQUIRE(bpf_obj_get_info_by_fd(map_fd, &map_info, &map_info_size) == 0);
+    REQUIRE(map_info.map_flags == opts.map_flags);
 
     // Update value_size for percpu maps for read / update operations.
     if (IS_PERCPU_MAP(type)) {
@@ -3575,12 +3583,16 @@ test_no_limit_map_entries(ebpf_map_type_t type, bool max_entries_limited)
     }
 
     // In case of LRU_HASH, the insert will succeed, but the oldest entry will be removed.
-    int expected_error = (!max_entries_limited || IS_LRU_MAP(type)) ? 0 : -ENOSPC;
+    int expected_error = (no_max_entries || IS_LRU_MAP(type)) ? 0 : -ENOSPC;
     key = compute_key(&max_entries);
-    REQUIRE(bpf_map_update_elem(map_fd, key, value, 0) == (max_entries_limited ? expected_error : 0));
+    REQUIRE(bpf_map_update_elem(map_fd, key, value, 0) == expected_error);
+
+    std::vector<uint8_t> lookup_value(value_size);
+    int lookup_result = bpf_map_lookup_elem(map_fd, key, lookup_value.data());
+    REQUIRE((lookup_result == 0) == (expected_error == 0));
 
     // In case of LRU_HASH, check that the number of entries is still `max_entries`.
-    if (IS_LRU_MAP(type) && max_entries_limited) {
+    if (IS_LRU_MAP(type)) {
         uint32_t entries_count = 0;
         lpm_trie_key_t local_key = {0};
         void* old_key = nullptr;
@@ -3600,21 +3612,13 @@ TEST_CASE("test_map_entries_limit", "[end_to_end]")
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
 
-    // The below hash table based map types do not have a limit on the number of entries.
-    // 1. BPF_MAP_TYPE_HASH
-    // 2. BPF_MAP_TYPE_PERCPU_HASH
-    // 3. BPF_MAP_TYPE_HASH_OF_MAPS
-    // 4. BPF_MAP_TYPE_LPM_TRIE
-    test_no_limit_map_entries(BPF_MAP_TYPE_HASH, false);
-    test_no_limit_map_entries(BPF_MAP_TYPE_PERCPU_HASH, false);
-    test_no_limit_map_entries(BPF_MAP_TYPE_HASH_OF_MAPS, false);
-    test_no_limit_map_entries(BPF_MAP_TYPE_LPM_TRIE, false);
+    for (auto type : {BPF_MAP_TYPE_HASH, BPF_MAP_TYPE_PERCPU_HASH, BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_LPM_TRIE}) {
+        test_map_entries_limit(type, false);
+        test_map_entries_limit(type, true);
+    }
 
-    // The below hash table based map types have a limit on the number of entries.
-    // 1. BPF_MAP_TYPE_LRU_HASH
-    // 2. BPF_MAP_TYPE_LRU_PERCPU_HASH
-    test_no_limit_map_entries(BPF_MAP_TYPE_LRU_HASH, true);
-    test_no_limit_map_entries(BPF_MAP_TYPE_LRU_PERCPU_HASH, true);
+    test_map_entries_limit(BPF_MAP_TYPE_LRU_HASH, false);
+    test_map_entries_limit(BPF_MAP_TYPE_LRU_PERCPU_HASH, false);
 }
 
 static void

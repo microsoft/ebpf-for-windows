@@ -49,8 +49,8 @@ static map_entry_t _maps[] = {
      {0, 0},
      {
          1,                 // Current Version.
-         80,                // Struct size up to the last field.
-         80,                // Total struct size including padding.
+         84,                // Struct size up to the last field.
+         88,                // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_HASH, // Type of map.
@@ -62,13 +62,15 @@ static map_entry_t _maps[] = {
          0,                 // Identifier for a map template.
          0,                 // The id of the inner map template.
      },
-     "HASH_map"},
+     "HASH_map",        // Map name.
+     0,                 // Map creation flags.
+    },
     {
      {0, 0},
      {
          1,                        // Current Version.
-         80,                       // Struct size up to the last field.
-         80,                       // Total struct size including padding.
+         84,                       // Struct size up to the last field.
+         88,                       // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_PERCPU_HASH, // Type of map.
@@ -80,13 +82,15 @@ static map_entry_t _maps[] = {
          0,                        // Identifier for a map template.
          0,                        // The id of the inner map template.
      },
-     "PERCPU_HASH_map"},
+     "PERCPU_HASH_map",        // Map name.
+     0,                        // Map creation flags.
+    },
     {
      {0, 0},
      {
          1,                  // Current Version.
-         80,                 // Struct size up to the last field.
-         80,                 // Total struct size including padding.
+         84,                 // Struct size up to the last field.
+         88,                 // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
@@ -98,13 +102,15 @@ static map_entry_t _maps[] = {
          0,                  // Identifier for a map template.
          0,                  // The id of the inner map template.
      },
-     "ARRAY_map"},
+     "ARRAY_map",        // Map name.
+     0,                  // Map creation flags.
+    },
     {
      {0, 0},
      {
          1,                         // Current Version.
-         80,                        // Struct size up to the last field.
-         80,                        // Total struct size including padding.
+         84,                        // Struct size up to the last field.
+         88,                        // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_PERCPU_ARRAY, // Type of map.
@@ -116,13 +122,15 @@ static map_entry_t _maps[] = {
          0,                         // Identifier for a map template.
          0,                         // The id of the inner map template.
      },
-     "PERCPU_ARRAY_map"},
+     "PERCPU_ARRAY_map",        // Map name.
+     0,                         // Map creation flags.
+    },
     {
      {0, 0},
      {
          1,                     // Current Version.
-         80,                    // Struct size up to the last field.
-         80,                    // Total struct size including padding.
+         84,                    // Struct size up to the last field.
+         88,                    // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_LRU_HASH, // Type of map.
@@ -134,13 +142,15 @@ static map_entry_t _maps[] = {
          0,                     // Identifier for a map template.
          0,                     // The id of the inner map template.
      },
-     "LRU_HASH_map"},
+     "LRU_HASH_map",        // Map name.
+     0,                     // Map creation flags.
+    },
     {
      {0, 0},
      {
          1,                            // Current Version.
-         80,                           // Struct size up to the last field.
-         80,                           // Total struct size including padding.
+         84,                           // Struct size up to the last field.
+         88,                           // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_LRU_PERCPU_HASH, // Type of map.
@@ -152,13 +162,15 @@ static map_entry_t _maps[] = {
          0,                            // Identifier for a map template.
          0,                            // The id of the inner map template.
      },
-     "LRU_PERCPU_HASH_map"},
+     "LRU_PERCPU_HASH_map",        // Map name.
+     0,                            // Map creation flags.
+    },
     {
      {0, 0},
      {
          1,                  // Current Version.
-         80,                 // Struct size up to the last field.
-         80,                 // Total struct size including padding.
+         84,                 // Struct size up to the last field.
+         88,                 // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_QUEUE, // Type of map.
@@ -170,13 +182,15 @@ static map_entry_t _maps[] = {
          0,                  // Identifier for a map template.
          0,                  // The id of the inner map template.
      },
-     "QUEUE_map"},
+     "QUEUE_map",        // Map name.
+     0,                  // Map creation flags.
+    },
     {
      {0, 0},
      {
          1,                  // Current Version.
-         80,                 // Struct size up to the last field.
-         80,                 // Total struct size including padding.
+         84,                 // Struct size up to the last field.
+         88,                 // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_STACK, // Type of map.
@@ -188,7 +202,9 @@ static map_entry_t _maps[] = {
          0,                  // Identifier for a map template.
          0,                  // The id of the inner map template.
      },
-     "STACK_map"},
+     "STACK_map",        // Map name.
+     0,                  // Map creation flags.
+    },
 };
 #pragma data_seg(pop)
 

@@ -10,6 +10,7 @@
 #include "bpf2c.h"
 #include "device_helper.hpp"
 #include "ebpf_api.h"
+#include "ebpf_native_structs.h"
 #include "ebpf_protocol.h"
 #include "ebpf_ring_buffer_record.h"
 #include "ebpf_serialize.h"
@@ -377,7 +378,8 @@ ebpf_map_create(
 
     ebpf_assert(map_fd);
 
-    if (opts && (opts->map_flags != 0 || opts->numa_node != 0 || opts->map_ifindex != 0)) {
+    if (opts &&
+        ((opts->map_flags & ~(uint32_t)BPF_F_NO_MAX_ENTRIES) != 0 || opts->numa_node != 0 || opts->map_ifindex != 0)) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -388,6 +390,7 @@ ebpf_map_create(
         map_definition.key_size = key_size;
         map_definition.value_size = value_size;
         map_definition.max_entries = max_entries;
+        map_definition.map_flags = opts ? opts->map_flags : 0;
 
         // bpf_map_create_opts has inner_map_fd defined as __u32, so it cannot be set to
         // ebpf_fd_invalid (-1). Hence treat inner_map_fd = 0 as ebpf_fd_invalid.
@@ -2531,6 +2534,7 @@ initialize_map(_Out_ ebpf_map_t* map, _In_ const map_cache_t& map_cache) noexcep
     map->map_definition.value_size = map_cache.verifier_map_descriptor.value_size;
     map->map_definition.max_entries = map_cache.verifier_map_descriptor.max_entries;
     map->map_definition.pinning = map_cache.pinning;
+    map->map_definition.map_flags = map_cache.map_flags;
     map->map_id = map_cache.id;
     map->map_definition.inner_map_id = map_cache.inner_id;
     map->inner_map_original_fd = map_cache.verifier_map_descriptor.inner_map_fd;
@@ -2571,6 +2575,7 @@ _initialize_ebpf_maps_native(
         ebpf_assert(map->map_definition.key_size == info.key_size);
         ebpf_assert(map->map_definition.value_size == info.value_size);
         ebpf_assert(map->map_definition.max_entries == info.max_entries);
+        ebpf_assert(map->map_definition.map_flags == info.map_flags);
 
         map->map_definition.inner_map_id = info.inner_map_id;
         map->map_fd = _create_file_descriptor_for_handle(map_handles[i]);
@@ -3056,15 +3061,26 @@ _ebpf_pe_get_map_definitions(
             map_offset += 8;
         }
         if (pe_context->object != nullptr) {
-            for (int map_index = 0; map_offset + sizeof(map_entry_t) <= section_header.Misc.VirtualSize;
-                 map_offset += sizeof(map_entry_t), map_index++) {
-                map_entry_t* entry = (map_entry_t*)(buffer->buf + map_offset);
-                if (entry->zero_marker[0] != 0 || entry->zero_marker[1] != 0) {
+            for (int map_index = 0;
+                 map_offset + EBPF_OFFSET_OF(map_entry_t, header) + sizeof(ebpf_native_module_header_t) <=
+                 section_header.Misc.VirtualSize;
+                 map_index++) {
+                const map_entry_t* source_entry = (const map_entry_t*)(buffer->buf + map_offset);
+                if (source_entry->zero_marker[0] != 0 || source_entry->zero_marker[1] != 0) {
                     // bpf2c generates a section that has map names longer than sizeof(map_entry_t)
                     // at the end of the section. This entry seems to be a map name string, so we've
                     // reached the end of the maps.
                     break;
                 }
+
+                map_entry_t normalized_entry = {};
+                if (source_entry->header.total_size > section_header.Misc.VirtualSize - map_offset ||
+                    !ebpf_native_map_entry_to_current(&normalized_entry, source_entry)) {
+                    pe_context->result = EBPF_INVALID_OBJECT;
+                    goto Error;
+                }
+                map_offset += (uint32_t)source_entry->header.total_size;
+                const map_entry_t* entry = &normalized_entry;
 
                 map = (ebpf_map_t*)ebpf_allocate_with_tag(sizeof(ebpf_map_t), EBPF_POOL_TAG_DEFAULT);
                 if (map == nullptr) {
@@ -3079,6 +3095,7 @@ _ebpf_pe_get_map_definitions(
                 map->map_definition.max_entries = entry->definition.max_entries;
                 map->map_definition.pinning = entry->definition.pinning;
                 map->map_definition.inner_map_id = entry->definition.inner_id;
+                map->map_definition.map_flags = entry->map_flags;
                 map->inner_map_original_fd = map_idx_to_original_fd(entry->definition.inner_map_idx);
                 map->pinned = false;
                 map->reused = false;
@@ -3586,7 +3603,8 @@ _ebpf_validate_map(_In_ const ebpf_map_t* map, fd_t original_map_fd) NO_EXCEPT_T
     }
 
     if (info.type != map->map_definition.type || info.key_size != map->map_definition.key_size ||
-        info.value_size != map->map_definition.value_size || info.max_entries != map->map_definition.max_entries) {
+        info.value_size != map->map_definition.value_size || info.max_entries != map->map_definition.max_entries ||
+        info.map_flags != map->map_definition.map_flags) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }

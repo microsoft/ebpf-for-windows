@@ -106,6 +106,9 @@ static const char* const _ebpf_pin_type_names[] = {
 typedef uint32_t ebpf_id_t;
 #define EBPF_ID_NONE 0
 
+/// Do not enforce max_entries limit on hash maps.
+#define BPF_F_NO_MAX_ENTRIES (1U << 13)
+
 /**
  * @brief eBPF Map Definition as it is stored in memory.
  */
@@ -117,6 +120,7 @@ typedef struct _ebpf_map_definition_in_memory
     uint32_t max_entries; ///< Maximum number of entries allowed in the map.
     ebpf_id_t inner_map_id;
     ebpf_pin_type_t pinning;
+    uint32_t map_flags; ///< Map flags (e.g., BPF_F_NO_MAX_ENTRIES).
 } ebpf_map_definition_in_memory_t;
 
 /**
@@ -142,6 +146,7 @@ typedef struct _ebpf_map_definition_in_file
     /** For a map of map, inner_id is the id of the inner map template.
      */
     uint32_t inner_id;
+    uint32_t map_flags; ///< Map creation flags.
 } ebpf_map_definition_in_file_t;
 
 typedef enum

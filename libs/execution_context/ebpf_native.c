@@ -9,6 +9,7 @@
 #include "ebpf_hash_table.h"
 #include "ebpf_maps.h"
 #include "ebpf_native.h"
+#include "ebpf_native_structs.h"
 #include "ebpf_object.h"
 #include "ebpf_program.h"
 #include "ebpf_protocol.h"
@@ -371,9 +372,10 @@ _ebpf_validate_native_program_entry_array(
 static bool
 _ebpf_validate_native_map_entry(_In_ const map_entry_t* native_map_entry)
 {
+    map_entry_t normalized_map_entry = {0};
+
     return (
-        (native_map_entry != NULL) && ebpf_validate_object_header_native_map_entry(&native_map_entry->header) &&
-        (native_map_entry->name != NULL));
+        ebpf_native_map_entry_to_current(&normalized_map_entry, native_map_entry) && normalized_map_entry.name != NULL);
 }
 
 static bool
@@ -1255,8 +1257,11 @@ _ebpf_native_initialize_maps(
 
     for (uint32_t i = 0; i < map_count; i++) {
         // Copy the map_entry_t from native module to ebpf_native_map_t.
-        map_entry_t* map_entry = (map_entry_t*)ARRAY_ELEMENT_INDEX(maps, i, map_entry_size);
-        memcpy(&native_maps[i].entry, map_entry, map_entry_size);
+        const void* map_entry = ARRAY_ELEMENT_INDEX(maps, i, map_entry_size);
+        if (!ebpf_native_map_entry_to_current(&native_maps[i].entry, map_entry)) {
+            result = EBPF_INVALID_ARGUMENT;
+            goto Done;
+        }
         map_entry_t* entry = &native_maps[i].entry;
 
         if (entry->definition.pinning != LIBBPF_PIN_NONE && entry->definition.pinning != LIBBPF_PIN_BY_NAME) {
@@ -1299,14 +1304,14 @@ _ebpf_native_initialize_maps(
 
     // Populate inner map fd.
     for (uint32_t i = 0; i < map_count; i++) {
-        ebpf_map_definition_in_file_t* definition = &(native_maps[i].entry.definition);
+        ebpf_native_map_definition_t* definition = &(native_maps[i].entry.definition);
         int32_t inner_map_original_id = -1;
         if (_ebpf_native_is_map_in_map(&native_maps[i])) {
             if (definition->inner_map_idx != 0) {
                 inner_map_original_id = definition->inner_map_idx + ORIGINAL_ID_OFFSET;
             } else if (definition->inner_id != 0) {
                 for (uint32_t j = 0; j < map_count; j++) {
-                    ebpf_map_definition_in_file_t* inner_definition = &(native_maps[j].entry.definition);
+                    ebpf_native_map_definition_t* inner_definition = &(native_maps[j].entry.definition);
                     if (inner_definition->id == definition->inner_id && i != j) {
                         inner_map_original_id = j + ORIGINAL_ID_OFFSET;
                         break;
@@ -1654,6 +1659,7 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_instance_t* instance)
         map_definition.key_size = native_map->entry.definition.key_size;
         map_definition.value_size = native_map->entry.definition.value_size;
         map_definition.max_entries = native_map->entry.definition.max_entries;
+        map_definition.map_flags = native_map->entry.map_flags;
 
         result = ebpf_core_create_map(&map_name, &map_definition, inner_map_handle, &native_map->handle);
         if (result != EBPF_SUCCESS) {

@@ -310,6 +310,7 @@ _query_and_cache_map_descriptors(
                 descriptor.key_size,
                 descriptor.value_size,
                 descriptor.max_entries,
+                0,
                 handle_map[i].inner_map_original_fd,
                 handle_map[i].inner_id,
                 reinterpret_cast<ebpf_handle_t>(handle_map[i].handle),
@@ -660,11 +661,8 @@ _ebpf_is_proof_of_verification_required()
 {
     uint32_t proof_of_verification_value = 0;
     ebpf_store_key_t parameters_key = nullptr;
-    ebpf_result_t reg_result = ebpf_open_registry_key(
-        ebpf_store_hklm_root_key,
-        EBPF_PARAMETERS_REGISTRY_PATH,
-        KEY_READ,
-        &parameters_key);
+    ebpf_result_t reg_result =
+        ebpf_open_registry_key(ebpf_store_hklm_root_key, EBPF_PARAMETERS_REGISTRY_PATH, KEY_READ, &parameters_key);
     if (reg_result == EBPF_FILE_NOT_FOUND) {
         // Key not present — feature not opted into, verification not required.
         return false;
@@ -674,9 +672,7 @@ _ebpf_is_proof_of_verification_required()
         return true;
     }
     reg_result = ebpf_read_registry_value_dword(
-        parameters_key,
-        EBPF_PROOF_OF_VERIFICATION_REGISTRY_VALUE,
-        &proof_of_verification_value);
+        parameters_key, EBPF_PROOF_OF_VERIFICATION_REGISTRY_VALUE, &proof_of_verification_value);
     ebpf_close_registry_key(parameters_key);
     if (reg_result == EBPF_FILE_NOT_FOUND) {
         // Value not present — feature not opted into, verification not required.

@@ -782,6 +782,147 @@ _test_libbpf_map(ebpf_execution_type_t execution_type)
 
 DECLARE_ALL_TEST_CASES("libbpf map", "[libbpf]", _test_libbpf_map);
 
+static void
+_test_map_max_entries_program(ebpf_execution_type_t execution_type, bool no_max_entries)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* object_name = no_max_entries ? "map_no_max_entries" : "map_max_entries";
+    std::string file_name = std::string(object_name) + (execution_type == EBPF_EXECUTION_NATIVE ? "_um.dll" : ".o");
+    bpf_object_ptr object(bpf_object__open(file_name.c_str()));
+    REQUIRE(object != nullptr);
+    REQUIRE(ebpf_object_set_execution_type(object.get(), execution_type) == EBPF_SUCCESS);
+    REQUIRE(bpf_object__load(object.get()) == 0);
+
+    const char* program_name = no_max_entries ? "map_no_max_entries" : "map_max_entries";
+    const char* map_name = no_max_entries ? "no_max_entries_map" : "max_entries_map";
+    bpf_program* program = bpf_object__find_program_by_name(object.get(), program_name);
+    REQUIRE(program != nullptr);
+    bpf_map* map = bpf_object__find_map_by_name(object.get(), map_name);
+    REQUIRE(map != nullptr);
+    REQUIRE(bpf_map__max_entries(map) == 2);
+
+    int map_fd = bpf_map__fd(map);
+    REQUIRE(map_fd >= 0);
+    bpf_map_info map_info{};
+    uint32_t map_info_size = sizeof(map_info);
+    REQUIRE(bpf_obj_get_info_by_fd(map_fd, &map_info, &map_info_size) == 0);
+    REQUIRE(map_info.map_flags == (no_max_entries ? BPF_F_NO_MAX_ENTRIES : 0));
+
+    // Fill the map from user mode.
+    for (uint32_t key = 0; key < bpf_map__max_entries(map); key++) {
+        uint64_t value = (uint64_t)key * key;
+        REQUIRE(bpf_map_update_elem(map_fd, &key, &value, BPF_ANY) == 0);
+    }
+
+    // A new key beyond max_entries succeeds only for the opted-in map.
+    uint32_t user_key = bpf_map__max_entries(map);
+    uint64_t user_value = (uint64_t)user_key * user_key;
+    int update_result = bpf_map_update_elem(map_fd, &user_key, &user_value, BPF_ANY);
+    REQUIRE((update_result == 0) == no_max_entries);
+    uint64_t found_value = 0;
+    int lookup_result = bpf_map_lookup_elem(map_fd, &user_key, &found_value);
+    REQUIRE((lookup_result == 0) == no_max_entries);
+    if (no_max_entries) {
+        REQUIRE(found_value == user_value);
+    }
+
+    bpf_link_ptr link(bpf_program__attach(program));
+    REQUIRE(link != nullptr);
+
+    // The BPF program attempts to insert another distinct key beyond max_entries.
+    INITIALIZE_SAMPLE_CONTEXT
+    uint32_t program_key = bpf_map__max_entries(map) + 1;
+    ctx->data_start = reinterpret_cast<uint8_t*>(&program_key);
+    ctx->data_end = ctx->data_start + sizeof(program_key);
+    uint32_t program_result = 0;
+    REQUIRE(hook.fire(ctx, &program_result) == EBPF_SUCCESS);
+    REQUIRE((program_result == 0) == no_max_entries);
+
+    found_value = 0;
+    lookup_result = bpf_map_lookup_elem(map_fd, &program_key, &found_value);
+    REQUIRE((lookup_result == 0) == no_max_entries);
+    if (no_max_entries) {
+        REQUIRE(found_value == (uint64_t)program_key * program_key);
+    }
+}
+
+static void
+_test_map_no_max_entries_program(ebpf_execution_type_t execution_type)
+{
+    _test_map_max_entries_program(execution_type, true);
+}
+
+static void
+_test_map_bounded_entries_program(ebpf_execution_type_t execution_type)
+{
+    _test_map_max_entries_program(execution_type, false);
+}
+
+DECLARE_JIT_TEST_CASES(
+    "libbpf map no max entries program", "[libbpf][map_no_max_entries]", _test_map_no_max_entries_program);
+DECLARE_JIT_TEST_CASES(
+    "libbpf map bounded entries program", "[libbpf][map_no_max_entries]", _test_map_bounded_entries_program);
+
+TEST_CASE("libbpf map_no_max_entries_flag", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    // Create hash map with BPF_F_NO_MAX_ENTRIES - should allow inserts beyond max_entries.
+    uint32_t max_entries = 4;
+    bpf_map_create_opts opts = {sizeof(opts)};
+    opts.map_flags = BPF_F_NO_MAX_ENTRIES;
+    int map_fd = bpf_map_create(BPF_MAP_TYPE_HASH, "unbounded", sizeof(uint32_t), sizeof(uint64_t), max_entries, &opts);
+    REQUIRE(map_fd >= 0);
+
+    // Fill the map to max_entries.
+    for (uint32_t key = 0; key < max_entries; key++) {
+        uint64_t value = static_cast<uint64_t>(key) * key;
+        REQUIRE(bpf_map_update_elem(map_fd, &key, &value, 0) == 0);
+    }
+
+    // Insert beyond max_entries should succeed.
+    uint32_t extra_key = max_entries;
+    uint64_t extra_value = 0xdeadbeef;
+    REQUIRE(bpf_map_update_elem(map_fd, &extra_key, &extra_value, 0) == 0);
+
+    // Verify the extra entry.
+    uint64_t lookup_value = 0;
+    REQUIRE(bpf_map_lookup_elem(map_fd, &extra_key, &lookup_value) == 0);
+    REQUIRE(lookup_value == 0xdeadbeef);
+
+    Platform::_close(map_fd);
+
+    // Create hash map WITHOUT the flag - should enforce max_entries.
+    int bounded_fd =
+        bpf_map_create(BPF_MAP_TYPE_HASH, "bounded", sizeof(uint32_t), sizeof(uint64_t), max_entries, NULL);
+    REQUIRE(bounded_fd >= 0);
+
+    // Fill the map.
+    for (uint32_t key = 0; key < max_entries; key++) {
+        uint64_t value = static_cast<uint64_t>(key) * key;
+        REQUIRE(bpf_map_update_elem(bounded_fd, &key, &value, 0) == 0);
+    }
+
+    // Insert beyond max_entries should fail.
+    extra_key = max_entries;
+    REQUIRE(bpf_map_update_elem(bounded_fd, &extra_key, &extra_value, 0) < 0);
+
+    Platform::_close(bounded_fd);
+
+    // BPF_F_NO_MAX_ENTRIES on array maps should fail.
+    opts.map_flags = BPF_F_NO_MAX_ENTRIES;
+    int array_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "bad_array", sizeof(uint32_t), sizeof(uint64_t), 10, &opts);
+    REQUIRE(array_fd < 0);
+}
+
 TEST_CASE("libbpf create queue", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
