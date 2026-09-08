@@ -865,8 +865,7 @@ sock_addr_thread_function(
     _In_ fwp_classify_parameters_t* parameters,
     sock_addr_test_type_t type,
     uint16_t start_port,
-    uint16_t end_port,
-    std::atomic<size_t>* failure_count)
+    uint16_t end_port)
 {
     FWP_ACTION_TYPE result;
     uint16_t port_number;
@@ -917,7 +916,7 @@ sock_addr_thread_function(
                 continue;
             }
 
-            (*failure_count)++;
+            CHECK(result == expected_result);
             break;
         }
     }
@@ -933,7 +932,6 @@ TEST_CASE("sock_addr_invoke_concurrent1", "[netebpfext_concurrent]")
     test_sock_addr_client_context_header_t client_context_header = {0};
     test_sock_addr_client_context_t* client_context = &client_context_header.context;
     fwp_classify_parameters_t parameters = {};
-    std::atomic<size_t> failure_count = 0;
 
     // Declare helper before threads to ensure threads are joined before helper is destroyed.
     // This prevents use-after-free when fault injection causes early test exit.
@@ -958,8 +956,7 @@ TEST_CASE("sock_addr_invoke_concurrent1", "[netebpfext_concurrent]")
             &parameters,
             SOCK_ADDR_TEST_TYPE_CONNECT,
             parameters.destination_port,
-            parameters.destination_port,
-            &failure_count);
+            parameters.destination_port);
     }
 
     // Wait for 10 seconds.
@@ -974,8 +971,6 @@ TEST_CASE("sock_addr_invoke_concurrent1", "[netebpfext_concurrent]")
     for (auto& thread : threads) {
         thread.join();
     }
-
-    REQUIRE(failure_count == 0);
 }
 
 // Invoke SOCK_ADDR_CONNECT concurrently with different classify parameters.
@@ -989,7 +984,6 @@ TEST_CASE("sock_addr_invoke_concurrent2", "[netebpfext_concurrent]")
         BPF_CGROUP_INET4_CONNECT, BPF_CGROUP_INET6_CONNECT, BPF_CGROUP_INET4_RECV_ACCEPT, BPF_CGROUP_INET6_RECV_ACCEPT};
     test_sock_addr_client_context_t* client_context = &client_context_header.context;
     std::vector<fwp_classify_parameters_t> parameters;
-    std::atomic<size_t> failure_count = 0;
 
     // Declare helper before threads to ensure threads are joined before helper is destroyed.
     // This prevents use-after-free when fault injection causes early test exit.
@@ -1014,8 +1008,7 @@ TEST_CASE("sock_addr_invoke_concurrent2", "[netebpfext_concurrent]")
             &parameters[i],
             SOCK_ADDR_TEST_TYPE_CONNECT,
             (uint16_t)(i * 1000),
-            (uint16_t)(i * 1000 + 1000),
-            &failure_count);
+            (uint16_t)(i * 1000 + 1000));
     }
 
     // Wait for 10 seconds.
@@ -1030,8 +1023,6 @@ TEST_CASE("sock_addr_invoke_concurrent2", "[netebpfext_concurrent]")
     for (auto& thread : threads) {
         thread.join();
     }
-
-    REQUIRE(failure_count == 0);
 }
 
 // Invoke SOCK_ADDR_RECV_ACCEPT concurrently with different classify parameters.
@@ -1043,7 +1034,6 @@ TEST_CASE("sock_addr_invoke_concurrent3", "[netebpfext_concurrent]")
     test_sock_addr_client_context_header_t client_context_header = {0};
     test_sock_addr_client_context_t* client_context = &client_context_header.context;
     std::vector<fwp_classify_parameters_t> parameters;
-    std::atomic<size_t> failure_count = 0;
 
     // Declare helper before threads to ensure threads are joined before helper is destroyed.
     // This prevents use-after-free when fault injection causes early test exit.
@@ -1068,8 +1058,7 @@ TEST_CASE("sock_addr_invoke_concurrent3", "[netebpfext_concurrent]")
             &parameters[i],
             SOCK_ADDR_TEST_TYPE_RECV_ACCEPT,
             (uint16_t)(i * 1000),
-            (uint16_t)(i * 1000 + 1000),
-            &failure_count);
+            (uint16_t)(i * 1000 + 1000));
     }
 
     // Wait for 10 seconds.
@@ -1084,8 +1073,6 @@ TEST_CASE("sock_addr_invoke_concurrent3", "[netebpfext_concurrent]")
     for (auto& thread : threads) {
         thread.join();
     }
-
-    REQUIRE(failure_count == 0);
 }
 
 TEST_CASE("sock_addr_context", "[netebpfext]")
