@@ -266,7 +266,7 @@ net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet6_listen_filter_parameter
 ### Security and Access Control
 
 - **Port Access Control**: Restrict which processes can listen on privileged ports (< 1024)
-- **Process Whitelisting**: Only allow authorized applications to open network listeners
+- **Process Allow-list**: Only allow authorized applications to open network listeners
 - **User-based Restrictions**: Prevent certain users from opening network services
 
 ### Monitoring and Auditing
