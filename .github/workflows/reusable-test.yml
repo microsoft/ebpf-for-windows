@@ -64,7 +64,7 @@ permissions:
   checks: read  # Required by fountainhead/action-wait-for-check to wait for another GitHub check to complete.
   contents: read  # Required by actions/checkout to fetch code.
   issues: write  # Required to create issues.
-  projects: write  # Required to set Type=Bug on project items.
+  repository-projects: write  # Required to set Type=Bug on project items.
 
 jobs:
   run_test:

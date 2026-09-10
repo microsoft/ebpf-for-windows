@@ -29,7 +29,7 @@ on:
 permissions:
   contents: read
   issues: write  # Required to create issues.
-  projects: write  # Required to set Type=Bug on project items.
+  repository-projects: write  # Required to set Type=Bug on project items.
 
 jobs:
   netperf:

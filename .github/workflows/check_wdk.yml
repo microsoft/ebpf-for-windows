@@ -16,7 +16,7 @@ on:
 permissions:
   contents: read  # Required by actions/checkout to fetch code.
   issues: write  # Required to create issues.
-  projects: write  # Required to set Type=Task on project items.
+  repository-projects: write  # Required to set Type=Task on project items.
 
 jobs:
   check:
