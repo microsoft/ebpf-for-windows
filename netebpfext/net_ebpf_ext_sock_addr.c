@@ -2167,7 +2167,7 @@ _net_ebpf_extension_sock_addr_get_program_verdict(
 }
 
 /**
- * @brief Apply an eBPF verdict to an authorization-layer WFP classify output.
+ * @brief Apply an eBPF verdict to a sock_addr WFP classify output.
  *
  * Maps a BPF_SOCK_ADDR_VERDICT_* value onto the WFP action, clearing
  * FWPS_RIGHT_ACTION_WRITE for the terminal verdicts (hard permit and block) so that a
@@ -2259,7 +2259,6 @@ net_ebpf_extension_sock_addr_authorize_listen_classify(
     ebpf_result_t program_result;
     bool action_write_allowed = false;
 
-    UNREFERENCED_PARAMETER(incoming_metadata_values);
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(flow_context);
