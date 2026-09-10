@@ -11,6 +11,7 @@
 #include "netsh_test_helper.h"
 #include "program_helper.h"
 #include "sample_ext_app.h"
+#include "sample_ext_helper.h"
 #include "service_helper.h"
 #include "watchdog.h"
 
@@ -43,115 +44,6 @@ static service_install_helper
     _ebpf_service_helper(EBPF_SERVICE_NAME, EBPF_SERVICE_BINARY_NAME, SERVICE_WIN32_OWN_PROCESS);
 #endif
 
-struct _sample_extension_helper
-{
-  public:
-    _sample_extension_helper() : device_handle(INVALID_HANDLE_VALUE)
-    {
-        // Open handle to test eBPF extension device.
-        REQUIRE(
-            (device_handle = ::CreateFileW(
-                 SAMPLE_EBPF_EXT_DEVICE_WIN32_NAME,
-                 GENERIC_READ | GENERIC_WRITE,
-                 0,
-                 nullptr,
-                 CREATE_ALWAYS,
-                 FILE_ATTRIBUTE_NORMAL,
-                 nullptr)) != INVALID_HANDLE_VALUE);
-    }
-
-    ~_sample_extension_helper()
-    {
-        if (device_handle != INVALID_HANDLE_VALUE) {
-            ::CloseHandle(device_handle);
-        }
-    }
-
-    void
-    invoke(std::vector<char>& input_buffer, std::vector<char>& output_buffer)
-    {
-        uint32_t count_of_bytes_returned;
-
-        // Issue IOCTL.
-        REQUIRE(
-            ::DeviceIoControl(
-                device_handle,
-                IOCTL_SAMPLE_EBPF_EXT_CTL_RUN,
-                input_buffer.data(),
-                static_cast<uint32_t>(input_buffer.size()),
-                output_buffer.data(),
-                static_cast<uint32_t>(output_buffer.size()),
-                (unsigned long*)&count_of_bytes_returned,
-                nullptr) == TRUE);
-    }
-
-    void
-    invoke_by_attach_parameter(
-        _In_reads_bytes_(attach_parameter_size) const void* attach_parameter,
-        size_t attach_parameter_size,
-        std::vector<char>& input_buffer,
-        std::vector<char>& output_buffer)
-    {
-        REQUIRE(
-            try_invoke_by_attach_parameter(attach_parameter, attach_parameter_size, input_buffer, output_buffer) ==
-            true);
-    }
-
-    bool
-    try_invoke_by_attach_parameter(
-        _In_reads_bytes_(attach_parameter_size) const void* attach_parameter,
-        size_t attach_parameter_size,
-        std::vector<char>& input_buffer,
-        std::vector<char>& output_buffer)
-    {
-        uint32_t count_of_bytes_returned;
-        size_t request_size =
-            EBPF_OFFSET_OF(sample_ebpf_ext_run_request_t, data) + attach_parameter_size + input_buffer.size();
-        std::vector<uint8_t> request_buffer(request_size);
-        sample_ebpf_ext_run_request_t* request = (sample_ebpf_ext_run_request_t*)request_buffer.data();
-        request->version = SAMPLE_EBPF_EXT_RUN_REQUEST_VERSION;
-        request->attach_parameter_size = static_cast<uint32_t>(attach_parameter_size);
-        request->program_data_size = static_cast<uint32_t>(input_buffer.size());
-        memcpy(request->data, attach_parameter, attach_parameter_size);
-        memcpy(request->data + attach_parameter_size, input_buffer.data(), input_buffer.size());
-
-        BOOL success = ::DeviceIoControl(
-            device_handle,
-            IOCTL_SAMPLE_EBPF_EXT_CTL_RUN,
-            request_buffer.data(),
-            static_cast<uint32_t>(request_buffer.size()),
-            output_buffer.data(),
-            static_cast<uint32_t>(output_buffer.size()),
-            (unsigned long*)&count_of_bytes_returned,
-            nullptr);
-        if (success != TRUE) {
-            printf("DeviceIoControl(IOCTL_SAMPLE_EBPF_EXT_CTL_RUN) failed: %lu\n", GetLastError());
-        }
-        return success == TRUE;
-    }
-
-    void
-    invoke_batch(std::vector<char>& input_buffer, std::vector<char>& output_buffer)
-    {
-        uint32_t count_of_bytes_returned;
-
-        // Issue IOCTL.
-        REQUIRE(
-            ::DeviceIoControl(
-                device_handle,
-                IOCTL_SAMPLE_EBPF_EXT_CTL_RUN_BATCH,
-                input_buffer.data(),
-                static_cast<uint32_t>(input_buffer.size()),
-                output_buffer.data(),
-                static_cast<uint32_t>(output_buffer.size()),
-                (unsigned long*)&count_of_bytes_returned,
-                nullptr) == TRUE);
-    }
-
-  private:
-    HANDLE device_handle;
-};
-
 void
 sample_ebpf_ext_test(_In_ const struct bpf_object* object)
 {
@@ -164,6 +56,7 @@ sample_ebpf_ext_test(_In_ const struct bpf_object* object)
     const char* expected_output = "Seattle is a sunny city";
     std::vector<char> output_buffer(256);
     _sample_extension_helper extension;
+    REQUIRE(extension.initialize());
 
     // Get map and insert data.
     map = bpf_object__find_map_by_name(object, "test_map");
@@ -254,6 +147,7 @@ sample_ebpf_ext_test_batch(_In_ const struct bpf_object* object)
     memcpy(request->data, input_string, input_string_length);
     sample_ebpf_ext_batch_run_reply_t* reply = (sample_ebpf_ext_batch_run_reply_t*)output_buffer.data();
     _sample_extension_helper extension;
+    REQUIRE(extension.initialize());
 
     // Get map and insert data.
     map = bpf_object__find_map_by_name(object, "test_map");
@@ -411,6 +305,7 @@ TEST_CASE("native_multi_attach_by_parameter", "[sample_ext_test]")
     native_module_helper_t native_helper1;
     native_module_helper_t native_helper2;
     _sample_extension_helper extension;
+    REQUIRE(extension.initialize());
     uint8_t attach_data0 = 0;
     uint8_t attach_data1 = 1;
 
@@ -451,6 +346,7 @@ TEST_CASE("ebpf_program_attach_with_attach_data_race_native", "[sample_ext_test]
     constexpr int value_size = 32;
     std::vector<char> map_entry_buffer(value_size);
     _sample_extension_helper extension;
+    REQUIRE(extension.initialize());
     std::vector<char> input_buffer = {'r', 'a', 'i', 'n', 'y'};
     std::vector<char> output_buffer(256);
     std::atomic<bool> stop{false};
@@ -541,6 +437,7 @@ utility_helpers_test(ebpf_execution_type_t execution_type)
 
     std::vector<char> dummy(1);
     _sample_extension_helper extension;
+    REQUIRE(extension.initialize());
 
     extension.invoke(dummy, dummy);
 

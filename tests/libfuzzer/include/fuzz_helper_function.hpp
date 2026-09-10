@@ -26,7 +26,8 @@
 template <typename context_type> class fuzz_helper_function
 {
   public:
-    fuzz_helper_function(GUID provider_id) : provider_guid(provider_id)
+    explicit fuzz_helper_function(GUID provider_id, bool manage_core_lifecycle = true)
+        : provider_guid(provider_id), _manage_core_lifecycle(manage_core_lifecycle)
     {
         // Assert that we have the same number of map definitions as the number of map type names excluding the
         // BPF_MAP_TYPE_UNSPEC.
@@ -64,15 +65,22 @@ template <typename context_type> class fuzz_helper_function
             // Throw an exception with the missing map type names.
             throw std::runtime_error("Missing map type definitions for: " + missing_map_type_names);
         }
-        ebpf_result_t result = ebpf_core_initiate();
-        if (result != EBPF_SUCCESS) {
-            throw std::runtime_error("ebpf_core_initiate failed");
+        if (_manage_core_lifecycle) {
+            ebpf_result_t result = ebpf_core_initiate();
+            if (result != EBPF_SUCCESS) {
+                throw std::runtime_error("ebpf_core_initiate failed");
+            }
+            _core_initiated = true;
         }
 
         // Register as an NmrClient for the global program information NPI.
         NTSTATUS status =
             NmrRegisterClient(&_program_information_client_characteristics, this, &program_information_nmr_handle);
         if (status != STATUS_SUCCESS) {
+            if (_core_initiated) {
+                ebpf_core_terminate();
+                _core_initiated = false;
+            }
             throw std::runtime_error("NmrRegisterClient failed");
         }
     }
@@ -83,11 +91,15 @@ template <typename context_type> class fuzz_helper_function
             EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
         }
 
-        NTSTATUS status = NmrDeregisterClient(program_information_nmr_handle);
-        if (status == STATUS_PENDING) {
-            NmrWaitForClientDeregisterComplete(program_information_nmr_handle);
+        if (program_information_nmr_handle != nullptr) {
+            NTSTATUS status = NmrDeregisterClient(program_information_nmr_handle);
+            if (status == STATUS_PENDING) {
+                NmrWaitForClientDeregisterComplete(program_information_nmr_handle);
+            }
         }
-        ebpf_core_terminate();
+        if (_core_initiated) {
+            ebpf_core_terminate();
+        }
     }
 
     /**
@@ -568,9 +580,11 @@ template <typename context_type> class fuzz_helper_function
 
   private:
     GUID provider_guid;
+    bool _manage_core_lifecycle = true;
+    bool _core_initiated = false;
     std::map<ebpf_map_type_t, ebpf_map_t*> maps;
     NPI_CLIENT_CHARACTERISTICS program_information_client_characteristics;
-    HANDLE program_information_nmr_handle;
+    HANDLE program_information_nmr_handle = nullptr;
     const ebpf_program_data_t* program_data;
     std::map<uint32_t, uintptr_t> helper_functions_addresses;
     std::map<uint32_t, const ebpf_helper_function_prototype_t*> helper_prototypes;

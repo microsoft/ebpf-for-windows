@@ -129,7 +129,7 @@ map_annotation_collision(void* context, const program_runtime_context_t* runtime
 #line 59 "sample/undocked/map_annotation_collision.c"
     // Prologue.
 #line 59 "sample/undocked/map_annotation_collision.c"
-    uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
+    uint64_t stack[((UBPF_STACK_SIZE * 2) + 7) / 8];
 #line 59 "sample/undocked/map_annotation_collision.c"
     register uint64_t r0 = 0;
 #line 59 "sample/undocked/map_annotation_collision.c"
@@ -202,7 +202,7 @@ map_annotation_collision(void* context, const program_runtime_context_t* runtime
     READ_ONCE_32(r1, r10, OFFSET(-4));
     // EBPF_OP_CALL pc=12 dst=r0 src=r1 offset=0 imm=4
 #line 70 "sample/undocked/map_annotation_collision.c"
-    r0 = lookup_hash_value(r1, r2, r3, r4, r5, r10, context, runtime_context);
+    r0 = lookup_hash_value(r1, r2, r3, r4, r5, r10 - UBPF_STACK_SIZE, context, runtime_context);
     // EBPF_OP_MOV64_REG pc=13 dst=r1 src=r0 offset=0 imm=0
 #line 70 "sample/undocked/map_annotation_collision.c"
     r1 = r0;

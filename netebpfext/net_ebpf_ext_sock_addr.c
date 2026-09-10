@@ -302,7 +302,7 @@ static bool
 _net_ebpf_extension_sock_addr_process_verdict(_Inout_ void* program_context, int program_verdict);
 
 static bool
-_net_ebpf_extension_sock_addr_bind_process_verdict(_Inout_ void* program_context, int program_verdict);
+_net_ebpf_extension_sock_addr_accumulate_verdict(_Inout_ void* program_context, int program_verdict);
 
 //
 // sock_addr helper functions.
@@ -1405,7 +1405,7 @@ net_ebpf_ext_sock_addr_register_providers()
         .create_filter_context = _net_ebpf_extension_sock_addr_create_filter_context,
         .cleanup_filter_context = _net_ebpf_extension_sock_addr_cleanup_filter_context,
         .validate_client_data = _net_ebpf_extension_sock_addr_validate_client_data,
-        .process_verdict = _net_ebpf_extension_sock_addr_bind_process_verdict,
+        .process_verdict = _net_ebpf_extension_sock_addr_accumulate_verdict,
     };
 
     const net_ebpf_extension_hook_provider_dispatch_table_t listen_dispatch_table = {
@@ -1496,6 +1496,7 @@ net_ebpf_ext_sock_addr_register_providers()
             dispatch_table,
             attach_capability,
             &_net_ebpf_extension_sock_addr_wfp_filter_parameters[i],
+            NULL,
             &_ebpf_sock_addr_hook_provider_context[i]);
         if (!NT_SUCCESS(status)) {
             EBPF_EXT_LOG_MESSAGE_NTSTATUS(
@@ -2065,24 +2066,76 @@ _net_ebpf_extension_sock_addr_process_verdict(_Inout_ void* program_context, int
     return TRUE;
 }
 
-// Multi-attach verdict accumulator for the sock_addr bind hook. Tracks the
-// most-restrictive verdict across attached programs in net_ebpf_sock_addr_t::verdict
-// using _get_verdict_priority(), and returns FALSE on REJECT so the hook provider
-// loop stops invoking subsequent programs. Address/port writes to the context are
-// ignored at bind (the WFP ALE_RESOURCE_ASSIGNMENT layer does not support address
-// rewrite), so no redirect handling is performed here.
+// Multi-attach verdict accumulator for sock_addr gates that do not support
+// context rewrite. Currently used only by the sock_addr bind hook
+// (ALE_RESOURCE_ASSIGNMENT); the sock_addr listen hook (ALE_AUTH_LISTEN) adopts
+// it when listen gains multi-attach support (see issue #5339).
+// Tracks the most-restrictive normalized verdict across attached programs in
+// net_ebpf_sock_addr_t::verdict using _get_verdict_priority(), and returns
+// FALSE on REJECT so the hook provider loop stops invoking subsequent
+// programs.
+//
+// Any address/port writes a program makes to the context are silently ignored
+// for WFP purposes (the underlying ALE layer does not support address
+// rewrite). To prevent one program's writes from being observed by subsequent
+// programs in the same multi-attach invocation, the context is restored from
+// net_ebpf_sock_addr_t::original_context after each program. The caller must
+// set original_context to point at a pristine snapshot of bpf_sock_addr_t
+// before invoking any program.
 static bool
-_net_ebpf_extension_sock_addr_bind_process_verdict(_Inout_ void* program_context, int program_verdict)
+_net_ebpf_extension_sock_addr_accumulate_verdict(_Inout_ void* program_context, int program_verdict)
 {
     bpf_sock_addr_t* sock_addr_ctx = (bpf_sock_addr_t*)program_context;
     net_ebpf_sock_addr_t* context = CONTAINING_RECORD(sock_addr_ctx, net_ebpf_sock_addr_t, base);
+    bpf_sock_addr_t* original_context = context->original_context;
     int normalized_verdict = _normalize_sock_addr_verdict(program_verdict);
+
+    // original_context must be set by the caller before invoking programs.
+    // It points to a caller's stack variable and is only valid during synchronous program invocation.
+    ASSERT(original_context != NULL);
 
     if (_get_verdict_priority(normalized_verdict) > _get_verdict_priority(context->verdict)) {
         context->verdict = normalized_verdict;
     }
 
+    // Restore the context so the next attached program sees the original
+    // WFP-provided values, not whatever the previous program may have written
+    // to user_ip / user_port / msg_src_*.
+    *sock_addr_ctx = *original_context;
+
     return normalized_verdict != BPF_SOCK_ADDR_VERDICT_REJECT;
+}
+
+/**
+ * @brief Apply an accumulated eBPF verdict to the WFP classify output.
+ *
+ * Maps a BPF_SOCK_ADDR_VERDICT_* value onto the WFP action, clearing
+ * FWPS_RIGHT_ACTION_WRITE for the terminal verdicts (hard permit and block) so that a
+ * lower-weight callout cannot override them. Any verdict other than PROCEED_SOFT or
+ * PROCEED_HARD is treated as a block, matching _normalize_sock_addr_verdict().
+ *
+ * Callers must hold FWPS_RIGHT_ACTION_WRITE: the classify routines bail out before invoking
+ * any eBPF program when a higher-weight callout has revoked it.
+ *
+ * @param[in,out] classify_output Output structure containing the action to take.
+ * @param[in] verdict Accumulated BPF_SOCK_ADDR_VERDICT_* value across the attached programs.
+ */
+static void
+_net_ebpf_extension_sock_addr_apply_verdict(_Inout_ FWPS_CLASSIFY_OUT* classify_output, uint32_t verdict)
+{
+    switch (verdict) {
+    case BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT:
+        classify_output->actionType = FWP_ACTION_PERMIT;
+        break;
+    case BPF_SOCK_ADDR_VERDICT_PROCEED_HARD:
+        classify_output->actionType = FWP_ACTION_PERMIT;
+        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+        break;
+    default:
+        classify_output->actionType = FWP_ACTION_BLOCK;
+        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+        break;
+    }
 }
 
 //
@@ -2126,6 +2179,15 @@ net_ebpf_extension_sock_addr_authorize_listen_classify(
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(flow_context);
+
+    if ((classify_output->rights & FWPS_RIGHT_ACTION_WRITE) == 0) {
+        // A callout with higher weight has revoked the write permission. Bail out without
+        // invoking any eBPF program and without touching classify_output->actionType, matching
+        // net_ebpf_extension_sock_addr_redirect_connection_classify().
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "No \"write\" right; exiting.");
+        goto Exit;
+    }
 
     classify_output->actionType = FWP_ACTION_PERMIT;
 
@@ -2176,21 +2238,8 @@ net_ebpf_extension_sock_addr_authorize_listen_classify(
         goto Exit;
     }
 
-    // Set action type based on verdict.
-    // Clear FWPS_RIGHT_ACTION_WRITE for block and hard permit.
-    switch (result) {
-    case BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT:
-        classify_output->actionType = FWP_ACTION_PERMIT;
-        break;
-    case BPF_SOCK_ADDR_VERDICT_PROCEED_HARD:
-        classify_output->actionType = FWP_ACTION_PERMIT;
-        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
-        break;
-    default:
-        classify_output->actionType = FWP_ACTION_BLOCK;
-        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
-        break;
-    }
+    // Set action type based on the program verdict.
+    _net_ebpf_extension_sock_addr_apply_verdict(classify_output, result);
 
     _net_ebpf_ext_log_sock_addr_classify(
         "listen_classify",
@@ -2241,6 +2290,15 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(flow_context);
+
+    if ((classify_output->rights & FWPS_RIGHT_ACTION_WRITE) == 0) {
+        // A callout with higher weight has revoked the write permission. Bail out without
+        // invoking any eBPF program and without touching classify_output->actionType, matching
+        // net_ebpf_extension_sock_addr_redirect_connection_classify().
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "No \"write\" right; exiting.");
+        goto Exit;
+    }
 
     classify_output->actionType = FWP_ACTION_PERMIT;
 
@@ -2293,21 +2351,8 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
         goto Exit;
     }
 
-    // Set action type based on verdict
-    // Clear FWPS_RIGHT_ACTION_WRITE for block and hard permit.
-    switch (result) {
-    case BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT:
-        classify_output->actionType = FWP_ACTION_PERMIT;
-        break;
-    case BPF_SOCK_ADDR_VERDICT_PROCEED_HARD:
-        classify_output->actionType = FWP_ACTION_PERMIT;
-        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
-        break;
-    default:
-        classify_output->actionType = FWP_ACTION_BLOCK;
-        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
-        break;
-    }
+    // Set action type based on the program verdict.
+    _net_ebpf_extension_sock_addr_apply_verdict(classify_output, result);
 
     _net_ebpf_ext_log_sock_addr_classify(
         "recv_accept_classify",
@@ -2362,6 +2407,15 @@ net_ebpf_extension_sock_addr_bind_classify(
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(flow_context);
 
+    if ((classify_output->rights & FWPS_RIGHT_ACTION_WRITE) == 0) {
+        // A callout with higher weight has revoked the write permission. Bail out without
+        // invoking any eBPF program and without touching classify_output->actionType, matching
+        // net_ebpf_extension_sock_addr_redirect_connection_classify().
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "No \"write\" right; exiting.");
+        goto Exit;
+    }
+
     classify_output->actionType = FWP_ACTION_PERMIT;
 
     filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter->context;
@@ -2390,9 +2444,16 @@ net_ebpf_extension_sock_addr_bind_classify(
 
     // Initialize the accumulated verdict to PROCEED_SOFT so that if no program updates it
     // (e.g. all clients are filtered out), the bind defaults to permit.
-    // The bind process_verdict callback updates net_ebpf_sock_addr_ctx.verdict with the
+    // The accumulate_verdict callback updates net_ebpf_sock_addr_ctx.verdict with the
     // most-restrictive verdict across multi-attach programs and short-circuits on REJECT.
     net_ebpf_sock_addr_ctx.verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+
+    // Snapshot the context so the shared accumulate_verdict callback can restore it
+    // between programs. The snapshot is stack-local and only valid for the synchronous
+    // program invocation below.
+    bpf_sock_addr_t sock_addr_ctx_original;
+    memcpy(&sock_addr_ctx_original, sock_addr_ctx, sizeof(sock_addr_ctx_original));
+    net_ebpf_sock_addr_ctx.original_context = &sock_addr_ctx_original;
 
     program_result =
         net_ebpf_extension_hook_expand_stack_and_invoke_programs(sock_addr_ctx, &filter_context->base, &ignored_result);
@@ -2406,23 +2467,11 @@ net_ebpf_extension_sock_addr_bind_classify(
         goto Exit;
     }
 
-    // Use the accumulated verdict from the bind process_verdict callback. Bind hooks do not
+    // Use the accumulated verdict from the accumulate_verdict callback. Bind hooks do not
     // support address modification: any changes the program made to user_ip/user_port are
-    // silently ignored.
+    // silently ignored (and restored between programs by the shared accumulator).
     verdict = net_ebpf_sock_addr_ctx.verdict;
-    switch (verdict) {
-    case BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT:
-        classify_output->actionType = FWP_ACTION_PERMIT;
-        break;
-    case BPF_SOCK_ADDR_VERDICT_PROCEED_HARD:
-        classify_output->actionType = FWP_ACTION_PERMIT;
-        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
-        break;
-    default:
-        classify_output->actionType = FWP_ACTION_BLOCK;
-        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
-        break;
-    }
+    _net_ebpf_extension_sock_addr_apply_verdict(classify_output, verdict);
 
     _net_ebpf_ext_log_sock_addr_classify(
         "bind_classify",
@@ -2472,6 +2521,7 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     bpf_sock_addr_t* sock_addr_ctx = &net_ebpf_sock_addr_ctx.base;
     uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID;
     ebpf_result_t program_result;
+    bool rights_revoked = FALSE;
 
     UNREFERENCED_PARAMETER(incoming_metadata_values);
     UNREFERENCED_PARAMETER(layer_data);
@@ -2514,8 +2564,21 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     }
 
     // First, try to find and use existing connection context from redirect layer.
+    // This must happen before the rights check so the cached entry is always cleaned up,
+    // even when a higher-weight callout has revoked our write permission.
     verdict = _net_ebpf_ext_find_and_remove_connection_context(
         incoming_metadata_values->transportEndpointHandle, sock_addr_ctx);
+
+    if ((classify_output->rights & FWPS_RIGHT_ACTION_WRITE) == 0) {
+        // A callout with higher weight has revoked the write permission. Bail out without
+        // invoking any eBPF program and without touching classify_output->actionType (the
+        // Exit-block verdict is also skipped via rights_revoked). The cache cleanup above
+        // has already run.
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "No \"write\" right; exiting.");
+        rights_revoked = TRUE;
+        goto Exit;
+    }
 
     // CONNECT_AUTHORIZATION programs run for all non-REJECT verdicts from the redirect layer.
     // REJECT is already final. PROCEED_HARD and PROCEED_SOFT both allow authorization programs
@@ -2558,20 +2621,9 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     }
 
 Exit:
-    // Set action type based on verdict.
-    // Clear FWPS_RIGHT_ACTION_WRITE for block and hard permit.
-    switch (verdict) {
-    case BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT:
-        classify_output->actionType = FWP_ACTION_PERMIT;
-        break;
-    case BPF_SOCK_ADDR_VERDICT_PROCEED_HARD:
-        classify_output->actionType = FWP_ACTION_PERMIT;
-        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
-        break;
-    default:
-        classify_output->actionType = FWP_ACTION_BLOCK;
-        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
-        break;
+    // Set action type based on the accumulated verdict.
+    if (!rights_revoked) {
+        _net_ebpf_extension_sock_addr_apply_verdict(classify_output, verdict);
     }
 
     _net_ebpf_ext_log_sock_addr_classify(

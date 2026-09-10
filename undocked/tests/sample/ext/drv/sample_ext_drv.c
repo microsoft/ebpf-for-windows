@@ -532,7 +532,7 @@ _sample_ebpf_ext_driver_io_device_control(
     }
 
     if (NT_SUCCESS(status) && (result != EBPF_SUCCESS)) {
-        status = STATUS_UNSUCCESSFUL;
+        status = (result == EBPF_KEY_NOT_FOUND) ? STATUS_NOT_FOUND : STATUS_UNSUCCESSFUL;
         goto Done;
     }
 

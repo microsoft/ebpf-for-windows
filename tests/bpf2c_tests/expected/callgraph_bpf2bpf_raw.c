@@ -99,7 +99,7 @@ entry_program1(void* context, const program_runtime_context_t* runtime_context)
 #line 124 "sample/callgraph_bpf2bpf.c"
     // Prologue.
 #line 124 "sample/callgraph_bpf2bpf.c"
-    uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
+    uint64_t stack[((UBPF_STACK_SIZE * 4) + 7) / 8];
 #line 124 "sample/callgraph_bpf2bpf.c"
     register uint64_t r0 = 0;
 #line 124 "sample/callgraph_bpf2bpf.c"
@@ -147,7 +147,7 @@ entry_program1(void* context, const program_runtime_context_t* runtime_context)
     r1 = r6;
     // EBPF_OP_CALL pc=7 dst=r0 src=r1 offset=0 imm=9
 #line 132 "sample/callgraph_bpf2bpf.c"
-    r0 = ScenarioS1(r1, r2, r3, r4, r5, r10, context, runtime_context);
+    r0 = ScenarioS1(r1, r2, r3, r4, r5, r10 - UBPF_STACK_SIZE, context, runtime_context);
     // EBPF_OP_MOV64_REG pc=8 dst=r7 src=r0 offset=0 imm=0
 #line 132 "sample/callgraph_bpf2bpf.c"
     r7 = r0;
@@ -156,7 +156,7 @@ entry_program1(void* context, const program_runtime_context_t* runtime_context)
     r1 = r6;
     // EBPF_OP_CALL pc=10 dst=r0 src=r1 offset=0 imm=29
 #line 133 "sample/callgraph_bpf2bpf.c"
-    r0 = ScenarioS4(r1, r2, r3, r4, r5, r10, context, runtime_context);
+    r0 = ScenarioS4(r1, r2, r3, r4, r5, r10 - UBPF_STACK_SIZE, context, runtime_context);
     // EBPF_OP_LSH64_IMM pc=11 dst=r7 src=r0 offset=0 imm=32
 #line 132 "sample/callgraph_bpf2bpf.c"
     r7 <<= (IMMEDIATE(32) & 63);
@@ -201,7 +201,7 @@ ScenarioS1(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint
     READ_ONCE_64(r1, r10, OFFSET(-8));
     // EBPF_OP_CALL pc=3 dst=r0 src=r1 offset=0 imm=1
 #line 62 "sample/callgraph_bpf2bpf.c"
-    r0 = ScenarioS2(r1, r2, r3, r4, r5, r10, context, runtime_context);
+    r0 = ScenarioS2(r1, r2, r3, r4, r5, r10 - UBPF_STACK_SIZE, context, runtime_context);
     // EBPF_OP_EXIT pc=4 dst=r0 src=r0 offset=0 imm=0
 #line 62 "sample/callgraph_bpf2bpf.c"
     return r0;
@@ -221,7 +221,7 @@ ScenarioS2(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint
     READ_ONCE_64(r1, r10, OFFSET(-8));
     // EBPF_OP_CALL pc=2 dst=r0 src=r1 offset=0 imm=1
 #line 62 "sample/callgraph_bpf2bpf.c"
-    r0 = ScenarioS3(r1, r2, r3, r4, r5, r10, context, runtime_context);
+    r0 = ScenarioS3(r1, r2, r3, r4, r5, r10 - UBPF_STACK_SIZE, context, runtime_context);
     // EBPF_OP_EXIT pc=3 dst=r0 src=r0 offset=0 imm=0
 #line 62 "sample/callgraph_bpf2bpf.c"
     return r0;
@@ -523,7 +523,7 @@ entry_program2(void* context, const program_runtime_context_t* runtime_context)
 #line 145 "sample/callgraph_bpf2bpf.c"
     // Prologue.
 #line 145 "sample/callgraph_bpf2bpf.c"
-    uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
+    uint64_t stack[((UBPF_STACK_SIZE * 3) + 7) / 8];
 #line 145 "sample/callgraph_bpf2bpf.c"
     register uint64_t r0 = 0;
 #line 145 "sample/callgraph_bpf2bpf.c"
@@ -561,7 +561,7 @@ entry_program2(void* context, const program_runtime_context_t* runtime_context)
     r1 += IMMEDIATE(-8);
     // EBPF_OP_CALL pc=5 dst=r0 src=r1 offset=0 imm=7
 #line 151 "sample/callgraph_bpf2bpf.c"
-    r0 = ScenarioS2(r1, r2, r3, r4, r5, r10, context, runtime_context);
+    r0 = ScenarioS2(r1, r2, r3, r4, r5, r10 - UBPF_STACK_SIZE, context, runtime_context);
     // EBPF_OP_MOV64_REG pc=6 dst=r1 src=r0 offset=0 imm=0
 #line 151 "sample/callgraph_bpf2bpf.c"
     r1 = r0;
@@ -644,7 +644,7 @@ entry_program3(void* context, const program_runtime_context_t* runtime_context)
 #line 163 "sample/callgraph_bpf2bpf.c"
     // Prologue.
 #line 163 "sample/callgraph_bpf2bpf.c"
-    uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
+    uint64_t stack[((UBPF_STACK_SIZE * 2) + 7) / 8];
 #line 163 "sample/callgraph_bpf2bpf.c"
     register uint64_t r0 = 0;
 #line 163 "sample/callgraph_bpf2bpf.c"
@@ -679,7 +679,7 @@ entry_program3(void* context, const program_runtime_context_t* runtime_context)
     r1 += IMMEDIATE(-8);
     // EBPF_OP_CALL pc=4 dst=r0 src=r1 offset=0 imm=7
 #line 166 "sample/callgraph_bpf2bpf.c"
-    r0 = update_map(r1, r2, r3, r4, r5, r10, context, runtime_context);
+    r0 = update_map(r1, r2, r3, r4, r5, r10 - UBPF_STACK_SIZE, context, runtime_context);
     // EBPF_OP_MOV64_REG pc=5 dst=r1 src=r0 offset=0 imm=0
 #line 166 "sample/callgraph_bpf2bpf.c"
     r1 = r0;
