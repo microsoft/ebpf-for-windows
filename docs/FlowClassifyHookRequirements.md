@@ -5,15 +5,24 @@
 
 ## Purpose
 
-Define the behavior required to classify network flows by inspecting transport payloads. The
+Define the behavior required to inspect TCP stream data, UDP datagrams, and ICMP and ICMPv6 messages and use the
+results to classify the associated network flow. The
 [current design proposal](FlowClassifyHook.md) describes the original stream-only design and will be updated separately
 to satisfy these requirements.
 
+## Definitions
+
+- A **network flow** is traffic with common endpoint and protocol metadata that is tracked under one stable identifier
+  and lifecycle and classified as a unit. For TCP, this is a connection; for UDP, ICMP, and ICMPv6, related datagrams
+  or messages are grouped under the same identifier.
+- **Flow classification** is the inspection of a flow's metadata and payloads to make a policy decision for the flow
+  rather than for each payload independently.
+
 ## Traffic Coverage and Selection
 
-- Support flow classification for TCP streams and datagrams, including UDP.
-- Allow a program to select, per flow, whether payload classification is needed.
-- Allow classification in the ingress direction, egress direction, or both.
+- Support payload inspection and flow classification for TCP stream data, UDP datagrams, and ICMP and ICMPv6 messages.
+- Allow a program to select, per flow, whether payload inspection is needed.
+- Allow payload inspection in the ingress direction, egress direction, or both.
 - Do not invoke a classifier for unselected flows or directions.
 
 ## Flow Metadata
@@ -24,14 +33,18 @@ Make the following metadata accessible when selecting or classifying a flow:
 - Transport protocol and applicable protocol-specific metadata, including local and remote ports for TCP and UDP and
   type and code for ICMP and ICMPv6.
 - Network compartment and interface identifiers.
-- Direction of the current payload and whether it is stream data or a datagram.
+- The local process identifier and user-token-derived security identity associated with the flow, sufficient to identify
+  the logon session and evaluate token-based authorization properties.
+- Make the same process and user identity available throughout the flow lifecycle.
+- Direction of the current payload and whether it is TCP stream data, a UDP datagram, or an ICMP or ICMPv6 message.
 - A stable flow identifier for correlating establishment, payload, deletion, and asynchronous completion events.
 - The lifecycle event represented by the invocation, including establishment, payload delivery, and deletion.
-- An unambiguous indication of which optional metadata is valid.
+- An unambiguous indication of which optional metadata is valid, including when process or user identity is unavailable.
 
 ## Payload Delivery and Access
 
-- Deliver TCP stream data in order and preserve datagram boundaries.
+- Deliver TCP stream data in order.
+- Preserve boundaries between UDP datagrams and between ICMP and ICMPv6 messages.
 - Provide the total payload length without requiring the full payload to be copied into contiguous memory.
 - Allow a classifier to request only the payload bytes it needs, deferring any required copy until that request.
 
@@ -54,4 +67,4 @@ Make the following metadata accessible when selecting or classifying a flow:
 
 ## Scope
 
-Payload mutation, flow re-authorization, and redirection are out of scope.
+Raw IP datagrams, payload mutation, flow re-authorization, and redirection are out of scope.
