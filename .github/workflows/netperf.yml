@@ -89,7 +89,7 @@ jobs:
 
       # Note: Simplified condition compared to reusable-test.yml because netperf
       # is only called from cicd.yml on schedule/workflow_dispatch events.
-      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd  # v8.0.0
         id: create_or_update_issue
         if: steps.skip_check.outputs.should_skip != 'true'
         env:

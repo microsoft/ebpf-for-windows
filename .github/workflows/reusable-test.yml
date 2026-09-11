@@ -531,7 +531,7 @@ jobs:
           cancel_others: 'false'
           paths_ignore: '["**.md", "**/docs/**"]'
 
-      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd  # v8.0.0
         id: create_or_update_issue
         if: (github.event_name == 'schedule') || (github.event_name == 'push' || github.event_name == 'merge_group') && (steps.skip_check.outputs.should_skip != 'true')
         env:

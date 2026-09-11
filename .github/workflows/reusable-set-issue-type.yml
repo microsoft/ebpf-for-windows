@@ -12,7 +12,7 @@ on:
         required: true
         type: string
       issue_type:
-        description: 'Project v2 Type option name (e.g. Bug, Task)'
+        description: 'Project v2 Type option name (e.g., Bug, Task)'
         required: true
         type: string
 
@@ -32,7 +32,7 @@ jobs:
           allowed-endpoints: >
             api.github.com:443
 
-      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd  # v8.0.0
         env:
           ISSUE_NODE_ID: ${{ inputs.issue_node_id }}
           ISSUE_TYPE: ${{ inputs.issue_type }}
