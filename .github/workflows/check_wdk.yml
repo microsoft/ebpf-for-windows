@@ -21,6 +21,8 @@ permissions:
 jobs:
   check:
     runs-on: windows-2025
+    outputs:
+      issue_node_id: ${{ steps.create_or_update_issue.outputs.issue_node_id }}
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1  # v2.21.1
@@ -51,6 +53,7 @@ jobs:
           "wdk_version=$wdkVersion" >> $env:GITHUB_OUTPUT
 
       - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+        id: create_or_update_issue
         if: steps.check_wdk.outputs.wdk_version != steps.check_repo_wdk.outputs.wdk_version
         env:
           TITLE: 'Update the Windows Driver Kit'
@@ -71,102 +74,6 @@ jobs:
             const labels = process.env.LABELS;
             const label_array = labels ? labels.split(',') : [];
             console.log(label_array);
-            async function set_issue_type_task(issue_node_id) {
-              try {
-                const projects_response = await github.graphql(
-                  `query($owner: String!, $repo: String!) {
-                    repository(owner: $owner, name: $repo) {
-                      projectsV2(first: 20) {
-                        nodes {
-                          id
-                          title
-                        }
-                      }
-                    }
-                  }`,
-                  {owner, repo});
-                const issue_response = await github.graphql(
-                  `query($issueId: ID!) {
-                    node(id: $issueId) {
-                      ... on Issue {
-                        projectItems(first: 100) {
-                          nodes {
-                            id
-                            project {
-                              id
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }`,
-                  {issueId: issue_node_id});
-                const existing_items = new Map(
-                  issue_response.node.projectItems.nodes.map((item) => [item.project.id, item.id]));
-                for (const project of projects_response.repository.projectsV2.nodes) {
-                  const fields_response = await github.graphql(
-                    `query($projectId: ID!) {
-                      node(id: $projectId) {
-                        ... on ProjectV2 {
-                          fields(first: 50) {
-                            nodes {
-                              ... on ProjectV2SingleSelectField {
-                                id
-                                name
-                                options {
-                                  id
-                                  name
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }`,
-                    {projectId: project.id});
-                  const type_field = fields_response.node.fields.nodes.find((field) => field.name === 'Type');
-                  const task_option = type_field?.options?.find((option) => option.name === 'Task');
-                  if (!type_field || !task_option) {
-                    continue;
-                  }
-                  let item_id = existing_items.get(project.id);
-                  if (!item_id) {
-                    const add_response = await github.graphql(
-                      `mutation($projectId: ID!, $issueId: ID!) {
-                        addProjectV2ItemById(input: {projectId: $projectId, contentId: $issueId}) {
-                          item {
-                            id
-                          }
-                        }
-                      }`,
-                      {projectId: project.id, issueId: issue_node_id});
-                    item_id = add_response.addProjectV2ItemById.item.id;
-                  }
-                  await github.graphql(
-                    `mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
-                      updateProjectV2ItemFieldValue(input: {
-                        projectId: $projectId,
-                        itemId: $itemId,
-                        fieldId: $fieldId,
-                        value: {singleSelectOptionId: $optionId}
-                      }) {
-                        projectV2Item {
-                          id
-                        }
-                      }
-                    }`,
-                    {
-                      projectId: project.id,
-                      itemId: item_id,
-                      fieldId: type_field.id,
-                      optionId: task_option.id
-                    });
-                  console.log(`Set Type=Task for issue node ${issue_node_id} in project ${project.title}`);
-                }
-              } catch (error) {
-                console.log(`Unable to set Type=Task for issue node ${issue_node_id}: ${error.message}`);
-              }
-            }
             // Get all issues that have these labels.
             const opts = github.rest.issues.listForRepo.endpoint.merge({
               ...context.issue,
@@ -184,7 +91,7 @@ jobs:
                   repo,
                   body,
                 });
-                await set_issue_type_task(issue.node_id);
+                core.setOutput('issue_node_id', issue.node_id);
                 return;
               }
             }
@@ -197,4 +104,12 @@ jobs:
               body: body,
               labels: label_array,
             });
-            await set_issue_type_task(created_issue.data.node_id);
+            core.setOutput('issue_node_id', created_issue.data.node_id);
+
+  set_issue_type:
+    needs: check
+    if: ${{ needs.check.outputs.issue_node_id != '' }}
+    uses: ./.github/workflows/reusable-set-issue-type.yml
+    with:
+      issue_node_id: ${{ needs.check.outputs.issue_node_id }}
+      issue_type: Task

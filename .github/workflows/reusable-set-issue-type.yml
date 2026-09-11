@@ -1,0 +1,141 @@
+# Copyright (c) eBPF for Windows contributors
+# SPDX-License-Identifier: MIT
+
+---
+name: Reusable Set Issue Type Workflow
+
+on:
+  workflow_call:
+    inputs:
+      issue_node_id:
+        description: 'Issue node ID to update'
+        required: true
+        type: string
+      issue_type:
+        description: 'Project v2 Type option name (e.g. Bug, Task)'
+        required: true
+        type: string
+
+permissions:
+  issues: read
+  repository-projects: write
+
+jobs:
+  set_issue_type:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1  # v2.21.1
+        with:
+          disable-sudo: true
+          egress-policy: block
+          allowed-endpoints: >
+            api.github.com:443
+
+      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+        env:
+          ISSUE_NODE_ID: ${{ inputs.issue_node_id }}
+          ISSUE_TYPE: ${{ inputs.issue_type }}
+        with:
+          script: |
+            const owner = process.env.GITHUB_REPOSITORY.split('/')[0];
+            const repo = process.env.GITHUB_REPOSITORY.split('/')[1];
+            const issue_node_id = process.env.ISSUE_NODE_ID;
+            const issue_type = process.env.ISSUE_TYPE;
+
+            const projects_response = await github.graphql(
+              `query($owner: String!, $repo: String!) {
+                repository(owner: $owner, name: $repo) {
+                  projectsV2(first: 20) {
+                    nodes {
+                      id
+                      title
+                    }
+                  }
+                }
+              }`,
+              {owner, repo});
+
+            const issue_response = await github.graphql(
+              `query($issueId: ID!) {
+                node(id: $issueId) {
+                  ... on Issue {
+                    projectItems(first: 100) {
+                      nodes {
+                        id
+                        project {
+                          id
+                        }
+                      }
+                    }
+                  }
+                }
+              }`,
+              {issueId: issue_node_id});
+
+            const existing_items = new Map(
+              issue_response.node.projectItems.nodes.map((item) => [item.project.id, item.id]));
+
+            for (const project of projects_response.repository.projectsV2.nodes) {
+              const fields_response = await github.graphql(
+                `query($projectId: ID!) {
+                  node(id: $projectId) {
+                    ... on ProjectV2 {
+                      fields(first: 50) {
+                        nodes {
+                          ... on ProjectV2SingleSelectField {
+                            id
+                            name
+                            options {
+                              id
+                              name
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }`,
+                {projectId: project.id});
+
+              const type_field = fields_response.node.fields.nodes.find((field) => field.name === 'Type');
+              const type_option = type_field?.options?.find((option) => option.name === issue_type);
+              if (!type_field || !type_option) {
+                continue;
+              }
+
+              let item_id = existing_items.get(project.id);
+              if (!item_id) {
+                const add_response = await github.graphql(
+                  `mutation($projectId: ID!, $issueId: ID!) {
+                    addProjectV2ItemById(input: {projectId: $projectId, contentId: $issueId}) {
+                      item {
+                        id
+                      }
+                    }
+                  }`,
+                  {projectId: project.id, issueId: issue_node_id});
+                item_id = add_response.addProjectV2ItemById.item.id;
+              }
+
+              await github.graphql(
+                `mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                  updateProjectV2ItemFieldValue(input: {
+                    projectId: $projectId,
+                    itemId: $itemId,
+                    fieldId: $fieldId,
+                    value: {singleSelectOptionId: $optionId}
+                  }) {
+                    projectV2Item {
+                      id
+                    }
+                  }
+                }`,
+                {
+                  projectId: project.id,
+                  itemId: item_id,
+                  fieldId: type_field.id,
+                  optionId: type_option.id
+                });
+              console.log(`Set Type=${issue_type} for issue node ${issue_node_id} in project ${project.title}`);
+            }
