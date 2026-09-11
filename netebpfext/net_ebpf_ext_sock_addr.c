@@ -23,6 +23,39 @@
         CLEAN_UP_FILTER_CONTEXT(&(filter_context)->base);                 \
     }
 
+#define BAIL_ON_NO_WRITE_RIGHT(classify_output, action_write_allowed)                                                  \
+    do {                                                                                                               \
+        (action_write_allowed) = (((classify_output)->rights & FWPS_RIGHT_ACTION_WRITE) != 0);                         \
+        if (!(action_write_allowed)) {                                                                                 \
+            EBPF_EXT_LOG_MESSAGE(                                                                                      \
+                EBPF_EXT_TRACELOG_LEVEL_VERBOSE, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "No \"write\" right; exiting."); \
+            goto Exit;                                                                                                 \
+        }                                                                                                              \
+    } while (false)
+
+#define BAIL_ON_INACTIVE_FILTER_CONTEXT(filter, filter_context)                                   \
+    do {                                                                                          \
+        (filter_context) = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)(filter)->context; \
+        ASSERT((filter_context) != NULL);                                                         \
+        if ((filter_context) == NULL) {                                                           \
+            EBPF_EXT_LOG_MESSAGE_NTSTATUS(                                                        \
+                EBPF_EXT_TRACELOG_LEVEL_ERROR,                                                    \
+                EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,                                              \
+                "filter_context is NULL.",                                                        \
+                STATUS_INVALID_PARAMETER);                                                        \
+            goto Exit;                                                                            \
+        }                                                                                         \
+        /* This lock-free check opportunistically detects that every client has detached. */      \
+        if ((filter_context)->base.context_deleting) {                                            \
+            EBPF_EXT_LOG_MESSAGE_NTSTATUS(                                                        \
+                EBPF_EXT_TRACELOG_LEVEL_VERBOSE,                                                  \
+                EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,                                              \
+                __FUNCTION__ " - Client detach detected.",                                        \
+                STATUS_INVALID_PARAMETER);                                                        \
+            goto Exit;                                                                            \
+        }                                                                                         \
+    } while (false)
+
 #define NET_EBPF_EXT_SOCK_ADDR_CLASSIFY_MESSAGE "NetEbpfExtSockAddrClassify"
 
 #define NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV4(                    \
@@ -2106,51 +2139,6 @@ _net_ebpf_extension_sock_addr_accumulate_verdict(_Inout_ void* program_context, 
     return normalized_verdict != BPF_SOCK_ADDR_VERDICT_REJECT;
 }
 
-static inline bool
-_net_ebpf_extension_sock_addr_check_action_write_right(_In_ const FWPS_CLASSIFY_OUT* classify_output)
-{
-    if ((classify_output->rights & FWPS_RIGHT_ACTION_WRITE) != 0) {
-        return true;
-    }
-
-    // Do not invoke eBPF programs when a higher-weight callout has revoked write access. Although WFP permits a
-    // blocking veto in this state, sock_addr hooks intentionally preserve the existing action.
-    EBPF_EXT_LOG_MESSAGE(
-        EBPF_EXT_TRACELOG_LEVEL_VERBOSE, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "No \"write\" right; exiting.");
-    return false;
-}
-
-_Ret_maybenull_ static inline net_ebpf_extension_sock_addr_wfp_filter_context_t*
-_net_ebpf_extension_sock_addr_get_active_filter_context(
-    _In_ const FWPS_FILTER* filter, _In_z_ const char* client_detach_message)
-{
-    net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context =
-        (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter->context;
-
-    ASSERT(filter_context != NULL);
-    if (filter_context == NULL) {
-        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "filter_context is NULL.",
-            STATUS_INVALID_PARAMETER);
-        return NULL;
-    }
-
-    // This is intentionally lock-free: it opportunistically checks whether every client has detached and the filter
-    // context is being deleted.
-    if (filter_context->base.context_deleting) {
-        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            client_detach_message,
-            STATUS_INVALID_PARAMETER);
-        return NULL;
-    }
-
-    return filter_context;
-}
-
 static inline uint32_t
 _net_ebpf_extension_sock_addr_get_program_verdict(
     ebpf_result_t program_result, uint32_t program_verdict, uint32_t current_verdict)
@@ -2263,16 +2251,8 @@ net_ebpf_extension_sock_addr_authorize_listen_classify(
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(flow_context);
 
-    action_write_allowed = _net_ebpf_extension_sock_addr_check_action_write_right(classify_output);
-    if (!action_write_allowed) {
-        goto Exit;
-    }
-
-    filter_context = _net_ebpf_extension_sock_addr_get_active_filter_context(
-        filter, "net_ebpf_extension_sock_addr_authorize_listen_classify - Client detach detected.");
-    if (filter_context == NULL) {
-        goto Exit;
-    }
+    BAIL_ON_NO_WRITE_RIGHT(classify_output, action_write_allowed);
+    BAIL_ON_INACTIVE_FILTER_CONTEXT(filter, filter_context);
 
     _net_ebpf_extension_sock_addr_copy_wfp_listen_fields(
         incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
@@ -2349,21 +2329,12 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
     ebpf_result_t program_result;
     bool action_write_allowed = false;
 
-    UNREFERENCED_PARAMETER(incoming_metadata_values);
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(flow_context);
 
-    action_write_allowed = _net_ebpf_extension_sock_addr_check_action_write_right(classify_output);
-    if (!action_write_allowed) {
-        goto Exit;
-    }
-
-    filter_context = _net_ebpf_extension_sock_addr_get_active_filter_context(
-        filter, "net_ebpf_extension_sock_addr_authorize_recv_accept_classify - Client detach detected.");
-    if (filter_context == NULL) {
-        goto Exit;
-    }
+    BAIL_ON_NO_WRITE_RIGHT(classify_output, action_write_allowed);
+    BAIL_ON_INACTIVE_FILTER_CONTEXT(filter, filter_context);
 
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
         incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
@@ -2447,16 +2418,8 @@ net_ebpf_extension_sock_addr_bind_classify(
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(flow_context);
 
-    action_write_allowed = _net_ebpf_extension_sock_addr_check_action_write_right(classify_output);
-    if (!action_write_allowed) {
-        goto Exit;
-    }
-
-    filter_context = _net_ebpf_extension_sock_addr_get_active_filter_context(
-        filter, "net_ebpf_extension_sock_addr_bind_classify - Client detach detected.");
-    if (filter_context == NULL) {
-        goto Exit;
-    }
+    BAIL_ON_NO_WRITE_RIGHT(classify_output, action_write_allowed);
+    BAIL_ON_INACTIVE_FILTER_CONTEXT(filter, filter_context);
 
     _net_ebpf_extension_sock_addr_copy_wfp_bind_fields(
         incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
@@ -2535,29 +2498,13 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     bpf_sock_addr_t* sock_addr_ctx = &net_ebpf_sock_addr_ctx.base;
     uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID;
     ebpf_result_t program_result;
-    bool action_write_allowed = false;
+    bool action_write_allowed = ((classify_output->rights & FWPS_RIGHT_ACTION_WRITE) != 0);
 
-    UNREFERENCED_PARAMETER(incoming_metadata_values);
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(flow_context);
 
-    action_write_allowed = _net_ebpf_extension_sock_addr_check_action_write_right(classify_output);
-    if (!action_write_allowed) {
-        // Consume any verdict cached by CONNECT_REDIRECT even though this callout will not invoke programs or change
-        // the action selected by the higher-weight callout.
-        _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
-            incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
-        verdict = _net_ebpf_ext_find_and_remove_connection_context(
-            incoming_metadata_values->transportEndpointHandle, sock_addr_ctx);
-        goto Exit;
-    }
-
-    filter_context = _net_ebpf_extension_sock_addr_get_active_filter_context(
-        filter, "net_ebpf_extension_sock_addr_authorize_connection_classify - Client detach detected.");
-    if (filter_context == NULL) {
-        goto Exit;
-    }
+    BAIL_ON_INACTIVE_FILTER_CONTEXT(filter, filter_context);
 
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
         incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
@@ -2578,6 +2525,8 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     // First, try to find and use existing connection context from redirect layer.
     verdict = _net_ebpf_ext_find_and_remove_connection_context(
         incoming_metadata_values->transportEndpointHandle, sock_addr_ctx);
+
+    BAIL_ON_NO_WRITE_RIGHT(classify_output, action_write_allowed);
 
     // CONNECT_AUTHORIZATION programs run for all non-REJECT verdicts from the redirect layer.
     // REJECT is already final. PROCEED_HARD and PROCEED_SOFT both allow authorization programs
@@ -2899,16 +2848,8 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(flow_context);
 
-    action_write_allowed = _net_ebpf_extension_sock_addr_check_action_write_right(classify_output);
-    if (!action_write_allowed) {
-        goto Exit;
-    }
-
-    filter_context = _net_ebpf_extension_sock_addr_get_active_filter_context(
-        filter, "net_ebpf_extension_sock_addr_redirect_connection_classify - Client detach detected.");
-    if (filter_context == NULL) {
-        goto Exit;
-    }
+    BAIL_ON_NO_WRITE_RIGHT(classify_output, action_write_allowed);
+    BAIL_ON_INACTIVE_FILTER_CONTEXT(filter, filter_context);
 
     // Populate the sock_addr context with WFP classify input fields.
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
