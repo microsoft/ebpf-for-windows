@@ -209,14 +209,14 @@ typedef class _netebpf_ext_helper
         _nmr_client_registration(
             _In_ const NPI_CLIENT_CHARACTERISTICS* characteristics, _In_opt_ __drv_aliasesMem void* client_context)
         {
-            nmr_client_handle = INVALID_HANDLE_VALUE;
+            nmr_client_handle = nullptr;
             // Don't use REQUIRE in a constructor.
             (void)NmrRegisterClient(characteristics, client_context, &nmr_client_handle);
         }
 
         ~_nmr_client_registration()
         {
-            if (nmr_client_handle != INVALID_HANDLE_VALUE) {
+            if (nmr_client_handle != nullptr) {
                 NTSTATUS status = NmrDeregisterClient(nmr_client_handle);
                 if (status == STATUS_PENDING) {
                     status = NmrWaitForClientDeregisterComplete(nmr_client_handle);
@@ -231,7 +231,7 @@ typedef class _netebpf_ext_helper
         bool
         is_registered() const
         {
-            return nmr_client_handle != INVALID_HANDLE_VALUE;
+            return nmr_client_handle != nullptr;
         }
 
         HANDLE nmr_client_handle;
