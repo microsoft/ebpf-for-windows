@@ -777,7 +777,7 @@ TEST_CASE("sock_addr_bind_get_network_context", "[netebpfext][bind][sock_addr]")
 
     auto invoke_fn = [](const void* client_binding_context, const void* context, uint32_t* result) -> ebpf_result_t {
         auto cc = (test_get_netctx_client_context_t*)client_binding_context;
-        auto sock_addr_context = (bpf_sock_addr_t*)context;
+        const bpf_sock_addr_t* sock_addr_context = (const bpf_sock_addr_t*)context;
         auto sock_addr_program_data =
             cc->base.helper->get_program_info_provider_data(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR);
         bpf_sock_addr_get_network_context_t get_net_ctx = reinterpret_cast<bpf_sock_addr_get_network_context_t>(
@@ -791,7 +791,7 @@ TEST_CASE("sock_addr_bind_get_network_context", "[netebpfext][bind][sock_addr]")
 
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
-        (_ebpf_extension_dispatch_function)(ebpf_result_t (*)(const void*, const void*, uint32_t*))invoke_fn,
+        (_ebpf_extension_dispatch_function)(ebpf_result_t(*)(const void*, const void*, uint32_t*))invoke_fn,
         (netebpfext_helper_base_client_context_t*)client_context);
 
     netebpfext_initialize_fwp_classify_parameters(&parameters);
@@ -845,7 +845,7 @@ TEST_CASE("sock_addr_bind_set_redirect_context_rejected", "[netebpfext][bind][so
 
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
-        (_ebpf_extension_dispatch_function)(ebpf_result_t (*)(const void*, const void*, uint32_t*))invoke_fn,
+        (_ebpf_extension_dispatch_function)(ebpf_result_t(*)(const void*, const void*, uint32_t*))invoke_fn,
         (netebpfext_helper_base_client_context_t*)client_context);
 
     netebpfext_initialize_fwp_classify_parameters(&parameters);
