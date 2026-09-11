@@ -401,8 +401,7 @@ ebpf_validate_object_header_native_map_entry(_In_ const ebpf_extension_header_t*
           native_map_entry_header->total_size == EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_TOTAL_SIZE)));
 }
 
-bool
-ebpf_native_map_entry_to_current(_Out_ map_entry_t* destination, _In_ const void* source)
+_Success_(return) bool ebpf_native_map_entry_to_current(_Out_ map_entry_t* destination, _In_ const void* source)
 {
     const ebpf_native_map_entry_legacy_t* legacy_entry = (const ebpf_native_map_entry_legacy_t*)source;
 

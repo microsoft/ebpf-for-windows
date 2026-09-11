@@ -21,8 +21,7 @@ extern "C"
 #define EBPF_NATIVE_MAP_ENTRY_LEGACY_SIZE EBPF_SIZE_INCLUDING_FIELD(ebpf_native_map_entry_legacy_t, name)
 #define EBPF_NATIVE_MAP_ENTRY_LEGACY_TOTAL_SIZE sizeof(ebpf_native_map_entry_legacy_t)
 
-    bool
-    ebpf_native_map_entry_to_current(_Out_ map_entry_t* destination, _In_ const void* source);
+    _Success_(return) bool ebpf_native_map_entry_to_current(_Out_ map_entry_t* destination, _In_ const void* source);
 
 #ifdef __cplusplus
 }
