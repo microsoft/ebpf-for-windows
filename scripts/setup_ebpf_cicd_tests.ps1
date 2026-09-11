@@ -114,6 +114,8 @@ $Job = Start-Job -ScriptBlock {
         -VMList $VMList `
         -TestWorkingDirectory $(if ($ExecuteOnVM) { "C:\ebpf" } else { $WorkingDirectory }) `
         -VMIsRemote:$VMIsRemote `
+        -KmTracing $KmTracing `
+        -KmTraceType $KmTraceType `
         -ErrorAction Stop
 
     Write-Log "Network interfaces initialized"
