@@ -82,10 +82,6 @@ enum bpf_cmd_id
     BPF_PROG_RUN = BPF_PROG_TEST_RUN,
 };
 
-#ifndef BPF_F_NO_MAX_ENTRIES
-#define BPF_F_NO_MAX_ENTRIES (1U << 13)
-#endif
-
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(default : 4820) // reject implicit padding

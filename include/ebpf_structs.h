@@ -107,7 +107,7 @@ typedef uint32_t ebpf_id_t;
 #define EBPF_ID_NONE 0
 
 /// Do not enforce max_entries limit on hash maps.
-#define BPF_F_NO_MAX_ENTRIES (1U << 13)
+#define BPF_F_NO_MAX_ENTRIES 1
 
 /**
  * @brief eBPF Map Definition as it is stored in memory.

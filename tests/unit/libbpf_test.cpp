@@ -813,7 +813,7 @@ _test_map_max_entries_program(ebpf_execution_type_t execution_type, bool no_max_
     bpf_map_info map_info{};
     uint32_t map_info_size = sizeof(map_info);
     REQUIRE(bpf_obj_get_info_by_fd(map_fd, &map_info, &map_info_size) == 0);
-    REQUIRE(map_info.map_flags == (no_max_entries ? BPF_F_NO_MAX_ENTRIES : 0));
+    REQUIRE(map_info.map_flags == (no_max_entries ? BPF_F_NO_MAX_ENTRIES : 0U));
 
     // Fill the map from user mode.
     for (uint32_t key = 0; key < bpf_map__max_entries(map); key++) {
