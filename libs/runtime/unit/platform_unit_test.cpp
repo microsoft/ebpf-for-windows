@@ -427,6 +427,38 @@ typedef class _epoch_hot_add_synchronize_scope
     bool _joined = false;
 } epoch_hot_add_synchronize_scope_t;
 
+TEST_CASE("hash table creation does not require random initialization", "[platform]")
+{
+    REQUIRE(ebpf_platform_initiate() == EBPF_SUCCESS);
+
+    const ebpf_hash_table_creation_options_t options = {
+        .key_size = sizeof(uint32_t),
+        .value_size = sizeof(uint32_t),
+        .allocate = ebpf_allocate_with_tag,
+        .free = ebpf_free,
+    };
+    ebpf_hash_table_t* raw_table = nullptr;
+    REQUIRE(ebpf_hash_table_create(&raw_table, &options) == EBPF_SUCCESS);
+    ebpf_hash_table_ptr table(raw_table);
+
+    uint32_t key = 1;
+    uint32_t value = 2;
+    REQUIRE(
+        ebpf_hash_table_update(
+            table.get(),
+            nullptr,
+            reinterpret_cast<const uint8_t*>(&key),
+            reinterpret_cast<const uint8_t*>(&value),
+            EBPF_HASH_TABLE_OPERATION_INSERT) == EBPF_SUCCESS);
+
+    uint8_t* returned_value = nullptr;
+    REQUIRE(ebpf_hash_table_find(table.get(), reinterpret_cast<const uint8_t*>(&key), &returned_value) == EBPF_SUCCESS);
+    REQUIRE(*reinterpret_cast<uint32_t*>(returned_value) == value);
+
+    table.reset();
+    ebpf_platform_terminate();
+}
+
 TEST_CASE("hash_table_test", "[platform]")
 {
     std::vector<uint8_t> key_1(13);
