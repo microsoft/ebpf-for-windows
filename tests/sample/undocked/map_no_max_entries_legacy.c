@@ -1,20 +1,20 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
-// Sample eBPF program demonstrating use of BPF_F_NO_MAX_ENTRIES to create a
-// hash map without a maximum entry limit.
+// Sample eBPF program demonstrating BPF_F_NO_MAX_ENTRIES using the legacy map
+// definition format.
 
 #include "bpf_helpers.h"
 #include "sample_ext_helpers.h"
 
-struct
-{
-    __uint(type, BPF_MAP_TYPE_HASH);
-    __type(key, uint32_t);
-    __type(value, uint64_t);
-    __uint(max_entries, 2);
-    __uint(map_flags, BPF_F_NO_MAX_ENTRIES);
-} no_max_entries_map SEC(".maps");
+SEC("maps")
+struct _ebpf_map_definition_in_file no_max_entries_map = {
+    .type = BPF_MAP_TYPE_HASH,
+    .key_size = sizeof(uint32_t),
+    .value_size = sizeof(uint64_t),
+    .max_entries = 2,
+    .map_flags = BPF_F_NO_MAX_ENTRIES,
+};
 
 SEC("sample_ext") int map_no_max_entries(sample_program_context_t* ctx)
 {

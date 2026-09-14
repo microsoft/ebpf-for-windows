@@ -1346,7 +1346,8 @@ _ebpf_native_validate_map(_In_ const ebpf_native_map_t* map, ebpf_handle_t origi
     }
 
     if (info.type != map->entry.definition.type || info.key_size != map->entry.definition.key_size ||
-        info.value_size != map->entry.definition.value_size || info.max_entries != map->entry.definition.max_entries) {
+        info.value_size != map->entry.definition.value_size || info.max_entries != map->entry.definition.max_entries ||
+        info.map_flags != map->entry.map_flags) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }

@@ -783,7 +783,8 @@ _test_libbpf_map(ebpf_execution_type_t execution_type)
 DECLARE_ALL_TEST_CASES("libbpf map", "[libbpf]", _test_libbpf_map);
 
 static void
-_test_map_max_entries_program(ebpf_execution_type_t execution_type, bool no_max_entries)
+_test_map_max_entries_program(
+    ebpf_execution_type_t execution_type, bool no_max_entries, const char* object_name_override = nullptr)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -793,7 +794,8 @@ _test_map_max_entries_program(ebpf_execution_type_t execution_type, bool no_max_
     program_info_provider_t sample_program_info;
     REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
-    const char* object_name = no_max_entries ? "map_no_max_entries" : "map_max_entries";
+    const char* object_name =
+        object_name_override ? object_name_override : (no_max_entries ? "map_no_max_entries" : "map_max_entries");
     std::string file_name = std::string(object_name) + (execution_type == EBPF_EXECUTION_NATIVE ? "_um.dll" : ".o");
     bpf_object_ptr object(bpf_object__open(file_name.c_str()));
     REQUIRE(object != nullptr);
@@ -865,10 +867,30 @@ _test_map_bounded_entries_program(ebpf_execution_type_t execution_type)
     _test_map_max_entries_program(execution_type, false);
 }
 
+static void
+_test_legacy_map_no_max_entries_program(ebpf_execution_type_t execution_type)
+{
+    _test_map_max_entries_program(execution_type, true, "map_no_max_entries_legacy");
+}
+
+static void
+_test_legacy_map_bounded_entries_program(ebpf_execution_type_t execution_type)
+{
+    _test_map_max_entries_program(execution_type, false, "map_max_entries_legacy");
+}
+
 DECLARE_JIT_TEST_CASES(
     "libbpf map no max entries program", "[libbpf][map_no_max_entries]", _test_map_no_max_entries_program);
 DECLARE_JIT_TEST_CASES(
     "libbpf map bounded entries program", "[libbpf][map_no_max_entries]", _test_map_bounded_entries_program);
+DECLARE_JIT_TEST_CASES(
+    "libbpf legacy map no max entries program",
+    "[libbpf][map_no_max_entries][legacy_map]",
+    _test_legacy_map_no_max_entries_program);
+DECLARE_JIT_TEST_CASES(
+    "libbpf legacy map bounded entries program",
+    "[libbpf][map_no_max_entries][legacy_map]",
+    _test_legacy_map_bounded_entries_program);
 
 TEST_CASE("libbpf map_no_max_entries_flag", "[libbpf]")
 {

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
-// This file was generated from map_no_max_entries.o
+// This file was generated from map_no_max_entries_legacy.o
 
 #define NO_CRT
 #include "bpf2c.h"
@@ -15,7 +15,7 @@ DRIVER_INITIALIZE DriverEntry;
 DRIVER_UNLOAD DriverUnload;
 RTL_QUERY_REGISTRY_ROUTINE static _bpf2c_query_registry_routine;
 
-#define metadata_table map_no_max_entries##_metadata_table
+#define metadata_table map_no_max_entries_legacy##_metadata_table
 
 static GUID _bpf2c_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
                              0xc847aac8,
@@ -184,7 +184,7 @@ static map_entry_t _maps[] = {
          2,                     // Maximum number of entries allowed in the map.
          0,                     // Inner map index.
          LIBBPF_PIN_NONE,       // Pinning type for the map.
-         13,                    // Identifier for a map template.
+         0,                     // Identifier for a map template.
          0,                     // The id of the inner map template.
      },
      "no_max_entries_map",  // Map name.
@@ -228,92 +228,92 @@ static uint16_t map_no_max_entries_maps[] = {
 #pragma code_seg(push, "sample~1")
 static uint64_t
 map_no_max_entries(void* context, const program_runtime_context_t* runtime_context)
-#line 19 "sample/undocked/map_no_max_entries.c"
+#line 19 "sample/undocked/map_no_max_entries_legacy.c"
 {
-#line 19 "sample/undocked/map_no_max_entries.c"
+#line 19 "sample/undocked/map_no_max_entries_legacy.c"
     // Prologue.
-#line 19 "sample/undocked/map_no_max_entries.c"
+#line 19 "sample/undocked/map_no_max_entries_legacy.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 19 "sample/undocked/map_no_max_entries.c"
+#line 19 "sample/undocked/map_no_max_entries_legacy.c"
     register uint64_t r0 = 0;
-#line 19 "sample/undocked/map_no_max_entries.c"
+#line 19 "sample/undocked/map_no_max_entries_legacy.c"
     register uint64_t r1 = 0;
-#line 19 "sample/undocked/map_no_max_entries.c"
+#line 19 "sample/undocked/map_no_max_entries_legacy.c"
     register uint64_t r2 = 0;
-#line 19 "sample/undocked/map_no_max_entries.c"
+#line 19 "sample/undocked/map_no_max_entries_legacy.c"
     register uint64_t r3 = 0;
-#line 19 "sample/undocked/map_no_max_entries.c"
+#line 19 "sample/undocked/map_no_max_entries_legacy.c"
     register uint64_t r4 = 0;
-#line 19 "sample/undocked/map_no_max_entries.c"
+#line 19 "sample/undocked/map_no_max_entries_legacy.c"
     register uint64_t r5 = 0;
-#line 19 "sample/undocked/map_no_max_entries.c"
+#line 19 "sample/undocked/map_no_max_entries_legacy.c"
     register uint64_t r10 = 0;
 
-#line 19 "sample/undocked/map_no_max_entries.c"
+#line 19 "sample/undocked/map_no_max_entries_legacy.c"
     r1 = (uintptr_t)context;
-#line 19 "sample/undocked/map_no_max_entries.c"
+#line 19 "sample/undocked/map_no_max_entries_legacy.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
     // EBPF_OP_LDDW pc=0 dst=r0 src=r0 offset=0 imm=-1
-#line 19 "sample/undocked/map_no_max_entries.c"
+#line 19 "sample/undocked/map_no_max_entries_legacy.c"
     r0 = (uint64_t)4294967295;
     // EBPF_OP_LDXDW pc=2 dst=r2 src=r1 offset=8 imm=0
-#line 21 "sample/undocked/map_no_max_entries.c"
+#line 21 "sample/undocked/map_no_max_entries_legacy.c"
     READ_ONCE_64(r2, r1, OFFSET(8));
     // EBPF_OP_LDXDW pc=3 dst=r1 src=r1 offset=0 imm=0
-#line 21 "sample/undocked/map_no_max_entries.c"
+#line 21 "sample/undocked/map_no_max_entries_legacy.c"
     READ_ONCE_64(r1, r1, OFFSET(0));
     // EBPF_OP_MOV64_REG pc=4 dst=r3 src=r1 offset=0 imm=0
-#line 21 "sample/undocked/map_no_max_entries.c"
+#line 21 "sample/undocked/map_no_max_entries_legacy.c"
     r3 = r1;
     // EBPF_OP_ADD64_IMM pc=5 dst=r3 src=r0 offset=0 imm=4
-#line 21 "sample/undocked/map_no_max_entries.c"
+#line 21 "sample/undocked/map_no_max_entries_legacy.c"
     r3 += IMMEDIATE(4);
     // EBPF_OP_JGT_REG pc=6 dst=r3 src=r2 offset=12 imm=0
-#line 21 "sample/undocked/map_no_max_entries.c"
+#line 21 "sample/undocked/map_no_max_entries_legacy.c"
     if (r3 > r2) {
-#line 21 "sample/undocked/map_no_max_entries.c"
+#line 21 "sample/undocked/map_no_max_entries_legacy.c"
         goto label_1;
-#line 21 "sample/undocked/map_no_max_entries.c"
+#line 21 "sample/undocked/map_no_max_entries_legacy.c"
     }
     // EBPF_OP_LDXW pc=7 dst=r1 src=r1 offset=0 imm=0
-#line 25 "sample/undocked/map_no_max_entries.c"
+#line 25 "sample/undocked/map_no_max_entries_legacy.c"
     READ_ONCE_32(r1, r1, OFFSET(0));
     // EBPF_OP_STXW pc=8 dst=r10 src=r1 offset=-4 imm=0
-#line 25 "sample/undocked/map_no_max_entries.c"
+#line 25 "sample/undocked/map_no_max_entries_legacy.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-4));
     // EBPF_OP_MUL64_REG pc=9 dst=r1 src=r1 offset=0 imm=0
-#line 26 "sample/undocked/map_no_max_entries.c"
+#line 26 "sample/undocked/map_no_max_entries_legacy.c"
     r1 *= r1;
     // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-16 imm=0
-#line 26 "sample/undocked/map_no_max_entries.c"
+#line 26 "sample/undocked/map_no_max_entries_legacy.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_MOV64_REG pc=11 dst=r2 src=r10 offset=0 imm=0
-#line 26 "sample/undocked/map_no_max_entries.c"
+#line 26 "sample/undocked/map_no_max_entries_legacy.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=12 dst=r2 src=r0 offset=0 imm=-4
-#line 25 "sample/undocked/map_no_max_entries.c"
+#line 25 "sample/undocked/map_no_max_entries_legacy.c"
     r2 += IMMEDIATE(-4);
     // EBPF_OP_MOV64_REG pc=13 dst=r3 src=r10 offset=0 imm=0
-#line 25 "sample/undocked/map_no_max_entries.c"
+#line 25 "sample/undocked/map_no_max_entries_legacy.c"
     r3 = r10;
     // EBPF_OP_ADD64_IMM pc=14 dst=r3 src=r0 offset=0 imm=-16
-#line 25 "sample/undocked/map_no_max_entries.c"
+#line 25 "sample/undocked/map_no_max_entries_legacy.c"
     r3 += IMMEDIATE(-16);
     // EBPF_OP_LDDW pc=15 dst=r1 src=r1 offset=0 imm=1
-#line 28 "sample/undocked/map_no_max_entries.c"
+#line 28 "sample/undocked/map_no_max_entries_legacy.c"
     r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r4 src=r0 offset=0 imm=0
-#line 28 "sample/undocked/map_no_max_entries.c"
+#line 28 "sample/undocked/map_no_max_entries_legacy.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=2
-#line 28 "sample/undocked/map_no_max_entries.c"
+#line 28 "sample/undocked/map_no_max_entries_legacy.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 label_1:
     // EBPF_OP_EXIT pc=19 dst=r0 src=r0 offset=0 imm=0
-#line 29 "sample/undocked/map_no_max_entries.c"
+#line 29 "sample/undocked/map_no_max_entries_legacy.c"
     return r0;
-#line 19 "sample/undocked/map_no_max_entries.c"
+#line 19 "sample/undocked/map_no_max_entries_legacy.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
@@ -360,7 +360,7 @@ _get_map_initial_values(_Outptr_result_buffer_(*count) map_initial_values_t** ma
     *count = 0;
 }
 
-metadata_table_t map_no_max_entries_metadata_table = {
+metadata_table_t map_no_max_entries_legacy_metadata_table = {
     sizeof(metadata_table_t),
     _get_programs,
     _get_maps,

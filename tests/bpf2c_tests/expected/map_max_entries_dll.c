@@ -59,7 +59,7 @@ static map_entry_t _maps[] = {
          2,                  // Maximum number of entries allowed in the map.
          0,                  // Inner map index.
          LIBBPF_PIN_NONE,    // Pinning type for the map.
-         0,                  // Identifier for a map template.
+         13,                 // Identifier for a map template.
          0,                  // The id of the inner map template.
      },
      "max_entries_map",  // Map name.

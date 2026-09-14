@@ -1,18 +1,19 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
-// Sample eBPF program demonstrating the default bounded hash map behavior.
+// Sample eBPF program demonstrating the default bounded hash map behavior
+// using the legacy map definition format.
 
 #include "bpf_helpers.h"
 #include "sample_ext_helpers.h"
 
-struct
-{
-    __uint(type, BPF_MAP_TYPE_HASH);
-    __type(key, uint32_t);
-    __type(value, uint64_t);
-    __uint(max_entries, 2);
-} max_entries_map SEC(".maps");
+SEC("maps")
+struct _ebpf_map_definition_in_file max_entries_map = {
+    .type = BPF_MAP_TYPE_HASH,
+    .key_size = sizeof(uint32_t),
+    .value_size = sizeof(uint64_t),
+    .max_entries = 2,
+};
 
 SEC("sample_ext") int map_max_entries(sample_program_context_t* ctx)
 {

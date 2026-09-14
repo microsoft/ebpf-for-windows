@@ -621,6 +621,21 @@ vector_of(const ELFIO::section& sec)
     return {(T*)data, (T*)(data + size)};
 }
 
+static uint32_t
+get_uint_value_for_btf_map(
+    const libbtf::btf_type_data& btf_data, libbtf::btf_type_id id, const char* member_name, uint32_t default_value)
+{
+    auto map_struct = btf_data.get_kind_type<libbtf::btf_kind_struct>(id);
+    for (const auto& member : map_struct.members) {
+        if (member.name == member_name) {
+            // This should use value_from_BTF__uint from btf_parser.cpp, but it's static.
+            auto value_type_id = btf_data.dereference_pointer(member.type);
+            return btf_data.get_kind_type<libbtf::btf_kind_array>(value_type_id).count_of_elements;
+        }
+    }
+    return default_value;
+}
+
 // Parse a BTF maps section.
 void
 bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
@@ -697,20 +712,13 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
             map_definition.max_entries = map_descriptor.max_entries;
             map_definition.id = map_descriptor.original_fd;
             map_definition.inner_id = map_descriptor.inner_map_fd != -1 ? map_descriptor.inner_map_fd : 0;
+            map_definition.map_flags =
+                get_uint_value_for_btf_map(btf_data.value(), map_descriptor.original_fd, "map_flags", 0);
+            map_definition.pinning = static_cast<ebpf_pin_type_t>(
+                get_uint_value_for_btf_map(btf_data.value(), map_descriptor.original_fd, "pinning", LIBBPF_PIN_NONE));
 
-            // Get pinning data from the BTF data.
             auto map_struct = btf_data->get_kind_type<libbtf::btf_kind_struct>(map_descriptor.original_fd);
             for (const auto& member : map_struct.members) {
-                if (member.name == "pinning") {
-                    // This should use value_from_BTF__uint from btf_parser.cpp, but it's static.
-                    auto pinning_type_id = member.type;
-                    // Dereference the pointer type.
-                    pinning_type_id = btf_data->dereference_pointer(pinning_type_id);
-                    // Get the array type.
-                    auto pinning_type = btf_data->get_kind_type<libbtf::btf_kind_array>(pinning_type_id);
-                    // Value is encoded as the number of elements in the array.
-                    map_definition.pinning = static_cast<ebpf_pin_type_t>(pinning_type.count_of_elements);
-                }
                 // "values" is a variable length array of pointers to values.
                 // Compute the offset of the values array and resize the vector
                 // to hold the initial values.

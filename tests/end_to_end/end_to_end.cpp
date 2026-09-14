@@ -2458,7 +2458,7 @@ _map_reuse_2_test(ebpf_execution_type_t execution_type)
     int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
     REQUIRE(inner_map_fd > 0);
 
-    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd};
+    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd, .map_flags = BPF_F_NO_MAX_ENTRIES};
     int outer_map_fd = bpf_map_create(BPF_MAP_TYPE_HASH_OF_MAPS, nullptr, sizeof(__u32), sizeof(fd_t), 1, &opts);
     REQUIRE(outer_map_fd > 0);
 
@@ -2515,6 +2515,43 @@ _map_reuse_2_test(ebpf_execution_type_t execution_type)
 DECLARE_JIT_TEST_CASES("map_reuse_2", "[end_to_end]", _map_reuse_2_test);
 
 static void
+_map_reuse_map_flags_invalid_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
+    REQUIRE(inner_map_fd > 0);
+
+    // The program's outer map has BPF_F_NO_MAX_ENTRIES, but this pinned map does not.
+    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd};
+    int outer_map_fd = bpf_map_create(BPF_MAP_TYPE_HASH_OF_MAPS, nullptr, sizeof(__u32), sizeof(fd_t), 1, &opts);
+    REQUIRE(outer_map_fd > 0);
+    REQUIRE(bpf_obj_pin(outer_map_fd, "/ebpf/global/outer_map") == 0);
+
+    int port_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
+    REQUIRE(port_map_fd > 0);
+    REQUIRE(bpf_obj_pin(port_map_fd, "/ebpf/global/port_map") == 0);
+
+    bpf_object_ptr object;
+    fd_t program_fd;
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_2_um.dll" : "map_reuse_2.o");
+    REQUIRE(
+        ebpf_program_load(file_name, BPF_PROG_TYPE_SAMPLE, execution_type, &object, &program_fd, nullptr) == -EINVAL);
+
+    Platform::_close(outer_map_fd);
+    Platform::_close(inner_map_fd);
+    Platform::_close(port_map_fd);
+
+    REQUIRE(ebpf_object_unpin("/ebpf/global/outer_map") == EBPF_SUCCESS);
+    REQUIRE(ebpf_object_unpin("/ebpf/global/port_map") == EBPF_SUCCESS);
+}
+
+DECLARE_JIT_TEST_CASES("map_reuse_map_flags_invalid", "[end_to_end][map_reuse]", _map_reuse_map_flags_invalid_test);
+
+static void
 _map_reuse_3_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
@@ -2528,7 +2565,7 @@ _map_reuse_3_test(ebpf_execution_type_t execution_type)
     int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
     REQUIRE(inner_map_fd > 0);
 
-    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd};
+    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd, .map_flags = BPF_F_NO_MAX_ENTRIES};
     int outer_map_fd = bpf_map_create(BPF_MAP_TYPE_HASH_OF_MAPS, nullptr, sizeof(__u32), sizeof(fd_t), 1, &opts);
     REQUIRE(outer_map_fd > 0);
 
