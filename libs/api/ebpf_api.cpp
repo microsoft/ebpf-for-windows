@@ -203,6 +203,10 @@ CATCH_NO_MEMORY_FD
 inline static ebpf_handle_t
 _get_handle_from_file_descriptor(fd_t fd) NO_EXCEPT_TRY
 {
+    if (fd < 0) {
+        return ebpf_handle_invalid;
+    }
+
     return Platform::_get_osfhandle(fd);
 }
 CATCH_NO_MEMORY_FD
@@ -539,9 +543,6 @@ _ebpf_map_lookup_element_helper(fd_t map_fd, bool find_and_delete, _In_opt_ cons
     uint32_t max_entries = 0;
     uint32_t type;
 
-    ebpf_assert(value);
-    *((uint8_t*)value) = 0;
-
     map_handle = _get_handle_from_file_descriptor(map_fd);
     if (map_handle == ebpf_handle_invalid) {
         result = EBPF_INVALID_FD;
@@ -553,7 +554,18 @@ _ebpf_map_lookup_element_helper(fd_t map_fd, bool find_and_delete, _In_opt_ cons
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
-    if ((key == nullptr) != (key_size == 0)) {
+
+    if (value == nullptr) {
+        result = EBPF_INVALID_POINTER;
+        goto Exit;
+    }
+    *((uint8_t*)value) = 0;
+
+    if ((key == nullptr) && (key_size != 0)) {
+        result = EBPF_INVALID_POINTER;
+        goto Exit;
+    }
+    if ((key != nullptr) && (key_size == 0)) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -796,7 +808,6 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_map_lookup_element(fd_t map_fd, _In_opt_ const void* key, _Out_ void* value) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
-    ebpf_assert(value);
     auto result = _ebpf_map_lookup_element_helper(map_fd, false, key, value);
     EBPF_RETURN_RESULT(result);
 }
@@ -1078,8 +1089,6 @@ ebpf_map_update_element(fd_t map_fd, _In_opt_ const void* key, _In_ const void* 
     uint32_t max_entries = 0;
     uint32_t type;
 
-    ebpf_assert(value);
-
     switch (flags) {
     case EBPF_ANY:
     case EBPF_NOEXIST:
@@ -1099,7 +1108,15 @@ ebpf_map_update_element(fd_t map_fd, _In_opt_ const void* key, _In_ const void* 
     if (result != EBPF_SUCCESS) {
         EBPF_RETURN_RESULT(result);
     }
-    if ((key == nullptr) != (key_size == 0)) {
+
+    if (value == nullptr) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_POINTER);
+    }
+
+    if ((key == nullptr) && (key_size != 0)) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_POINTER);
+    }
+    if ((key != nullptr) && (key_size == 0)) {
         EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
     assert(value_size != 0);
@@ -1223,8 +1240,6 @@ ebpf_map_delete_element(fd_t map_fd, _In_ const void* key) NO_EXCEPT_TRY
     ebpf_protocol_buffer_t request_buffer;
     ebpf_operation_map_delete_element_request_t* request;
 
-    ebpf_assert(key);
-
     map_handle = _get_handle_from_file_descriptor(map_fd);
     if (map_handle == ebpf_handle_invalid) {
         result = EBPF_INVALID_FD;
@@ -1238,6 +1253,10 @@ ebpf_map_delete_element(fd_t map_fd, _In_ const void* key) NO_EXCEPT_TRY
     }
     if (key_size == 0) {
         result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+    if (key == nullptr) {
+        result = EBPF_INVALID_POINTER;
         goto Exit;
     }
     assert(value_size != 0);
@@ -1414,11 +1433,6 @@ ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_opt_ 
     uint32_t type;
     ebpf_handle_t map_handle = ebpf_handle_invalid;
 
-    if (next_key == NULL) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
-
     map_handle = _get_handle_from_file_descriptor(map_fd);
     if (map_handle == ebpf_handle_invalid) {
         result = EBPF_INVALID_FD;
@@ -1432,6 +1446,10 @@ ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_opt_ 
     }
     if (key_size == 0) {
         result = EBPF_OPERATION_NOT_SUPPORTED;
+        goto Exit;
+    }
+    if (next_key == NULL) {
+        result = EBPF_INVALID_POINTER;
         goto Exit;
     }
     assert(value_size != 0);
