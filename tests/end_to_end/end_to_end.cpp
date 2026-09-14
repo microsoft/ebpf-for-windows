@@ -2458,7 +2458,7 @@ _map_reuse_2_test(ebpf_execution_type_t execution_type)
     int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
     REQUIRE(inner_map_fd > 0);
 
-    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd};
+    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd, .map_flags = BPF_F_NO_MAX_ENTRIES};
     int outer_map_fd = bpf_map_create(BPF_MAP_TYPE_HASH_OF_MAPS, nullptr, sizeof(__u32), sizeof(fd_t), 1, &opts);
     REQUIRE(outer_map_fd > 0);
 
@@ -2515,6 +2515,43 @@ _map_reuse_2_test(ebpf_execution_type_t execution_type)
 DECLARE_JIT_TEST_CASES("map_reuse_2", "[end_to_end]", _map_reuse_2_test);
 
 static void
+_map_reuse_map_flags_invalid_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
+    REQUIRE(inner_map_fd > 0);
+
+    // The program's outer map has BPF_F_NO_MAX_ENTRIES, but this pinned map does not.
+    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd};
+    int outer_map_fd = bpf_map_create(BPF_MAP_TYPE_HASH_OF_MAPS, nullptr, sizeof(__u32), sizeof(fd_t), 1, &opts);
+    REQUIRE(outer_map_fd > 0);
+    REQUIRE(bpf_obj_pin(outer_map_fd, "/ebpf/global/outer_map") == 0);
+
+    int port_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
+    REQUIRE(port_map_fd > 0);
+    REQUIRE(bpf_obj_pin(port_map_fd, "/ebpf/global/port_map") == 0);
+
+    bpf_object_ptr object;
+    fd_t program_fd;
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_2_um.dll" : "map_reuse_2.o");
+    REQUIRE(
+        ebpf_program_load(file_name, BPF_PROG_TYPE_SAMPLE, execution_type, &object, &program_fd, nullptr) == -EINVAL);
+
+    Platform::_close(outer_map_fd);
+    Platform::_close(inner_map_fd);
+    Platform::_close(port_map_fd);
+
+    REQUIRE(ebpf_object_unpin("/ebpf/global/outer_map") == EBPF_SUCCESS);
+    REQUIRE(ebpf_object_unpin("/ebpf/global/port_map") == EBPF_SUCCESS);
+}
+
+DECLARE_JIT_TEST_CASES("map_reuse_map_flags_invalid", "[end_to_end][map_reuse]", _map_reuse_map_flags_invalid_test);
+
+static void
 _map_reuse_3_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
@@ -2528,7 +2565,7 @@ _map_reuse_3_test(ebpf_execution_type_t execution_type)
     int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
     REQUIRE(inner_map_fd > 0);
 
-    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd};
+    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd, .map_flags = BPF_F_NO_MAX_ENTRIES};
     int outer_map_fd = bpf_map_create(BPF_MAP_TYPE_HASH_OF_MAPS, nullptr, sizeof(__u32), sizeof(fd_t), 1, &opts);
     REQUIRE(outer_map_fd > 0);
 
@@ -3500,8 +3537,9 @@ TEST_CASE("multiple_map_insert", "[close_cleanup]")
 }
 
 void
-test_no_limit_map_entries(ebpf_map_type_t type, bool max_entries_limited)
+test_map_entries_limit(ebpf_map_type_t type, bool no_max_entries)
 {
+    CAPTURE(type, no_max_entries);
     uint32_t max_entries = 2;
     fd_t inner_map_fd = ebpf_fd_invalid;
     fd_t map_fd = ebpf_fd_invalid;
@@ -3522,23 +3560,30 @@ test_no_limit_map_entries(ebpf_map_type_t type, bool max_entries_limited)
     } lpm_trie_key_t;
 
     lpm_trie_key_t trie_key = {0};
+    bpf_map_create_opts opts = {sizeof(opts)};
+    opts.map_flags = no_max_entries ? BPF_F_NO_MAX_ENTRIES : 0;
 
     if (IS_NESTED_MAP(type)) {
         // First create and pin the maps manually.
         inner_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(int32_t), sizeof(int32_t), 1, nullptr);
         REQUIRE(inner_map_fd > 0);
 
-        bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd};
+        opts.inner_map_fd = (uint32_t)inner_map_fd;
         key_size = sizeof(int32_t);
         value_size = sizeof(fd_t);
-        map_fd = bpf_map_create(BPF_MAP_TYPE_HASH_OF_MAPS, nullptr, key_size, value_size, 1, &opts);
+        map_fd = bpf_map_create(BPF_MAP_TYPE_HASH_OF_MAPS, nullptr, key_size, value_size, max_entries, &opts);
         REQUIRE(map_fd > 0);
     } else {
         key_size = IS_LPM_MAP(type) ? sizeof(lpm_trie_key_t) : sizeof(int32_t);
         value_size = sizeof(int32_t);
-        map_fd = bpf_map_create(type, nullptr, key_size, value_size, max_entries, nullptr);
+        map_fd = bpf_map_create(type, nullptr, key_size, value_size, max_entries, &opts);
         REQUIRE(map_fd > 0);
     }
+
+    bpf_map_info map_info{};
+    uint32_t map_info_size = sizeof(map_info);
+    REQUIRE(bpf_obj_get_info_by_fd(map_fd, &map_info, &map_info_size) == 0);
+    REQUIRE(map_info.map_flags == opts.map_flags);
 
     // Update value_size for percpu maps for read / update operations.
     if (IS_PERCPU_MAP(type)) {
@@ -3575,12 +3620,16 @@ test_no_limit_map_entries(ebpf_map_type_t type, bool max_entries_limited)
     }
 
     // In case of LRU_HASH, the insert will succeed, but the oldest entry will be removed.
-    int expected_error = (!max_entries_limited || IS_LRU_MAP(type)) ? 0 : -ENOSPC;
+    int expected_error = (no_max_entries || IS_LRU_MAP(type)) ? 0 : -ENOSPC;
     key = compute_key(&max_entries);
-    REQUIRE(bpf_map_update_elem(map_fd, key, value, 0) == (max_entries_limited ? expected_error : 0));
+    REQUIRE(bpf_map_update_elem(map_fd, key, value, 0) == expected_error);
+
+    std::vector<uint8_t> lookup_value(value_size);
+    int lookup_result = bpf_map_lookup_elem(map_fd, key, lookup_value.data());
+    REQUIRE((lookup_result == 0) == (expected_error == 0));
 
     // In case of LRU_HASH, check that the number of entries is still `max_entries`.
-    if (IS_LRU_MAP(type) && max_entries_limited) {
+    if (IS_LRU_MAP(type)) {
         uint32_t entries_count = 0;
         lpm_trie_key_t local_key = {0};
         void* old_key = nullptr;
@@ -3600,21 +3649,13 @@ TEST_CASE("test_map_entries_limit", "[end_to_end]")
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
 
-    // The below hash table based map types do not have a limit on the number of entries.
-    // 1. BPF_MAP_TYPE_HASH
-    // 2. BPF_MAP_TYPE_PERCPU_HASH
-    // 3. BPF_MAP_TYPE_HASH_OF_MAPS
-    // 4. BPF_MAP_TYPE_LPM_TRIE
-    test_no_limit_map_entries(BPF_MAP_TYPE_HASH, false);
-    test_no_limit_map_entries(BPF_MAP_TYPE_PERCPU_HASH, false);
-    test_no_limit_map_entries(BPF_MAP_TYPE_HASH_OF_MAPS, false);
-    test_no_limit_map_entries(BPF_MAP_TYPE_LPM_TRIE, false);
+    for (auto type : {BPF_MAP_TYPE_HASH, BPF_MAP_TYPE_PERCPU_HASH, BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_LPM_TRIE}) {
+        test_map_entries_limit(type, false);
+        test_map_entries_limit(type, true);
+    }
 
-    // The below hash table based map types have a limit on the number of entries.
-    // 1. BPF_MAP_TYPE_LRU_HASH
-    // 2. BPF_MAP_TYPE_LRU_PERCPU_HASH
-    test_no_limit_map_entries(BPF_MAP_TYPE_LRU_HASH, true);
-    test_no_limit_map_entries(BPF_MAP_TYPE_LRU_PERCPU_HASH, true);
+    test_map_entries_limit(BPF_MAP_TYPE_LRU_HASH, false);
+    test_map_entries_limit(BPF_MAP_TYPE_LRU_PERCPU_HASH, false);
 }
 
 static void
