@@ -61,6 +61,7 @@ on:
         default: 'x64'
 
 permissions:
+  actions: read  # Required to check whether crash dump artifacts were uploaded before creating issues.
   checks: read  # Required by fountainhead/action-wait-for-check to wait for another GitHub check to complete.
   contents: read  # Required by actions/checkout to fetch code.
   issues: write  # Required to create issues.
@@ -176,15 +177,24 @@ jobs:
           echo "C:\Program Files\OpenCppCoverage" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           if (-not (Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) { throw "OpenCppCoverage install failed" }
 
-      - name: Configure Windows Error Reporting to make a local copy of any crashes that occur.
+      - name: Configure Windows Error Reporting to make a local copy of test process crashes.
         id: configure_windows_error_reporting
         if: (inputs.gather_dumps == true) && (steps.skip_check.outputs.should_skip != 'true')
         run: |
           mkdir ${{env.DUMP_PATH}}
-          New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -ErrorAction SilentlyContinue
-          New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpType" -Value 2 -PropertyType DWord -ErrorAction SilentlyContinue
+          Remove-Item -Path "${{env.DUMP_PATH}}\*.dmp" -Force -ErrorAction SilentlyContinue
+          $test_executable = Split-Path -Leaf (($env:TEST_COMMAND -split '\s+', 2)[0].Trim('"', "'"))
+          if ([System.IO.Path]::GetExtension($test_executable) -eq '') {
+            $test_executable = "$test_executable.exe"
+          }
+          $local_dumps_root = "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps"
+          $local_dumps_path = "$local_dumps_root\$test_executable"
+          New-Item -Path $local_dumps_root -Force -ErrorAction SilentlyContinue
+          Remove-ItemProperty -Path $local_dumps_root -Name DumpType, DumpFolder -ErrorAction SilentlyContinue
+          New-Item -Path $local_dumps_path -Force -ErrorAction SilentlyContinue
+          New-ItemProperty -Path $local_dumps_path -Name "DumpType" -Value 2 -PropertyType DWord -ErrorAction SilentlyContinue
           $dump_path = "${{env.DUMP_PATH}}".Replace("/", "\")
-          New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpFolder" -Value "$dump_path" -PropertyType ExpandString -ErrorAction SilentlyContinue
+          New-ItemProperty -Path $local_dumps_path -Name "DumpFolder" -Value "$dump_path" -PropertyType ExpandString -ErrorAction SilentlyContinue
 
       - name: Remove existing artifacts
         if: (inputs.environment == 'ebpf_cicd_tests_ws2019' || inputs.environment == 'ebpf_cicd_tests_ws2022' || inputs.environment == 'ebpf_cicd_perf_ws2022') && (steps.skip_check.outputs.should_skip != 'true')
@@ -537,15 +547,33 @@ jobs:
             [Codebase](https://github.com/${{ github.repository }}/tree/${{ github.sha }})
             Test name - `${{ inputs.name }}`
             Event - ${{ github.event_name }}
+          CRASH_DUMP_ARTIFACT_PREFIX: Crash-Dumps-${{inputs.name}}-${{inputs.build_platform}}-
+          GATHER_DUMPS: ${{inputs.gather_dumps}}
           LABELS: bug,ci/cd${{ github.event_name == 'merge_group' && ',merge-queue-regression' || '' }}
 
         with:
           script: |
             const owner = process.env.GITHUB_REPOSITORY.split('/')[0]
             const repo = process.env.GITHUB_REPOSITORY.split('/')[1]
-            const body = process.env.BODY;
+            let body = process.env.BODY;
             const title = process.env.TITLE;
             const labels = process.env.LABELS;
+            if (process.env.GATHER_DUMPS === 'true') {
+              const artifact_prefix = process.env.CRASH_DUMP_ARTIFACT_PREFIX;
+              const artifacts = await github.paginate(github.rest.actions.listWorkflowRunArtifacts, {
+                owner,
+                repo,
+                run_id: context.runId,
+              });
+              const crash_dump_artifacts = artifacts.filter(
+                artifact => artifact.name.startsWith(artifact_prefix) && !artifact.expired
+              );
+              if (crash_dump_artifacts.length === 0) {
+                console.log(`No crash dump artifacts found with prefix ${artifact_prefix}; skipping issue creation.`);
+                return;
+              }
+              body += `\nCrash dump artifact(s) - ${crash_dump_artifacts.map(artifact => artifact.name).join(', ')}\n`;
+            }
             const label_array = labels ? labels.split(',') : [];
             console.log(label_array);
             // Get all issues that have these labels.
