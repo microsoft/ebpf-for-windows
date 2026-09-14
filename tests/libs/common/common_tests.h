@@ -17,6 +17,30 @@
 #include <crtdbg.h>
 #include <future>
 #include <set>
+#include <type_traits>
+
+// Map type tags for use with Catch2 TEMPLATE_TEST_CASE.
+using hash_map_t = std::integral_constant<bpf_map_type, BPF_MAP_TYPE_HASH>;
+using array_map_t = std::integral_constant<bpf_map_type, BPF_MAP_TYPE_ARRAY>;
+using percpu_hash_map_t = std::integral_constant<bpf_map_type, BPF_MAP_TYPE_PERCPU_HASH>;
+using percpu_array_map_t = std::integral_constant<bpf_map_type, BPF_MAP_TYPE_PERCPU_ARRAY>;
+using lru_hash_map_t = std::integral_constant<bpf_map_type, BPF_MAP_TYPE_LRU_HASH>;
+using lru_percpu_hash_map_t = std::integral_constant<bpf_map_type, BPF_MAP_TYPE_LRU_PERCPU_HASH>;
+using lpm_trie_map_t = std::integral_constant<bpf_map_type, BPF_MAP_TYPE_LPM_TRIE>;
+using queue_map_t = std::integral_constant<bpf_map_type, BPF_MAP_TYPE_QUEUE>;
+using stack_map_t = std::integral_constant<bpf_map_type, BPF_MAP_TYPE_STACK>;
+using ringbuf_map_t = std::integral_constant<bpf_map_type, BPF_MAP_TYPE_RINGBUF>;
+using perf_event_array_map_t = std::integral_constant<bpf_map_type, BPF_MAP_TYPE_PERF_EVENT_ARRAY>;
+using array_of_maps_t = std::integral_constant<bpf_map_type, BPF_MAP_TYPE_ARRAY_OF_MAPS>;
+using hash_of_maps_t = std::integral_constant<bpf_map_type, BPF_MAP_TYPE_HASH_OF_MAPS>;
+
+// clang-format off
+#define MAP_OF_MAPS_TYPES array_of_maps_t, hash_of_maps_t
+
+#define ALL_INNER_MAP_TYPES                                                                                            \
+    hash_map_t, array_map_t, percpu_hash_map_t, percpu_array_map_t, lru_hash_map_t, lru_percpu_hash_map_t,            \
+        lpm_trie_map_t, queue_map_t, stack_map_t, ringbuf_map_t, perf_event_array_map_t
+// clang-format on
 
 #define RING_BUFFER_TEST_EVENT_COUNT 10
 #define PERF_BUFFER_TEST_EVENT_COUNT 10
