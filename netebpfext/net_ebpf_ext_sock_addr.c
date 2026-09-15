@@ -2994,6 +2994,8 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
                 EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
                 "cgroup_sock_addr eBPF program returned REJECT verdict.");
         }
+        // The destination rewrite was not applied, so cache the rejection using the original connection tuple.
+        *sock_addr_ctx = sock_addr_ctx_original;
         goto Exit;
     }
 
