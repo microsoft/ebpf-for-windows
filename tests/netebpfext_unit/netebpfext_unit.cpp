@@ -34,7 +34,8 @@ typedef enum _sock_addr_test_action
     SOCK_ADDR_TEST_ACTION_BLOCK,
     SOCK_ADDR_TEST_ACTION_REDIRECT,
     SOCK_ADDR_TEST_ACTION_FAILURE,
-    SOCK_ADDR_TEST_ACTION_ROUND_ROBIN
+    SOCK_ADDR_TEST_ACTION_ROUND_ROBIN,
+    SOCK_ADDR_TEST_ACTION_REDIRECT_REJECT
 } sock_addr_test_action_t;
 
 _Must_inspect_result_ ebpf_result_t
@@ -430,6 +431,7 @@ netebpfext_unit_invoke_sock_addr_program(
         *result = BPF_SOCK_ADDR_VERDICT_REJECT;
         break;
     case SOCK_ADDR_TEST_ACTION_REDIRECT:
+    case SOCK_ADDR_TEST_ACTION_REDIRECT_REJECT:
         sock_addr_context->user_port++;
         if (sock_addr_context->family == AF_INET) {
             sock_addr_context->user_ip4++;
@@ -437,7 +439,8 @@ netebpfext_unit_invoke_sock_addr_program(
             auto first_octet = &sock_addr_context->user_ip6[0];
             (*first_octet)++;
         }
-        *result = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+        *result = (action == SOCK_ADDR_TEST_ACTION_REDIRECT) ? BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT
+                                                             : BPF_SOCK_ADDR_VERDICT_REJECT;
         break;
     case SOCK_ADDR_TEST_ACTION_FAILURE:
         return_result = EBPF_FAILED;
@@ -524,7 +527,19 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
     result = helper.test_cgroup_inet6_connect(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
+    // A rejected destination rewrite is not applied, so CONNECT_AUTHORIZATION must find the cached verdict using the
+    // original destination.
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_REDIRECT_REJECT;
+
+    result = helper.test_cgroup_inet4_connect(&parameters);
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
+    result = helper.test_cgroup_inet6_connect(&parameters);
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
     // Test redirect for recv_accept.
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_REDIRECT;
+
     result = helper.test_cgroup_inet4_recv_accept(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
