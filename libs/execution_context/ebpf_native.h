@@ -62,6 +62,8 @@ extern "C"
      *
      * @param[in] module_id Identifier of the native eBPF module to load programs
      *  and maps from.
+     * @param[in] pin_root_path Optional root path (UTF-8, null terminated) used as the prefix when
+     *  pinning maps declared with LIBBPF_PIN_BY_NAME. If NULL, the default pin root path is used.
      * @param[in] count_of_map_handles Count of maps in the native module.
      * @param[out] map_handles Array of handles of the maps created.
      * @param[in] count_of_program_handles Count of programs in the native module.
@@ -73,10 +75,12 @@ extern "C"
      * @retval EBPF_OBJECT_NOT_FOUND No native module exists with that module ID.
      * @retval EBPF_OBJECT_ALREADY_EXISTS Native module for this module ID is already
      *  loaded.
+     * @retval EBPF_INVALID_ARGUMENT The pin root path is invalid or too long.
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_native_load_programs(
         _In_ const GUID* module_id,
+        _In_opt_z_ const char* pin_root_path,
         size_t count_of_map_handles,
         _Out_writes_opt_(count_of_map_handles) ebpf_handle_t* map_handles,
         size_t count_of_program_handles,

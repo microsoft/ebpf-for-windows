@@ -475,6 +475,10 @@ typedef struct _ebpf_operation_load_native_programs_request
 {
     struct _ebpf_operation_header header;
     GUID module_id;
+    // Optional pin root path (UTF-8, not null terminated) used as the prefix for maps declared with
+    // LIBBPF_PIN_BY_NAME. A zero-length path means the default pin root path is used. Older clients
+    // omit this field entirely, which is equivalent to a zero-length path.
+    uint8_t pin_root_path[1];
 } ebpf_operation_load_native_programs_request_t;
 
 typedef struct _ebpf_program_information

@@ -651,6 +651,33 @@ _ebpf_core_protocol_load_native_programs(
     size_t required_reply_length = 0;
     size_t map_handles_size = 0;
     size_t program_handles_size = 0;
+    size_t pin_root_path_length = 0;
+    char pin_root_path[EBPF_MAX_PIN_PATH_LENGTH];
+
+    // Extract the optional pin root path. Older clients omit this field entirely, in which case the
+    // length is zero and the default pin root path is used by ebpf_native_load_programs.
+    result = ebpf_safe_size_t_subtract(
+        request->header.length,
+        EBPF_OFFSET_OF(ebpf_operation_load_native_programs_request_t, pin_root_path),
+        &pin_root_path_length);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    if (pin_root_path_length >= EBPF_MAX_PIN_PATH_LENGTH) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    // The path on the wire is not null terminated, so copy it into a null terminated buffer.
+    memcpy(pin_root_path, request->pin_root_path, pin_root_path_length);
+    pin_root_path[pin_root_path_length] = '\0';
+
+    // Embedded null characters would silently truncate the path.
+    if (strlen(pin_root_path) != pin_root_path_length) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
 
     // Validate that the reply length is sufficient.
     result = ebpf_native_get_count_of_maps(&request->module_id, &count_of_map_handles);
@@ -716,7 +743,12 @@ _ebpf_core_protocol_load_native_programs(
     }
 
     result = ebpf_native_load_programs(
-        &request->module_id, count_of_map_handles, map_handles, count_of_program_handles, program_handles);
+        &request->module_id,
+        (pin_root_path_length > 0) ? pin_root_path : NULL,
+        count_of_map_handles,
+        map_handles,
+        count_of_program_handles,
+        program_handles);
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
@@ -2981,7 +3013,8 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY_ASYNC(map_async_query, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(map_write_data, data, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_FIXED_REPLY(load_native_module, data, PROTOCOL_NATIVE_MODE),
-    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_VARIABLE_REPLY(load_native_programs, data, PROTOCOL_NATIVE_MODE),
+    DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(
+        load_native_programs, pin_root_path, data, PROTOCOL_NATIVE_MODE),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC(program_test_run, data, data, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_FIXED_REPLY(map_update_element_batch, data, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_FIXED_REPLY(map_delete_element_batch, keys, PROTOCOL_ALL_MODES),
