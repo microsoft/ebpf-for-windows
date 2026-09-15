@@ -134,3 +134,30 @@ typedef struct _my_map {
 When a program is loaded referencing this map, eBPF will create a map automatically.
 The eBPF will create the pinned map following the naming, "/ebpf/global/<map_name>".
 For the above example, the string referencing the map is "/ebpf/global/my_map".
+
+### Custom pin root paths
+
+The default pin root path of "/ebpf/global" can be overridden by setting the
+`pin_root_path` field of `bpf_object_open_opts` when calling
+`bpf_object__open_file()`.  The map is then pinned at
+"<pin_root_path>/<map_name>" instead.  For example, opening the object above
+with a `pin_root_path` of "/custompath/global" pins the map at
+"/custompath/global/my_map".
+
+Note that "/ebpf/global/" is treated as an alias for the pin root, so
+"/ebpf/global/my_map" and "my_map" both canonicalize to the same path
+("BPF:\my_map").  A custom root is therefore a genuinely distinct namespace
+rather than a prefix layered on top of the default one.
+
+Which component performs the pinning depends on the execution type:
+
+* For JIT and interpreted programs, `ebpfapi.dll` creates and pins the maps in
+  user mode.
+* For native programs, `ebpfcore.sys` creates and pins the maps in kernel mode.
+  The pin root path is passed down to the driver as part of the
+  `EBPF_OPERATION_LOAD_NATIVE_PROGRAMS` request.  A request that omits the path
+  (as sent by older versions of `ebpfapi.dll`) uses the default pin root path.
+
+Both paths apply the same canonicalization, so a given `pin_root_path` resolves
+to the same pin path regardless of execution type.
+
