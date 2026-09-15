@@ -430,6 +430,10 @@ typedef class _epoch_hot_add_synchronize_scope
 TEST_CASE("hash table creation does not require random initialization", "[platform]")
 {
     REQUIRE(ebpf_platform_initiate() == EBPF_SUCCESS);
+    struct platform_scope_exit
+    {
+        ~platform_scope_exit() { ebpf_platform_terminate(); }
+    } platform_guard;
 
     const ebpf_hash_table_creation_options_t options = {
         .key_size = sizeof(uint32_t),
@@ -454,9 +458,6 @@ TEST_CASE("hash table creation does not require random initialization", "[platfo
     uint8_t* returned_value = nullptr;
     REQUIRE(ebpf_hash_table_find(table.get(), reinterpret_cast<const uint8_t*>(&key), &returned_value) == EBPF_SUCCESS);
     REQUIRE(*reinterpret_cast<uint32_t*>(returned_value) == value);
-
-    table.reset();
-    ebpf_platform_terminate();
 }
 
 TEST_CASE("hash_table_test", "[platform]")
