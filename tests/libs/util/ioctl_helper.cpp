@@ -90,28 +90,40 @@ test_ioctl_map_write(ebpf_handle_t map_handle, _In_reads_bytes_(data_length) con
 uint32_t
 test_ioctl_load_native_programs(
     _In_ const GUID* module_id,
+    _In_opt_z_ const char* pin_root_path,
     size_t count_of_maps,
     _Out_writes_(count_of_maps) ebpf_handle_t* map_handles,
     size_t count_of_programs,
     _Out_writes_(count_of_programs) ebpf_handle_t* program_handles)
 {
     uint32_t error = ERROR_SUCCESS;
+    ebpf_protocol_buffer_t request_buffer;
     ebpf_protocol_buffer_t reply_buffer;
-    ebpf_operation_load_native_programs_request_t request;
+    ebpf_operation_load_native_programs_request_t* request;
     ebpf_operation_load_native_programs_reply_t* reply;
     size_t map_handles_size = count_of_maps * sizeof(ebpf_handle_t);
     size_t program_handles_size = count_of_programs * sizeof(ebpf_handle_t);
     size_t handles_size = map_handles_size + program_handles_size;
+    size_t pin_root_path_size = pin_root_path ? strlen(pin_root_path) : 0;
+    size_t request_size = offsetof(ebpf_operation_load_native_programs_request_t, pin_root_path) + pin_root_path_size;
 
     size_t buffer_size = offsetof(ebpf_operation_load_native_programs_reply_t, data) + handles_size;
+    request_buffer.resize(request_size);
     reply_buffer.resize(buffer_size);
 
+    request = reinterpret_cast<ebpf_operation_load_native_programs_request_t*>(request_buffer.data());
     reply = reinterpret_cast<ebpf_operation_load_native_programs_reply_t*>(reply_buffer.data());
-    request.header.id = EBPF_OPERATION_LOAD_NATIVE_PROGRAMS;
-    request.header.length = sizeof(ebpf_operation_load_native_programs_request_t);
-    request.module_id = *module_id;
+    request->header.id = EBPF_OPERATION_LOAD_NATIVE_PROGRAMS;
+    request->header.length = static_cast<uint16_t>(request_size);
+    request->module_id = *module_id;
+    if (pin_root_path_size > 0) {
+        memcpy(
+            request_buffer.data() + offsetof(ebpf_operation_load_native_programs_request_t, pin_root_path),
+            pin_root_path,
+            pin_root_path_size);
+    }
 
-    error = invoke_ioctl(request, reply_buffer);
+    error = invoke_ioctl(request_buffer, reply_buffer);
     if (error != ERROR_SUCCESS) {
         goto Done;
     }

@@ -14,6 +14,7 @@ test_ioctl_load_native_module(
 uint32_t
 test_ioctl_load_native_programs(
     _In_ const GUID* module_id,
+    _In_opt_z_ const char* pin_root_path,
     size_t count_of_maps,
     _Out_writes_(count_of_maps) ebpf_handle_t* map_handles,
     size_t count_of_programs,
