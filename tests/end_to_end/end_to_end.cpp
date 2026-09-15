@@ -2398,6 +2398,151 @@ _auto_pinned_maps_test(ebpf_execution_type_t execution_type)
 
 DECLARE_JIT_TEST_CASES("auto_pinned_maps", "[end_to_end]", _auto_pinned_maps_test);
 
+// This test validates that a custom pin_root_path supplied via bpf_object_open_opts is honored for
+// both the JIT/interpret path (where ebpfapi performs the pinning) and the native path (where
+// ebpfcore performs the pinning on behalf of the caller).
+static void
+_auto_pinned_maps_custom_path_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_um.dll" : "map_reuse.o");
+
+    struct bpf_object_open_opts opts = {0};
+    opts.pin_root_path = "/custompath/global";
+    bpf_object_ptr object;
+    {
+        struct bpf_object* local_object = bpf_object__open_file(file_name, &opts);
+        REQUIRE(local_object != nullptr);
+        object.reset(local_object);
+    }
+
+    // Load the program.
+    REQUIRE(bpf_object__load(object.get()) == 0);
+
+    struct bpf_program* program = bpf_object__find_program_by_name(object.get(), "lookup_update");
+    REQUIRE(program != nullptr);
+
+    // Attach should now succeed.
+    bpf_link_ptr link;
+    {
+        struct bpf_link* local_link = bpf_program__attach(program);
+        REQUIRE(local_link != nullptr);
+        link.reset(local_link);
+    }
+
+    fd_t outer_map_fd = bpf_obj_get("/custompath/global/outer_map");
+    REQUIRE(outer_map_fd > 0);
+
+    // The maps must not also be pinned under the default root path.
+    REQUIRE(bpf_obj_get("/ebpf/global/outer_map") < 0);
+    REQUIRE(bpf_obj_get("/ebpf/global/port_map") < 0);
+
+    // The pinned state must be reflected on the map object.
+    struct bpf_map* outer_map = bpf_object__find_map_by_name(object.get(), "outer_map");
+    REQUIRE(outer_map != nullptr);
+    REQUIRE(bpf_map__is_pinned(outer_map));
+
+    int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
+    REQUIRE(inner_map_fd > 0);
+
+    __u32 outer_key = 0;
+    int error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
+    REQUIRE(error == 0);
+
+    // Add an entry in the inner map.
+    __u32 key = 0;
+    __u32 value = 200;
+    error = bpf_map_update_elem(inner_map_fd, &key, &value, BPF_ANY);
+    REQUIRE(error == 0);
+
+    fd_t port_map_fd = bpf_obj_get("/custompath/global/port_map");
+    REQUIRE(port_map_fd > 0);
+
+    INITIALIZE_SAMPLE_CONTEXT
+    uint32_t hook_result = 0;
+
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == 200);
+
+    key = 0;
+    __u32 port_map_value;
+    REQUIRE(bpf_map_lookup_elem(port_map_fd, &key, &port_map_value) == EBPF_SUCCESS);
+    REQUIRE(port_map_value == 200);
+
+    REQUIRE(get_total_map_count() == 4);
+
+    Platform::_close(outer_map_fd);
+    Platform::_close(inner_map_fd);
+    Platform::_close(port_map_fd);
+
+    REQUIRE(ebpf_object_unpin("/custompath/global/outer_map") == EBPF_SUCCESS);
+    REQUIRE(ebpf_object_unpin("/custompath/global/port_map") == EBPF_SUCCESS);
+}
+
+DECLARE_JIT_TEST_CASES("auto_pinned_maps_custom_path", "[end_to_end]", _auto_pinned_maps_custom_path_test);
+
+// This test validates that two objects sharing a custom pin root path reuse the same pinned maps.
+static void
+_map_reuse_custom_path_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_um.dll" : "map_reuse.o");
+
+    struct bpf_object_open_opts opts = {0};
+    opts.pin_root_path = "/custompath/global";
+
+    bpf_object_ptr object1;
+    {
+        struct bpf_object* local_object = bpf_object__open_file(file_name, &opts);
+        REQUIRE(local_object != nullptr);
+        object1.reset(local_object);
+    }
+    REQUIRE(bpf_object__load(object1.get()) == 0);
+
+    struct bpf_map* map1 = bpf_object__find_map_by_name(object1.get(), "port_map");
+    REQUIRE(map1 != nullptr);
+    struct bpf_map_info info1 = {0};
+    uint32_t info1_size = sizeof(info1);
+    REQUIRE(bpf_obj_get_info_by_fd(bpf_map__fd(map1), &info1, &info1_size) == 0);
+
+    // A second object opened with the same custom root must reuse the already pinned map.
+    bpf_object_ptr object2;
+    {
+        struct bpf_object* local_object = bpf_object__open_file(file_name, &opts);
+        REQUIRE(local_object != nullptr);
+        object2.reset(local_object);
+    }
+    REQUIRE(bpf_object__load(object2.get()) == 0);
+
+    struct bpf_map* map2 = bpf_object__find_map_by_name(object2.get(), "port_map");
+    REQUIRE(map2 != nullptr);
+    struct bpf_map_info info2 = {0};
+    uint32_t info2_size = sizeof(info2);
+    REQUIRE(bpf_obj_get_info_by_fd(bpf_map__fd(map2), &info2, &info2_size) == 0);
+
+    REQUIRE(info1.id == info2.id);
+
+    object1.reset();
+    object2.reset();
+
+    REQUIRE(ebpf_object_unpin("/custompath/global/outer_map") == EBPF_SUCCESS);
+    REQUIRE(ebpf_object_unpin("/custompath/global/port_map") == EBPF_SUCCESS);
+}
+
+DECLARE_JIT_TEST_CASES("map_reuse_custom_path", "[end_to_end]", _map_reuse_custom_path_test);
+
 static void
 _map_reuse_invalid_test(ebpf_execution_type_t execution_type)
 {
@@ -2716,7 +2861,8 @@ TEST_CASE("load_native_program_negative3", "[end-to-end]")
 
     // Try to load the programs from the same module again. It should fail.
     REQUIRE(
-        test_ioctl_load_native_programs(&provider_module_id, MAP_COUNT, map_handles, PROGRAM_COUNT, program_handles) ==
+        test_ioctl_load_native_programs(
+            &provider_module_id, nullptr, MAP_COUNT, map_handles, PROGRAM_COUNT, program_handles) ==
         ERROR_OBJECT_ALREADY_EXISTS);
 
     bpf_object__close(unique_object.release());
@@ -2724,8 +2870,8 @@ TEST_CASE("load_native_program_negative3", "[end-to-end]")
     // Now that we have closed the object, try to load programs from the same module again. This should
     // fail as the module should now be marked as "unloading".
     REQUIRE(
-        test_ioctl_load_native_programs(&provider_module_id, MAP_COUNT, map_handles, PROGRAM_COUNT, program_handles) !=
-        ERROR_SUCCESS);
+        test_ioctl_load_native_programs(
+            &provider_module_id, nullptr, MAP_COUNT, map_handles, PROGRAM_COUNT, program_handles) != ERROR_SUCCESS);
 }
 
 // Load native module and then try to load programs with incorrect params.
@@ -2748,7 +2894,7 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
 
     // First try to load native program without loading the native module.
     REQUIRE(
-        test_ioctl_load_native_programs(&provider_module_id, 0, nullptr, PROGRAM_COUNT, program_handles) ==
+        test_ioctl_load_native_programs(&provider_module_id, nullptr, 0, nullptr, PROGRAM_COUNT, program_handles) ==
         ERROR_PATH_NOT_FOUND);
 
     // Creating valid service with valid driver.
@@ -2769,7 +2915,7 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
 
     // Try to load the programs by passing wrong map and program handles size. This should fail.
     REQUIRE(
-        test_ioctl_load_native_programs(&provider_module_id, 0, nullptr, PROGRAM_COUNT, program_handles) ==
+        test_ioctl_load_native_programs(&provider_module_id, nullptr, 0, nullptr, PROGRAM_COUNT, program_handles) ==
         ERROR_INVALID_PARAMETER);
 
     // Delete the created service.

@@ -2230,6 +2230,34 @@ TEST_CASE("EBPF_OPERATION_LOAD_NATIVE_MODULE", "[execution_context][negative]")
     REQUIRE(invoke_protocol(EBPF_OPERATION_LOAD_NATIVE_MODULE, request, reply) == EBPF_INVALID_ARGUMENT);
 }
 
+TEST_CASE("EBPF_OPERATION_LOAD_NATIVE_PROGRAMS", "[execution_context][negative]")
+{
+    NEGATIVE_TEST_PROLOG();
+    std::vector<uint8_t> reply(EBPF_OFFSET_OF(ebpf_operation_load_native_programs_reply_t, data));
+
+    // A request with no pin root path is well formed; the module id is what is rejected.
+    std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_load_native_programs_request_t, pin_root_path));
+    auto load_native_programs_request =
+        reinterpret_cast<ebpf_operation_load_native_programs_request_t*>(request.data());
+    load_native_programs_request->module_id = {};
+    REQUIRE(invoke_protocol(EBPF_OPERATION_LOAD_NATIVE_PROGRAMS, request, reply) == EBPF_OBJECT_NOT_FOUND);
+
+    // A pin root path that does not fit in EBPF_MAX_PIN_PATH_LENGTH must be rejected.
+    request.resize(EBPF_OFFSET_OF(ebpf_operation_load_native_programs_request_t, pin_root_path) + 512);
+    load_native_programs_request = reinterpret_cast<ebpf_operation_load_native_programs_request_t*>(request.data());
+    load_native_programs_request->module_id = {};
+    memset(request.data() + EBPF_OFFSET_OF(ebpf_operation_load_native_programs_request_t, pin_root_path), 'a', 512);
+    REQUIRE(invoke_protocol(EBPF_OPERATION_LOAD_NATIVE_PROGRAMS, request, reply) == EBPF_INVALID_ARGUMENT);
+
+    // A pin root path containing an embedded null must be rejected.
+    request.resize(EBPF_OFFSET_OF(ebpf_operation_load_native_programs_request_t, pin_root_path) + 8);
+    load_native_programs_request = reinterpret_cast<ebpf_operation_load_native_programs_request_t*>(request.data());
+    load_native_programs_request->module_id = {};
+    memcpy(
+        request.data() + EBPF_OFFSET_OF(ebpf_operation_load_native_programs_request_t, pin_root_path), "/a\0/bcd", 8);
+    REQUIRE(invoke_protocol(EBPF_OPERATION_LOAD_NATIVE_PROGRAMS, request, reply) == EBPF_INVALID_ARGUMENT);
+}
+
 TEST_CASE("EBPF_OPERATION_MAP_FIND_ELEMENT", "[execution_context][negative]")
 {
     NEGATIVE_TEST_PROLOG();
