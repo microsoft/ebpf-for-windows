@@ -235,27 +235,33 @@ DECLARE_ALL_TEST_CASES("libbpf program", "[libbpf]", _test_libbpf_program);
 static void
 _test_libbpf_subprogram(ebpf_execution_type_t execution_type)
 {
-    _test_helper_libbpf test_helper;
+    _test_helper_end_to_end test_helper;
     test_helper.initialize();
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
     const char* file_name =
-        (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_bpf2bpf_um.dll" : "bindmonitor_bpf2bpf.o");
+        (execution_type == EBPF_EXECUTION_NATIVE ? "bpf2bpf_loop_um.dll" : "bpf2bpf_loop.o");
     struct bpf_object* object = bpf_object__open(file_name);
     REQUIRE(object != nullptr);
 
     // Test bpf_object__find_program_by_name().
-    struct bpf_program* program = bpf_object__find_program_by_name(object, "BindMonitor_Callee");
-    REQUIRE(program == nullptr);
-    program = bpf_object__find_program_by_name(object, "BindMonitor_Caller");
-    REQUIRE(program != nullptr);
+    REQUIRE(bpf_object__find_program_by_name(object, "increment") == nullptr);
+    REQUIRE(bpf_object__find_program_by_name(object, "stack_frame_test") == nullptr);
+    struct bpf_program* loop_program = bpf_object__find_program_by_name(object, "caller_with_loop");
+    REQUIRE(loop_program != nullptr);
+    struct bpf_program* stack_program = bpf_object__find_program_by_name(object, "stack_frame_test_entry");
+    REQUIRE(stack_program != nullptr);
 
     // Test bpf_object__next_program().
-    REQUIRE(bpf_object__next_program(object, program) == nullptr);
-    REQUIRE(bpf_object__next_program(object, nullptr) == program);
+    REQUIRE(bpf_object__next_program(object, nullptr) == loop_program);
+    REQUIRE(bpf_object__next_program(object, loop_program) == stack_program);
+    REQUIRE(bpf_object__next_program(object, stack_program) == nullptr);
 
-    // Test bpf_object__next_program().
-    REQUIRE(bpf_object__prev_program(object, program) == nullptr);
-    REQUIRE(bpf_object__prev_program(object, nullptr) == program);
+    // Test bpf_object__prev_program().
+    REQUIRE(bpf_object__prev_program(object, nullptr) == stack_program);
+    REQUIRE(bpf_object__prev_program(object, stack_program) == loop_program);
+    REQUIRE(bpf_object__prev_program(object, loop_program) == nullptr);
 
     // Load the program.
     REQUIRE(bpf_object__load(object) == 0);
@@ -2149,8 +2155,8 @@ _test_multi_prog_same_section(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
-    program_info_provider_t bind_program_info;
-    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
     const char* file_name =
         (execution_type == EBPF_EXECUTION_NATIVE ? "multi_prog_same_section_um.dll" : "multi_prog_same_section.o");
@@ -2163,9 +2169,9 @@ _test_multi_prog_same_section(ebpf_execution_type_t execution_type)
     struct bpf_program* prog2 = bpf_object__find_program_by_name(object, "prog2");
     REQUIRE(prog2 != nullptr);
 
-    // Both programs should be in the "bind" section.
-    REQUIRE(strcmp(bpf_program__section_name(prog1), "bind") == 0);
-    REQUIRE(strcmp(bpf_program__section_name(prog2), "bind") == 0);
+    // Both programs should be in the "sample_ext" section.
+    REQUIRE(strcmp(bpf_program__section_name(prog1), "sample_ext") == 0);
+    REQUIRE(strcmp(bpf_program__section_name(prog2), "sample_ext") == 0);
 
     // Verify program names.
     REQUIRE(strcmp(bpf_program__name(prog1), "prog1") == 0);
@@ -4026,33 +4032,34 @@ TEST_CASE("sequential_tail_call", "[libbpf]")
     REQUIRE(opts.retval == -EBPF_NO_MORE_TAIL_CALLS);
 }
 
-bind_action_t
-emulate_bind_tail_call(std::function<ebpf_result_t(void*, uint32_t*)>& invoke, uint64_t pid, const char* appid)
+uint32_t
+emulate_sample_tail_call(std::function<ebpf_result_t(void*, uint32_t*)>& invoke)
 {
     uint32_t result;
-    std::string app_id = appid;
-    INITIALIZE_BIND_CONTEXT
-    ctx->app_id_start = (uint8_t*)app_id.c_str();
-    ctx->app_id_end = (uint8_t*)(app_id.c_str()) + app_id.size();
-    ctx->process_id = pid;
-    ctx->operation = BIND_OPERATION_BIND;
+    INITIALIZE_SAMPLE_CONTEXT
 
     REQUIRE(invoke(reinterpret_cast<void*>(ctx), &result) == EBPF_SUCCESS);
 
-    return static_cast<bind_action_t>(result);
+    return result;
 }
 
-TEST_CASE("bind_tail_call_max_exceed", "[libbpf]")
+TEST_CASE("sample_tail_call_max_exceed", "[libbpf]")
 {
     const int TOTAL_TAIL_CALL = MAX_TAIL_CALL_CNT + 2;
 
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
 
-    program_info_provider_t bind_program_info;
-    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
-    struct bpf_object* object = bpf_object__open("tail_call_max_exceed_um.dll");
+        const char* file_name =
+    #if defined(CONFIG_BPF_JIT_DISABLED)
+        "tail_call_max_exceed_um.dll";
+    #else
+        "tail_call_max_exceed.o";
+    #endif
+        struct bpf_object* object = bpf_object__open(file_name);
     REQUIRE(object != nullptr);
 
     // Load the BPF program.
@@ -4086,21 +4093,20 @@ TEST_CASE("bind_tail_call_max_exceed", "[libbpf]")
     REQUIRE(bpf_map_get_next_key(map_fd, &key, &key) < 0);
     REQUIRE(errno == ENOENT);
 
-    // Create a hook for the bind program.
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    // Create a hook for the sample program.
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
 
     // Attach the hook.
     bpf_link_ptr link;
     uint32_t ifindex = 0;
-    uint64_t fake_pid = 123456;
     REQUIRE(hook.attach_link(first_program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
 
     std::function<ebpf_result_t(void*, uint32_t*)> invoke =
         [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t { return hook.fire(context, result); };
 
-    // Binding to the port should be denied because the number of tail call programs exceeds MAX_TAIL_CALL_COUNT.
-    REQUIRE(emulate_bind_tail_call(invoke, fake_pid, "fake_app_1") == BIND_DENY);
+    // The final program returns 1. A result of 2 proves execution stopped when the tail call limit was reached.
+    REQUIRE(emulate_sample_tail_call(invoke) == 2);
 
     hook.detach_and_close_link(&link);
 }
@@ -4465,10 +4471,10 @@ _utility_test(ebpf_execution_type_t execution_type)
     const char dll_name[] = "utility_um.dll";
     const char obj_name[] = "utility.o";
     test_helper.initialize();
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
     program_info_provider_t sample_program_info;
-    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? dll_name : obj_name);
     struct bpf_object* process_object = bpf_object__open(file_name);
@@ -4484,8 +4490,7 @@ _utility_test(ebpf_execution_type_t execution_type)
     REQUIRE(link != nullptr);
 
     // Now run the ebpf program.
-    INITIALIZE_BIND_CONTEXT
-    ctx->operation = BIND_OPERATION_BIND;
+    INITIALIZE_SAMPLE_CONTEXT
 
     uint32_t result;
     REQUIRE(hook.fire(ctx, &result) == EBPF_SUCCESS);
@@ -4508,10 +4513,10 @@ _strings_test(ebpf_execution_type_t execution_type)
     const char dll_name[] = "strings_um.dll";
     const char obj_name[] = "strings.o";
     test_helper.initialize();
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
     program_info_provider_t sample_program_info;
-    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? dll_name : obj_name);
     struct bpf_object* process_object = bpf_object__open(file_name);
@@ -4527,8 +4532,7 @@ _strings_test(ebpf_execution_type_t execution_type)
     REQUIRE(string_link != nullptr);
 
     // Now run the ebpf program.
-    INITIALIZE_BIND_CONTEXT
-    ctx->operation = BIND_OPERATION_BIND;
+    INITIALIZE_SAMPLE_CONTEXT
 
     uint32_t result{};
     REQUIRE(hook.fire(ctx, &result) == EBPF_SUCCESS);
@@ -4549,10 +4553,10 @@ _program_flags_test(ebpf_execution_type_t execution_type)
     const char dll_name[] = "utility_um.dll";
     const char obj_name[] = "utility.o";
     test_helper.initialize();
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
     program_info_provider_t sample_program_info;
-    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? dll_name : obj_name);
     struct bpf_object* process_object = bpf_object__open(file_name);
@@ -4591,8 +4595,7 @@ _program_flags_test(ebpf_execution_type_t execution_type)
     REQUIRE(client_data->prog_attach_flags == 0xCCCCCCCC);
 
     // Now run the ebpf program.
-    INITIALIZE_BIND_CONTEXT
-    ctx->operation = BIND_OPERATION_BIND;
+    INITIALIZE_SAMPLE_CONTEXT
 
     uint32_t result;
     REQUIRE(hook.fire(ctx, &result) == EBPF_SUCCESS);

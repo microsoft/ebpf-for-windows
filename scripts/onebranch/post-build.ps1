@@ -46,6 +46,8 @@ $BinariesToCopy = @(
     "netebpfext.sys",
     "api_test.exe",
     "api_test.pdb",
+    "netebpfext_api_test.exe",
+    "netebpfext_api_test.pdb",
     "export_program_info.exe",
     "export_program_info.pdb",
     "export_program_info_sample.exe",
