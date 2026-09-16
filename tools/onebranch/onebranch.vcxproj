@@ -72,6 +72,9 @@ xcopy /D /Y "$(UniversalDebugCRT_ExecutablePath_ARM64)\ucrtbased.dll" "$(Solutio
     <ProjectReference Include="..\..\tests\api_test\api_test.vcxproj">
       <Project>{12161211-5463-4aa9-9b6e-552552b475dc}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\tests\netebpfext_api_test\netebpfext_api_test.vcxproj">
+      <Project>{C5E6F5C2-2E72-49E7-875B-1CF4B39358A3}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\tests\sample\sample.vcxproj">
       <Project>{b4ad72e3-754e-40ca-9cea-d3f2c9170e51}</Project>
     </ProjectReference>
@@ -106,6 +109,9 @@ xcopy /D /Y "$(UniversalDebugCRT_ExecutablePath_ARM64)\ucrtbased.dll" "$(Solutio
     </ProjectReference>
     <ProjectReference Include="..\..\tests\stress\km\ebpf_stress_tests_km.vcxproj">
       <Project>{4F082524-9496-44FA-8CBA-4BC0BDC62568}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\tests\stress\km\ebpf_core_stress_tests_km.vcxproj">
+      <Project>{6C60537C-7B4A-45A6-B65B-74B4BF1B8088}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
