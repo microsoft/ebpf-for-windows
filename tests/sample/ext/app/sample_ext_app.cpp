@@ -12,6 +12,7 @@
 #include "program_helper.h"
 #include "sample_ext_app.h"
 #include "sample_ext_helper.h"
+#include "sample_ext_helpers.h"
 #include "service_helper.h"
 #include "watchdog.h"
 
