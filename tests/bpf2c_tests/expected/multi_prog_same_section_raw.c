@@ -29,9 +29,9 @@ _get_global_variable_sections(
     *count = 0;
 }
 
-static GUID prog1_program_type_guid = {0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
-static GUID prog1_attach_type_guid = {0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
-#pragma code_seg(push, "bind")
+static GUID prog1_program_type_guid = {0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+static GUID prog1_attach_type_guid = {0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+#pragma code_seg(push, "sample~2")
 static uint64_t
 prog1(void* context, const program_runtime_context_t* runtime_context)
 #line 14 "sample/undocked/multi_prog_same_section.c"
@@ -54,10 +54,8 @@ prog1(void* context, const program_runtime_context_t* runtime_context)
 #line 14 "sample/undocked/multi_prog_same_section.c"
     UNREFERENCED_PARAMETER(runtime_context);
 
-    // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=0
 #line 14 "sample/undocked/multi_prog_same_section.c"
     r0 = IMMEDIATE(0);
-    // EBPF_OP_EXIT pc=1 dst=r0 src=r0 offset=0 imm=0
 #line 14 "sample/undocked/multi_prog_same_section.c"
     return r0;
 #line 14 "sample/undocked/multi_prog_same_section.c"
@@ -65,9 +63,9 @@ prog1(void* context, const program_runtime_context_t* runtime_context)
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
 
-static GUID prog2_program_type_guid = {0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
-static GUID prog2_attach_type_guid = {0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
-#pragma code_seg(push, "bind")
+static GUID prog2_program_type_guid = {0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+static GUID prog2_attach_type_guid = {0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+#pragma code_seg(push, "sample~1")
 static uint64_t
 prog2(void* context, const program_runtime_context_t* runtime_context)
 #line 14 "sample/undocked/multi_prog_same_section.c"
@@ -90,10 +88,8 @@ prog2(void* context, const program_runtime_context_t* runtime_context)
 #line 14 "sample/undocked/multi_prog_same_section.c"
     UNREFERENCED_PARAMETER(runtime_context);
 
-    // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=2
 #line 14 "sample/undocked/multi_prog_same_section.c"
-    r0 = IMMEDIATE(2);
-    // EBPF_OP_EXIT pc=1 dst=r0 src=r0 offset=0 imm=0
+    r0 = IMMEDIATE(1);
 #line 14 "sample/undocked/multi_prog_same_section.c"
     return r0;
 #line 14 "sample/undocked/multi_prog_same_section.c"
@@ -107,8 +103,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         prog1,
-        "bind",
-        "bind",
+        "sample~2",
+        "sample_ext",
         "prog1",
         NULL,
         0,
@@ -122,8 +118,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         prog2,
-        "bind",
-        "bind",
+        "sample~1",
+        "sample_ext",
         "prog2",
         NULL,
         0,
