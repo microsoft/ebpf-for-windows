@@ -61,6 +61,9 @@
     <ProjectReference Include="..\..\tests\api_test\api_test.vcxproj">
       <Project>{12161211-5463-4aa9-9b6e-552552b475dc}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\tests\netebpfext_api_test\netebpfext_api_test.vcxproj">
+      <Project>{C5E6F5C2-2E72-49E7-875B-1CF4B39358A3}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\tests\socket\socket_tests.vcxproj">
       <Project>{eed9dac6-8b98-4c33-969a-e8cede8e985e}</Project>
     </ProjectReference>
@@ -93,6 +96,9 @@
     </ProjectReference>
     <ProjectReference Include="..\..\tests\stress\km\ebpf_stress_tests_km.vcxproj">
       <Project>{4F082524-9496-44FA-8CBA-4BC0BDC62568}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\tests\stress\km\ebpf_core_stress_tests_km.vcxproj">
+      <Project>{6C60537C-7B4A-45A6-B65B-74B4BF1B8088}</Project>
     </ProjectReference>
     <!-- eBPF MSI installer. The driver validation setup (scripts\install_ebpf.psm1)
          installs the eBPF runtime (ebpfcore.sys, netebpfext.sys, ebpfsvc.exe,
