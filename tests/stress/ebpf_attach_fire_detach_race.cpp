@@ -3,6 +3,131 @@
 
 #include "ebpf_mt_stress.h"
 
+#ifndef USER_MODE_TEST
+static bool
+_query_service_state(_In_ SC_HANDLE service_handle, _Out_ SERVICE_STATUS_PROCESS& service_status_process)
+{
+    DWORD bytes_needed{};
+    if (!QueryServiceStatusEx(
+            service_handle,
+            SC_STATUS_PROCESS_INFO,
+            reinterpret_cast<LPBYTE>(&service_status_process),
+            sizeof(SERVICE_STATUS_PROCESS),
+            &bytes_needed)) {
+        LOG_ERROR("FATAL ERROR: QueryServiceStatusEx failed. Error: {}", GetLastError());
+        return false;
+    }
+    return true;
+}
+
+static bool
+_wait_for_service_state(
+    _In_ SC_HANDLE service_handle, const std::string& service_name, DWORD desired_state, uint32_t timeout_seconds)
+{
+    using steady_clock = std::chrono::steady_clock;
+    auto deadline = steady_clock::now() + std::chrono::seconds(timeout_seconds);
+    while (steady_clock::now() < deadline) {
+        SERVICE_STATUS_PROCESS service_status_process{};
+        if (!_query_service_state(service_handle, service_status_process)) {
+            return false;
+        }
+        if (service_status_process.dwCurrentState == desired_state) {
+            return true;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    }
+
+    const char* desired_state_name = desired_state == SERVICE_RUNNING ? "RUNNING" : "STOPPED";
+    LOG_ERROR(
+        "FATAL ERROR: Timed out waiting for service {} to reach {} state.", service_name.c_str(), desired_state_name);
+    return false;
+}
+
+bool
+restart_extension(const std::string& extension_name, uint32_t timeout_seconds)
+{
+    bool status = false;
+    SC_HANDLE scm_handle = nullptr;
+    SC_HANDLE service_handle = nullptr;
+
+    if (extension_name.empty()) {
+        LOG_ERROR("FATAL ERROR: Extension name is empty.");
+        return false;
+    }
+
+    scm_handle = OpenSCManager(nullptr, nullptr, SC_MANAGER_CONNECT);
+    if (scm_handle == nullptr) {
+        LOG_ERROR("FATAL ERROR: OpenSCManager failed. Error: {}", GetLastError());
+        return false;
+    }
+
+    std::wstring wide_extension_name(extension_name.begin(), extension_name.end());
+    service_handle = OpenService(
+        scm_handle, wide_extension_name.c_str(), SERVICE_STOP | SERVICE_START | SERVICE_QUERY_STATUS);
+    if (service_handle == nullptr) {
+        LOG_ERROR("FATAL ERROR: OpenService failed. Service:{}, Error: {}", extension_name, GetLastError());
+        goto exit;
+    }
+
+    {
+        SERVICE_STATUS_PROCESS service_status_process{};
+        if (!_query_service_state(service_handle, service_status_process)) {
+            goto exit;
+        }
+        if (service_status_process.dwCurrentState != SERVICE_STOPPED) {
+            if (service_status_process.dwCurrentState != SERVICE_STOP_PENDING) {
+                SERVICE_STATUS service_status{};
+                if (!ControlService(service_handle, SERVICE_CONTROL_STOP, &service_status)) {
+                    auto error = GetLastError();
+                    if (error != ERROR_SERVICE_NOT_ACTIVE) {
+                        LOG_ERROR("FATAL ERROR: ControlService(STOP) failed for {}. Error: {}", extension_name, error);
+                        goto exit;
+                    }
+                }
+            }
+            if (!_wait_for_service_state(service_handle, extension_name, SERVICE_STOPPED, timeout_seconds)) {
+                goto exit;
+            }
+        }
+    }
+
+    {
+        SERVICE_STATUS_PROCESS service_status_process{};
+        if (!_query_service_state(service_handle, service_status_process)) {
+            goto exit;
+        }
+        if (service_status_process.dwCurrentState != SERVICE_RUNNING) {
+            if (service_status_process.dwCurrentState != SERVICE_START_PENDING) {
+                if (!StartService(service_handle, 0, nullptr)) {
+                    auto error = GetLastError();
+                    if (error != ERROR_SERVICE_ALREADY_RUNNING) {
+                        LOG_ERROR("FATAL ERROR: StartService failed for {}. Error: {}", extension_name, error);
+                        goto exit;
+                    }
+                }
+            }
+            if (!_wait_for_service_state(service_handle, extension_name, SERVICE_RUNNING, timeout_seconds)) {
+                goto exit;
+            }
+        }
+    }
+
+    status = true;
+
+exit:
+    if (!status) {
+        LOG_ERROR("FATAL ERROR: Failed to restart extension: {}", extension_name);
+    }
+    if (service_handle != nullptr) {
+        CloseServiceHandle(service_handle);
+    }
+    if (scm_handle != nullptr) {
+        CloseServiceHandle(scm_handle);
+    }
+    return status;
+}
+#endif
+
 static void
 _start_invoke_workers(
     _Inout_ std::vector<std::thread>& invoke_threads,
