@@ -78,7 +78,6 @@ typedef struct bpf_object
 {
     char* object_name = nullptr;
     char* file_name = nullptr;
-    char* pin_root_path = nullptr;
     fd_t native_module_fd = ebpf_fd_invalid;
     std::vector<ebpf_program_t*> programs;
     std::vector<ebpf_map_t*> maps;
