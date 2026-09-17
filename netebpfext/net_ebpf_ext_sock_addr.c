@@ -240,26 +240,6 @@
 DEFINE_SOCK_ADDR_CLASSIFY_LOG_FUNCTION(4)
 DEFINE_SOCK_ADDR_CLASSIFY_LOG_FUNCTION(6)
 
-static void
-_net_ebpf_ext_log_sock_addr_classify(
-    _In_z_ const char* message,
-    uint64_t transport_endpoint_handle,
-    _In_ const bpf_sock_addr_t* original_context,
-    _In_opt_ const bpf_sock_addr_t* redirected_context,
-    uint32_t verdict,
-    uint32_t compartment_id)
-{
-    if (TraceLoggingProviderEnabled(ebpf_ext_tracelog_provider, 0, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR)) {
-        if (original_context->family == AF_INET) {
-            _net_ebpf_ext_log_sock_addr_classify_v4(
-                message, transport_endpoint_handle, original_context, redirected_context, verdict, compartment_id);
-        } else {
-            _net_ebpf_ext_log_sock_addr_classify_v6(
-                message, transport_endpoint_handle, original_context, redirected_context, verdict, compartment_id);
-        }
-    }
-}
-
 typedef struct _net_ebpf_bpf_sock_addr
 {
     EBPF_CONTEXT_HEADER;
@@ -283,6 +263,36 @@ typedef struct _net_ebpf_bpf_sock_addr
     uint64_t next_hop_interface_luid; ///< Next-hop interface LUID. NET_IFLUID_UNSPECIFIED (0) if not available.
     uint32_t sub_interface_index;     ///< Sub-interface index. NET_IFINDEX_UNSPECIFIED (0) if not available.
 } net_ebpf_sock_addr_t;
+
+static void
+_net_ebpf_ext_log_sock_addr_classify(
+    _In_z_ const char* message,
+    _In_ const net_ebpf_sock_addr_t* sock_addr_ctx,
+    _In_ const bpf_sock_addr_t* original_context,
+    _In_opt_ const bpf_sock_addr_t* redirected_context,
+    uint32_t verdict,
+    uint32_t compartment_id)
+{
+    if (TraceLoggingProviderEnabled(ebpf_ext_tracelog_provider, 0, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR)) {
+        if (original_context->family == AF_INET) {
+            _net_ebpf_ext_log_sock_addr_classify_v4(
+                message,
+                sock_addr_ctx->transport_endpoint_handle,
+                original_context,
+                redirected_context,
+                verdict,
+                compartment_id);
+        } else {
+            _net_ebpf_ext_log_sock_addr_classify_v6(
+                message,
+                sock_addr_ctx->transport_endpoint_handle,
+                original_context,
+                redirected_context,
+                verdict,
+                compartment_id);
+        }
+    }
+}
 
 /**
  * Connection context info does not contain the source IP address because
@@ -1733,6 +1743,15 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      0,   // No next-hop interface for listen.
      0}}; // No sub-interface index for listen.
 
+static __forceinline uint64_t
+_net_ebpf_extension_sock_addr_get_transport_endpoint_handle(
+    _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values)
+{
+    return FWPS_IS_METADATA_FIELD_PRESENT(incoming_metadata_values, FWPS_METADATA_FIELD_TRANSPORT_ENDPOINT_HANDLE)
+               ? incoming_metadata_values->transportEndpointHandle
+               : 0;
+}
+
 static void
 _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
     _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
@@ -1765,7 +1784,8 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
     FWPS_INCOMING_VALUE0* incoming_values = incoming_fixed_values->incomingValue;
 
     sock_addr_ctx->hook_id = hook_id;
-    sock_addr_ctx->transport_endpoint_handle = incoming_metadata_values->transportEndpointHandle;
+    sock_addr_ctx->transport_endpoint_handle =
+        _net_ebpf_extension_sock_addr_get_transport_endpoint_handle(incoming_metadata_values);
 
     // Copy IP address fields.
     if ((hook_id == EBPF_HOOK_ALE_AUTH_CONNECT_V4) || (hook_id == EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4) ||
@@ -1889,7 +1909,8 @@ _net_ebpf_extension_sock_addr_copy_wfp_bind_fields(
     FWPS_INCOMING_VALUE0* incoming_values = incoming_fixed_values->incomingValue;
 
     sock_addr_ctx->hook_id = hook_id;
-    sock_addr_ctx->transport_endpoint_handle = 0; // Not assigned yet at the bind layer.
+    sock_addr_ctx->transport_endpoint_handle =
+        _net_ebpf_extension_sock_addr_get_transport_endpoint_handle(incoming_metadata_values);
 
     if (hook_id == EBPF_HOOK_ALE_RESOURCE_ALLOC_V4) {
         sock_addr_ctx->base.family = AF_INET;
@@ -1952,7 +1973,8 @@ _net_ebpf_extension_sock_addr_copy_wfp_listen_fields(
     FWPS_INCOMING_VALUE0* incoming_values = incoming_fixed_values->incomingValue;
 
     sock_addr_ctx->hook_id = hook_id;
-    sock_addr_ctx->transport_endpoint_handle = 0; // No transport endpoint for listen.
+    sock_addr_ctx->transport_endpoint_handle =
+        _net_ebpf_extension_sock_addr_get_transport_endpoint_handle(incoming_metadata_values);
 
     // For listen, both msg_src_* and user_* contain the local listen address (per design doc).
     if (hook_id == EBPF_HOOK_ALE_AUTH_LISTEN_V4) {
@@ -2310,12 +2332,7 @@ net_ebpf_extension_sock_addr_authorize_listen_classify(
 
     if (program_result == EBPF_SUCCESS) {
         _net_ebpf_ext_log_sock_addr_classify(
-            "listen_classify",
-            0, // No transport endpoint handle for listen.
-            sock_addr_ctx,
-            NULL,
-            effective_verdict,
-            compartment_id);
+            "listen_classify", &net_ebpf_sock_addr_ctx, sock_addr_ctx, NULL, effective_verdict, compartment_id);
     }
 
 Exit:
@@ -2394,12 +2411,7 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
 
     if (program_result == EBPF_SUCCESS) {
         _net_ebpf_ext_log_sock_addr_classify(
-            "recv_accept_classify",
-            incoming_metadata_values->transportEndpointHandle,
-            sock_addr_ctx,
-            NULL,
-            effective_verdict,
-            compartment_id);
+            "recv_accept_classify", &net_ebpf_sock_addr_ctx, sock_addr_ctx, NULL, effective_verdict, compartment_id);
     }
 
 Exit:
@@ -2485,12 +2497,7 @@ net_ebpf_extension_sock_addr_bind_classify(
     if (program_result == EBPF_SUCCESS) {
         // Bind hooks do not support address modification. Changes are ignored for WFP and restored between programs.
         _net_ebpf_ext_log_sock_addr_classify(
-            "bind_classify",
-            incoming_metadata_values->transportEndpointHandle,
-            sock_addr_ctx,
-            NULL,
-            effective_verdict,
-            compartment_id);
+            "bind_classify", &net_ebpf_sock_addr_ctx, sock_addr_ctx, NULL, effective_verdict, compartment_id);
     }
 
 Exit:
@@ -2560,7 +2567,7 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
 
     // First, try to find and use existing connection context from redirect layer.
     effective_verdict = _net_ebpf_ext_find_and_remove_connection_context(
-        incoming_metadata_values->transportEndpointHandle, sock_addr_ctx);
+        net_ebpf_sock_addr_ctx.transport_endpoint_handle, sock_addr_ctx);
 
     // Keep this cache lookup before the no-write bail so a cached verdict is consumed even when an earlier WFP
     // decision is final.
@@ -2603,12 +2610,7 @@ Exit:
     _net_ebpf_extension_sock_addr_apply_verdict(classify_output, effective_verdict, action_write_allowed);
 
     _net_ebpf_ext_log_sock_addr_classify(
-        "auth_connect_classify",
-        incoming_metadata_values->transportEndpointHandle,
-        sock_addr_ctx,
-        NULL,
-        effective_verdict,
-        compartment_id);
+        "auth_connect_classify", &net_ebpf_sock_addr_ctx, sock_addr_ctx, NULL, effective_verdict, compartment_id);
 
     EBPF_EXT_LOG_EXIT();
     return;
@@ -3032,7 +3034,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
 
     _net_ebpf_ext_log_sock_addr_classify(
         "connect_redirect_classify",
-        incoming_metadata_values->transportEndpointHandle,
+        &net_ebpf_sock_addr_ctx,
         &sock_addr_ctx_original,
         redirected ? sock_addr_ctx : NULL,
         effective_verdict,
@@ -3046,7 +3048,7 @@ Exit:
             v4_mapped,
             reauthorization,
             effective_verdict,
-            incoming_metadata_values->transportEndpointHandle);
+            net_ebpf_sock_addr_ctx.transport_endpoint_handle);
     }
 
     _net_ebpf_extension_sock_addr_apply_redirect_verdict(
