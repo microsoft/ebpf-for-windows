@@ -42,12 +42,23 @@ jobs:
           # Pin to Visual Studio 2026 to match the default build toolset.
           vs-version: '[18.0,19.0)'
 
-      - name: Cache nuget packages
+      - name: Configure WDK package cache
+        run: |
+          "EBPF_WDK_PACKAGES_ROOT=${{ runner.temp }}\ebpf-wdk-packages" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Cache WDK packages
+        continue-on-error: true
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306
+        with:
+          path: ${{ runner.temp }}\ebpf-wdk-packages
+          key: ${{ runner.os }}-wdk-${{ runner.arch }}-x64-vs18-${{ hashFiles('wdk.props', 'scripts/setup_build/wdk-packages/wdk-packages.vcxproj') }}
+
+      - name: Cache legacy NuGet packages
         continue-on-error: true
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306
         with:
           path: packages
-          key: ${{ runner.os }}-everparse-validation-${{ hashFiles('**/packages.config') }}
+          key: ${{ runner.os }}-nuget-v2-${{ hashFiles('libs/elf_spec/packages.config', 'libs/ioctl_spec/packages.config', 'installer/packages.config') }}
 
       - name: Validate EverParse generated artifacts
         id: validate

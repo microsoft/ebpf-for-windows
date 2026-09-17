@@ -296,15 +296,26 @@ jobs:
         run:
           '"C:\Program Files\LLVM\bin\clang.exe" --version'
 
-      - name: Cache nuget packages
+      - name: Configure WDK package cache
+        if: steps.skip_check.outputs.should_skip != 'true'
+        run: |
+          "EBPF_WDK_PACKAGES_ROOT=${{ runner.temp }}\ebpf-wdk-packages" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Cache WDK packages
         if: steps.skip_check.outputs.should_skip != 'true'
         continue-on-error: true
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306
-        env:
-          cache-name: cache-nuget-modules
+        with:
+          path: ${{ runner.temp }}\ebpf-wdk-packages
+          key: ${{ runner.os }}-wdk-${{ runner.arch }}-${{env.BUILD_PLATFORM}}-vs${{env.VS_VERSION}}-${{ hashFiles('wdk.props', 'scripts/setup_build/wdk-packages/wdk-packages.vcxproj') }}
+
+      - name: Cache legacy NuGet packages
+        if: steps.skip_check.outputs.should_skip != 'true'
+        continue-on-error: true
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306
         with:
           path: packages
-          key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('**/packages.config') }}-${{env.msvc_tools_version}}
+          key: ${{ runner.os }}-nuget-v2-${{ hashFiles('libs/elf_spec/packages.config', 'libs/ioctl_spec/packages.config', 'installer/packages.config') }}
 
       - name: Cache verifier project
         # The hash is based on the HEAD of the ebpf-verifier submodule, the Directory.Build.props file, and the build variant.
@@ -323,7 +334,7 @@ jobs:
           CXXFLAGS: /ZH:SHA_256 ${{env.CXX_FLAGS}}
           LDFLAGS: ${{env.LD_FLAGS}}
         run: |
-          .\scripts\initialize_ebpf_repo.ps1 ${{env.BUILD_PLATFORM}}
+          .\scripts\initialize_ebpf_repo.ps1 -Architecture ${{env.BUILD_PLATFORM}} -VisualStudioVersion ${{env.VS_VERSION}}
 
       - name: Build
         if: steps.skip_check.outputs.should_skip != 'true'

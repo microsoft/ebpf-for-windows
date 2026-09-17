@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) eBPF for Windows contributors
+  SPDX-License-Identifier: MIT
+-->
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
+    <Platform Condition="'$(Platform)' == '' and '$(EBPF_WDK_TARGET_PLATFORM)' != ''">$(EBPF_WDK_TARGET_PLATFORM)</Platform>
+    <Platform Condition="'$(Platform)' == ''">x64</Platform>
+    <EbpfSkipWdkPackageImports>true</EbpfSkipWdkPackageImports>
+  </PropertyGroup>
+  <Import Project="$(MSBuildThisFileDirectory)..\..\..\wdk.props" />
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|ARM64">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{6764505B-B1AB-41C1-910C-FBDA0FB5EAB1}</ProjectGuid>
+    <RootNamespace>wdk_packages</RootNamespace>
+    <TargetFramework>native</TargetFramework>
+    <_NuGetTargetFallbackMoniker>$(_NuGetTargetFallbackMoniker);native,Version=v0.0</_NuGetTargetFallbackMoniker>
+    <RestorePackages>true</RestorePackages>
+    <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
+    <MSBuildProjectExtensionsPath>$(MSBuildThisFileDirectory)obj\</MSBuildProjectExtensionsPath>
+    <RestorePackagesPath>$(EbpfWdkPackagesRoot)</RestorePackagesPath>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <PlatformToolset>$(EbpfPlatformToolset)</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup>
+    <ResolveNuGetPackages>false</ResolveNuGetPackages>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Windows.SDK.CPP" Version="$(WDKVersion)" IncludeAssets="none" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Windows.SDK.CPP.$(_EbpfTargetPackagePlatform)" Version="$(WDKVersion)" IncludeAssets="none" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Windows.WDK.$(_EbpfTargetPackagePlatform)" Version="$(WDKVersion)" IncludeAssets="none" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Windows.SDK.CPP.$(_EbpfHostPackagePlatform)" Version="$(WDKVersion)" IncludeAssets="none" PrivateAssets="all" Condition="'$(_EbpfHostPackagePlatform)' != '$(_EbpfTargetPackagePlatform)'" />
+    <PackageReference Include="Microsoft.Windows.WDK.$(_EbpfHostPackagePlatform)" Version="$(WDKVersion)" IncludeAssets="none" PrivateAssets="all" Condition="'$(_EbpfHostPackagePlatform)' != '$(_EbpfTargetPackagePlatform)'" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>
