@@ -47,11 +47,11 @@
     <ResolveNuGetPackages>false</ResolveNuGetPackages>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.Windows.SDK.CPP" Version="$(WDKVersion)" IncludeAssets="none" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.Windows.SDK.CPP.$(_EbpfTargetPackagePlatform)" Version="$(WDKVersion)" IncludeAssets="none" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.Windows.WDK.$(_EbpfTargetPackagePlatform)" Version="$(WDKVersion)" IncludeAssets="none" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.Windows.SDK.CPP.$(_EbpfHostPackagePlatform)" Version="$(WDKVersion)" IncludeAssets="none" PrivateAssets="all" Condition="'$(_EbpfHostPackagePlatform)' != '$(_EbpfTargetPackagePlatform)'" />
-    <PackageReference Include="Microsoft.Windows.WDK.$(_EbpfHostPackagePlatform)" Version="$(WDKVersion)" IncludeAssets="none" PrivateAssets="all" Condition="'$(_EbpfHostPackagePlatform)' != '$(_EbpfTargetPackagePlatform)'" />
+    <PackageReference Include="Microsoft.Windows.SDK.CPP" Version="$(WDKVersion)" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Windows.SDK.CPP.$(_EbpfTargetPackagePlatform)" Version="$(WDKVersion)" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Windows.WDK.$(_EbpfTargetPackagePlatform)" Version="$(WDKVersion)" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Windows.SDK.CPP.$(_EbpfHostPackagePlatform)" Version="$(WDKVersion)" PrivateAssets="all" Condition="'$(_EbpfHostPackagePlatform)' != '$(_EbpfTargetPackagePlatform)'" />
+    <PackageReference Include="Microsoft.Windows.WDK.$(_EbpfHostPackagePlatform)" Version="$(WDKVersion)" PrivateAssets="all" Condition="'$(_EbpfHostPackagePlatform)' != '$(_EbpfTargetPackagePlatform)'" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
