@@ -441,7 +441,7 @@ This section documents alignment with and divergences from the Linux `BPF_CGROUP
 | `interface_luid` | Absent | Present | Windows networking concept |
 | `ipv6_flowinfo` | Present | Absent | Not available from WFP |
 | Return values | 0 (deny) / 1 (allow) | 3-value verdict enum | Pre-existing Windows design choice |
-| Multi-attach | No (single attach) | Yes (`MULTI_ATTACH_WITH_WILDCARD`) | Windows hook-provider capability |
+| Multi-attach mechanism | `BPF_F_ALLOW_MULTI` | `MULTI_ATTACH_WITH_WILDCARD` | Platform-specific attachment model |
 | Address rewriting | Supported (local address) | Not supported for listen | WFP ALE_AUTH_LISTEN does not support address modification |
 
 These divergences are inherent to the Windows platform and are consistent with how all existing sock_addr hooks (connect, recv_accept) already differ from Linux. Programs that access `user_ip4`, `user_port`, `msg_src_ip4`, `msg_src_port`, `family`, and `protocol` are portable between Linux and Windows listen hooks.
