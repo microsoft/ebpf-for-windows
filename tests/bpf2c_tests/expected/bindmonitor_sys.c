@@ -174,8 +174,8 @@ static map_entry_t _maps[] = {
      {0, 0},
      {
          1,                  // Current Version.
-         80,                 // Struct size up to the last field.
-         80,                 // Total struct size including padding.
+         84,                 // Struct size up to the last field.
+         88,                 // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
@@ -187,13 +187,15 @@ static map_entry_t _maps[] = {
          10,                 // Identifier for a map template.
          0,                  // The id of the inner map template.
      },
-     "limits_map"},
+     "limits_map",       // Map name.
+     0,                  // Map creation flags.
+    },
     {
      {0, 0},
      {
          1,                 // Current Version.
-         80,                // Struct size up to the last field.
-         80,                // Total struct size including padding.
+         84,                // Struct size up to the last field.
+         88,                // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_HASH, // Type of map.
@@ -205,13 +207,15 @@ static map_entry_t _maps[] = {
          23,                // Identifier for a map template.
          0,                 // The id of the inner map template.
      },
-     "process_map"},
+     "process_map",     // Map name.
+     0,                 // Map creation flags.
+    },
     {
      {0, 0},
      {
          1,                 // Current Version.
-         80,                // Struct size up to the last field.
-         80,                // Total struct size including padding.
+         84,                // Struct size up to the last field.
+         88,                // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_HASH, // Type of map.
@@ -223,7 +227,9 @@ static map_entry_t _maps[] = {
          29,                // Identifier for a map template.
          0,                 // The id of the inner map template.
      },
-     "audit_map"},
+     "audit_map",       // Map name.
+     0,                 // Map creation flags.
+    },
 };
 #pragma data_seg(pop)
 

@@ -1627,6 +1627,11 @@ TEST_CASE("serialize_map_test", "[platform]")
     _test_helper test_helper;
     test_helper.initialize();
 
+    STATIC_REQUIRE(sizeof(ebpf_map_info_definition_t) == 24);
+    STATIC_REQUIRE(EBPF_OFFSET_OF(ebpf_map_info_t, pin_path) == 24);
+    STATIC_REQUIRE(sizeof(ebpf_map_info_t) == 24 + sizeof(char*));
+    STATIC_REQUIRE(EBPF_OFFSET_OF(ebpf_serialized_map_info_t, pin_path) == 30);
+
     const int map_count = 10;
     ebpf_map_info_internal_t internal_map_info_array[map_count] = {};
     std::string pin_path_prefix = "\\ebpf\\map\\";
@@ -1648,6 +1653,7 @@ TEST_CASE("serialize_map_test", "[platform]")
         map_info->definition.key_size = i + 1;
         map_info->definition.value_size = (i + 1) * (i + 1);
         map_info->definition.max_entries = (i + 1) * 128;
+        map_info->definition.map_flags = BPF_F_NO_MAX_ENTRIES;
 
         map_info->pin_path.length = pin_paths[i].size();
         map_info->pin_path.value = const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(pin_paths[i].c_str()));
@@ -1677,6 +1683,10 @@ TEST_CASE("serialize_map_test", "[platform]")
             &serialized_length,
             &required_length) == EBPF_SUCCESS);
 
+    REQUIRE(
+        reinterpret_cast<ebpf_serialized_map_info_t*>(unique_buffer.get())->definition.map_flags ==
+        BPF_F_NO_MAX_ENTRIES);
+
     // Deserialize.
     REQUIRE(
         ebpf_deserialize_map_info_array(serialized_length, unique_buffer.get(), map_count, &map_info_array) ==
@@ -1686,8 +1696,12 @@ TEST_CASE("serialize_map_test", "[platform]")
     for (int i = 0; i < map_count; i++) {
         ebpf_map_info_internal_t* input_map_info = &internal_map_info_array[i];
         ebpf_map_info_t* map_info = &map_info_array[i];
-        REQUIRE(
-            memcmp(&map_info->definition, &input_map_info->definition, sizeof(ebpf_map_definition_in_memory_t)) == 0);
+        REQUIRE(map_info->definition.type == input_map_info->definition.type);
+        REQUIRE(map_info->definition.key_size == input_map_info->definition.key_size);
+        REQUIRE(map_info->definition.value_size == input_map_info->definition.value_size);
+        REQUIRE(map_info->definition.max_entries == input_map_info->definition.max_entries);
+        REQUIRE(map_info->definition.inner_map_id == input_map_info->definition.inner_map_id);
+        REQUIRE(map_info->definition.pinning == input_map_info->definition.pinning);
         REQUIRE(strnlen_s(map_info->pin_path, EBPF_MAX_PIN_PATH_LENGTH) == input_map_info->pin_path.length);
         REQUIRE(memcmp(map_info->pin_path, input_map_info->pin_path.value, input_map_info->pin_path.length) == 0);
     }

@@ -19,8 +19,8 @@ static map_entry_t _maps[] = {
      {0, 0},
      {
          1,                         // Current Version.
-         80,                        // Struct size up to the last field.
-         80,                        // Total struct size including padding.
+         84,                        // Struct size up to the last field.
+         88,                        // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_HASH_OF_MAPS, // Type of map.
@@ -32,13 +32,15 @@ static map_entry_t _maps[] = {
          15,                        // Identifier for a map template.
          11,                        // The id of the inner map template.
      },
-     "outer_map"},
+     "outer_map",               // Map name.
+     1,                         // Map creation flags.
+    },
     {
      {0, 0},
      {
          1,                  // Current Version.
-         80,                 // Struct size up to the last field.
-         80,                 // Total struct size including padding.
+         84,                 // Struct size up to the last field.
+         88,                 // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
@@ -50,13 +52,15 @@ static map_entry_t _maps[] = {
          17,                 // Identifier for a map template.
          0,                  // The id of the inner map template.
      },
-     "port_map"},
+     "port_map",         // Map name.
+     0,                  // Map creation flags.
+    },
     {
      {0, 0},
      {
          1,                  // Current Version.
-         80,                 // Struct size up to the last field.
-         80,                 // Total struct size including padding.
+         84,                 // Struct size up to the last field.
+         88,                 // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
@@ -68,7 +72,9 @@ static map_entry_t _maps[] = {
          11,                 // Identifier for a map template.
          0,                  // The id of the inner map template.
      },
-     "inner_map"},
+     "inner_map",        // Map name.
+     0,                  // Map creation flags.
+    },
 };
 #pragma data_seg(pop)
 
@@ -113,129 +119,129 @@ static uint16_t lookup_update_maps[] = {
 #pragma code_seg(push, "sample~1")
 static uint64_t
 lookup_update(void* context, const program_runtime_context_t* runtime_context)
-#line 50 "sample/undocked/map_reuse_2.c"
+#line 51 "sample/undocked/map_reuse_2.c"
 {
-#line 50 "sample/undocked/map_reuse_2.c"
+#line 51 "sample/undocked/map_reuse_2.c"
     // Prologue.
-#line 50 "sample/undocked/map_reuse_2.c"
+#line 51 "sample/undocked/map_reuse_2.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 50 "sample/undocked/map_reuse_2.c"
+#line 51 "sample/undocked/map_reuse_2.c"
     register uint64_t r0 = 0;
-#line 50 "sample/undocked/map_reuse_2.c"
+#line 51 "sample/undocked/map_reuse_2.c"
     register uint64_t r1 = 0;
-#line 50 "sample/undocked/map_reuse_2.c"
+#line 51 "sample/undocked/map_reuse_2.c"
     register uint64_t r2 = 0;
-#line 50 "sample/undocked/map_reuse_2.c"
+#line 51 "sample/undocked/map_reuse_2.c"
     register uint64_t r3 = 0;
-#line 50 "sample/undocked/map_reuse_2.c"
+#line 51 "sample/undocked/map_reuse_2.c"
     register uint64_t r4 = 0;
-#line 50 "sample/undocked/map_reuse_2.c"
+#line 51 "sample/undocked/map_reuse_2.c"
     register uint64_t r5 = 0;
-#line 50 "sample/undocked/map_reuse_2.c"
+#line 51 "sample/undocked/map_reuse_2.c"
     register uint64_t r6 = 0;
-#line 50 "sample/undocked/map_reuse_2.c"
+#line 51 "sample/undocked/map_reuse_2.c"
     register uint64_t r10 = 0;
 
-#line 50 "sample/undocked/map_reuse_2.c"
+#line 51 "sample/undocked/map_reuse_2.c"
     r1 = (uintptr_t)context;
-#line 50 "sample/undocked/map_reuse_2.c"
+#line 51 "sample/undocked/map_reuse_2.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
     // EBPF_OP_MOV64_IMM pc=0 dst=r6 src=r0 offset=0 imm=0
-#line 50 "sample/undocked/map_reuse_2.c"
+#line 51 "sample/undocked/map_reuse_2.c"
     r6 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=1 dst=r10 src=r6 offset=-4 imm=0
-#line 52 "sample/undocked/map_reuse_2.c"
+#line 53 "sample/undocked/map_reuse_2.c"
     WRITE_ONCE_32(r10, (uint32_t)r6, OFFSET(-4));
     // EBPF_OP_MOV64_REG pc=2 dst=r2 src=r10 offset=0 imm=0
-#line 52 "sample/undocked/map_reuse_2.c"
+#line 53 "sample/undocked/map_reuse_2.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=3 dst=r2 src=r0 offset=0 imm=-4
-#line 52 "sample/undocked/map_reuse_2.c"
+#line 53 "sample/undocked/map_reuse_2.c"
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=4 dst=r1 src=r1 offset=0 imm=2
-#line 55 "sample/undocked/map_reuse_2.c"
+#line 56 "sample/undocked/map_reuse_2.c"
     r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=1
-#line 55 "sample/undocked/map_reuse_2.c"
+#line 56 "sample/undocked/map_reuse_2.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
     // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=20 imm=0
-#line 56 "sample/undocked/map_reuse_2.c"
+#line 57 "sample/undocked/map_reuse_2.c"
     if (r0 == IMMEDIATE(0)) {
-#line 56 "sample/undocked/map_reuse_2.c"
+#line 57 "sample/undocked/map_reuse_2.c"
         goto label_2;
-#line 56 "sample/undocked/map_reuse_2.c"
+#line 57 "sample/undocked/map_reuse_2.c"
     }
     // EBPF_OP_STXW pc=8 dst=r10 src=r6 offset=-8 imm=0
-#line 57 "sample/undocked/map_reuse_2.c"
+#line 58 "sample/undocked/map_reuse_2.c"
     WRITE_ONCE_32(r10, (uint32_t)r6, OFFSET(-8));
     // EBPF_OP_MOV64_REG pc=9 dst=r2 src=r10 offset=0 imm=0
-#line 57 "sample/undocked/map_reuse_2.c"
+#line 58 "sample/undocked/map_reuse_2.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=10 dst=r2 src=r0 offset=0 imm=-8
-#line 57 "sample/undocked/map_reuse_2.c"
+#line 58 "sample/undocked/map_reuse_2.c"
     r2 += IMMEDIATE(-8);
     // EBPF_OP_MOV64_REG pc=11 dst=r1 src=r0 offset=0 imm=0
-#line 58 "sample/undocked/map_reuse_2.c"
+#line 59 "sample/undocked/map_reuse_2.c"
     r1 = r0;
     // EBPF_OP_CALL pc=12 dst=r0 src=r0 offset=0 imm=1
-#line 58 "sample/undocked/map_reuse_2.c"
+#line 59 "sample/undocked/map_reuse_2.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
     // EBPF_OP_JNE_IMM pc=13 dst=r0 src=r0 offset=1 imm=0
-#line 59 "sample/undocked/map_reuse_2.c"
+#line 60 "sample/undocked/map_reuse_2.c"
     if (r0 != IMMEDIATE(0)) {
-#line 59 "sample/undocked/map_reuse_2.c"
+#line 60 "sample/undocked/map_reuse_2.c"
         goto label_1;
-#line 59 "sample/undocked/map_reuse_2.c"
+#line 60 "sample/undocked/map_reuse_2.c"
     }
     // EBPF_OP_JA pc=14 dst=r0 src=r0 offset=13 imm=0
-#line 59 "sample/undocked/map_reuse_2.c"
+#line 60 "sample/undocked/map_reuse_2.c"
     goto label_2;
 label_1:
     // EBPF_OP_STXW pc=15 dst=r10 src=r6 offset=-12 imm=0
-#line 61 "sample/undocked/map_reuse_2.c"
+#line 62 "sample/undocked/map_reuse_2.c"
     WRITE_ONCE_32(r10, (uint32_t)r6, OFFSET(-12));
     // EBPF_OP_LDXW pc=16 dst=r1 src=r0 offset=0 imm=0
-#line 62 "sample/undocked/map_reuse_2.c"
+#line 63 "sample/undocked/map_reuse_2.c"
     READ_ONCE_32(r1, r0, OFFSET(0));
     // EBPF_OP_STXW pc=17 dst=r10 src=r1 offset=-16 imm=0
-#line 62 "sample/undocked/map_reuse_2.c"
+#line 63 "sample/undocked/map_reuse_2.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_MOV64_REG pc=18 dst=r2 src=r10 offset=0 imm=0
-#line 62 "sample/undocked/map_reuse_2.c"
+#line 63 "sample/undocked/map_reuse_2.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=19 dst=r2 src=r0 offset=0 imm=-12
-#line 61 "sample/undocked/map_reuse_2.c"
+#line 62 "sample/undocked/map_reuse_2.c"
     r2 += IMMEDIATE(-12);
     // EBPF_OP_MOV64_REG pc=20 dst=r3 src=r10 offset=0 imm=0
-#line 61 "sample/undocked/map_reuse_2.c"
+#line 62 "sample/undocked/map_reuse_2.c"
     r3 = r10;
     // EBPF_OP_ADD64_IMM pc=21 dst=r3 src=r0 offset=0 imm=-16
-#line 61 "sample/undocked/map_reuse_2.c"
+#line 62 "sample/undocked/map_reuse_2.c"
     r3 += IMMEDIATE(-16);
     // EBPF_OP_LDDW pc=22 dst=r1 src=r1 offset=0 imm=3
-#line 63 "sample/undocked/map_reuse_2.c"
+#line 64 "sample/undocked/map_reuse_2.c"
     r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=0
-#line 63 "sample/undocked/map_reuse_2.c"
+#line 64 "sample/undocked/map_reuse_2.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_MOV64_REG pc=25 dst=r6 src=r0 offset=0 imm=0
-#line 63 "sample/undocked/map_reuse_2.c"
+#line 64 "sample/undocked/map_reuse_2.c"
     r6 = r0;
     // EBPF_OP_CALL pc=26 dst=r0 src=r0 offset=0 imm=2
-#line 63 "sample/undocked/map_reuse_2.c"
+#line 64 "sample/undocked/map_reuse_2.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
     // EBPF_OP_LDXW pc=27 dst=r6 src=r6 offset=0 imm=0
-#line 65 "sample/undocked/map_reuse_2.c"
+#line 66 "sample/undocked/map_reuse_2.c"
     READ_ONCE_32(r6, r6, OFFSET(0));
 label_2:
     // EBPF_OP_MOV64_REG pc=28 dst=r0 src=r6 offset=0 imm=0
-#line 69 "sample/undocked/map_reuse_2.c"
+#line 70 "sample/undocked/map_reuse_2.c"
     r0 = r6;
     // EBPF_OP_EXIT pc=29 dst=r0 src=r0 offset=0 imm=0
-#line 69 "sample/undocked/map_reuse_2.c"
+#line 70 "sample/undocked/map_reuse_2.c"
     return r0;
-#line 50 "sample/undocked/map_reuse_2.c"
+#line 51 "sample/undocked/map_reuse_2.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
