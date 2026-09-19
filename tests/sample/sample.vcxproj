@@ -127,7 +127,9 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <BpfNativeDeps>$(OutDir)Convert-BpfToNative.ps1</BpfNativeDeps>
+    <BpfHostBinDir Condition="'$(Platform)'=='$(HostPlatform)'">$(OutDir)</BpfHostBinDir>
+    <BpfHostBinDir Condition="'$(Platform)'!='$(HostPlatform)'">$(SolutionDir)$(HostPlatform)\$(Configuration)\</BpfHostBinDir>
+    <BpfNativeDeps>$(BpfHostBinDir)Convert-BpfToNative.ps1</BpfNativeDeps>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -283,11 +285,16 @@
       <FileType>CppCode</FileType>
       <Command>
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c %(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted "$(BpfHostBinDir)Convert-BpfToNative.ps1" -FileName %(Filename) -IncludeDir $(SolutionDir)\include -BinDir $(BpfHostBinDir) -Platform $(Platform) -Configuration $(KernelConfiguration) -KernelMode $true
+        if errorlevel 1 exit /b 1
+        powershell -NonInteractive -ExecutionPolicy Unrestricted "$(BpfHostBinDir)Convert-BpfToNative.ps1" -FileName %(Filename) -IncludeDir $(SolutionDir)\include -BinDir $(BpfHostBinDir) -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        if errorlevel 1 exit /b 1
+        popd
       </Command>
-      <Outputs>$(OutputPath)%(Filename).o</Outputs>
-      <AdditionalInputs>$(BpfHeaderDeps)</AdditionalInputs>
-      <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
-      <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+      <AdditionalInputs>$(BpfHeaderDeps);$(BpfNativeDeps)</AdditionalInputs>
+      <BuildInParallel>false</BuildInParallel>
     </CustomBuild>
     <!-- Copy explicit unsafe object files (i.e., not to be verified) among the other generated .o files -->
     <CustomBuild Include="unsafe\*.o">
@@ -337,15 +344,35 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)'!='FuzzerDebug' And '$(Platform)'!='$(HostPlatform)'">
-    <CustomBuild Include="undocked\*.c">
+    <CustomBuild Include="undocked\*.c" Exclude="undocked\map.c">
       <FileType>CppCode</FileType>
       <Command>
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -I. -I../../undocked/tests/sample/ext/inc -c undocked\%(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted "$(BpfHostBinDir)Convert-BpfToNative.ps1" -FileName %(Filename) -IncludeDir $(SolutionDir)\include -BinDir $(BpfHostBinDir) -Platform $(Platform) -Configuration $(KernelConfiguration) -KernelMode $true -Verbose
+        if errorlevel 1 exit /b 1
+        powershell -NonInteractive -ExecutionPolicy Unrestricted "$(BpfHostBinDir)Convert-BpfToNative.ps1" -FileName %(Filename) -IncludeDir $(SolutionDir)\include -BinDir $(BpfHostBinDir) -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        if errorlevel 1 exit /b 1
+        popd
       </Command>
-      <Outputs>$(OutputPath)%(Filename).o</Outputs>
-      <AdditionalInputs>$(BpfUndockedHeaderDeps)</AdditionalInputs>
-      <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
-      <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+      <AdditionalInputs>$(BpfUndockedHeaderDeps);$(BpfNativeDeps)</AdditionalInputs>
+      <BuildInParallel>false</BuildInParallel>
+    </CustomBuild>
+    <CustomBuild Include="undocked\map.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -I. -I../../undocked/tests/sample/ext/inc -c undocked\%(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted "$(BpfHostBinDir)Convert-BpfToNative.ps1" -FileName %(Filename) -IncludeDir $(SolutionDir)\include -BinDir $(BpfHostBinDir) -Platform $(Platform) -Configuration $(KernelConfiguration) -KernelMode $true -Verbose -SpdFile $(SolutionDir)tests\spd\map.spd
+        if errorlevel 1 exit /b 1
+        powershell -NonInteractive -ExecutionPolicy Unrestricted "$(BpfHostBinDir)Convert-BpfToNative.ps1" -FileName %(Filename) -IncludeDir $(SolutionDir)\include -BinDir $(BpfHostBinDir) -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        if errorlevel 1 exit /b 1
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+      <AdditionalInputs>$(BpfUndockedHeaderDeps);$(BpfNativeDeps);$(SolutionDir)tests\spd\map.spd</AdditionalInputs>
+      <BuildInParallel>false</BuildInParallel>
     </CustomBuild>
   </ItemGroup>
   <!-- For BPF programs that fail verification, build native images without verification only for Debug build. -->
@@ -422,11 +449,14 @@
       <FileType>CppCode</FileType>
       <Command>
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c custom_program_type\%(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(SolutionDir)\scripts
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\build_custom_sample_programs.ps1 -FileName %(Filename) -FilePath $(OutDir) -BinPath $(BpfHostBinDir) -IncludePath $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelConfiguration $(KernelConfiguration)
+        if errorlevel 1 exit /b 1
+        popd
       </Command>
-      <Outputs>$(OutputPath)%(Filename).o</Outputs>
-      <AdditionalInputs>$(BpfHeaderDeps)</AdditionalInputs>
-      <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
-      <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+      <AdditionalInputs>$(BpfHeaderDeps);$(BpfNativeDeps)</AdditionalInputs>
+      <BuildInParallel>false</BuildInParallel>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)'=='FuzzerDebug'">

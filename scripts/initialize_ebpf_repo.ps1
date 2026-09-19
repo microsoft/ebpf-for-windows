@@ -8,7 +8,8 @@ param (
     # Use this on a machine with multiple Visual Studio versions installed to set up a build for a
     # specific toolset, so the CMake generator, platform toolset, and NuGet/MSBuild restore all match
     # the Visual Studio version you intend to build with.
-    [parameter(Mandatory = $false)][string] $VisualStudioVersion = ""
+    [parameter(Mandatory = $false)][string] $VisualStudioVersion = "",
+    [parameter(Mandatory = $false)][switch] $SkipHostToolBootstrap
 )
 
 # Ensure errors are treated as terminating exceptions
@@ -78,13 +79,42 @@ function Invoke-NativeCommand {
 # because PowerShell interprets '/' in msbuild arguments as a division operator).
 function Invoke-MSBuild {
     param([string[]]$Arguments)
-    $cmd = "& `"$msbuildPath`" $($Arguments -join ' ')"
     Write-Host ">> Running command: $msbuildPath $($Arguments -join ' ')"
     & $msbuildPath @Arguments
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Command failed. Exit code: $LASTEXITCODE"
         Exit $LASTEXITCODE
     }
+}
+
+$architectureSpecificBuildDirectories = @(
+    "external\ebpf-verifier\build",
+    "external\catch2\build",
+    "external\ubpf\build",
+    "external\ubpf\build_fuzzer")
+
+function Remove-ArchitectureSpecificBuildDirectories {
+    foreach ($buildDirectory in $architectureSpecificBuildDirectories) {
+        if (Test-Path $buildDirectory) {
+            Write-Host "Removing architecture-specific CMake build directory '$buildDirectory'."
+            Remove-Item $buildDirectory -Recurse -Force
+        }
+    }
+}
+
+$hostArchitecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
+if (!$SkipHostToolBootstrap -and $Architecture -ieq "ARM64" -and $hostArchitecture -ieq "x64") {
+    Write-Host "Bootstrapping x64 bpf2c host tools before configuring the ARM64 target."
+    Remove-ArchitectureSpecificBuildDirectories
+    & $PSCommandPath -Architecture x64 -VisualStudioVersion $VisualStudioVersion -SkipHostToolBootstrap
+    if (!$?) {
+        throw "Failed to initialize x64 host dependencies."
+    }
+
+    foreach ($configuration in @("Debug", "Release", "NativeOnlyDebug", "NativeOnlyRelease")) {
+        Invoke-MSBuild -Arguments "/m", "ebpf-for-windows.sln", "/t:tools\bpf2c", "/p:Configuration=$configuration", "/p:Platform=x64", "/p:HostPlatform=x64"
+    }
+    Remove-ArchitectureSpecificBuildDirectories
 }
 
 # Define the commands to run
@@ -112,23 +142,22 @@ $commands = @(
 # different generator cannot be reused (CMake errors on a generator mismatch). Remove any such stale
 # build directory so it is regenerated with the selected generator.
 function Clear-StaleCMakeBuildDir {
-    param([string]$BuildDir, [string]$Generator)
+    param([string]$BuildDir, [string]$Generator, [string]$Architecture)
     $cachePath = Join-Path $BuildDir "CMakeCache.txt"
     if (Test-Path $cachePath) {
         $cachedGenerator = (Select-String -Path $cachePath -Pattern '^CMAKE_GENERATOR:INTERNAL=(.*)$' |
             Select-Object -First 1).Matches.Groups[1].Value
-        if ($cachedGenerator -and ($cachedGenerator -ne $Generator)) {
-            Write-Host "Removing stale CMake build dir '$BuildDir' (generator '$cachedGenerator' != '$Generator')."
+        $cachedArchitecture = (Select-String -Path $cachePath -Pattern '^CMAKE_GENERATOR_PLATFORM:INTERNAL=(.*)$' |
+            Select-Object -First 1).Matches.Groups[1].Value
+        if (($cachedGenerator -and ($cachedGenerator -ne $Generator)) -or
+            ($cachedArchitecture -and ($cachedArchitecture -ine $Architecture))) {
+            Write-Host "Removing stale CMake build dir '$BuildDir' (generator '$cachedGenerator', architecture '$cachedArchitecture'; requested '$Generator', '$Architecture')."
             Remove-Item $BuildDir -Recurse -Force
         }
     }
 }
-foreach ($buildDir in @(
-        "external\ebpf-verifier\build",
-        "external\catch2\build",
-        "external\ubpf\build",
-        "external\ubpf\build_fuzzer")) {
-    Clear-StaleCMakeBuildDir -BuildDir $buildDir -Generator $cmakeGenerator
+foreach ($buildDir in $architectureSpecificBuildDirectories) {
+    Clear-StaleCMakeBuildDir -BuildDir $buildDir -Generator $cmakeGenerator -Architecture $Architecture
 }
 
 # Run non-msbuild commands via Invoke-Expression.
@@ -140,5 +169,6 @@ foreach ($command in $commands) {
 Invoke-MSBuild -Arguments "/t:restore", "external\usersim\src\usersim.vcxproj", "/p:Platform=$Architecture"
 Invoke-MSBuild -Arguments "/t:restore", "external\usersim\usersim_dll_skeleton\usersim_dll_skeleton.vcxproj", "/p:Platform=$Architecture"
 Invoke-MSBuild -Arguments "/t:restore", "external\usersim\cxplat\src\cxplat_winkernel\cxplat_winkernel.vcxproj", "/p:Platform=$Architecture"
+Invoke-MSBuild -Arguments "/m", "ebpf-for-windows.sln", "/t:idl\rpc_interface:Rebuild", "/p:Configuration=Release", "/p:Platform=$Architecture", "/p:HostPlatform=$hostArchitecture"
 
 Write-Host "All commands succeeded."
