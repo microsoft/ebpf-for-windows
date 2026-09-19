@@ -1,0 +1,87 @@
+name: Update stable Linux version
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    if: github.repository == 'microsoft/ebpf-for-windows'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920
+        with:
+          egress-policy: audit
+
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: true
+
+      - name: Read latest stable Linux version
+        id: stable
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          version=$(
+            curl \
+              --fail \
+              --location \
+              --retry 3 \
+              https://www.kernel.org/releases.json |
+              jq \
+                --raw-output \
+                '.latest_stable.version'
+          )
+
+          [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+
+          echo "version=$version" >>"$GITHUB_OUTPUT"
+
+      - name: Update pinned version
+        shell: bash
+        env:
+          VERSION: ${{ steps.stable.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          printf '%s\n' "$VERSION" \
+            >.github/linux-stable-version.txt
+
+      - name: Commit version update
+        shell: bash
+        env:
+          VERSION: ${{ steps.stable.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet \
+            -- .github/linux-stable-version.txt
+          then
+            echo "Stable Linux version is already $VERSION"
+            exit 0
+          fi
+
+          git config \
+            user.name \
+            github-actions[bot]
+
+          git config \
+            user.email \
+            41898282+github-actions[bot]@users.noreply.github.com
+
+          git add \
+            .github/linux-stable-version.txt
+
+          git commit \
+            --message \
+            "ci: update stable Linux kernel to $VERSION"
+
+          git push
