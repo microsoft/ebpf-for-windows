@@ -174,6 +174,12 @@ if (-not $solution_dir.EndsWith("\")) {
 
 Push-Location $repository_root
 try {
+    Invoke-BuildTool -FilePath $msbuild_path -Arguments @(
+        "/t:Restore",
+        "/p:Configuration=$Configuration",
+        "/p:Platform=$Platform",
+        "scripts\setup_build\wdk-packages\wdk-packages.vcxproj"
+    )
     Invoke-BuildTool -FilePath $nuget_path -Arguments @("restore", "ebpf-for-windows.sln")
 
     $diverged_units = @()

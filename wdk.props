@@ -24,8 +24,20 @@
          VS 2022 (MSBuild 17) uses 10.0.26100.6584. -->
     <WDKVersion Condition="'$(WDKVersion)' == '' and '$(MSBuildAssemblyVersion)' &gt;= '18.0'">10.0.28000.2526</WDKVersion>
     <WDKVersion Condition="'$(WDKVersion)' == '' and '$(MSBuildAssemblyVersion)' &lt; '18.0'">10.0.26100.6584</WDKVersion>
+    <_EbpfTargetPackagePlatform>$(Platform.ToLowerInvariant())</_EbpfTargetPackagePlatform>
+    <_EbpfTargetPackagePlatform Condition="'$(Platform)' == 'Win32'">x86</_EbpfTargetPackagePlatform>
+    <_EbpfHostPackagePlatform>$(HostPlatform.ToLowerInvariant())</_EbpfHostPackagePlatform>
+    <_EbpfHostPackagePlatform Condition="'$(_EbpfHostPackagePlatform)' == 'amd64'">x64</_EbpfHostPackagePlatform>
+    <_EbpfHostPackagePlatform Condition="'$(_EbpfHostPackagePlatform)' == 'win32'">x86</_EbpfHostPackagePlatform>
+    <EbpfWdkPackagesRoot Condition="'$(EbpfWdkPackagesRoot)' == '' and '$(EBPF_WDK_PACKAGES_ROOT)' != ''">$(EBPF_WDK_PACKAGES_ROOT)</EbpfWdkPackagesRoot>
+    <EbpfWdkPackagesRoot Condition="'$(EbpfWdkPackagesRoot)' == '' and '$(NUGET_PACKAGES)' != ''">$(NUGET_PACKAGES)</EbpfWdkPackagesRoot>
+    <EbpfWdkPackagesRoot Condition="'$(EbpfWdkPackagesRoot)' == ''">$(UserProfile)\.nuget\packages</EbpfWdkPackagesRoot>
+    <EbpfWdkPackagesRoot>$([MSBuild]::EnsureTrailingSlash('$(EbpfWdkPackagesRoot)'))</EbpfWdkPackagesRoot>
+    <_EbpfWindowsSdkPackageRoot>$(EbpfWdkPackagesRoot)microsoft.windows.sdk.cpp\$(WDKVersion)\</_EbpfWindowsSdkPackageRoot>
+    <_EbpfWindowsSdkPlatformPackageRoot>$(EbpfWdkPackagesRoot)microsoft.windows.sdk.cpp.$(_EbpfTargetPackagePlatform)\$(WDKVersion)\</_EbpfWindowsSdkPlatformPackageRoot>
+    <_EbpfWindowsWdkPlatformPackageRoot>$(EbpfWdkPackagesRoot)microsoft.windows.wdk.$(_EbpfTargetPackagePlatform)\$(WDKVersion)\</_EbpfWindowsWdkPlatformPackageRoot>
     <!-- Provide DDK_INC_PATH for user-mode projects that simulate kernel code (usersim) -->
-    <DDK_INC_PATH Condition="'$(DDK_INC_PATH)' == ''">$(SolutionDir)packages\Microsoft.Windows.WDK.$(Platform).$(WDKVersion)\c\Include\$(WindowsTargetPlatformVersion)\km</DDK_INC_PATH>
+    <DDK_INC_PATH Condition="'$(DDK_INC_PATH)' == ''">$(_EbpfWindowsWdkPlatformPackageRoot)c\Include\$(WindowsTargetPlatformVersion)\km</DDK_INC_PATH>
     <!-- Default platform toolset for user-mode projects. Kernel-mode projects override this
          with WindowsKernelModeDriver10.0 in their vcxproj Configuration PropertyGroups. -->
     <EbpfPlatformToolset Condition="'$(EbpfPlatformToolset)' == '' and '$(MSBuildAssemblyVersion)' &gt;= '18.0'">v145</EbpfPlatformToolset>
@@ -43,6 +55,7 @@
   <Target Name="LogWDKVersion" BeforeTargets="PrepareForBuild">
     <Message Importance="high" Text="Using WDK version $(WDKVersion)" />
     <Message Importance="high" Text="Using Windows target platform version $(WindowsTargetPlatformVersion)" />
+    <Message Importance="high" Text="Using WDK packages from $(EbpfWdkPackagesRoot)" />
     <Message Importance="high" Text="Using host platform $(HostPlatform)" />
     <Message Importance="high" Text="Using target platform $(Platform)" />
     <Message Importance="high" Text="PROCESSOR_ARCHITECTURE is $(PROCESSOR_ARCHITECTURE)" />
@@ -50,23 +63,23 @@
   </Target>
 
   <!-- SDK NuGet imports -->
-  <Import Project="$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.props" Condition="Exists('$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.props')" />
-  <Import Project="$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.$(Platform).props" Condition="Exists('$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.$(Platform).props')" />
+  <Import Project="$(_EbpfWindowsSdkPackageRoot)build\native\Microsoft.Windows.SDK.cpp.props" Condition="'$(EbpfSkipWdkPackageImports)' != 'true' and Exists('$(_EbpfWindowsSdkPackageRoot)build\native\Microsoft.Windows.SDK.cpp.props')" />
+  <Import Project="$(_EbpfWindowsSdkPlatformPackageRoot)build\native\Microsoft.Windows.SDK.cpp.$(_EbpfTargetPackagePlatform).props" Condition="'$(EbpfSkipWdkPackageImports)' != 'true' and Exists('$(_EbpfWindowsSdkPlatformPackageRoot)build\native\Microsoft.Windows.SDK.cpp.$(_EbpfTargetPackagePlatform).props')" />
 
   <!-- WDK NuGet import (sets PlatformToolset to WindowsKernelModeDriver10.0) -->
-  <Import Project="$(SolutionDir)packages\Microsoft.Windows.WDK.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.WDK.$(Platform).props" Condition="Exists('$(SolutionDir)packages\Microsoft.Windows.WDK.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.WDK.$(Platform).props')" />
+  <Import Project="$(_EbpfWindowsWdkPlatformPackageRoot)build\native\Microsoft.Windows.WDK.$(_EbpfTargetPackagePlatform).props" Condition="'$(EbpfSkipWdkPackageImports)' != 'true' and Exists('$(_EbpfWindowsWdkPlatformPackageRoot)build\native\Microsoft.Windows.WDK.$(_EbpfTargetPackagePlatform).props')" />
 
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.targets" Condition="Exists('$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.targets')" />
+    <Import Project="$(_EbpfWindowsSdkPackageRoot)build\native\Microsoft.Windows.SDK.cpp.targets" Condition="'$(EbpfSkipWdkPackageImports)' != 'true' and Exists('$(_EbpfWindowsSdkPackageRoot)build\native\Microsoft.Windows.SDK.cpp.targets')" />
   </ImportGroup>
 
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild" Condition="'$(EbpfSkipWdkPackageImports)' != 'true'">
     <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+      <ErrorText>The required WDK/SDK package is missing. Restore ebpf-for-windows.sln or run .\scripts\initialize_ebpf_repo.ps1. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.props')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.props'))" />
-    <Error Condition="!Exists('$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.targets'))" />
-    <Error Condition="!Exists('$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.$(Platform).props')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.$(Platform).props'))" />
-    <Error Condition="!Exists('$(SolutionDir)packages\Microsoft.Windows.WDK.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.WDK.$(Platform).props')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)packages\Microsoft.Windows.WDK.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.WDK.$(Platform).props'))" />
+    <Error Condition="!Exists('$(_EbpfWindowsSdkPackageRoot)build\native\Microsoft.Windows.SDK.cpp.props')" Text="$([System.String]::Format('$(ErrorText)', '$(_EbpfWindowsSdkPackageRoot)build\native\Microsoft.Windows.SDK.cpp.props'))" />
+    <Error Condition="!Exists('$(_EbpfWindowsSdkPackageRoot)build\native\Microsoft.Windows.SDK.cpp.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(_EbpfWindowsSdkPackageRoot)build\native\Microsoft.Windows.SDK.cpp.targets'))" />
+    <Error Condition="!Exists('$(_EbpfWindowsSdkPlatformPackageRoot)build\native\Microsoft.Windows.SDK.cpp.$(_EbpfTargetPackagePlatform).props')" Text="$([System.String]::Format('$(ErrorText)', '$(_EbpfWindowsSdkPlatformPackageRoot)build\native\Microsoft.Windows.SDK.cpp.$(_EbpfTargetPackagePlatform).props'))" />
+    <Error Condition="!Exists('$(_EbpfWindowsWdkPlatformPackageRoot)build\native\Microsoft.Windows.WDK.$(_EbpfTargetPackagePlatform).props')" Text="$([System.String]::Format('$(ErrorText)', '$(_EbpfWindowsWdkPlatformPackageRoot)build\native\Microsoft.Windows.WDK.$(_EbpfTargetPackagePlatform).props'))" />
   </Target>
 </Project>

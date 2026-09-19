@@ -104,8 +104,7 @@ $commands = @(
     "cmake $cmakeCommonArgs -S external\ebpf-verifier -B external\ebpf-verifier\build -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>$<$<CONFIG:FuzzerDebug>:Debug>",
     "cmake $cmakeCommonArgs -S external\catch2 -B external\catch2\build -DBUILD_TESTING=OFF -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>$<$<CONFIG:FuzzerDebug>:Debug>",
     "cmake $cmakeCommonArgs -S external\ubpf -B external\ubpf\build -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>$<$<CONFIG:FuzzerDebug>:Debug>",
-    "cmake $cmakeCommonArgs -S external\ubpf -B external\ubpf\build_fuzzer -DUBPF_ENABLE_LIBFUZZER=on",
-    $nugetRestoreCommand
+    "cmake $cmakeCommonArgs -S external\ubpf -B external\ubpf\build_fuzzer -DUBPF_ENABLE_LIBFUZZER=on"
 )
 
 # When switching between Visual Studio versions, an existing CMake build directory configured with a
@@ -137,6 +136,19 @@ foreach ($command in $commands) {
 }
 
 # Run msbuild restore commands using the call operator to avoid '/' parsing issues.
+Invoke-MSBuild -Arguments "/t:restore", "scripts\setup_build\wdk-packages\wdk-packages.vcxproj", "/p:Configuration=Debug", "/p:Platform=$Architecture"
+$previousWdkTargetPlatform = $env:EBPF_WDK_TARGET_PLATFORM
+try {
+    $env:EBPF_WDK_TARGET_PLATFORM = $Architecture
+    Invoke-NativeCommand -Command $nugetRestoreCommand
+}
+finally {
+    if ($null -eq $previousWdkTargetPlatform) {
+        Remove-Item Env:EBPF_WDK_TARGET_PLATFORM -ErrorAction SilentlyContinue
+    } else {
+        $env:EBPF_WDK_TARGET_PLATFORM = $previousWdkTargetPlatform
+    }
+}
 Invoke-MSBuild -Arguments "/t:restore", "external\usersim\src\usersim.vcxproj", "/p:Platform=$Architecture"
 Invoke-MSBuild -Arguments "/t:restore", "external\usersim\usersim_dll_skeleton\usersim_dll_skeleton.vcxproj", "/p:Platform=$Architecture"
 Invoke-MSBuild -Arguments "/t:restore", "external\usersim\cxplat\src\cxplat_winkernel\cxplat_winkernel.vcxproj", "/p:Platform=$Architecture"
