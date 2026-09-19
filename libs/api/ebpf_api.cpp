@@ -2465,6 +2465,7 @@ _clean_up_ebpf_object(_In_opt_ _Post_invalid_ ebpf_object_t* object) noexcept
 
         ebpf_free(object->object_name);
         ebpf_free(object->file_name);
+        ebpf_free(object->pin_root_path);
     }
 }
 
@@ -2580,6 +2581,13 @@ _initialize_ebpf_maps_native(
         }
         map->map_handle = map_handles[i];
         map_handles[i] = ebpf_handle_invalid;
+
+        // For native objects, ebpfcore pins LIBBPF_PIN_BY_NAME maps as part of loading the module,
+        // using the pin root path that was sent down in the load request. map->pin_path was already
+        // computed from that same root when the object was opened, so reflect the pinned state here.
+        if (map->pin_path != nullptr) {
+            map->pinned = true;
+        }
     }
 
 Exit:
@@ -2878,6 +2886,16 @@ _initialize_ebpf_object_from_file(
     if (new_object->object_name == nullptr) {
         result = EBPF_NO_MEMORY;
         goto Done;
+    }
+
+    // Remember the caller's pin root path. Native objects need it at load time, because pinning of
+    // LIBBPF_PIN_BY_NAME maps is performed by ebpfcore rather than here.
+    if (pin_root_path != nullptr) {
+        new_object->pin_root_path = cxplat_duplicate_string(pin_root_path);
+        if (new_object->pin_root_path == nullptr) {
+            result = EBPF_NO_MEMORY;
+            goto Done;
+        }
     }
 
     // If file_or_data is a string, it is a file path.
@@ -4125,6 +4143,8 @@ Done:
  * @brief Create maps and load programs from a loaded native module.
  *
  * @param[in] module_id Module ID corresponding to the native module.
+ * @param[in] pin_root_path Optional root path used as the prefix when pinning maps declared with
+ *  LIBBPF_PIN_BY_NAME. If null, the default pin root path is used.
  * @param[in] count_of_maps Count of maps present in the native module.
  * @param[out] map_handles Array of size count_of_maps which contains the map handles.
  * @param[in] count_of_programs Count of programs present in the native module.
@@ -4141,6 +4161,7 @@ Done:
 static ebpf_result_t
 _load_native_programs(
     _In_ const GUID* module_id,
+    _In_opt_z_ const char* pin_root_path,
     size_t count_of_maps,
     _Outptr_result_buffer_maybenull_(count_of_maps) ebpf_handle_t** map_handles,
     size_t count_of_programs,
@@ -4154,13 +4175,27 @@ _load_native_programs(
 
     ebpf_result_t result = EBPF_SUCCESS;
     uint32_t error = ERROR_SUCCESS;
+    ebpf_protocol_buffer_t request_buffer;
     ebpf_protocol_buffer_t reply_buffer;
-    ebpf_operation_load_native_programs_request_t request;
+    ebpf_operation_load_native_programs_request_t* request;
     ebpf_operation_load_native_programs_reply_t* reply;
     size_t map_handles_size = 0;
     size_t program_handles_size = 0;
     size_t handles_size = 0;
     size_t buffer_size = 0;
+    size_t pin_root_path_size = pin_root_path ? strlen(pin_root_path) : 0;
+    size_t request_size = 0;
+
+    if (pin_root_path_size >= EBPF_MAX_PIN_PATH_LENGTH) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    result = ebpf_safe_size_t_add(
+        offsetof(ebpf_operation_load_native_programs_request_t, pin_root_path), pin_root_path_size, &request_size);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
 
     result = ebpf_safe_size_t_multiply(count_of_maps, sizeof(ebpf_handle_t), &map_handles_size);
     if (result != EBPF_SUCCESS) {
@@ -4207,14 +4242,25 @@ _load_native_programs(
         }
     }
 
+    request_buffer.resize(request_size);
     reply_buffer.resize(buffer_size);
 
+    request = reinterpret_cast<ebpf_operation_load_native_programs_request_t*>(request_buffer.data());
     reply = reinterpret_cast<ebpf_operation_load_native_programs_reply_t*>(reply_buffer.data());
-    request.header.id = ebpf_operation_id_t::EBPF_OPERATION_LOAD_NATIVE_PROGRAMS;
-    request.header.length = sizeof(ebpf_operation_load_native_programs_request_t);
-    request.module_id = *module_id;
+    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_LOAD_NATIVE_PROGRAMS;
+    result = ebpf_safe_size_t_to_uint16(request_size, &request->header.length);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+    request->module_id = *module_id;
+    if (pin_root_path_size > 0) {
+        memcpy(
+            request_buffer.data() + offsetof(ebpf_operation_load_native_programs_request_t, pin_root_path),
+            pin_root_path,
+            pin_root_path_size);
+    }
 
-    error = invoke_ioctl(request, reply_buffer);
+    error = invoke_ioctl(request_buffer, reply_buffer);
     if (error != ERROR_SUCCESS) {
         result = win32_error_code_to_ebpf_result(error);
         EBPF_LOG_WIN32_GUID_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, module_id, invoke_ioctl);
@@ -4267,6 +4313,7 @@ _ebpf_free_handles(size_t count, _In_reads_opt_(count) _Post_ptr_invalid_ ebpf_h
 _Must_inspect_result_ ebpf_result_t
 _ebpf_object_load_native(
     _In_z_ const char* file_name,
+    _In_opt_z_ const char* pin_root_path,
     _Out_ ebpf_handle_t* native_module_handle,
     _Inout_ size_t* count_of_maps,
     _Outptr_result_buffer_all_maybenull_(*count_of_maps) ebpf_handle_t** map_handles,
@@ -4387,7 +4434,12 @@ _ebpf_object_load_native(
         }
 
         result = _load_native_programs(
-            &provider_module_id, real_count_of_maps, map_handles, real_count_of_programs, program_handles);
+            &provider_module_id,
+            pin_root_path,
+            real_count_of_maps,
+            map_handles,
+            real_count_of_programs,
+            program_handles);
         if (result != EBPF_SUCCESS) {
             EBPF_LOG_MESSAGE_STRING(
                 EBPF_TRACELOG_LEVEL_ERROR,
@@ -4453,7 +4505,7 @@ ebpf_object_load_native_by_fds(
     ebpf_handle_t* program_handles = nullptr;
 
     ebpf_result_t result = _ebpf_object_load_native(
-        file_name, &native_module_handle, count_of_maps, &map_handles, count_of_programs, &program_handles);
+        file_name, nullptr, &native_module_handle, count_of_maps, &map_handles, count_of_programs, &program_handles);
     if (result != EBPF_SUCCESS) {
         EBPF_RETURN_RESULT(result);
     }
@@ -4525,7 +4577,13 @@ _ebpf_program_load_native(
 
     try {
         result = _ebpf_object_load_native(
-            file_name, &native_module_handle, &count_of_maps, &map_handles, &count_of_programs, &program_handles);
+            file_name,
+            object->pin_root_path,
+            &native_module_handle,
+            &count_of_maps,
+            &map_handles,
+            &count_of_programs,
+            &program_handles);
         if (result != EBPF_SUCCESS) {
             EBPF_RETURN_RESULT(result);
         }
