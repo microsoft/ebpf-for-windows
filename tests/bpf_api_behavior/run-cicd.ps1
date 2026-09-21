@@ -15,6 +15,7 @@ param(
     [string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
 
     [Parameter(Mandatory = $false)]
+    [ValidateRange(1, 2147483647)]
     [int] $TestJobTimeout = (30 * 60)
 )
 
@@ -79,6 +80,7 @@ try {
     $vm_name = @($vm_list)[0].Name
     $credential = Get-VMCredential -Username "Administrator"
     $session = $null
+    $testJob = $null
 
     Write-Log "Running bpf_api_behavior on VM $vm_name"
 
@@ -105,7 +107,8 @@ try {
             -ToSession $session `
             -Force
 
-        Invoke-Command `
+        $testJob = Invoke-Command `
+            -AsJob `
             -Session $session `
             -ScriptBlock {
                 param($executable, $runner, $output)
@@ -124,6 +127,16 @@ try {
                 $remote_paths.Output
             )
 
+        if ($null -eq (Wait-Job -Job $testJob -Timeout $TestJobTimeout)) {
+            throw "Behavior tests exceeded the configured timeout of $TestJobTimeout seconds."
+        }
+
+        Receive-Job -Job $testJob -ErrorAction Stop
+
+        if ($testJob.State -ne 'Completed') {
+            throw "Behavior test job ended in state $($testJob.State)."
+        }
+
         Copy-Item `
             -LiteralPath $remote_paths.Output `
             -Destination $local_output `
@@ -131,8 +144,49 @@ try {
             -Force
     }
     finally {
-        if ($null -ne $session) {
-            Remove-PSSession -Session $session
+        if ($null -ne $testJob -or $null -ne $session) {
+            # PS Direct cleanup can itself hang. Do not call EndInvoke or
+            # Dispose on an unfinished cleanup pipeline after the deadline.
+            $cleanup = [powershell]::Create()
+            $cleanupFinished = $false
+            try {
+                $null = $cleanup.AddScript({
+                    param($job, $remoteSession)
+                    $ErrorActionPreference = 'Stop'
+                    try {
+                        if ($null -ne $job) {
+                            Stop-Job -Job $job
+                        }
+                    }
+                    finally {
+                        if ($null -ne $remoteSession) {
+                            Remove-PSSession -Session $remoteSession
+                        }
+                    }
+                }).AddArgument($testJob).AddArgument($session)
+
+                $pendingCleanup = $cleanup.BeginInvoke()
+                if (-not $pendingCleanup.AsyncWaitHandle.WaitOne(30000)) {
+                    throw "Behavior test cleanup exceeded 30 seconds; remote cleanup is not confirmed."
+                }
+
+                $cleanupFinished = $true
+                $null = $cleanup.EndInvoke($pendingCleanup)
+                if ($cleanup.HadErrors) {
+                    throw "Behavior test job or session cleanup failed."
+                }
+                if ($null -ne $testJob) {
+                    if ($testJob.State -notin @('Completed', 'Failed', 'Stopped')) {
+                        throw "Behavior test job did not stop; cleanup is not confirmed."
+                    }
+                    Remove-Job -Job $testJob -ErrorAction Stop
+                }
+            }
+            finally {
+                if ($cleanupFinished) {
+                    $cleanup.Dispose()
+                }
+            }
         }
     }
 
