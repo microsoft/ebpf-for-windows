@@ -914,7 +914,7 @@ _ebpf_program_general_program_information_attach_provider(
     if (!_ebpf_program_match_provider_data_module_id(
             provider_registration_instance->ModuleId, &ebpf_general_helper_function_module_id.Guid)) {
         EBPF_LOG_MESSAGE(
-            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_LEVEL_VERBOSE,
             EBPF_TRACELOG_KEYWORD_PROGRAM,
             "Program information provider module ID mismatch.");
         status = STATUS_INVALID_PARAMETER;
@@ -1011,7 +1011,7 @@ _ebpf_program_type_specific_program_information_attach_provider(
     if (!_ebpf_program_match_provider_data_module_id(
             provider_registration_instance->ModuleId, &program->parameters.program_type)) {
         EBPF_LOG_MESSAGE_GUID_GUID(
-            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_LEVEL_VERBOSE,
             EBPF_TRACELOG_KEYWORD_PROGRAM,
             "Program information provider module ID mismatch.",
             &program->parameters.program_type,

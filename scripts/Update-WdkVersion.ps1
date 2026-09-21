@@ -93,9 +93,12 @@ Updates the WDK version in a Visual Studio file.
 
 .DESCRIPTION
 Updates the WDK version in a Visual Studio file by replacing the existing version number with the specified version
-number. Only the first <WDKVersion> and <WindowsTargetPlatformVersion> elements are updated (the canonical "latest"
-values used for x64); platform-specific overrides such as <WDKVersionArm64> / <WindowsTargetPlatformVersionArm64> are
-intentionally left untouched so they can stay pinned independently.
+number. While Visual Studio 2022 and 2026 are both supported, the version is expressed as a pair of conditional
+elements (one per toolset); only the Visual Studio 2026 entry (the "'$(MSBuildToolsVersion)' &gt;= '18.0'" branch) is
+updated, so the Visual Studio 2022 entry stays pinned to the last VS 2022-compatible WDK. If no conditional entry is
+present, the first unconditional <WDKVersion> / <WindowsTargetPlatformVersion> element is updated instead.
+Platform-specific overrides such as <WDKVersionArm64> / <WindowsTargetPlatformVersionArm64> are intentionally left
+untouched so they can stay pinned independently.
 
 .PARAMETER vs_file_path
 The path to the Visual Studio file to update.
@@ -120,36 +123,45 @@ back the changes.
     # (e.g. WDK 10.0.28000.1839 -> target platform 10.0.28000.0).
     $target_platform_version = $version_number -replace '\.\d+$', '.0'
     try {
-        # Read the contents of the file
-        $vs_file_content = Get-Content $vs_file_path
-
-        # Transition guard: while VS 2022 and VS 2026 are both supported, the WDK version is expressed
-        # with conditional "<WDKVersion Condition=...>...</WDKVersion>" entries (one per toolset) that this
-        # simple replacement cannot safely update. If there is no unconditional "<WDKVersion>" element,
-        # skip and warn instead of silently leaving the version stale. This guard becomes inert once VS 2022
-        # support is removed and the files return to a single unconditional "<WDKVersion>" element.
-        if (-not ($vs_file_content -match "<WDKVersion>[^<]*</WDKVersion>")) {
-            Write-Warning "No unconditional <WDKVersion> element found in $vs_file_path (VS 2022 + VS 2026 transition state); skipping automatic update. Update the WDK version manually until VS 2022 support is removed."
-            return
-        }
-
         # Create backup
         $backup_path = "$vs_file_path.bak"
         Copy-Item $vs_file_path $backup_path -Force
         # Read the contents of the file
         $vs_file_content = @(Get-Content $vs_file_path)
-        # Replace only the first occurrence of each tag so that platform-specific overrides
-        # (e.g. <WDKVersionArm64>) are preserved.
-        $wdk_version_updated = $false
-        $target_version_updated = $false
-        for ($i = 0; $i -lt $vs_file_content.Length; $i++) {
-            if (-not $wdk_version_updated -and $vs_file_content[$i] -match "<WDKVersion>.*</WDKVersion>") {
-                $vs_file_content[$i] = $vs_file_content[$i] -replace "<WDKVersion>.*</WDKVersion>", "<WDKVersion>$version_number</WDKVersion>"
-                $wdk_version_updated = $true
+        # While VS 2022 and VS 2026 are both supported, the WDK version is expressed as a pair of
+        # conditional elements, one per toolset:
+        #   <WDKVersion Condition="... '$(MSBuildToolsVersion)' &gt;= '18.0'">10.0.28000.1839</WDKVersion>
+        #   <WDKVersion Condition="... '$(MSBuildToolsVersion)' &lt;  '18.0'">10.0.26100.6584</WDKVersion>
+        # Only the VS 2026 ('&gt;= 18.0') entry tracks the latest WDK; the VS 2022 entry stays pinned to
+        # the last VS 2022-compatible WDK and must not be moved. Once VS 2022 support is removed and the
+        # files return to a single unconditional element, the unconditional patterns below take over.
+        $patterns = @(
+            @{ Tag = 'WDKVersion'; Value = $version_number },
+            @{ Tag = 'WindowsTargetPlatformVersion'; Value = $target_platform_version }
+        )
+        foreach ($pattern in $patterns) {
+            $tag = $pattern.Tag
+            $value = $pattern.Value
+            # Prefer the VS 2026 conditional element; fall back to an unconditional element.
+            $conditional_regex = "(<$tag\b[^>]*&gt;=\s*'18\.0'[^>]*>)[^<]*(</$tag>)"
+            $unconditional_regex = "(<$tag>)[^<]*(</$tag>)"
+            $updated = $false
+            foreach ($regex in @($conditional_regex, $unconditional_regex)) {
+                for ($i = 0; $i -lt $vs_file_content.Length; $i++) {
+                    if ($vs_file_content[$i] -match $regex) {
+                        # Replace only the first match so platform-specific overrides
+                        # (e.g. <WDKVersionArm64>) and the pinned VS 2022 entry are preserved.
+                        $vs_file_content[$i] = [regex]::Replace($vs_file_content[$i], $regex, "`${1}$value`${2}", 1)
+                        $updated = $true
+                        break
+                    }
+                }
+                if ($updated) {
+                    break
+                }
             }
-            if (-not $target_version_updated -and $vs_file_content[$i] -match "<WindowsTargetPlatformVersion>.*</WindowsTargetPlatformVersion>") {
-                $vs_file_content[$i] = $vs_file_content[$i] -replace "<WindowsTargetPlatformVersion>.*</WindowsTargetPlatformVersion>", "<WindowsTargetPlatformVersion>$target_platform_version</WindowsTargetPlatformVersion>"
-                $target_version_updated = $true
+            if (-not $updated) {
+                throw "No <$tag> element found in $vs_file_path"
             }
         }
         # Write the updated contents back to the file
@@ -254,26 +266,12 @@ try {
         $files_updated += $vs_file
     }
 
-    # Generate the new packages.config file.
-    # Transition guard: while VS 2022 and VS 2026 are both supported, packages.config intentionally pins
-    # two WDK versions (one per toolset). The single-version template cannot represent that, so regenerating
-    # it here would silently drop the second toolset's packages and break that build. If the existing file
-    # already pins more than one distinct version, skip regeneration and warn. This guard becomes inert once
-    # VS 2022 support is removed and packages.config returns to a single WDK version.
+    # Generate the new packages.config file. The template pins two WDK versions: the $(WDKVersion)
+    # placeholder for the Visual Studio 2026 toolset, and a hardcoded entry for the last
+    # VS 2022-compatible WDK. Regenerating from the template therefore preserves both.
     $packages_config_path = "$PSScriptRoot\..\scripts\setup_build\packages.config"
-    $distinct_versions = @()
-    if (Test-Path $packages_config_path) {
-        $distinct_versions = @(Select-String -Path $packages_config_path -Pattern '<package\b[^>]*\bversion="([0-9.]+)"' -AllMatches |
-            ForEach-Object { $_.Matches } |
-            ForEach-Object { $_.Groups[1].Value } |
-            Sort-Object -Unique)
-    }
-    if ($distinct_versions.Count -gt 1) {
-        Write-Warning "packages.config pins multiple WDK versions ($($distinct_versions -join ', ')); skipping auto-regeneration to preserve the VS 2022 + VS 2026 multi-toolset configuration. Update packages.config manually until VS 2022 support is removed."
-    } else {
-        Update-TemplateFile -template_file_path "$PSScriptRoot\..\scripts\setup_build\packages.config.template" -output_file_path $packages_config_path -version_number $wdk_version_number
-        $files_updated += $packages_config_path
-    }
+    Update-TemplateFile -template_file_path "$PSScriptRoot\..\scripts\setup_build\packages.config.template" -output_file_path $packages_config_path -version_number $wdk_version_number
+    $files_updated += $packages_config_path
 
     # Print success message
     Write-Output "Updated WDK version in all files"

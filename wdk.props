@@ -20,9 +20,9 @@
          Microsoft.DriverKit.Build.Tasks.18.0.dll, an assembly the 26100 package does not ship. -->
     <WindowsTargetPlatformVersion Condition="'$(WindowsTargetPlatformVersion)' == '' and '$(MSBuildAssemblyVersion)' &gt;= '18.0'">10.0.28000.0</WindowsTargetPlatformVersion>
     <WindowsTargetPlatformVersion Condition="'$(WindowsTargetPlatformVersion)' == '' and '$(MSBuildAssemblyVersion)' &lt; '18.0'">10.0.26100.0</WindowsTargetPlatformVersion>
-    <!-- WDK NuGet package version: VS 2026 (MSBuild 18) requires 10.0.28000.1839;
+    <!-- WDK NuGet package version: VS 2026 (MSBuild 18) requires 10.0.28000.2526;
          VS 2022 (MSBuild 17) uses 10.0.26100.6584. -->
-    <WDKVersion Condition="'$(WDKVersion)' == '' and '$(MSBuildAssemblyVersion)' &gt;= '18.0'">10.0.28000.1839</WDKVersion>
+    <WDKVersion Condition="'$(WDKVersion)' == '' and '$(MSBuildAssemblyVersion)' &gt;= '18.0'">10.0.28000.2526</WDKVersion>
     <WDKVersion Condition="'$(WDKVersion)' == '' and '$(MSBuildAssemblyVersion)' &lt; '18.0'">10.0.26100.6584</WDKVersion>
     <!-- Provide DDK_INC_PATH for user-mode projects that simulate kernel code (usersim) -->
     <DDK_INC_PATH Condition="'$(DDK_INC_PATH)' == ''">$(SolutionDir)packages\Microsoft.Windows.WDK.$(Platform).$(WDKVersion)\c\Include\$(WindowsTargetPlatformVersion)\km</DDK_INC_PATH>

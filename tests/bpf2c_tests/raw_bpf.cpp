@@ -238,6 +238,8 @@ run_bpf_code_generator_test(const std::string& data_file)
 // Path to ubpf tests directory (tests that remain in ubpf/tests/)
 #define UBPF_TEST_PATH ".." SEPARATOR ".." SEPARATOR "external" SEPARATOR "ubpf" SEPARATOR "tests" SEPARATOR
 
+#define UBPF_EXTENSION_TEST_PATH UBPF_TEST_PATH "extensions" SEPARATOR
+
 // Path to bpf_conformance tests directory (tests moved to ubpf/external/bpf_conformance/tests/)
 #define CONFORMANCE_TEST_PATH                                                                \
     ".." SEPARATOR ".." SEPARATOR "external" SEPARATOR "ubpf" SEPARATOR "external" SEPARATOR \
@@ -267,6 +269,9 @@ run_bpf_code_generator_test(const std::string& data_file)
 
 // Tests in external/ubpf/tests/
 #define DECLARE_UBPF_TEST(FILE) DECLARE_TEST_PATH(FILE, UBPF_TEST_PATH)
+
+// Tests in external/ubpf/tests/extensions/
+#define DECLARE_UBPF_EXTENSION_TEST(FILE) DECLARE_TEST_PATH(FILE, UBPF_EXTENSION_TEST_PATH)
 
 // Tests in external/ubpf/external/bpf_conformance/tests/
 #define DECLARE_TEST(FILE) DECLARE_TEST_PATH(FILE, CONFORMANCE_TEST_PATH)
@@ -308,6 +313,7 @@ DECLARE_TEST("be64")
 // DECLARE_TEST("call")
 // DECLARE_TEST("call_unwind")
 DECLARE_TEST("call_unwind_fail")
+DECLARE_UBPF_EXTENSION_TEST("call_local_use_stack")
 DECLARE_TEST("div32-high-divisor")
 DECLARE_TEST("div32-imm")
 DECLARE_TEST("div32-reg")

@@ -1044,7 +1044,7 @@ sample_ebpf_extension_invoke_program(
         attach_parameter == NULL && attach_parameter_size == 0);
 
     if (hook_client == NULL) {
-        return_value = EBPF_FAILED;
+        return_value = EBPF_KEY_NOT_FOUND;
         goto Exit;
     }
     ebpf_program_invoke_function_t invoke_program = hook_client->invoke_program;
@@ -1069,7 +1069,7 @@ sample_ebpf_extension_invoke_batch_begin_program(_Inout_ ebpf_execution_context_
         _sample_extension_hook_provider_get_client(hook_provider_context, NULL, 0, select_first_client);
 
     if (hook_client == NULL) {
-        return_value = EBPF_FAILED;
+        return_value = EBPF_KEY_NOT_FOUND;
         goto Exit;
     }
     ebpf_program_batch_begin_invoke_function_t batch_begin_function = hook_client->begin_batch_program_invoke;
@@ -1092,7 +1092,7 @@ sample_ebpf_extension_invoke_batch_program(
         _sample_extension_hook_provider_get_client(hook_provider_context, NULL, 0, select_first_client);
 
     if (hook_client == NULL) {
-        return_value = EBPF_FAILED;
+        return_value = EBPF_KEY_NOT_FOUND;
         goto Exit;
     }
     ebpf_program_batch_invoke_function_t batch_invoke_program = hook_client->batch_program_invoke;
@@ -1116,7 +1116,7 @@ sample_ebpf_extension_invoke_batch_end_program(_Inout_ ebpf_execution_context_st
         _sample_extension_hook_provider_get_client(hook_provider_context, NULL, 0, select_first_client);
 
     if (hook_client == NULL) {
-        return_value = EBPF_FAILED;
+        return_value = EBPF_KEY_NOT_FOUND;
         goto Exit;
     }
     ebpf_program_batch_end_invoke_function_t batch_end_function = hook_client->end_batch_program_invoke;
@@ -1148,7 +1148,7 @@ sample_ebpf_extension_profile_program(
         _sample_extension_hook_provider_get_client(hook_provider_context, NULL, 0, select_first_client);
 
     if (hook_client == NULL) {
-        return_value = EBPF_FAILED;
+        return_value = EBPF_KEY_NOT_FOUND;
         goto Exit;
     }
     ebpf_program_invoke_function_t invoke_program = hook_client->invoke_program;

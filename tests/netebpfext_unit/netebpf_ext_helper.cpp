@@ -1,12 +1,55 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
+#include "cxplat_fault_injection.h"
 #include "ebpf_platform.h"
 #include "net_ebpf_ext_sock_addr.h"
 #include "netebpf_ext_helper.h"
+#include "usersim/common.h"
+
+class _usersim_fault_injection_suspension
+{
+  public:
+    _usersim_fault_injection_suspension(bool suspend) : _suspended(suspend)
+    {
+        if (_suspended) {
+            usersim_fault_injection_suspend();
+        }
+    }
+
+    ~_usersim_fault_injection_suspension()
+    {
+        if (_suspended) {
+            usersim_fault_injection_resume();
+        }
+    }
+
+  private:
+    bool _suspended;
+};
+
+const GUID* const _expected_program_info_providers[] = {
+    &EBPF_PROGRAM_TYPE_BIND,
+    &EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR,
+    &EBPF_PROGRAM_TYPE_SOCK_OPS,
+};
+
+constexpr bpf_attach_type_t _expected_hook_providers[] = {
+    BPF_ATTACH_TYPE_BIND,
+    BPF_CGROUP_INET4_CONNECT,
+    BPF_CGROUP_INET4_RECV_ACCEPT,
+    BPF_CGROUP_INET6_CONNECT,
+    BPF_CGROUP_INET6_RECV_ACCEPT,
+    BPF_CGROUP_INET4_CONNECT_AUTHORIZATION,
+    BPF_CGROUP_INET6_CONNECT_AUTHORIZATION,
+    BPF_CGROUP_INET4_BIND,
+    BPF_CGROUP_INET6_BIND,
+    BPF_CGROUP_INET4_LISTEN,
+    BPF_CGROUP_INET6_LISTEN,
+    BPF_CGROUP_SOCK_OPS,
+};
 
 DEVICE_OBJECT* _net_ebpf_ext_driver_device_object;
-
 constexpr uint32_t _test_destination_ipv4_address = 0x01020304;
 static FWP_BYTE_ARRAY16 _test_destination_ipv6_address = {1, 2, 3, 4};
 // _get_sock_addr_action() uses destination_port % SOCK_ADDR_TEST_ACTION_ROUND_ROBIN
@@ -41,8 +84,8 @@ netebpfext_initialize_fwp_classify_parameters(_Out_ fwp_classify_parameters_t* p
     parameters->user_id = _test_user_id;
 }
 
-_netebpf_ext_helper::_netebpf_ext_helper(bool initialize_platform)
-    : _netebpf_ext_helper(nullptr, nullptr, nullptr, initialize_platform)
+_netebpf_ext_helper::_netebpf_ext_helper(bool initialize_platform, fault_injection_policy_t fault_injection_policy)
+    : _netebpf_ext_helper(nullptr, nullptr, nullptr, initialize_platform, fault_injection_policy)
 {
 }
 
@@ -50,8 +93,12 @@ _netebpf_ext_helper::_netebpf_ext_helper(
     _In_opt_ const void* npi_specific_characteristics,
     _In_opt_ _ebpf_extension_dispatch_function dispatch_function,
     _In_opt_ netebpfext_helper_base_client_context_t* client_context,
-    bool initialize_platform)
+    bool initialize_platform,
+    fault_injection_policy_t fault_injection_policy)
 {
+    _usersim_fault_injection_suspension fault_injection_suspension(
+        fault_injection_policy == fault_injection_policy_t::suspend);
+
     // Do not use REQUIRE() in this constructor or the destructor will never be called
     // to clean up any state allocated before the REQUIRE.
 
@@ -91,6 +138,7 @@ _netebpf_ext_helper::_netebpf_ext_helper(
     if (dispatch_function != nullptr && client_context != nullptr) {
         hook_client.ClientRegistrationInstance.NpiSpecificCharacteristics = npi_specific_characteristics;
         client_context->helper = this;
+        hook_client_context = client_context;
         nmr_hook_client_handle = std::make_unique<nmr_client_registration_t>(&hook_client, client_context);
     }
 
@@ -100,6 +148,9 @@ _netebpf_ext_helper::_netebpf_ext_helper(
 
 _netebpf_ext_helper::~_netebpf_ext_helper()
 {
+    constexpr bool suspend_fault_injection = true;
+    _usersim_fault_injection_suspension fault_injection_suspension(suspend_fault_injection);
+
     if (nmr_hook_client_handle) {
         nmr_hook_client_handle.reset(nullptr);
     }
@@ -127,6 +178,27 @@ _netebpf_ext_helper::~_netebpf_ext_helper()
 
     if (trace_initiated) {
         ebpf_ext_trace_terminate();
+    }
+}
+
+void
+_netebpf_ext_helper::require_initialized() const
+{
+    REQUIRE(nmr_program_info_client_handle != nullptr);
+    REQUIRE(nmr_program_info_client_handle->is_registered());
+    REQUIRE(program_info_providers.size() == EBPF_COUNT_OF(_expected_program_info_providers));
+    for (const auto* provider : _expected_program_info_providers) {
+        REQUIRE(program_info_providers.contains(*provider));
+    }
+
+    if (hook_client_context != nullptr) {
+        REQUIRE(nmr_hook_client_handle != nullptr);
+        REQUIRE(nmr_hook_client_handle->is_registered());
+        REQUIRE(hook_client_context->provider_binding_context != nullptr);
+        REQUIRE(
+            hook_provider_binding_count == (hook_client_context->desired_attach_types.empty()
+                                                ? EBPF_COUNT_OF(_expected_hook_providers)
+                                                : hook_client_context->desired_attach_types.size()));
     }
 }
 
@@ -214,12 +286,18 @@ _netebpf_ext_helper::_hook_client_attach_provider(
         return STATUS_ACCESS_DENIED;
     }
 
-    return NmrClientAttachProvider(
+    NTSTATUS status = NmrClientAttachProvider(
         nmr_binding_handle,
         client_context, // Client binding context.
         &client_dispatch_table,
         &base_client_context->provider_binding_context,
         &provider_dispatch_table);
+    if (NT_SUCCESS(status)) {
+        // No synchronization is required here because usersim NMR executes pending attach actions serially in
+        // perform_bind().
+        base_client_context->helper->hook_provider_binding_count++;
+    }
+    return status;
 }
 
 NTSTATUS

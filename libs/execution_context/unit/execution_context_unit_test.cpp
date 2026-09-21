@@ -2335,6 +2335,26 @@ TEST_CASE("EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE", "[execution_context][
     }
 }
 
+TEST_CASE("EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE hash map replacement", "[execution_context]")
+{
+    NEGATIVE_TEST_PROLOG();
+
+    std::vector<uint8_t> request(
+        EBPF_OFFSET_OF(ebpf_operation_map_update_element_with_handle_request_t, key) + sizeof(uint32_t));
+    auto map_update_element_with_handle_request =
+        reinterpret_cast<ebpf_operation_map_update_element_with_handle_request_t*>(request.data());
+
+    map_update_element_with_handle_request->map_handle = map_handles["BPF_MAP_TYPE_HASH_OF_MAPS"];
+    map_update_element_with_handle_request->value_handle = map_handles["BPF_MAP_TYPE_ARRAY"];
+    map_update_element_with_handle_request->option = EBPF_ANY;
+
+    uint32_t key = 0;
+    memcpy(map_update_element_with_handle_request->key, &key, sizeof(key));
+
+    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_SUCCESS);
+    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE, request) == EBPF_SUCCESS);
+}
+
 TEST_CASE("EBPF_OPERATION_MAP_DELETE_ELEMENT", "[execution_context][negative]")
 {
     NEGATIVE_TEST_PROLOG();
@@ -2349,6 +2369,24 @@ TEST_CASE("EBPF_OPERATION_MAP_DELETE_ELEMENT", "[execution_context][negative]")
 
     // Invalid key_size.
     REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_DELETE_ELEMENT, request) == EBPF_INVALID_ARGUMENT);
+}
+
+TEST_CASE("enumeration operations", "[execution_context]")
+{
+    REQUIRE(ebpf_operation_is_enumeration(EBPF_OPERATION_MAP_GET_NEXT_KEY));
+    REQUIRE(ebpf_operation_is_enumeration(EBPF_OPERATION_GET_NEXT_LINK_ID));
+    REQUIRE(ebpf_operation_is_enumeration(EBPF_OPERATION_GET_NEXT_MAP_ID));
+    REQUIRE(ebpf_operation_is_enumeration(EBPF_OPERATION_GET_NEXT_PROGRAM_ID));
+    REQUIRE(ebpf_operation_is_enumeration(EBPF_OPERATION_GET_NEXT_PINNED_PROGRAM_PATH));
+    REQUIRE(ebpf_operation_is_enumeration(EBPF_OPERATION_MAP_GET_NEXT_KEY_VALUE_BATCH));
+    REQUIRE(ebpf_operation_is_enumeration(EBPF_OPERATION_GET_NEXT_PINNED_OBJECT_PATH));
+    REQUIRE_FALSE(ebpf_operation_is_enumeration(EBPF_OPERATION_MAP_FIND_ELEMENT));
+    REQUIRE(EBPF_OPERATION_IS_WIN32_ENUMERATION_END(EBPF_OPERATION_MAP_GET_NEXT_KEY, ERROR_NO_MORE_MATCHES));
+    REQUIRE_FALSE(EBPF_OPERATION_IS_WIN32_ENUMERATION_END(EBPF_OPERATION_MAP_GET_NEXT_KEY, ERROR_SUCCESS));
+    REQUIRE_FALSE(EBPF_OPERATION_IS_WIN32_ENUMERATION_END(EBPF_OPERATION_MAP_FIND_ELEMENT, ERROR_NO_MORE_MATCHES));
+    REQUIRE(EBPF_OPERATION_IS_NTSTATUS_ENUMERATION_END(EBPF_OPERATION_MAP_GET_NEXT_KEY, STATUS_NO_MORE_MATCHES));
+    REQUIRE_FALSE(EBPF_OPERATION_IS_NTSTATUS_ENUMERATION_END(EBPF_OPERATION_MAP_GET_NEXT_KEY, STATUS_SUCCESS));
+    REQUIRE_FALSE(EBPF_OPERATION_IS_NTSTATUS_ENUMERATION_END(EBPF_OPERATION_MAP_FIND_ELEMENT, STATUS_NO_MORE_MATCHES));
 }
 
 TEST_CASE("EBPF_OPERATION_MAP_GET_NEXT_KEY", "[execution_context][negative]")

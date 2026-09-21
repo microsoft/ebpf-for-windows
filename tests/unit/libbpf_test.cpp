@@ -2527,6 +2527,14 @@ _ebpf_test_map_in_map(ebpf_map_type_t type)
     // Verify that we can read it back.
     REQUIRE(bpf_map_lookup_elem(outer_map_fd, &outer_key, &inner_map_id) == 0);
 
+    if (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+        // Replacing an existing hash-of-maps entry must release the stored object pointer.
+        REQUIRE(bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0) == 0);
+        ebpf_id_t replaced_inner_map_id;
+        REQUIRE(bpf_map_lookup_elem(outer_map_fd, &outer_key, &replaced_inner_map_id) == 0);
+        REQUIRE(replaced_inner_map_id == inner_map_id);
+    }
+
     // Verify that we can convert the ID to a new fd, so we know it is actually
     // a valid map ID.
     int inner_map_fd2 = bpf_map_get_fd_by_id(inner_map_id);

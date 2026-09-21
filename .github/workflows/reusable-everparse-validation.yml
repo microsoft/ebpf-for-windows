@@ -24,11 +24,11 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920  # v2.20.0
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1  # v2.21.1
         with:
           egress-policy: audit
 
-      - uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           repository: ${{ inputs.repository }}
           ref: ${{ inputs.ref }}
@@ -39,6 +39,8 @@ jobs:
         uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce
         with:
           msbuild-architecture: x64
+          # Pin to Visual Studio 2026 to match the default build toolset.
+          vs-version: '[18.0,19.0)'
 
       - name: Cache nuget packages
         continue-on-error: true
