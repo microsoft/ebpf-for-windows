@@ -58,12 +58,24 @@ jobs:
           kernel_root="$RUNNER_TEMP/linux-$BPF_API_KERNEL_VERSION"
           archive="$RUNNER_TEMP/linux-$BPF_API_KERNEL_VERSION.tar.xz"
 
+          checksum=$(cat .github/linux-stable.sha256)
+          if [[ ! "$checksum" =~ ^[0-9a-f]{64}"  linux-$BPF_API_KERNEL_VERSION.tar.xz"$ ]]; then
+            echo "Kernel checksum does not match the pinned version" >&2
+            exit 1
+          fi
+
           curl \
             --fail \
             --location \
             --retry 3 \
             --output "$archive" \
             "https://cdn.kernel.org/pub/linux/kernel/v${major_version}.x/linux-$BPF_API_KERNEL_VERSION.tar.xz"
+
+          # Verify the reviewed content pin before extraction or execution.
+          (
+            cd "$RUNNER_TEMP"
+            printf '%s\n' "$checksum" | sha256sum --check --strict -
+          )
 
           tar \
             --extract \

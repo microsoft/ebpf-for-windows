@@ -54,21 +54,43 @@ jobs:
 
           echo "version=$version" >>"$GITHUB_OUTPUT"
 
-      - name: Update pinned version
+      - name: Read matching archive checksum
+        id: checksum
         shell: bash
         env:
           VERSION: ${{ steps.stable.outputs.version }}
         run: |
           set -euo pipefail
 
+          major_version=${VERSION%%.*}
+          base="https:""//cdn.kernel.org/pub/linux/kernel/v${major_version}.x"
+          checksums=$(curl --fail --location --retry 3 "$base/sha256sums.asc")
+          entry=$(
+            printf '%s\n' "$checksums" |
+              awk -v name="linux-$VERSION.tar.xz" '$2 == name {print $1 "  " $2}'
+          )
+          [[ "$entry" =~ ^[0-9a-f]{64}"  linux-$VERSION.tar.xz"$ ]]
+          echo "entry=$entry" >>"$GITHUB_OUTPUT"
+
+      - name: Update pinned version and checksum
+        shell: bash
+        env:
+          VERSION: ${{ steps.stable.outputs.version }}
+          CHECKSUM: ${{ steps.checksum.outputs.entry }}
+        run: |
+          set -euo pipefail
+
           printf '%s\n' "$VERSION" \
             >.github/linux-stable-version.txt
+          printf '%s\n' "$CHECKSUM" >.github/linux-stable.sha256
 
       - name: Propose stable Linux version update
         uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          add-paths: .github/linux-stable-version.txt
+          add-paths: |
+            .github/linux-stable-version.txt
+            .github/linux-stable.sha256
           branch: automation/update-linux-stable-version
           base: ${{ github.event.repository.default_branch }}
           commit-message: "ci: update stable Linux kernel to ${{ steps.stable.outputs.version }}"
