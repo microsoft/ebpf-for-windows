@@ -110,7 +110,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c  # v2.21.0
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1  # v2.21.1
         with:
           egress-policy: audit
 
@@ -142,7 +142,7 @@ jobs:
           powershell.exe "echo 'VCINSTALLDIR=%VCINSTALLDIR%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
           powershell.exe "echo $env:PROCESSOR_ARCHITECTURE"
 
-      - uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         if: steps.skip_check.outputs.should_skip != 'true'
         with:
           repository: ${{inputs.repository}}
@@ -383,7 +383,7 @@ jobs:
         working-directory: ${{env.GITHUB_WORKSPACE}}
         run: |
           cd ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-          Invoke-WebRequest https://github.com/microsoft/bpf_performance/releases/download/v0.13.0/build-Release-windows-2022.zip -OutFile bpf_performance.zip
+          Invoke-WebRequest https://github.com/microsoft/bpf_performance/releases/download/v0.14.0/build-Release-windows-2022.zip -OutFile bpf_performance.zip
 
       - name: Prepare 1ES artifacts
         if: steps.skip_check.outputs.should_skip != 'true' && (inputs.build_artifact == 'Build-x64' && matrix.configurations == 'Release')

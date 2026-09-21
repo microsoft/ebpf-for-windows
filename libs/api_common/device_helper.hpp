@@ -4,6 +4,7 @@
 #pragma once
 
 #include "ebpf_api.h"
+#include "ebpf_protocol.h"
 #include "ebpf_tracelog.h"
 #include "platform.h"
 #define FALSE 0
@@ -82,6 +83,7 @@ invoke_ioctl(request_t& request, reply_t& reply = _empty_reply, _Inout_opt_ OVER
     uint32_t reply_size;
     void* reply_ptr;
     bool variable_reply_size = false;
+    bool expected_enumeration_end = false;
     ebpf_handle_t handle;
     bool success = false;
 
@@ -130,7 +132,13 @@ invoke_ioctl(request_t& request, reply_t& reply = _empty_reply, _Inout_opt_ OVER
 
     if (!success) {
         return_value = GetLastError();
-        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, DeviceIoControl);
+        if (request_ptr != nullptr && request_size >= sizeof(ebpf_operation_header_t)) {
+            const ebpf_operation_header_t* header = reinterpret_cast<const ebpf_operation_header_t*>(request_ptr);
+            expected_enumeration_end = EBPF_OPERATION_IS_WIN32_ENUMERATION_END(header->id, return_value);
+        }
+        if (!expected_enumeration_end) {
+            EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, DeviceIoControl);
+        }
         goto Exit;
     }
 
@@ -140,5 +148,9 @@ invoke_ioctl(request_t& request, reply_t& reply = _empty_reply, _Inout_opt_ OVER
     }
 
 Exit:
+    if (expected_enumeration_end) {
+        EBPF_LOG_FUNCTION_RESULT(return_value);
+        return return_value;
+    }
     EBPF_RETURN_ERROR(return_value);
 }
