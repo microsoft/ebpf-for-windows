@@ -1317,8 +1317,7 @@ read_pid_tgid(struct bpf_object* object)
     return pid_tgid;
 }
 
-static void
-run_get_current_pid_tgid_sample_test()
+TEST_CASE("bpf_get_current_pid_tgid_sample", "[helpers]")
 {
     native_module_helper_t native_helper;
     native_helper.initialize("pidtgid_sample", EBPF_EXECUTION_NATIVE);
@@ -1344,8 +1343,7 @@ run_get_current_pid_tgid_sample_test()
     REQUIRE(read_pid_tgid(object) == SAMPLE_EXT_PID_TGID);
 }
 
-static void
-run_get_current_pid_tgid_sock_addr_test()
+TEST_CASE("bpf_get_current_pid_tgid_sock_addr", "[helpers]")
 {
     native_module_helper_t native_helper;
     native_helper.initialize("pidtgid_netebpf", EBPF_EXECUTION_NATIVE);
@@ -1371,8 +1369,7 @@ run_get_current_pid_tgid_sock_addr_test()
     REQUIRE(static_cast<uint32_t>(pid_tgid) == GetCurrentThreadId());
 }
 
-static void
-run_get_current_pid_tgid_sock_ops_test()
+TEST_CASE("bpf_get_current_pid_tgid_sock_ops", "[helpers]")
 {
     native_module_helper_t native_helper;
     native_helper.initialize("pidtgid_netebpf", EBPF_EXECUTION_NATIVE);
@@ -1402,12 +1399,6 @@ run_get_current_pid_tgid_sock_ops_test()
     REQUIRE(static_cast<uint32_t>(pid_tgid >> 32) == GetCurrentProcessId());
     REQUIRE(static_cast<uint32_t>(pid_tgid) != 0);
 }
-
-TEST_CASE("bpf_get_current_pid_tgid_sample", "[helpers]") { run_get_current_pid_tgid_sample_test(); }
-
-TEST_CASE("bpf_get_current_pid_tgid_sock_addr", "[helpers]") { run_get_current_pid_tgid_sock_addr_test(); }
-
-TEST_CASE("bpf_get_current_pid_tgid_sock_ops", "[helpers]") { run_get_current_pid_tgid_sock_ops_test(); }
 
 TEST_CASE("bpf_get_process_start_key_udp_ipv4", "[helpers]") { run_process_start_key_test(IPPROTO_UDP, false); }
 
