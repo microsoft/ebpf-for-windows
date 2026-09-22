@@ -161,3 +161,8 @@ Which component performs the pinning depends on the execution type:
 Both paths apply the same canonicalization, so a given `pin_root_path` resolves
 to the same pin path regardless of execution type.
 
+Native programs do not support changing an individual map's pin path with
+`bpf_map__set_pin_path()` before loading. Native map creation and reuse happen
+in the kernel using the object-level `pin_root_path` and the map metadata, so
+such an override cannot be honored consistently and causes
+`bpf_object__load()` to fail with `EINVAL`.

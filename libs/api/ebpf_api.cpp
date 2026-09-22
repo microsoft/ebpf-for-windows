@@ -2582,10 +2582,8 @@ _initialize_ebpf_maps_native(
         map->map_handle = map_handles[i];
         map_handles[i] = ebpf_handle_invalid;
 
-        // For native objects, ebpfcore pins LIBBPF_PIN_BY_NAME maps as part of loading the module,
-        // using the pin root path that was sent down in the load request. map->pin_path was already
-        // computed from that same root when the object was opened, so reflect the pinned state here.
-        if (map->pin_path != nullptr) {
+        // For native objects, ebpfcore pins LIBBPF_PIN_BY_NAME maps as part of loading the module.
+        if (map->map_definition.pinning == LIBBPF_PIN_BY_NAME) {
             map->pinned = true;
         }
     }
@@ -2597,6 +2595,68 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 CATCH_NO_MEMORY_EBPF_RESULT
+
+static ebpf_result_t
+_validate_native_map_pin_paths(_In_ const ebpf_object_t& object) noexcept
+{
+    EBPF_LOG_ENTRY();
+
+    for (const auto* map : object.maps) {
+        if (map->map_definition.pinning != LIBBPF_PIN_BY_NAME) {
+            if (map->pin_path != nullptr) {
+                EBPF_LOG_MESSAGE_STRING(
+                    EBPF_TRACELOG_LEVEL_ERROR,
+                    EBPF_TRACELOG_KEYWORD_API,
+                    "_validate_native_map_pin_paths: per-map pin path is not supported for native maps",
+                    map->name);
+                EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+            }
+            continue;
+        }
+
+        if (map->pin_path == nullptr) {
+            EBPF_LOG_MESSAGE_STRING(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_API,
+                "_validate_native_map_pin_paths: clearing an automatic pin path is not supported for native maps",
+                map->name);
+            EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+        }
+
+        char expected_path[EBPF_MAX_PIN_PATH_LENGTH];
+        int length = snprintf(
+            expected_path,
+            sizeof(expected_path),
+            "%s/%s",
+            object.pin_root_path ? object.pin_root_path : DEFAULT_PIN_ROOT_PATH,
+            map->name);
+        if (length < 0 || length >= EBPF_MAX_PIN_PATH_LENGTH) {
+            EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+        }
+
+        char canonical_expected_path[EBPF_MAX_PIN_PATH_LENGTH];
+        char canonical_map_path[EBPF_MAX_PIN_PATH_LENGTH];
+        ebpf_result_t result =
+            ebpf_canonicalize_path(canonical_expected_path, sizeof(canonical_expected_path), expected_path);
+        if (result != EBPF_SUCCESS) {
+            EBPF_RETURN_RESULT(result);
+        }
+        result = ebpf_canonicalize_path(canonical_map_path, sizeof(canonical_map_path), map->pin_path);
+        if (result != EBPF_SUCCESS) {
+            EBPF_RETURN_RESULT(result);
+        }
+        if (strcmp(canonical_expected_path, canonical_map_path) != 0) {
+            EBPF_LOG_MESSAGE_STRING(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_API,
+                "_validate_native_map_pin_paths: overriding an automatic pin path is not supported for native maps",
+                map->name);
+            EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+        }
+    }
+
+    EBPF_RETURN_RESULT(EBPF_SUCCESS);
+}
 
 static ebpf_result_t
 _initialize_ebpf_programs_native(
@@ -4576,6 +4636,11 @@ _ebpf_program_load_native(
     size_t count_of_programs = SIZE_MAX;
 
     try {
+        result = _validate_native_map_pin_paths(*object);
+        if (result != EBPF_SUCCESS) {
+            EBPF_RETURN_RESULT(result);
+        }
+
         result = _ebpf_object_load_native(
             file_name,
             object->pin_root_path,
