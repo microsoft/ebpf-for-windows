@@ -351,9 +351,32 @@ ring_buffer_api_test(ebpf_execution_type_t execution_type)
 void
 divide_by_zero_test_km(ebpf_execution_type_t execution_type)
 {
-    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
     native_module_helper_t module_helper;
     module_helper.initialize("divide_by_zero", execution_type);
+
+    if (execution_type == EBPF_EXECUTION_NATIVE) {
+        bpf_object_ptr object(bpf_object__open(module_helper.get_file_name().c_str()));
+        REQUIRE(object != nullptr);
+        REQUIRE(ebpf_object_set_execution_type(object.get(), execution_type) == EBPF_SUCCESS);
+        REQUIRE(bpf_object__load(object.get()) == 0);
+
+        bpf_program* program = bpf_object__find_program_by_name(object.get(), "divide_by_zero");
+        REQUIRE(program != nullptr);
+        fd_t program_fd = bpf_program__fd(program);
+        REQUIRE(program_fd > 0);
+
+        sample_program_context_t context{};
+        bpf_test_run_opts opts{};
+        opts.repeat = 1;
+        opts.ctx_in = &context;
+        opts.ctx_size_in = sizeof(context);
+        opts.ctx_out = &context;
+        opts.ctx_size_out = sizeof(context);
+        REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+        return;
+    }
+
+    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
     program_load_attach_helper_t _helper;
     _helper.initialize(
         module_helper.get_file_name().c_str(), BPF_PROG_TYPE_BIND, "divide_by_zero", execution_type, nullptr, 0, hook);
