@@ -36,6 +36,13 @@
 #include <variant>
 using namespace std::chrono_literals;
 #include <mstcpip.h>
+// iphlpapi.h and winternl.h are needed to resolve dependencies of fwpsu.h.
+#include <iphlpapi.h>
+#include <winternl.h>
+// Needed for calling BFE APIs.
+#include <fwpmu.h>
+#include <fwpsu.h>
+#include <sddl.h>
 
 CATCH_REGISTER_LISTENER(_watchdog)
 
@@ -2931,6 +2938,251 @@ TEST_CASE("listen_helper_functions_validation_tcp_v6", "[sock_addr_tests][helper
     SAFE_REQUIRE(results.set_redirect_context == -1);
     closesocket(sock);
     printf("Listen helper functions validation test completed successfully for IPv6\n");
+}
+
+// ---------------------------------------------------------------------------
+// Socket cookie -> access token validation.
+// ---------------------------------------------------------------------------
+
+/**
+ * @brief RAII wrapper around a WFP filter-engine session (FwpmEngineOpen0/FwpmEngineClose0).
+ */
+class wfp_engine_session_t
+{
+  public:
+    wfp_engine_session_t()
+    {
+        SAFE_REQUIRE(FwpmEngineOpen0(nullptr, RPC_C_AUTHN_DEFAULT, nullptr, nullptr, &_engine_handle) == ERROR_SUCCESS);
+    }
+    ~wfp_engine_session_t()
+    {
+        if (_engine_handle != nullptr) {
+            FwpmEngineClose0(_engine_handle);
+        }
+    }
+    wfp_engine_session_t(const wfp_engine_session_t&) = delete;
+    wfp_engine_session_t&
+    operator=(const wfp_engine_session_t&) = delete;
+
+    HANDLE
+    get() const { return _engine_handle; }
+
+  private:
+    HANDLE _engine_handle = nullptr;
+};
+
+/**
+ * @brief Enable SE_DEBUG_NAME in the current process token; required by FwpsOpenToken0.
+ */
+static void
+enable_debug_privilege()
+{
+    HANDLE process_token = nullptr;
+    SAFE_REQUIRE(OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &process_token) != 0);
+    LUID luid = {};
+    SAFE_REQUIRE(LookupPrivilegeValueW(nullptr, SE_DEBUG_NAME, &luid) != 0);
+    TOKEN_PRIVILEGES privileges = {};
+    privileges.PrivilegeCount = 1;
+    privileges.Privileges[0].Luid = luid;
+    privileges.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+    bool result = AdjustTokenPrivileges(process_token, FALSE, &privileges, 0, nullptr, nullptr) != 0;
+    // AdjustTokenPrivileges can succeed while silently not enabling the privilege (e.g., if the
+    // token doesn't hold it); capture GetLastError() immediately so that case is diagnosable.
+    DWORD last_error = GetLastError();
+    CloseHandle(process_token);
+    SAFE_REQUIRE(result);
+    SAFE_REQUIRE(last_error == ERROR_SUCCESS);
+}
+
+/**
+ * @brief Resolve the localTokenModifiedId LUID (as a raw 64-bit value) for the WFP ALE endpoint
+ * identified by socket_cookie (a bpf_get_socket_cookie() value / WFP transport endpoint handle).
+ */
+static uint64_t
+get_local_token_modified_id(HANDLE engine_handle, uint64_t socket_cookie)
+{
+    FWPS_ALE_ENDPOINT_PROPERTIES0* properties = nullptr;
+    DWORD result = FwpsAleEndpointGetById0(engine_handle, socket_cookie, &properties);
+    SAFE_REQUIRE(result == ERROR_SUCCESS);
+    SAFE_REQUIRE(properties != nullptr);
+    uint64_t local_token_modified_id = properties->localTokenModifiedId;
+    printf(
+        "WFP endpoint ID 0x%llx: localTokenModifiedId=0x%llx\n",
+        static_cast<unsigned long long>(socket_cookie),
+        static_cast<unsigned long long>(local_token_modified_id));
+    FwpmFreeMemory0(reinterpret_cast<void**>(&properties));
+    return local_token_modified_id;
+}
+
+/**
+ * @brief Return the string SID for the user represented by an access token.
+ */
+static std::wstring
+get_sid_string_from_token(HANDLE token)
+{
+    DWORD size = 0;
+    GetTokenInformation(token, TokenUser, nullptr, 0, &size);
+    SAFE_REQUIRE(size != 0);
+    std::vector<uint8_t> buffer(size);
+    SAFE_REQUIRE(GetTokenInformation(token, TokenUser, buffer.data(), size, &size) != 0);
+    const TOKEN_USER* token_user = reinterpret_cast<const TOKEN_USER*>(buffer.data());
+    LPWSTR sid_string = nullptr;
+    SAFE_REQUIRE(ConvertSidToStringSidW(token_user->User.Sid, &sid_string) != 0);
+    std::wstring wide_sid;
+    if (sid_string != nullptr) {
+        wide_sid = sid_string;
+        LocalFree(sid_string);
+    }
+    return wide_sid;
+}
+
+/**
+ * @brief Return the string SID for the test process's own token.
+ */
+static std::wstring
+get_current_process_sid_string()
+{
+    HANDLE process_token = nullptr;
+    SAFE_REQUIRE(OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &process_token) != 0);
+    std::wstring sid = get_sid_string_from_token(process_token);
+    CloseHandle(process_token);
+    return sid;
+}
+
+TEMPLATE_TEST_CASE(
+    "socket_cookie_access_token_validation", "[sock_addr_tests][helper_validation]", ALL_CONNECTION_TEST_PARAMS)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+    const bool is_v4 = (family == AF_INET);
+    const bool is_tcp = (protocol == IPPROTO_TCP);
+
+    native_module_helper_t helper;
+    helper.initialize("cgroup_sock_addr_socket_cookie", _is_main_thread);
+
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
+    bpf_object_ptr object_ptr(object);
+    SAFE_REQUIRE(object != nullptr);
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
+
+    bpf_map* cookie_map = bpf_object__find_map_by_name(object, "socket_cookie_capture_map");
+    SAFE_REQUIRE(cookie_map != nullptr);
+
+    // hook_id values must match socket_cookie_hook_id_t in cgroup_sock_addr_socket_cookie.c.
+    enum : uint32_t
+    {
+        HOOK_BIND4 = 1,
+        HOOK_BIND6,
+        HOOK_LISTEN4,
+        HOOK_LISTEN6,
+        HOOK_CONNECT4,
+        HOOK_CONNECT6,
+        HOOK_CONNECT_AUTHORIZATION4,
+        HOOK_CONNECT_AUTHORIZATION6,
+        HOOK_RECV_ACCEPT4,
+        HOOK_RECV_ACCEPT6,
+    };
+
+    struct hook_spec
+    {
+        const char* program_name;
+        bpf_attach_type attach_type;
+        uint32_t hook_id;
+    };
+
+    std::vector<hook_spec> hooks{
+        {is_v4 ? "capture_connect4" : "capture_connect6",
+         is_v4 ? BPF_CGROUP_INET4_CONNECT : BPF_CGROUP_INET6_CONNECT,
+         is_v4 ? HOOK_CONNECT4 : HOOK_CONNECT6},
+        {is_v4 ? "capture_connect_authorization4" : "capture_connect_authorization6",
+         is_v4 ? BPF_CGROUP_INET4_CONNECT_AUTHORIZATION : BPF_CGROUP_INET6_CONNECT_AUTHORIZATION,
+         is_v4 ? HOOK_CONNECT_AUTHORIZATION4 : HOOK_CONNECT_AUTHORIZATION6},
+        {is_v4 ? "capture_recv_accept4" : "capture_recv_accept6",
+         is_v4 ? BPF_CGROUP_INET4_RECV_ACCEPT : BPF_CGROUP_INET6_RECV_ACCEPT,
+         is_v4 ? HOOK_RECV_ACCEPT4 : HOOK_RECV_ACCEPT6},
+        {is_v4 ? "capture_bind4" : "capture_bind6",
+         is_v4 ? BPF_CGROUP_INET4_BIND : BPF_CGROUP_INET6_BIND,
+         is_v4 ? HOOK_BIND4 : HOOK_BIND6},
+    };
+
+    if (is_tcp) {
+        // The server is a dual-stack IPv6 socket, so its listen operation is classified only
+        // at the IPv6 ALE layer even when the connection being tested is IPv4.
+        hooks.push_back({"capture_listen6", BPF_CGROUP_INET6_LISTEN, HOOK_LISTEN6});
+    }
+
+    for (const auto& hook : hooks) {
+        bpf_program* program = bpf_object__find_program_by_name(object, hook.program_name);
+        SAFE_REQUIRE(program != nullptr);
+        int result = bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(program)), 0, hook.attach_type, 0);
+        SAFE_REQUIRE(result == 0);
+    }
+
+    // Trigger every attached hook with a real client/server exchange on SOCKET_TEST_PORT.
+    // A dual-stack (v4-mapped v6) wildcard-bound server triggers programs at both the v4 and
+    // v6 BPF hooks, depending on the address used to connect/send.
+    std::unique_ptr<client_socket_t> client;
+    std::unique_ptr<receiver_socket_t> server;
+    if (is_tcp) {
+        server =
+            std::make_unique<stream_server_socket_t>(SOCK_STREAM, IPPROTO_TCP, static_cast<uint16_t>(SOCKET_TEST_PORT));
+        client = std::make_unique<stream_client_socket_t>(SOCK_STREAM, IPPROTO_TCP, static_cast<uint16_t>(0));
+    } else {
+        server = std::make_unique<datagram_server_socket_t>(
+            SOCK_DGRAM, IPPROTO_UDP, static_cast<uint16_t>(SOCKET_TEST_PORT));
+        client = std::make_unique<datagram_client_socket_t>(SOCK_DGRAM, IPPROTO_UDP, static_cast<uint16_t>(0));
+    }
+    server->post_async_receive();
+    execute_connection_attempt(client, server, family, connection_test_result::allow, SOCKET_TEST_PORT);
+
+    // Collect the captured cookies, resolve each to a localTokenModifiedId, and verify they
+    // all resolve to the same access token as the test process's own token.
+    wfp_engine_session_t engine;
+
+    std::vector<uint64_t> local_token_modified_ids;
+    for (const auto& hook : hooks) {
+        uint64_t cookie = 0;
+        int lookup_result = bpf_map_lookup_elem(bpf_map__fd(cookie_map), &hook.hook_id, &cookie);
+
+        printf(
+            "Socket cookie for hook %s: lookup_result=%d cookie=0x%llx\n",
+            hook.program_name,
+            lookup_result,
+            static_cast<unsigned long long>(cookie));
+
+        SAFE_REQUIRE(lookup_result == 0);
+        SAFE_REQUIRE(cookie != 0);
+
+        local_token_modified_ids.push_back(get_local_token_modified_id(engine.get(), cookie));
+    }
+
+    // All the sockets involved were created by this same test process, so every hook's
+    // local modified id is expected to be identical.
+    SAFE_REQUIRE(!local_token_modified_ids.empty());
+    for (size_t i = 1; i < local_token_modified_ids.size(); ++i) {
+        SAFE_REQUIRE(local_token_modified_ids[i] == local_token_modified_ids[0]);
+    }
+
+    LUID modified_luid = *reinterpret_cast<const LUID*>(&local_token_modified_ids[0]);
+
+    HANDLE resolved_token = nullptr;
+    // FwpsOpenToken0 requires the caller's token to have the SeDebugPrivilege privilege enabled.
+    enable_debug_privilege();
+    SAFE_REQUIRE(FwpsOpenToken0(engine.get(), modified_luid, TOKEN_QUERY, &resolved_token) == ERROR_SUCCESS);
+    SAFE_REQUIRE(resolved_token != nullptr);
+
+    std::wstring resolved_sid = get_sid_string_from_token(resolved_token);
+    CloseHandle(resolved_token);
+
+    std::wstring own_process_sid = get_current_process_sid_string();
+
+    wprintf(L"Resolved token SID: %s, own process SID: %s\n", resolved_sid.c_str(), own_process_sid.c_str());
+    SAFE_REQUIRE(resolved_sid == own_process_sid);
+
+    printf(
+        "Socket cookie access token validation completed successfully for %s/%s\n",
+        is_v4 ? "IPv4" : "IPv6",
+        is_tcp ? "TCP" : "UDP");
 }
 
 // Test listen hook enforcement using bpf_prog_attach (libbpf-compat path).
