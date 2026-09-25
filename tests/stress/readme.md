@@ -1,5 +1,5 @@
 
-# 1.0. ebpf_stress_tests_km.exe (test sources in .\km\)
+# 1.0. netebpfext_stress_tests_km.exe (test sources in .\km\)
 
 This test application provides tests that are meant to be run against the real (kernel mode) eBPF sub-system. This
 application assumes that the requisite kernel drivers (`ebpfcore.sys, netebpfext.sys`) are loaded and running.
@@ -33,10 +33,10 @@ This test can be run with or without the extension restart option. If `-tt` is n
 
 Sample command line invocations:
 
-### 1.1.1. `ebpf_stress_tests_km.exe sockaddr_invoke_program_test`
+### 1.1.1. `netebpfext_stress_tests_km.exe sockaddr_invoke_program_test`
 - Uses default values for all supported options.
 
-### 1.1.2. `ebpf_stress_tests_km.exe -tt=32 -td=15 -vo=true -er=true -erd=250 sockaddr_invoke_program_test`
+### 1.1.2. `netebpfext_stress_tests_km.exe -tt=32 -td=15 -vo=true -er=true -erd=250 sockaddr_invoke_program_test`
 - Creates 32 test threads.
 - Runs test for 15 minutes.
 - Verbose test trace output enabled.
@@ -52,10 +52,10 @@ This test can be run with or without the extension restart option. If `-tt` is n
 
 Sample command line invocations:
 
-### 1.2.1. `ebpf_stress_tests_km.exe bindmonitor_tail_call_invoke_program_test`
+### 1.2.1. `netebpfext_stress_tests_km.exe bindmonitor_tail_call_invoke_program_test`
 - Uses default values for all supported options.
 
-### 1.2.2. `ebpf_stress_tests_km.exe -tt=32 -td=15 -vo=true -er=true -erd=250 bindmonitor_tail_call_invoke_program_test`
+### 1.2.2. `netebpfext_stress_tests_km.exe -tt=32 -td=15 -vo=true -er=true -erd=250 bindmonitor_tail_call_invoke_program_test`
 - Creates 32 test threads.
 - Runs test for 15 minutes.
 - Verbose test trace output enabled.
@@ -70,10 +70,10 @@ invocations continue. If `-tt` is not specified, this test uses the CPU count as
 If extension restart is enabled (`-er=true`), `-erd` controls restart period and must be at least 2x `-ad`; when `-erd`
 is omitted, this test uses a default of 10x `-ad`.
 
-### 1.3.1. `ebpf_stress_tests_km.exe sample_attach_invoke_detach_race_km`
+### 1.3.1. `ebpf_core_stress_tests_km.exe sample_attach_invoke_detach_race_km`
 - Uses default values for all supported options.
 
-### 1.3.2. `ebpf_stress_tests_km.exe -tt=16 -td=5 -ad=10 sample_attach_invoke_detach_race_km`
+### 1.3.2. `ebpf_core_stress_tests_km.exe -tt=16 -td=5 -ad=10 sample_attach_invoke_detach_race_km`
 - Uses 16 invoke threads.
 - Runs test for 5 minutes.
 - Uses 10 ms delay between detach and attach cycles.
