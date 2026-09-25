@@ -1461,6 +1461,7 @@ net_ebpf_ext_sock_addr_register_providers()
         .create_filter_context = _net_ebpf_extension_sock_addr_create_filter_context,
         .cleanup_filter_context = _net_ebpf_extension_sock_addr_cleanup_filter_context,
         .validate_client_data = _net_ebpf_extension_sock_addr_validate_client_data,
+        .process_verdict = _net_ebpf_extension_sock_addr_accumulate_verdict,
     };
 
     status = _net_ebpf_sock_addr_create_security_descriptor();
@@ -1532,7 +1533,7 @@ net_ebpf_ext_sock_addr_register_providers()
             attach_capability = ATTACH_CAPABILITY_MULTI_ATTACH_WITH_WILDCARD;
         } else if (is_cgroup_listen_attach_type) {
             dispatch_table = &listen_dispatch_table;
-            attach_capability = ATTACH_CAPABILITY_SINGLE_ATTACH_PER_HOOK;
+            attach_capability = ATTACH_CAPABILITY_MULTI_ATTACH_WITH_WILDCARD;
         } else {
             dispatch_table = &recv_accept_dispatch_table;
             attach_capability = ATTACH_CAPABILITY_SINGLE_ATTACH_PER_HOOK;
@@ -2116,9 +2117,8 @@ _net_ebpf_extension_sock_addr_process_verdict(_Inout_ void* program_context, int
 }
 
 // Multi-attach verdict accumulator for sock_addr gates that do not support
-// context rewrite. Currently used only by the sock_addr bind hook
-// (ALE_RESOURCE_ASSIGNMENT); the sock_addr listen hook (ALE_AUTH_LISTEN) adopts
-// it when listen gains multi-attach support (see issue #5339).
+// context rewrite. Used by the bind (ALE_RESOURCE_ASSIGNMENT) and listen
+// (ALE_AUTH_LISTEN) hooks.
 // Tracks the most-restrictive normalized verdict across attached programs in
 // net_ebpf_sock_addr_t::verdict using _get_verdict_priority(), and returns
 // FALSE on REJECT so the hook provider loop stops invoking subsequent
@@ -2302,11 +2302,24 @@ net_ebpf_extension_sock_addr_authorize_listen_classify(
         goto Exit;
     }
 
+    // Initialize the accumulated verdict to PROCEED_SOFT so that if no program updates it
+    // (e.g. all clients are filtered out), the listen defaults to permit.
+    // The accumulate_verdict callback updates net_ebpf_sock_addr_ctx.verdict with the
+    // most-restrictive verdict across multi-attach programs and short-circuits on REJECT.
+    net_ebpf_sock_addr_ctx.verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+
+    // Snapshot the context so the shared accumulate_verdict callback can restore it
+    // between programs. The snapshot is stack-local and only valid for the synchronous
+    // program invocation below.
+    bpf_sock_addr_t sock_addr_ctx_original;
+    memcpy(&sock_addr_ctx_original, sock_addr_ctx, sizeof(sock_addr_ctx_original));
+    net_ebpf_sock_addr_ctx.original_context = &sock_addr_ctx_original;
+
     program_result = net_ebpf_extension_hook_expand_stack_and_invoke_programs(
         sock_addr_ctx, &filter_context->base, &program_verdict);
     NET_EBPF_EXT_LOG_SOCK_ADDR_PROGRAM_INVOCATION_FAILURE(program_result);
-    effective_verdict =
-        _net_ebpf_extension_sock_addr_get_effective_verdict(program_result, program_verdict, effective_verdict);
+    effective_verdict = _net_ebpf_extension_sock_addr_get_effective_verdict(
+        program_result, net_ebpf_sock_addr_ctx.verdict, effective_verdict);
 
     if (program_result == EBPF_SUCCESS) {
         _net_ebpf_ext_log_sock_addr_classify(

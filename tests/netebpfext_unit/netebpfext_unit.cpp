@@ -35,7 +35,8 @@ typedef enum _sock_addr_test_action
     SOCK_ADDR_TEST_ACTION_REDIRECT,
     SOCK_ADDR_TEST_ACTION_FAILURE,
     SOCK_ADDR_TEST_ACTION_ROUND_ROBIN,
-    SOCK_ADDR_TEST_ACTION_REDIRECT_REJECT
+    SOCK_ADDR_TEST_ACTION_REDIRECT_REJECT,
+    SOCK_ADDR_TEST_ACTION_INVALID
 } sock_addr_test_action_t;
 
 _Must_inspect_result_ ebpf_result_t
@@ -444,6 +445,9 @@ netebpfext_unit_invoke_sock_addr_program(
         break;
     case SOCK_ADDR_TEST_ACTION_FAILURE:
         return_result = EBPF_FAILED;
+        break;
+    case SOCK_ADDR_TEST_ACTION_INVALID:
+        *result = UINT32_MAX;
         break;
     default:
         *result = BPF_SOCK_ADDR_VERDICT_REJECT;
@@ -1791,6 +1795,24 @@ TEST_CASE("sock_addr_listen_invoke", "[netebpfext]")
 
     result = helper.test_cgroup_inet6_listen(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
+
+    // Test program invocation failures.
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_FAILURE;
+
+    result = helper.test_cgroup_inet4_listen(&parameters);
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
+    result = helper.test_cgroup_inet6_listen(&parameters);
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
+    // Test invalid verdict normalization.
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_INVALID;
+
+    result = helper.test_cgroup_inet4_listen(&parameters);
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
+    result = helper.test_cgroup_inet6_listen(&parameters);
+    REQUIRE(result == FWP_ACTION_BLOCK);
 }
 
 TEST_CASE("sock_addr_listen_context", "[netebpfext]")
