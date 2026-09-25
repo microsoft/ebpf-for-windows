@@ -77,6 +77,11 @@
       <AdditionalOptions>/prefix server "ebpf_server_" /prefix client "ebpf_client_" %(AdditionalOptions)</AdditionalOptions>
     </Midl>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)'=='ARM64'">
+    <Midl>
+      <TargetEnvironment>Arm64</TargetEnvironment>
+    </Midl>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <Midl Include="rpc_interface.idl" />
   </ItemGroup>
