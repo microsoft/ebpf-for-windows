@@ -1008,21 +1008,6 @@ TEST_CASE("bindmonitor_tailcall_native_test", "[native_tests]")
 }
 
 void
-bind_tailcall_test(_In_ struct bpf_object* object)
-{
-    UNREFERENCED_PARAMETER(object);
-    WSAData data;
-    SOCKET sockets[2];
-    REQUIRE(WSAStartup(2, &data) == 0);
-
-    // Now, trigger bind. bind should not succeed.
-    REQUIRE(perform_bind(&sockets[0], 30000) != 0);
-    REQUIRE(perform_bind(&sockets[1], 30001) != 0);
-
-    WSACleanup();
-}
-
-void
 send_traffic(IPPROTO protocol, bool is_ipv6)
 {
     const char* message = CLIENT_MESSAGE;
@@ -1252,29 +1237,31 @@ run_thread_start_time_test(IPPROTO protocol, bool is_ipv6)
 
 #define MAX_TAIL_CALL_PROGS MAX_TAIL_CALL_CNT + 2
 
-TEST_CASE("bind_tailcall_max_native_test", "[native_tests]")
+TEST_CASE("sample_tailcall_max_native_test", "[native_tests]")
 {
-    struct bpf_object* object = nullptr;
-    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    native_module_helper_t native_helper;
+    native_helper.initialize("tail_call_max_exceed", EBPF_EXECUTION_NATIVE);
 
-    program_load_attach_helper_t _helper;
-    native_module_helper_t _native_helper;
-    _native_helper.initialize("tail_call_max_exceed", EBPF_EXECUTION_NATIVE);
-    _helper.initialize(
-        _native_helper.get_file_name().c_str(),
-        BPF_PROG_TYPE_BIND,
-        "bind_test_caller",
-        EBPF_EXECUTION_NATIVE,
-        nullptr,
-        0,
-        hook);
-    object = _helper.get_object();
+    struct bpf_object* object = nullptr;
+    fd_t program_fd = ebpf_fd_invalid;
+    REQUIRE(
+        program_load_helper(
+            native_helper.get_file_name().c_str(),
+            BPF_PROG_TYPE_SAMPLE,
+            EBPF_EXECUTION_NATIVE,
+            &object,
+            &program_fd,
+            false) ==
+        0);
+    bpf_object_ptr object_ptr(object);
 
     fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "bind_tail_call_map");
     REQUIRE(prog_map_fd > 0);
 
     struct bpf_program* caller = bpf_object__find_program_by_name(object, "bind_test_caller");
     REQUIRE(caller != nullptr);
+    program_fd = bpf_program__fd(caller);
+    REQUIRE(program_fd > 0);
 
     // Check each tail call program in the map.
     for (int i = 0; i < MAX_TAIL_CALL_PROGS; i++) {
@@ -1285,8 +1272,18 @@ TEST_CASE("bind_tailcall_max_native_test", "[native_tests]")
         REQUIRE(program != nullptr);
     }
 
-    // Perform bind test.
-    bind_tailcall_test(object);
+    sample_program_context_t context{};
+    bpf_test_run_opts opts{};
+    opts.sz = sizeof(opts);
+    opts.ctx_in = &context;
+    opts.ctx_size_in = sizeof(context);
+    opts.ctx_out = &context;
+    opts.ctx_size_out = sizeof(context);
+    opts.repeat = 1;
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+
+    // The final callee returns 1; 2 proves execution stopped at the tail call limit.
+    REQUIRE(opts.retval == 2);
 
     // Clean up tail calls.
     for (int index = 0; index < MAX_TAIL_CALL_PROGS; index++) {
