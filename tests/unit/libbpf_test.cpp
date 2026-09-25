@@ -3554,6 +3554,45 @@ TEST_CASE("bpf_object__load with .dll", "[libbpf]")
     bpf_object__close(object);
 }
 
+TEST_CASE("bpf_object__load with native per-map pin path", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    bpf_object_ptr object(bpf_object__open_file("test_sample_ebpf_um.dll", nullptr));
+    REQUIRE(object != nullptr);
+
+    struct bpf_map* map = bpf_object__find_map_by_name(object.get(), "test_map");
+    REQUIRE(map != nullptr);
+    REQUIRE(bpf_map__set_pin_path(map, "/custompath/test_map") == 0);
+
+    REQUIRE(bpf_object__load(object.get()) == -EINVAL);
+}
+
+TEST_CASE("bpf_object__load with native automatic pin path override", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    bpf_object_ptr object(bpf_object__open_file("map_reuse_um.dll", nullptr));
+    REQUIRE(object != nullptr);
+
+    struct bpf_map* map = bpf_object__find_map_by_name(object.get(), "port_map");
+    REQUIRE(map != nullptr);
+
+    SECTION("override")
+    {
+        REQUIRE(bpf_map__set_pin_path(map, "/custompath/port_map") == 0);
+        REQUIRE(bpf_object__load(object.get()) == -EINVAL);
+    }
+
+    SECTION("clear")
+    {
+        REQUIRE(bpf_map__set_pin_path(map, nullptr) == 0);
+        REQUIRE(bpf_object__load(object.get()) == -EINVAL);
+    }
+}
+
 // Test bpf() with the following command ids:
 // BPF_MAP_CREATE, BPF_MAP_UPDATE_ELEM, BPF_MAP_LOOKUP_ELEM,
 // BPF_MAP_GET_NEXT_KEY, BPF_MAP_LOOKUP_AND_DELETE_ELEM, and BPF_MAP_DELETE_ELEM.

@@ -83,6 +83,7 @@ typedef struct bpf_object
     std::vector<ebpf_map_t*> maps;
     bool loaded = false;
     ebpf_execution_type_t execution_type = EBPF_EXECUTION_ANY;
+    char* pin_root_path = nullptr;
 } ebpf_object_t;
 
 /**
