@@ -54,7 +54,7 @@ TEST_CASE("sample_attach_invoke_detach_race_km", "[stress_km][ebpfcore]")
     uint32_t extension_restart_delay_ms = test_control.extension_restart_delay_ms == 0
                                               ? attach_detach_delay_ms * 10
                                               : test_control.extension_restart_delay_ms;
-    if (extension_restart_enabled && extension_restart_delay_ms < attach_detach_delay_ms * 2) {
+    if (extension_restart_enabled && static_cast<uint64_t>(extension_restart_delay_ms) < static_cast<uint64_t>(attach_detach_delay_ms) * 2) {
         LOG_ERROR(
             "Invalid extension restart delay: {} ms. For race tests with -er, -erd must be at least 2x -ad ({} ms).",
             extension_restart_delay_ms,
