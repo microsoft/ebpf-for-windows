@@ -10,8 +10,6 @@
 #include "ebpf_program_types.h"
 #include "ebpf_structs.h"
 #include "ebpf_windows.h"
-#include "net_ebpf_ext_program_info.h"
-#include "sample_ext_program_info.h"
 #include "usersim/ex.h"
 #include "usersim/ke.h"
 
