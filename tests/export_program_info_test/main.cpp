@@ -1,8 +1,8 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
-#include "export_program_info_test.h"
 #include "ebpf_api.h"
+#include "export_program_info_test.h"
 
 #include <iostream>
 #include <string>
