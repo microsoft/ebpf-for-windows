@@ -44,8 +44,10 @@ TEST_CASE("sample_attach_invoke_detach_race_km", "[stress_km][ebpfcore]")
     auto test_control = get_test_control_info();
     uint32_t duration_minutes =
         test_control.duration_minutes == 0 ? DEFAULT_DURATION_MINUTES : test_control.duration_minutes;
-    uint32_t invoke_thread_count =
-        test_control.threads_count == 0 ? default_km_invoke_thread_count() : test_control.threads_count;
+    uint32_t invoke_thread_count = test_control.threads_count == 0 ? default_km_invoke_thread_count() : test_control.threads_count;
+    if (invoke_thread_count == 0) {
+        invoke_thread_count = 1;
+    }
     uint32_t attach_detach_delay_ms =
         test_control.attach_detach_delay_ms == 0 ? DEFAULT_ATTACH_DETACH_DELAY_MS : test_control.attach_detach_delay_ms;
     bool extension_restart_enabled = test_control.extension_restart_enabled;
