@@ -33,7 +33,8 @@ Tests in this category currently include:
 * connect_redirect_tests.exe: This tests connection redirection functionality.
 * sample_ext_app.exe: This tests the sample extension driver.
 * socket_tests.exe: This tests eBPF programs that attach to socket events.
-* ebpf_stress_tests_km.exe: This tests the in-kernel eBPF sub-system's resilience in multi-threaded stress scenarios.
+* netebpfext_stress_tests_km.exe: This tests the network extension's resilience in multi-threaded stress scenarios.
+* ebpf_core_stress_tests_km.exe: This tests the eBPF core's resilience in multi-threaded stress scenarios.
 
 ## Fuzz tests
 All APIs exposed to developers of apps, eBPF programs, or runtime extensions should be fuzz tested
