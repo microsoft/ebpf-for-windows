@@ -42,6 +42,17 @@ jobs:
           # Pin to Visual Studio 2026 to match the default build toolset.
           vs-version: '[18.0,19.0)'
 
+      - name: Configure NuGet package cache
+        run: |
+          "NUGET_PACKAGES=${{ runner.temp }}\nuget-packages" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Cache EverParse package
+        continue-on-error: true
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306
+        with:
+          path: ${{ runner.temp }}\nuget-packages\everparse
+          key: ${{ runner.os }}-nuget-everparse-${{ hashFiles('libs/everparse.props') }}
+
       - name: Cache nuget packages
         continue-on-error: true
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306

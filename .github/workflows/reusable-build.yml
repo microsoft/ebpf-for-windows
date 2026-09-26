@@ -296,6 +296,19 @@ jobs:
         run:
           '"C:\Program Files\LLVM\bin\clang.exe" --version'
 
+      - name: Configure NuGet package cache
+        if: steps.skip_check.outputs.should_skip != 'true'
+        run: |
+          "NUGET_PACKAGES=${{ runner.temp }}\nuget-packages" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Cache EverParse package
+        if: steps.skip_check.outputs.should_skip != 'true'
+        continue-on-error: true
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306
+        with:
+          path: ${{ runner.temp }}\nuget-packages\everparse
+          key: ${{ runner.os }}-nuget-everparse-${{ hashFiles('libs/everparse.props') }}
+
       - name: Cache nuget packages
         if: steps.skip_check.outputs.should_skip != 'true'
         continue-on-error: true
