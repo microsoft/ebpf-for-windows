@@ -50,6 +50,7 @@
     <_EbpfTargetPackagePlatform Condition="'$(Platform)' != ''">$(Platform)</_EbpfTargetPackagePlatform>
     <_EbpfTargetPackagePlatform Condition="'$(_EbpfTargetPackagePlatform)' == ''">x64</_EbpfTargetPackagePlatform>
     <_EbpfTargetPackagePlatform>$(_EbpfTargetPackagePlatform.ToLowerInvariant())</_EbpfTargetPackagePlatform>
+    <_EbpfTargetPackagePlatform Condition="'$(_EbpfTargetPackagePlatform)' == 'amd64'">x64</_EbpfTargetPackagePlatform>
     <_EbpfTargetPackagePlatform Condition="'$(_EbpfTargetPackagePlatform)' == 'win32'">x86</_EbpfTargetPackagePlatform>
     <_EbpfHostPackagePlatform>$(HostPlatform.ToLowerInvariant())</_EbpfHostPackagePlatform>
     <_EbpfHostPackagePlatform Condition="'$(_EbpfHostPackagePlatform)' == 'amd64'">x64</_EbpfHostPackagePlatform>
