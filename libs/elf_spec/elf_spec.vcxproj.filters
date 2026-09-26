@@ -37,7 +37,4 @@
   <ItemGroup>
     <CustomBuild Include="Elf.3d" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
 </Project>

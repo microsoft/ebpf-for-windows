@@ -174,7 +174,23 @@ if (-not $solution_dir.EndsWith("\")) {
 
 Push-Location $repository_root
 try {
-    Invoke-BuildTool -FilePath $nuget_path -Arguments @("restore", "ebpf-for-windows.sln")
+    Invoke-BuildTool -FilePath $nuget_path -Arguments @(
+        "restore",
+        "installer\packages.config",
+        "-PackagesDirectory",
+        "packages"
+    )
+    $previous_wdk_target_platform = $env:_EbpfWdkTargetPlatform
+    try {
+        $env:_EbpfWdkTargetPlatform = $Platform
+        Invoke-BuildTool -FilePath $nuget_path -Arguments @("restore", "ebpf-for-windows.sln")
+    } finally {
+        if ($null -eq $previous_wdk_target_platform) {
+            Remove-Item Env:_EbpfWdkTargetPlatform -ErrorAction SilentlyContinue
+        } else {
+            $env:_EbpfWdkTargetPlatform = $previous_wdk_target_platform
+        }
+    }
 
     $diverged_units = @()
     $infrastructure_error_units = @()
@@ -195,7 +211,6 @@ try {
                 "/m",
                 "/p:Configuration=$Configuration",
                 "/p:Platform=$Platform",
-                "/p:HostPlatform=$Platform",
                 "/p:RunEverParseGeneration=true",
                 "/p:SolutionDir=$solution_dir",
                 $unit.project

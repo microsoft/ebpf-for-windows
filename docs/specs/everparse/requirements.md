@@ -14,7 +14,7 @@ Today, the repository has two EverParse generation entry points:
 - `libs\ioctl_spec\EbpfProtocol.3d`, which generates sources into `libs\ioctl_spec\generated\`
 - `libs\elf_spec\Elf.3d`, which generates sources into `libs\elf_spec\generated\`
 
-Both projects invoke `packages\EverParse.2022.6.13\lib\native\win-x86_64\everparse.cmd`.
+Both projects import `libs\everparse.props` and invoke `everparse.cmd` through NuGet's generated `PkgEverParse` path.
 
 ## 2. Goals
 
@@ -64,7 +64,7 @@ The workflow defined by this specification must prioritize:
 - `libs\elf_spec\elf_spec.vcxproj` defines a custom build step for `Elf.3d` and emits:
   `Elf.h`, `ElfWrapper.h`, `EverParse.h`, `EverParseEndianness.h`, `Elf.c`, and `ElfWrapper.c`
   into `libs\elf_spec\generated\`.
-- Both EverParse projects pin package version `2022.6.13` in `packages.config`.
+- Both EverParse projects import the package version `2022.6.13` from `libs\everparse.props`.
 - Existing GitHub-hosted build jobs run on `windows-2022`, while several driver and regression test jobs use self-hosted 1ES runners.
 
 ## 6. Functional Requirements
@@ -149,7 +149,7 @@ The workflow defined by this specification must prioritize:
 
 ## 10. Open Questions
 
-1. Which repository-tracked files belong in the complete regeneration input set beyond `.3d`, `packages.config`, and the `.vcxproj` custom-build definitions?
+1. Which repository-tracked files belong in the complete regeneration input set beyond `.3d`, `libs\everparse.props`, and the `.vcxproj` custom-build definitions?
 2. Should a future iteration add automated remediation pull requests, or should issue-only tracking remain the long-term boundary?
 
 ## 11. Revision History

@@ -11,6 +11,8 @@
     <ProjectGuid>{370e7d53-c97f-4077-a3d5-620c4fd87eed}</ProjectGuid>
     <RootNamespace>ebpfnetsh</RootNamespace>
     <ProjectName>netsh_static</ProjectName>
+    <!-- NuGet restore keys projects by package identity; disambiguate this project from tools\netsh\ebpfnetsh.vcxproj. -->
+    <PackageId>netsh_static</PackageId>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
