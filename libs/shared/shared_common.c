@@ -217,7 +217,8 @@ _ebpf_validate_extension_object_header(
 
     return (
         (header->version == _supported_ebpf_extension_version[object_type]) &&
-        (_ebpf_is_size_supported(supported_sizes, count, header->size)));
+        (_ebpf_is_size_supported(supported_sizes, count, header->size)) &&
+        (header->total_size == header->size));
 }
 
 #ifndef GUID_NULL
