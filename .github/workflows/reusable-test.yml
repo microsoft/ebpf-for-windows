@@ -373,7 +373,7 @@ jobs:
 
       - name: Upload Report to Codecov attempt 1
         if: (steps.skip_check.outputs.should_skip != 'true') && (steps.check_coverage.outputs.files_exists == 'true')
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         id: upload_code_coverage_report_1
         continue-on-error: true
         with:
@@ -388,7 +388,7 @@ jobs:
 
       - name: Upload Report to Codecov attempt 2
         if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_1.outcome == 'failure')
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         id: upload_code_coverage_report_2
         continue-on-error: true
         with:
@@ -403,7 +403,7 @@ jobs:
 
       - name: Upload Report to Codecov attempt 3
         if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_2.outcome == 'failure')
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         id: upload_code_coverage_report_3
         continue-on-error: true
         with:
@@ -418,7 +418,7 @@ jobs:
 
       - name: Upload Report to Codecov attempt 4
         if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_3.outcome == 'failure')
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         id: upload_code_coverage_report_4
         continue-on-error: true
         with:
@@ -448,6 +448,23 @@ jobs:
         shell: cmd
         run: |
             copy ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\*.log ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs
+
+      - name: Copy fault injection logs to TestLogs
+        if: always() && (inputs.fault_injection == true) && (steps.skip_check.outputs.should_skip != 'true')
+        shell: pwsh
+        run: |
+          $outputDirectory = "${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}"
+          [array]$faultInjectionLogs =
+            Get-ChildItem -LiteralPath $outputDirectory -File |
+            Where-Object { $_.Name -match '\.(fault|passed)\.log$' }
+          if ($faultInjectionLogs.Count -eq 0) {
+            Write-Warning "No fault injection logs were found in $outputDirectory"
+            return
+          }
+
+          $testLogDirectory = Join-Path $outputDirectory "TestLogs"
+          New-Item -ItemType Directory -Path $testLogDirectory -Force | Out-Null
+          Copy-Item -LiteralPath $faultInjectionLogs.FullName -Destination $testLogDirectory
 
       - name: Check for crash dumps
         # Check for crash dumps even if the workflow failed.
