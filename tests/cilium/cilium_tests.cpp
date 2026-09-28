@@ -169,19 +169,24 @@ verify_program(_In_z_ const char* file, uint32_t expected_section_count)
         ebpf_api_verifier_stats_t stats;
         const char* log_buffer = nullptr;
         const char* report = nullptr;
-        REQUIRE(
-            (result = ebpf_api_elf_verify_program_from_file(
-                 file,
-                 section_name,
-                 program_name,
-                 &EBPF_PROGRAM_TYPE_XDP,
-                 EBPF_VERIFICATION_VERBOSITY_NORMAL,
-                 &report,
-                 &log_buffer,
-                 &stats),
-             ebpf_free_string(log_buffer),
-             log_buffer = nullptr,
-             result == 0));
+        result = ebpf_api_elf_verify_program_from_file(
+            file,
+            section_name,
+            program_name,
+            &EBPF_PROGRAM_TYPE_XDP,
+            EBPF_VERIFICATION_VERBOSITY_NORMAL,
+            &report,
+            &log_buffer,
+            &stats);
+        INFO("Verifier error: " << (log_buffer ? log_buffer : "<none>"));
+        INFO("Verifier report: " << (report ? report : "<none>"));
+        CHECK(result == 0);
+        ebpf_free_string(log_buffer);
+        log_buffer = nullptr;
+        if (result != 0) {
+            ebpf_free_string(report);
+            return;
+        }
         REQUIRE(report != nullptr);
         ebpf_free_string(report);
 #endif
