@@ -3,6 +3,7 @@
 
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 
+#include "bpf2c.h"
 #include "btf_test_shared.hpp"
 #include "catch_wrapper.hpp"
 #include "export_program_info.cpp"
@@ -251,4 +252,101 @@ TEST_CASE("validate_btf_resolved_function_provider_data", "[shared]")
 
     provider_data.btf_resolved_function_prototypes = invalid_prototypes;
     REQUIRE_FALSE(ebpf_validate_btf_resolved_function_provider_data(&provider_data));
+}
+
+TEST_CASE("validate_native_entry_header_total_size", "[shared]")
+{
+    // Verify that the header validator rejects entries where total_size < size.
+    // This guards against the total_size OOB write vulnerability where the loader
+    // uses total_size as a memcpy length / array stride.
+
+    // Helper function entry.
+    {
+        ebpf_extension_header_t header = {
+            EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION,
+            EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION_SIZE,
+            EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE};
+
+        // Valid header should pass.
+        REQUIRE(ebpf_validate_object_header_native_helper_function_entry(&header));
+
+        // total_size == 0 should fail.
+        header.total_size = 0;
+        REQUIRE_FALSE(ebpf_validate_object_header_native_helper_function_entry(&header));
+
+        // total_size < size should fail.
+        header.total_size = header.size - 1;
+        REQUIRE_FALSE(ebpf_validate_object_header_native_helper_function_entry(&header));
+
+        // total_size >= size should pass (padding is allowed).
+        header.total_size = header.size;
+        REQUIRE(ebpf_validate_object_header_native_helper_function_entry(&header));
+
+        header.total_size = header.size + 8;
+        REQUIRE(ebpf_validate_object_header_native_helper_function_entry(&header));
+    }
+
+    // Map entry.
+    {
+        ebpf_extension_header_t header = {
+            EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION,
+            EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_SIZE,
+            EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_TOTAL_SIZE};
+
+        REQUIRE(ebpf_validate_object_header_native_map_entry(&header));
+
+        header.total_size = 0;
+        REQUIRE_FALSE(ebpf_validate_object_header_native_map_entry(&header));
+
+        header.total_size = header.size - 1;
+        REQUIRE_FALSE(ebpf_validate_object_header_native_map_entry(&header));
+    }
+
+    // Program entry.
+    {
+        ebpf_extension_header_t header = {
+            EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION,
+            EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE,
+            EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_TOTAL_SIZE};
+
+        REQUIRE(ebpf_validate_object_header_native_program_entry(&header));
+
+        header.total_size = 0;
+        REQUIRE_FALSE(ebpf_validate_object_header_native_program_entry(&header));
+
+        header.total_size = header.size - 1;
+        REQUIRE_FALSE(ebpf_validate_object_header_native_program_entry(&header));
+    }
+
+    // Map initial values.
+    {
+        ebpf_extension_header_t header = {
+            EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION,
+            EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION_SIZE,
+            EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION_TOTAL_SIZE};
+
+        REQUIRE(ebpf_validate_object_header_native_map_initial_values(&header));
+
+        header.total_size = 0;
+        REQUIRE_FALSE(ebpf_validate_object_header_native_map_initial_values(&header));
+
+        header.total_size = header.size - 1;
+        REQUIRE_FALSE(ebpf_validate_object_header_native_map_initial_values(&header));
+    }
+
+    // Global variable section info.
+    {
+        ebpf_extension_header_t header = {
+            EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION,
+            EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION_SIZE,
+            EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION_TOTAL_SIZE};
+
+        REQUIRE(ebpf_validate_object_header_native_global_variable_section_info(&header));
+
+        header.total_size = 0;
+        REQUIRE_FALSE(ebpf_validate_object_header_native_global_variable_section_info(&header));
+
+        header.total_size = header.size - 1;
+        REQUIRE_FALSE(ebpf_validate_object_header_native_global_variable_section_info(&header));
+    }
 }
