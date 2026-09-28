@@ -29,11 +29,12 @@ on:
 permissions:
   contents: read
   issues: write  # Required to create issues.
-  repository-projects: write  # Required to set Type=Bug on project items.
 
 jobs:
   netperf:
     runs-on: windows-latest
+    permissions:
+      contents: read
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1  # v2.21.1
@@ -145,6 +146,9 @@ jobs:
     needs: create_or_update_issue
     if: ${{ needs.create_or_update_issue.outputs.issue_node_id != '' }}
     uses: ./.github/workflows/reusable-set-issue-type.yml
+    permissions:
+      issues: read
+      repository-projects: write
     with:
       issue_node_id: ${{ needs.create_or_update_issue.outputs.issue_node_id }}
       issue_type: Bug
