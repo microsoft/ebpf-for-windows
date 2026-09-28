@@ -90,9 +90,7 @@ jobs:
       build_options: /p:BuildOneBranch='True' /t:tools\onebranch /t:installer\ebpf-for-windows
       solution_file: "ebpf-for-windows.sln"
       architecture: ${{ matrix.Architecture }}
-      # ARM64 stays on VS 2022 until the Windows 11 ARM64 image with VS 2026
-      # (windows-11-vs2026-arm) leaves public preview.
-      vs_version: ${{ matrix.Architecture == 'x64' && '18' || '17' }}
+      vs_version: '18'
       download_demo_repository: false
 
   # Perform the native-only build.
@@ -111,9 +109,7 @@ jobs:
       build_nuget: true
       download_demo_repository: false
       architecture: ${{ matrix.Architecture }}
-      # ARM64 stays on VS 2022 until the Windows 11 ARM64 image with VS 2026
-      # (windows-11-vs2026-arm) leaves public preview.
-      vs_version: ${{ matrix.Architecture == 'x64' && '18' || '17' }}
+      vs_version: '18'
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
 
   everparse_validation:
