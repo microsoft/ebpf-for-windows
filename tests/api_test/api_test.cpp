@@ -3133,7 +3133,7 @@ TEST_CASE("Test program order", "[native_tests]")
 
     REQUIRE(
         program_load_helper(
-            "multiple_programs.sys", BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_NATIVE, &object, &program_fd) == 0);
+            "multiple_programs_sample.sys", BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_NATIVE, &object, &program_fd) == 0);
 
     // Get all 4 programs in the native object, and invoke them using bpf_prog_test_run.
     //
@@ -3143,7 +3143,7 @@ TEST_CASE("Test program order", "[native_tests]")
     // we can validate that the correct / expected program was invoked by checking the return value.
     for (uint32_t i = 0; i < program_count; i++) {
         bpf_test_run_opts opts = {};
-        bind_md_t ctx = {};
+        sample_program_context_t ctx = {};
         std::string program_name = "program" + std::to_string(i + 1);
         struct bpf_program* program = bpf_object__find_program_by_name(object, program_name.c_str());
         REQUIRE(program != nullptr);
