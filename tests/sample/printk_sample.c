@@ -18,8 +18,8 @@ func(sample_program_context_t* ctx)
     bytes_written += bpf_printk("PID: %lu using %%lu", pid_tgid >> 32);
     bytes_written += bpf_printk("PID: %llu using %%llu", pid_tgid >> 32);
     bytes_written += bpf_printk("DATA: %u VALUE: %u", ctx->uint32_data, ctx->uint16_data);
-    bytes_written += bpf_printk(
-        "DATA: %u VALUE: %u HELPER: %u", ctx->uint32_data, ctx->uint16_data, ctx->helper_data_1);
+    bytes_written +=
+        bpf_printk("DATA: %u VALUE: %u HELPER: %u", ctx->uint32_data, ctx->uint16_data, ctx->helper_data_1);
 
     bytes_written += bpf_printk("BAD1 %");
     bytes_written += bpf_printk("BAD2 %ll");
