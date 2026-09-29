@@ -1984,6 +1984,8 @@ _ebpf_native_initialize_programs(_Inout_ ebpf_native_module_instance_t* instance
                     &native_program->program_entry.helpers[i],
                     helper_entry,
                     min(helper_entry_size, sizeof(native_program->program_entry.helpers[i])));
+                native_program->program_entry.helpers[i].header =
+                    (ebpf_native_module_header_t)EBPF_NATIVE_HELPER_FUNCTION_ENTRY_HEADER;
                 helper_entry = NULL;
             }
         }
