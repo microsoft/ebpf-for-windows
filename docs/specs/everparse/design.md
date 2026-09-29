@@ -103,7 +103,7 @@ Each generation unit defines a **regeneration input set**. A change to any membe
 ### 6.1 Required Input Classes
 
 - The authoritative `.3d` file for the unit.
-- The unit's `packages.config` entry that pins EverParse.
+- The shared `libs\everparse.props` entry that pins EverParse.
 - The unit's `.vcxproj` custom-build definition that invokes EverParse and defines output names.
 - Any additional repository-tracked file later identified as affecting generated output.
 
@@ -256,7 +256,7 @@ For fork-originated pull requests, the design should keep privileged issue-writi
 
 ## 13. Open Questions
 
-1. Are there additional repository-tracked inputs beyond `.3d`, `packages.config`, and `.vcxproj` that must be included in the regeneration input set?
+1. Are there additional repository-tracked inputs beyond `.3d`, `libs\everparse.props`, and `.vcxproj` that must be included in the regeneration input set?
 2. Should a later phase add automated remediation pull requests, or should issue-only remediation remain the boundary?
 
 ## 14. Revision History
