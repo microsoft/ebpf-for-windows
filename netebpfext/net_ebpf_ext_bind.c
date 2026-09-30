@@ -222,20 +222,22 @@ _net_ebpf_ext_resource_validate_and_truncate_appid(bind_md_t* ctx, size_t app_id
         return EBPF_SUCCESS;
     }
     // Ensure we have valid size for iterating and the pointers are valid.
-    if ((app_id_size % sizeof(wchar_t) != 0) || (ctx->app_id_start == NULL) || (ctx->app_id_end == NULL)) {
+    if ((app_id_size % sizeof(wchar_t) != 0) || (ctx->app_id_start == NULL) || (ctx->app_id_end == NULL) ||
+        (ctx->app_id_start > ctx->app_id_end) || ((size_t)(ctx->app_id_end - ctx->app_id_start) != app_id_size)) {
         return EBPF_INVALID_ARGUMENT;
     }
 
-    wchar_t* last_separator = (wchar_t*)ctx->app_id_start;
-    for (wchar_t* position = (wchar_t*)ctx->app_id_start; position < (wchar_t*)ctx->app_id_end; position++) {
-        if (*position == '\\') {
+    uint8_t* last_separator = ctx->app_id_start;
+    for (uint8_t* position = ctx->app_id_start; position + sizeof(wchar_t) <= ctx->app_id_end;
+         position += sizeof(wchar_t)) {
+        if (position[0] == '\\' && position[1] == 0) {
             last_separator = position;
         }
     }
-    if (*last_separator == '\\') {
-        last_separator++;
+    if (last_separator + sizeof(wchar_t) <= ctx->app_id_end && last_separator[0] == '\\' && last_separator[1] == 0) {
+        last_separator += sizeof(wchar_t);
     }
-    ctx->app_id_start = (uint8_t*)last_separator;
+    ctx->app_id_start = last_separator;
     return EBPF_SUCCESS;
 }
 

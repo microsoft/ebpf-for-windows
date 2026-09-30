@@ -4,6 +4,7 @@
   SPDX-License-Identifier: MIT
 -->
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildThisFileDirectory)..\everparse.props" />
   <ItemGroup>
     <ClCompile Include="$(ProjectDir)generated\Elf.c" />
     <ClCompile Include="$(ProjectDir)generated\ElfWrapper.c" />
@@ -21,14 +22,11 @@
       <Command>
        if not exist "$(ProjectDir)generated" mkdir "$(ProjectDir)generated"
        pushd "$(ProjectDir)generated"
-       $(SolutionDir)packages\EverParse.2022.6.13\lib\native\win-x86_64\everparse.cmd $(ProjectDir)Elf.3d
+       call "$(PkgEverParse)\lib\native\win-x86_64\everparse.cmd" "$(ProjectDir)Elf.3d"
        popd
      </Command>
     <Outputs>$(ProjectDir)generated\Elf.h;$(ProjectDir)generated\ElfWrapper.h;$(ProjectDir)generated\EverParse.h;$(ProjectDir)generated\EverParseEndianness.h;$(ProjectDir)generated\Elf.c;$(ProjectDir)generated\ElfWrapper.c;%(Outputs)</Outputs>
     </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(SolutionDir)wdk.props" />
   <PropertyGroup Label="Globals">
