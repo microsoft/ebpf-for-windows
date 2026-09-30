@@ -255,6 +255,7 @@ DECLARE_LOAD_TEST_CASE("test_sample_ebpf.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTIO
 
 // Load test_sample_ebpf with providing expected program type.
 DECLARE_LOAD_TEST_CASE("test_sample_ebpf.o", BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_INTERPRET, INTERPRET_LOAD_RESULT);
+DECLARE_LOAD_TEST_CASE("test_sample_ebpf.sys", BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_NATIVE, 0);
 
 // Load test_sample_redirect_map (uses bpf_redirect_map global virtual helper).
 DECLARE_LOAD_TEST_CASE("test_sample_redirect_map.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_JIT, JIT_LOAD_RESULT);
@@ -267,9 +268,11 @@ DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_JIT
 
 // Load bindmonitor (INTERPRET) without providing expected program type.
 DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_INTERPRET, INTERPRET_LOAD_RESULT);
+DECLARE_LOAD_TEST_CASE("bindmonitor.sys", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, 0);
 
 // Load bindmonitor with providing expected program type.
 DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_JIT, JIT_LOAD_RESULT);
+DECLARE_LOAD_TEST_CASE("bindmonitor.sys", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, 0);
 
 // Try to load bindmonitor with providing wrong program type.
 DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_ANY, get_expected_jit_result(-EACCES));
@@ -293,6 +296,13 @@ TEST_CASE("test_ebpf_multiple_programs_load_interpret")
         _countof(test_parameters), test_parameters, EBPF_EXECUTION_INTERPRET, INTERPRET_LOAD_RESULT);
 }
 
+TEST_CASE("test_ebpf_multiple_programs_load_native")
+{
+    struct _ebpf_program_load_test_parameters test_parameters[] = {
+        {"test_sample_ebpf.sys", BPF_PROG_TYPE_SAMPLE}, {"bindmonitor.sys", BPF_PROG_TYPE_BIND}};
+    _test_multiple_programs_load(_countof(test_parameters), test_parameters, EBPF_EXECUTION_NATIVE, 0);
+}
+
 TEST_CASE("test_ebpf_program_next_previous_native", "[test_ebpf_program_next_previous]")
 {
     test_program_next_previous("test_sample_ebpf.sys", SAMPLE_PROGRAM_COUNT);
@@ -304,6 +314,80 @@ TEST_CASE("test_ebpf_map_next_previous_native", "[test_ebpf_map_next_previous]")
     test_map_next_previous("test_sample_ebpf.sys", SAMPLE_MAP_COUNT);
     test_map_next_previous("bindmonitor.sys", BIND_MONITOR_MAP_COUNT);
 }
+
+void
+ring_buffer_api_test(ebpf_execution_type_t execution_type)
+{
+    struct bpf_object* object = nullptr;
+    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    native_module_helper_t module_helper;
+    module_helper.initialize("bindmonitor_ringbuf", execution_type);
+    program_load_attach_helper_t _helper;
+    _helper.initialize(
+        module_helper.get_file_name().c_str(), BPF_PROG_TYPE_BIND, "bind_monitor", execution_type, nullptr, 0, hook);
+    object = _helper.get_object();
+
+    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
+    REQUIRE(process_map_fd > 0);
+
+    // Create a list of fake app IDs and set it to event context.
+    std::wstring app_id = L"api_test.exe";
+    std::vector<std::vector<char>> app_ids;
+    char* p = reinterpret_cast<char*>(&app_id[0]);
+    std::vector<char> temp(p, p + (app_id.size() + 1) * sizeof(wchar_t));
+
+    // ring_buffer_api_test_helper expects a list of app IDs of size RING_BUFFER_TEST_EVENT_COUNT.
+    for (auto i = 0; i < RING_BUFFER_TEST_EVENT_COUNT; i++) {
+        app_ids.push_back(temp);
+    }
+
+    ring_buffer_api_test_helper(process_map_fd, app_ids, [](int i) {
+        const uint16_t _test_port = 12345 + static_cast<uint16_t>(i);
+        perform_socket_bind(_test_port, true);
+    });
+}
+
+// See also divide_by_zero_test_um in end_to_end.cpp for the user-mode equivalent.
+void
+divide_by_zero_test_km(ebpf_execution_type_t execution_type)
+{
+    native_module_helper_t module_helper;
+    module_helper.initialize("divide_by_zero", execution_type);
+
+    if (execution_type == EBPF_EXECUTION_NATIVE) {
+        bpf_object_ptr object(bpf_object__open(module_helper.get_file_name().c_str()));
+        REQUIRE(object != nullptr);
+        REQUIRE(ebpf_object_set_execution_type(object.get(), execution_type) == EBPF_SUCCESS);
+        REQUIRE(bpf_object__load(object.get()) == 0);
+
+        bpf_program* program = bpf_object__find_program_by_name(object.get(), "divide_by_zero");
+        REQUIRE(program != nullptr);
+        fd_t program_fd = bpf_program__fd(program);
+        REQUIRE(program_fd > 0);
+
+        sample_program_context_t context{};
+        bpf_test_run_opts opts{};
+        opts.repeat = 1;
+        opts.ctx_in = &context;
+        opts.ctx_size_in = sizeof(context);
+        opts.ctx_out = &context;
+        opts.ctx_size_out = sizeof(context);
+        REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+        return;
+    }
+
+    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    program_load_attach_helper_t _helper;
+    _helper.initialize(
+        module_helper.get_file_name().c_str(), BPF_PROG_TYPE_BIND, "divide_by_zero", execution_type, nullptr, 0, hook);
+
+    perform_socket_bind(0, true);
+
+    // If we don't bug-check, the test passed.
+}
+
+TEST_CASE("ringbuf_api_native", "[test_ringbuf_api][ring_buffer]") { ring_buffer_api_test(EBPF_EXECUTION_NATIVE); }
+TEST_CASE("divide_by_zero_native", "[divide_by_zero]") { divide_by_zero_test_km(EBPF_EXECUTION_NATIVE); }
 
 // Synchronous ring buffer API test function.
 TEMPLATE_TEST_CASE("ring_buffer_sync_api", "[ring_buffer]", ENABLED_EXECUTION_TYPES)
@@ -732,8 +816,7 @@ TEST_CASE("ring_buffer_mmap_process_exit_reopen", "[ring_buffer]")
     fd_t map_fd = bpf_map_create(BPF_MAP_TYPE_RINGBUF, "test_rb_process_exit", 0, 0, 64 * 1024, nullptr);
     REQUIRE(map_fd > 0);
 
-    std::string pin_path =
-        "BPF:\\ring_buffer_map_process_exit_" + std::to_string(GetCurrentProcessId());
+    std::string pin_path = "BPF:\\ring_buffer_map_process_exit_" + std::to_string(GetCurrentProcessId());
     REQUIRE(bpf_obj_pin(map_fd, pin_path.c_str()) == 0);
 
     char module_path[MAX_PATH] = {};
@@ -774,8 +857,7 @@ TEST_CASE("ring_buffer_mmap_process_exit_reopen", "[ring_buffer]")
     const void* producer = nullptr;
     const uint8_t* data = nullptr;
     size_t data_size = 0;
-    REQUIRE(
-        ebpf_ring_buffer_map_map_buffer(reopened_map_fd, &consumer, &producer, &data, &data_size) == EBPF_SUCCESS);
+    REQUIRE(ebpf_ring_buffer_map_map_buffer(reopened_map_fd, &consumer, &producer, &data, &data_size) == EBPF_SUCCESS);
     REQUIRE(consumer != nullptr);
     REQUIRE(producer != nullptr);
     REQUIRE(data != nullptr);
@@ -1308,51 +1390,98 @@ TEST_CASE("bind_tailcall_max_native_test", "[native_tests]")
     }
 }
 
-TEST_CASE("bpf_get_current_pid_tgid", "[helpers]")
+static uint64_t
+read_pid_tgid(struct bpf_object* object)
 {
-    // Load and attach ebpf program.
-    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
-    uint32_t ifindex = 0;
-    const char* program_name = "func";
-    program_load_attach_helper_t _helper;
-    native_module_helper_t _native_helper;
-    _native_helper.initialize("pidtgid", EBPF_EXECUTION_NATIVE);
-    _helper.initialize(
-        _native_helper.get_file_name().c_str(),
-        BPF_PROG_TYPE_BIND,
-        program_name,
-        EBPF_EXECUTION_NATIVE,
-        &ifindex,
-        sizeof(ifindex),
-        hook);
-    struct bpf_object* object = _helper.get_object();
-
-    // Bind a socket.
-    WSAData data;
-    REQUIRE(WSAStartup(2, &data) == 0);
-    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
-
-    // Read from map.
     struct bpf_map* map = bpf_object__find_map_by_name(object, "pidtgid_map");
     REQUIRE(map != nullptr);
     uint32_t key = 0;
-    struct value
-    {
-        uint32_t context_pid;
-        uint32_t current_pid;
-        uint32_t current_tid;
-    } value;
-    REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
+    uint64_t pid_tgid = 0;
+    REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &pid_tgid) == 0);
+    return pid_tgid;
+}
 
-    // Verify PID/TID values.
-    unsigned long pid = GetCurrentProcessId();
-    unsigned long tid = GetCurrentThreadId();
-    REQUIRE(pid == value.context_pid);
-    REQUIRE(pid == value.current_pid);
-    REQUIRE(tid == value.current_tid);
+TEST_CASE("bpf_get_current_pid_tgid_sample", "[helpers]")
+{
+    native_module_helper_t native_helper;
+    native_helper.initialize("pidtgid_sample", EBPF_EXECUTION_NATIVE);
 
-    // Clean up.
-    WSACleanup();
+    bpf_object* object = nullptr;
+    fd_t program_fd = ebpf_fd_invalid;
+    REQUIRE(
+        program_load_helper(
+            native_helper.get_file_name().c_str(), BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_NATIVE, &object, &program_fd) ==
+        0);
+    bpf_object_ptr object_ptr(object);
+
+    sample_program_context_t context{};
+    bpf_test_run_opts opts{};
+    opts.sz = sizeof(opts);
+    opts.ctx_in = &context;
+    opts.ctx_size_in = sizeof(context);
+    opts.ctx_out = &context;
+    opts.ctx_size_out = sizeof(context);
+    opts.repeat = 1;
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+
+    REQUIRE(read_pid_tgid(object) == SAMPLE_EXT_PID_TGID);
+}
+
+TEST_CASE("bpf_get_current_pid_tgid_sock_addr", "[helpers]")
+{
+    native_module_helper_t native_helper;
+    native_helper.initialize("pidtgid_netebpf", EBPF_EXECUTION_NATIVE);
+
+    hook_helper_t hook(EBPF_ATTACH_TYPE_CGROUP_INET4_BIND);
+    program_load_attach_helper_t helper;
+    uint32_t compartment_id = 0;
+    helper.initialize(
+        native_helper.get_file_name().c_str(),
+        BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
+        "sock_addr_program",
+        EBPF_EXECUTION_NATIVE,
+        &compartment_id,
+        sizeof(compartment_id),
+        hook);
+
+    wsa_helper_t wsa_helper;
+    REQUIRE(wsa_helper.initialize() == 0);
+    datagram_client_socket_t bound_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT, IPv4);
+
+    uint64_t pid_tgid = read_pid_tgid(helper.get_object());
+    REQUIRE(static_cast<uint32_t>(pid_tgid >> 32) == GetCurrentProcessId());
+    REQUIRE(static_cast<uint32_t>(pid_tgid) == GetCurrentThreadId());
+}
+
+TEST_CASE("bpf_get_current_pid_tgid_sock_ops", "[helpers]")
+{
+    native_module_helper_t native_helper;
+    native_helper.initialize("pidtgid_netebpf", EBPF_EXECUTION_NATIVE);
+
+    hook_helper_t hook(EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS);
+    program_load_attach_helper_t helper;
+    uint32_t compartment_id = 0;
+    helper.initialize(
+        native_helper.get_file_name().c_str(),
+        BPF_PROG_TYPE_SOCK_OPS,
+        "sock_ops_program",
+        EBPF_EXECUTION_NATIVE,
+        &compartment_id,
+        sizeof(compartment_id),
+        hook);
+
+    wsa_helper_t wsa_helper;
+    REQUIRE(wsa_helper.initialize() == 0);
+    datagram_server_socket_t server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+    datagram_client_socket_t client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+    sockaddr_storage destination_address{};
+    IN6ADDR_SETV4MAPPED(
+        reinterpret_cast<PSOCKADDR_IN6>(&destination_address), &in4addr_loopback, scopeid_unspecified, 0);
+    client_socket.send_message_to_remote_host(CLIENT_MESSAGE, destination_address, SOCKET_TEST_PORT);
+
+    uint64_t pid_tgid = read_pid_tgid(helper.get_object());
+    REQUIRE(static_cast<uint32_t>(pid_tgid >> 32) == GetCurrentProcessId());
+    REQUIRE(static_cast<uint32_t>(pid_tgid) != 0);
 }
 
 TEST_CASE("bpf_get_process_start_key_udp_ipv4", "[helpers]") { run_process_start_key_test(IPPROTO_UDP, false); }
@@ -3893,16 +4022,19 @@ TEST_CASE("ebpf_object_info_api", "[ebpf_api]")
     REQUIRE(result != EBPF_SUCCESS);
 }
 
-#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 // Test eBPF program attach APIs with graceful error handling.
-TEST_CASE("ebpf_program_attach_apis_basic", "[ebpf_api]")
+TEMPLATE_TEST_CASE("ebpf_program_attach_apis_basic", "[ebpf_api]", ENABLED_EXECUTION_TYPES)
 {
     _disable_crt_report_hook disable_hook;
+    ebpf_execution_type_t execution_type = TestType::value;
+    native_module_helper_t native_helper;
+    native_helper.initialize("test_sample_ebpf", execution_type);
 
-    // Load test_sample_ebpf.o to get a valid program fd.
-    bpf_object* object = bpf_object__open_file("test_sample_ebpf.o", nullptr);
+    // Load test_sample_ebpf to get a valid program fd.
+    bpf_object* object = bpf_object__open_file(native_helper.get_file_name().c_str(), nullptr);
     REQUIRE(object != nullptr);
 
+    REQUIRE(ebpf_object_set_execution_type(object, execution_type) == EBPF_SUCCESS);
     REQUIRE(bpf_object__load(object) == 0);
 
     // Load the first program in the object.
@@ -3927,7 +4059,6 @@ TEST_CASE("ebpf_program_attach_apis_basic", "[ebpf_api]")
     result = ebpf_program_attach_by_fd(-1, &sample_attach_type, nullptr, 0, &link);
     REQUIRE(result != EBPF_SUCCESS);
 }
-#endif
 
 // Test eBPF native object loading API.
 TEST_CASE("ebpf_object_load_native_api", "[ebpf_api]")
@@ -4043,18 +4174,18 @@ _set_proof_of_verification(uint32_t enable)
  */
 TEST_CASE("proof_of_verification_positive", "[native_tests][proof_of_verification]")
 {
-    // Select the architecture and build-type appropriate signed driver.
-    #if defined(_AMD64_) && defined(_DEBUG)
+// Select the architecture and build-type appropriate signed driver.
+#if defined(_AMD64_) && defined(_DEBUG)
     const char* signed_driver_name = "bindmonitor_x64_debug_signed.sys";
-    #elif defined(_AMD64_)
+#elif defined(_AMD64_)
     const char* signed_driver_name = "bindmonitor_x64_signed.sys";
-    #elif defined(_ARM64_) && defined(_DEBUG)
+#elif defined(_ARM64_) && defined(_DEBUG)
     const char* signed_driver_name = "bindmonitor_arm64_debug_signed.sys";
-    #elif defined(_ARM64_)
+#elif defined(_ARM64_)
     const char* signed_driver_name = "bindmonitor_arm64_signed.sys";
-    #else
-    #error "Unsupported architecture"
-    #endif
+#else
+#error "Unsupported architecture"
+#endif
 
     // The signed driver must be present in the same directory as api_test.exe.
     REQUIRE(_access(signed_driver_name, 0) == 0);
