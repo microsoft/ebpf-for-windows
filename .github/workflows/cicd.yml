@@ -38,6 +38,7 @@ permissions:
   checks: read  # Required by reusable-test.yml to check build status.
   security-events: write  # Required by codeql task.
   issues: write  # Required to create issues.
+  repository-projects: write  # Required by reusable workflows that set Project Type.
 
 jobs:
   # Jobs to run on pull, push, and schedule.
@@ -90,9 +91,9 @@ jobs:
       build_options: /p:BuildOneBranch='True' /t:tools\onebranch /t:installer\ebpf-for-windows
       solution_file: "ebpf-for-windows.sln"
       architecture: ${{ matrix.Architecture }}
-      # ARM64 stays on VS 2022 until the Windows 11 ARM64 image with VS 2026
-      # (windows-11-vs2026-arm) leaves public preview.
-      vs_version: ${{ matrix.Architecture == 'x64' && '18' || '17' }}
+      # windows-11-arm now resolves to the VS 2026 ARM64 image, so both
+      # architectures must request the VS 2026 toolchain.
+      vs_version: '18'
       download_demo_repository: false
 
   # Perform the native-only build.
@@ -111,9 +112,9 @@ jobs:
       build_nuget: true
       download_demo_repository: false
       architecture: ${{ matrix.Architecture }}
-      # ARM64 stays on VS 2022 until the Windows 11 ARM64 image with VS 2026
-      # (windows-11-vs2026-arm) leaves public preview.
-      vs_version: ${{ matrix.Architecture == 'x64' && '18' || '17' }}
+      # windows-11-arm now resolves to the VS 2026 ARM64 image, so both
+      # architectures must request the VS 2026 toolchain.
+      vs_version: '18'
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
 
   everparse_validation:
