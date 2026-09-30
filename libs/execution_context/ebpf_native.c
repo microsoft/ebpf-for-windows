@@ -353,12 +353,18 @@ _ebpf_validate_native_program_entry_array(
         if (native_program_entry_array == NULL) {
             return false;
         }
+
+        if (!_ebpf_validate_native_program_entry(native_program_entry_array)) {
+            return false;
+        }
+
         // Use "total_size" to calculate the actual size of the program_entry_t struct.
         size_t program_entry_size = native_program_entry_array[0].header.total_size;
-        for (size_t i = 0; i < count; i++) {
+        for (size_t i = 1; i < count; i++) {
             const program_entry_t* program_entry =
                 (const program_entry_t*)ARRAY_ELEMENT_INDEX(native_program_entry_array, i, program_entry_size);
-            if (!_ebpf_validate_native_program_entry(program_entry)) {
+            if ((program_entry->header.total_size != program_entry_size) ||
+                !_ebpf_validate_native_program_entry(program_entry)) {
                 return false;
             }
         }
