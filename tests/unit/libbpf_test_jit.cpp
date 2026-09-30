@@ -148,110 +148,6 @@ test_invalid_bpf_action(char log_buffer[])
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
 static void
-test_libbpf_load_program()
-{
-    _test_helper_libbpf test_helper;
-    test_helper.initialize();
-    struct bpf_object* object;
-    int program_fd;
-#pragma warning(suppress : 4996) // deprecated
-    int result = bpf_prog_load_deprecated("test_sample_ebpf.o", BPF_PROG_TYPE_SAMPLE, &object, &program_fd);
-    REQUIRE(result == 0);
-    REQUIRE(object != nullptr);
-    REQUIRE(program_fd != ebpf_fd_invalid);
-
-    bpf_object__close(object);
-}
-
-TEST_CASE("libbpf load program-jit", "[libbpf][deprecated]") { test_libbpf_load_program(); }
-
-static void
-test_libbpf_prog_test_run()
-{
-    _test_helper_libbpf test_helper;
-    test_helper.initialize();
-    struct bpf_object* object;
-    int program_fd;
-#pragma warning(suppress : 4996) // deprecated
-    int result = bpf_prog_load_deprecated("test_sample_ebpf.o", BPF_PROG_TYPE_SAMPLE, &object, &program_fd);
-    REQUIRE(result == 0);
-    REQUIRE(object != nullptr);
-    REQUIRE(program_fd != ebpf_fd_invalid);
-
-    bpf_test_run_opts opts = {};
-    sample_program_context_t in_ctx{0};
-    sample_program_context_t out_ctx{0};
-    opts.repeat = 10;
-    opts.ctx_in = reinterpret_cast<uint8_t*>(&in_ctx);
-    opts.ctx_size_in = sizeof(in_ctx);
-    opts.ctx_out = reinterpret_cast<uint8_t*>(&out_ctx);
-    opts.ctx_size_out = sizeof(out_ctx);
-
-    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
-
-    REQUIRE(opts.duration > 0);
-
-    // Negative tests.
-
-    // Bad fd.
-    REQUIRE(bpf_prog_test_run_opts(nonexistent_fd, &opts) == -EINVAL);
-
-    // NULL context.
-    opts.ctx_in = nullptr;
-    opts.ctx_size_in = 0;
-    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EINVAL);
-
-    // Zero length context.
-    opts.ctx_in = reinterpret_cast<uint8_t*>(&in_ctx);
-    opts.ctx_size_in = 0;
-    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EINVAL);
-
-    // Context out is too small.
-    std::vector<uint8_t> small_context(1);
-    opts.ctx_in = reinterpret_cast<uint8_t*>(&in_ctx);
-    opts.ctx_size_in = sizeof(in_ctx);
-    opts.ctx_out = small_context.data();
-    opts.ctx_size_out = static_cast<uint32_t>(small_context.size());
-    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EOTHER);
-
-    // Context in, null context out.
-    opts.ctx_in = reinterpret_cast<uint8_t*>(&in_ctx);
-    opts.ctx_size_in = sizeof(in_ctx);
-    opts.ctx_out = nullptr;
-    opts.ctx_size_out = 0;
-    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EOTHER);
-
-    // No context in, Context out.
-    std::vector<uint8_t> context_out(1024);
-    opts.ctx_in = nullptr;
-    opts.ctx_size_in = 0;
-    opts.ctx_out = reinterpret_cast<uint8_t*>(&out_ctx);
-    opts.ctx_size_out = sizeof(out_ctx);
-    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EINVAL);
-    REQUIRE(opts.ctx_size_out == sizeof(sample_program_context_t));
-
-    // With bpf syscall.
-    bpf_attr attr = {};
-    attr.test.prog_fd = program_fd;
-    attr.test.repeat = 1000;
-    attr.test.data_in = reinterpret_cast<uint64_t>(nullptr);
-    attr.test.data_out = reinterpret_cast<uint64_t>(nullptr);
-    attr.test.data_size_in = 0;
-    attr.test.data_size_out = 0;
-    attr.test.ctx_in = reinterpret_cast<uint64_t>(&in_ctx);
-    attr.test.ctx_size_in = sizeof(in_ctx);
-    attr.test.ctx_out = reinterpret_cast<uint64_t>(&out_ctx);
-    attr.test.ctx_size_out = sizeof(out_ctx);
-    REQUIRE(bpf(BPF_PROG_TEST_RUN, &attr, sizeof(attr)) == 0);
-    REQUIRE(attr.test.ctx_size_out == sizeof(sample_program_context_t));
-    REQUIRE(attr.test.duration > 0);
-
-    bpf_object__close(object);
-}
-
-TEST_CASE("libbpf prog test run-jit", "[libbpf][deprecated]") { test_libbpf_prog_test_run(); }
-
-static void
 _test_valid_bpf_load_program()
 {
     _test_helper_libbpf test_helper;
@@ -585,6 +481,8 @@ _test_bpf_object_load_with_o_from_memory()
     bpf_object__close(object);
 }
 
+// Native modules are loaded by file path and service name. bpf_object__open_mem accepts ELF bytes only, so there is no
+// native equivalent for this test.
 TEST_CASE("bpf_object__load with .o from memory-jit", "[libbpf]") { _test_bpf_object_load_with_o_from_memory(); }
 
 static void
