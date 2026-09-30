@@ -1049,7 +1049,7 @@ _ebpf_core_protocol_map_get_next_key(
 Done:
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
 
-    EBPF_RETURN_RESULT(retval);
+    EBPF_RETURN_ENUMERATION_RESULT(retval);
 }
 
 static ebpf_result_t
@@ -1885,7 +1885,7 @@ _get_next_id(
     _In_ const ebpf_operation_get_next_id_request_t* request,
     _Out_ ebpf_operation_get_next_id_reply_t* reply)
 {
-    EBPF_RETURN_RESULT(ebpf_object_get_next_id(request->start_id, type, &reply->next_id));
+    EBPF_RETURN_ENUMERATION_RESULT(ebpf_object_get_next_id(request->start_id, type, &reply->next_id));
 }
 
 static ebpf_result_t
@@ -1893,7 +1893,7 @@ _ebpf_core_protocol_get_next_link_id(
     _In_ const ebpf_operation_get_next_id_request_t* request, _Out_ ebpf_operation_get_next_id_reply_t* reply)
 {
     EBPF_LOG_ENTRY();
-    EBPF_RETURN_RESULT(_get_next_id(EBPF_OBJECT_LINK, request, reply));
+    EBPF_RETURN_ENUMERATION_RESULT(_get_next_id(EBPF_OBJECT_LINK, request, reply));
 }
 
 static ebpf_result_t
@@ -1901,7 +1901,7 @@ _ebpf_core_protocol_get_next_map_id(
     _In_ const ebpf_operation_get_next_id_request_t* request, _Out_ ebpf_operation_get_next_id_reply_t* reply)
 {
     EBPF_LOG_ENTRY();
-    EBPF_RETURN_RESULT(_get_next_id(EBPF_OBJECT_MAP, request, reply));
+    EBPF_RETURN_ENUMERATION_RESULT(_get_next_id(EBPF_OBJECT_MAP, request, reply));
 }
 
 static ebpf_result_t
@@ -1909,7 +1909,7 @@ _ebpf_core_protocol_get_next_program_id(
     _In_ const ebpf_operation_get_next_id_request_t* request, _Out_ ebpf_operation_get_next_id_reply_t* reply)
 {
     EBPF_LOG_ENTRY();
-    EBPF_RETURN_RESULT(_get_next_id(EBPF_OBJECT_PROGRAM, request, reply));
+    EBPF_RETURN_ENUMERATION_RESULT(_get_next_id(EBPF_OBJECT_PROGRAM, request, reply));
 }
 
 static ebpf_result_t
