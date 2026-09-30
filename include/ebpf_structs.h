@@ -106,8 +106,8 @@ static const char* const _ebpf_pin_type_names[] = {
 typedef uint32_t ebpf_id_t;
 #define EBPF_ID_NONE 0
 
-/// Do not enforce max_entries limit on hash maps.
-#define BPF_F_NO_MAX_ENTRIES 1
+/// Do not enforce max_entries limit on hash maps. This is a Windows-only flag.
+#define BPF_F_NO_MAX_ENTRIES (1U << 31)
 
 /**
  * @brief eBPF Map Definition as it is stored in memory.

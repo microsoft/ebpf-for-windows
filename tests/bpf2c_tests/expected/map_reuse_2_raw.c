@@ -29,11 +29,11 @@ static map_entry_t _maps[] = {
          1,                         // Maximum number of entries allowed in the map.
          0,                         // Inner map index.
          LIBBPF_PIN_BY_NAME,        // Pinning type for the map.
-         15,                        // Identifier for a map template.
-         11,                        // The id of the inner map template.
+         17,                        // Identifier for a map template.
+         13,                        // The id of the inner map template.
      },
      "outer_map",               // Map name.
-     1,                         // Map creation flags.
+     2147483648,                // Map creation flags.
     },
     {
      {0, 0},
@@ -49,7 +49,7 @@ static map_entry_t _maps[] = {
          1,                  // Maximum number of entries allowed in the map.
          0,                  // Inner map index.
          LIBBPF_PIN_BY_NAME, // Pinning type for the map.
-         17,                 // Identifier for a map template.
+         19,                 // Identifier for a map template.
          0,                  // The id of the inner map template.
      },
      "port_map",         // Map name.
@@ -69,7 +69,7 @@ static map_entry_t _maps[] = {
          1,                  // Maximum number of entries allowed in the map.
          0,                  // Inner map index.
          LIBBPF_PIN_BY_NAME, // Pinning type for the map.
-         11,                 // Identifier for a map template.
+         13,                 // Identifier for a map template.
          0,                  // The id of the inner map template.
      },
      "inner_map",        // Map name.

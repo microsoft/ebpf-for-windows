@@ -33,7 +33,7 @@ static map_entry_t _maps[] = {
          0,                     // The id of the inner map template.
      },
      "no_max_entries_map",  // Map name.
-     1,                     // Map creation flags.
+     2147483648,            // Map creation flags.
     },
 };
 #pragma data_seg(pop)
