@@ -35,7 +35,7 @@ The initial validation scope includes:
 Validation is required when a change touches any repository-tracked member of a generation unit's regeneration input set:
 
 - The unit's authoritative `.3d` file
-- The unit's EverParse version pin in `packages.config`
+- The shared EverParse version pin in `libs\everparse.props`
 - The unit's EverParse custom-build definition in `.vcxproj`
 - Any future manifest-declared repository-tracked generation input
 
