@@ -3204,7 +3204,7 @@ ebpf_core_invoke_protocol_handler(
         goto Done;
     }
 
-    if (request->length > input_buffer_length || request->length < sizeof(*request)) {
+    if (request->length > input_buffer_length || request->length < handler->minimum_request_size) {
         retval = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
