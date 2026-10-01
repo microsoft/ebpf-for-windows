@@ -2254,6 +2254,77 @@ TEST_CASE("create_map_name", "[end_to_end]")
     Platform::_close(map_fd);
 }
 
+// Verify that array-type maps reject key_size != sizeof(uint32_t) at creation,
+// since all array key operations use fixed 4-byte uint32_t accesses internally.
+TEST_CASE("array_map_invalid_key_size", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    // Array maps use uint32_t keys internally. Creating with key_size != 4 should fail.
+    fd_t map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "bad_array_1", 1, sizeof(uint32_t), 4, nullptr);
+    REQUIRE(map_fd < 0);
+
+    map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "bad_array_2", 2, sizeof(uint32_t), 4, nullptr);
+    REQUIRE(map_fd < 0);
+
+    map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "bad_array_3", 3, sizeof(uint32_t), 4, nullptr);
+    REQUIRE(map_fd < 0);
+
+    // key_size == 8: oversized key should also be rejected.
+    map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "bad_array_8", 8, sizeof(uint32_t), 4, nullptr);
+    REQUIRE(map_fd < 0);
+
+    // Verify the same for PERCPU_ARRAY.
+    map_fd = bpf_map_create(BPF_MAP_TYPE_PERCPU_ARRAY, "bad_percpu_1", 1, sizeof(uint32_t), 4, nullptr);
+    REQUIRE(map_fd < 0);
+
+    // Verify the same for PROG_ARRAY.
+    map_fd = bpf_map_create(BPF_MAP_TYPE_PROG_ARRAY, "bad_prog_1", 1, sizeof(fd_t), 4, nullptr);
+    REQUIRE(map_fd < 0);
+
+    // Verify key_size == 4 (valid) still works for all array types.
+    map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "good_array", sizeof(uint32_t), sizeof(uint32_t), 4, nullptr);
+    REQUIRE(map_fd > 0);
+
+    // Verify next_key works correctly on a valid array map.
+    uint32_t next_key = 0;
+    REQUIRE(bpf_map_get_next_key(map_fd, nullptr, &next_key) == 0);
+    REQUIRE(next_key == 0);
+
+    uint32_t prev_key = 0;
+    REQUIRE(bpf_map_get_next_key(map_fd, &prev_key, &next_key) == 0);
+    REQUIRE(next_key == 1);
+
+    Platform::_close(map_fd);
+
+    map_fd = bpf_map_create(BPF_MAP_TYPE_PERCPU_ARRAY, "good_percpu", sizeof(uint32_t), sizeof(uint32_t), 4, nullptr);
+    REQUIRE(map_fd > 0);
+    Platform::_close(map_fd);
+}
+
+// Verify that creating an array map with key_size=1 is rejected.
+// Array maps require key_size == sizeof(uint32_t) because the key is used
+// as an array index via uint32_t accesses in the map leaf functions.
+TEST_CASE("array_map_key_size_1_rejected", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    // Attempt to create an array map with key_size=1. This should be rejected
+    // because array map operations use fixed uint32_t key accesses internally.
+    fd_t map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "bad_array", 1, sizeof(uint64_t), 4, nullptr);
+    if (map_fd > 0) {
+        // Map creation should have been rejected due to key_size mismatch.
+        uint8_t next_key = 0;
+        (void)bpf_map_get_next_key(map_fd, nullptr, &next_key);
+        Platform::_close(map_fd);
+        FAIL("Array map creation with key_size=1 should have been rejected.");
+    }
+    // Expected: map creation fails because key_size != sizeof(uint32_t).
+    REQUIRE(map_fd < 0);
+}
+
 TEST_CASE("array_of_maps_large_index_test", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
