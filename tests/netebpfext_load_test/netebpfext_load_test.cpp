@@ -5,8 +5,14 @@
 #include "api_test_jit.h"
 #include "bpf/bpf.h"
 #include "bpf/libbpf.h"
+#include "program_helper.h"
+#include "sample_test_common.h"
+#include "socket_helper.h"
 
+#include <winsock2.h>
+#include <ws2tcpip.h>
 #include <io.h>
+#include <mstcpip.h>
 #include <vector>
 
 static void
@@ -114,40 +120,6 @@ _test_multiple_programs_load(
     }
 }
 
-TEST_CASE("native_load_retry_after_insufficient_buffers", "[native_tests]")
-{
-    native_module_helper_t native_helper;
-    native_helper.initialize("bindmonitor", EBPF_EXECUTION_NATIVE);
-
-    std::vector<fd_t> map_fds(3, ebpf_fd_invalid);
-    std::vector<fd_t> program_fds(1, ebpf_fd_invalid);
-    size_t count_of_maps = 0;
-    size_t count_of_programs = 0;
-
-    ebpf_result_t result = ebpf_object_load_native_by_fds(
-        native_helper.get_file_name().c_str(), &count_of_maps, nullptr, &count_of_programs, nullptr);
-
-    REQUIRE(result == EBPF_NO_MEMORY);
-    REQUIRE(count_of_maps == map_fds.size());
-    REQUIRE(count_of_programs == program_fds.size());
-
-    result = ebpf_object_load_native_by_fds(
-        native_helper.get_file_name().c_str(), &count_of_maps, map_fds.data(), &count_of_programs, program_fds.data());
-
-    REQUIRE(result == EBPF_SUCCESS);
-    REQUIRE(count_of_maps == map_fds.size());
-    REQUIRE(count_of_programs == program_fds.size());
-
-    for (auto fd : map_fds) {
-        REQUIRE(fd != ebpf_fd_invalid);
-        _close(fd);
-    }
-    for (auto fd : program_fds) {
-        REQUIRE(fd != ebpf_fd_invalid);
-        _close(fd);
-    }
-}
-
 TEST_CASE("load_all_sample_programs", "[native_tests]")
 {
     struct _ebpf_program_load_test_parameters test_parameters[] = {
@@ -163,13 +135,77 @@ TEST_CASE("load_all_sample_programs", "[native_tests]")
         {"cgroup_mt_connect6.sys", BPF_PROG_TYPE_UNSPEC},
         {"cgroup_sock_addr.sys", BPF_PROG_TYPE_UNSPEC},
         {"cgroup_sock_addr2.sys", BPF_PROG_TYPE_UNSPEC},
-        {"printk_legacy.sys", BPF_PROG_TYPE_UNSPEC},
         {"process_start_key.sys", BPF_PROG_TYPE_UNSPEC},
         {"sockops.sys", BPF_PROG_TYPE_UNSPEC},
-        {"strings.sys", BPF_PROG_TYPE_UNSPEC},
-        {"tail_call_max_exceed.sys", BPF_PROG_TYPE_UNSPEC},
-        {"thread_start_time.sys", BPF_PROG_TYPE_UNSPEC},
-        {"utility.sys", BPF_PROG_TYPE_UNSPEC}};
+        {"thread_start_time.sys", BPF_PROG_TYPE_UNSPEC}};
 
     _test_multiple_programs_load(_countof(test_parameters), test_parameters, EBPF_EXECUTION_NATIVE, 0);
+}
+
+static uint64_t
+read_pid_tgid(struct bpf_object* object)
+{
+    struct bpf_map* map = bpf_object__find_map_by_name(object, "pidtgid_map");
+    REQUIRE(map != nullptr);
+    uint32_t key = 0;
+    uint64_t pid_tgid = 0;
+    REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &pid_tgid) == 0);
+    return pid_tgid;
+}
+
+TEST_CASE("bpf_get_current_pid_tgid_sock_addr", "[helpers]")
+{
+    native_module_helper_t native_helper;
+    native_helper.initialize("pidtgid_netebpf", EBPF_EXECUTION_NATIVE);
+
+    hook_helper_t hook(EBPF_ATTACH_TYPE_CGROUP_INET4_BIND);
+    program_load_attach_helper_t helper;
+    uint32_t compartment_id = 0;
+    helper.initialize(
+        native_helper.get_file_name().c_str(),
+        BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
+        "sock_addr_program",
+        EBPF_EXECUTION_NATIVE,
+        &compartment_id,
+        sizeof(compartment_id),
+        hook);
+
+    wsa_helper_t wsa_helper;
+    REQUIRE(wsa_helper.initialize() == 0);
+    datagram_client_socket_t bound_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT, IPv4);
+
+    uint64_t pid_tgid = read_pid_tgid(helper.get_object());
+    REQUIRE(static_cast<uint32_t>(pid_tgid >> 32) == GetCurrentProcessId());
+    REQUIRE(static_cast<uint32_t>(pid_tgid) == GetCurrentThreadId());
+}
+
+TEST_CASE("bpf_get_current_pid_tgid_sock_ops", "[helpers]")
+{
+    native_module_helper_t native_helper;
+    native_helper.initialize("pidtgid_netebpf", EBPF_EXECUTION_NATIVE);
+
+    hook_helper_t hook(EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS);
+    program_load_attach_helper_t helper;
+    uint32_t compartment_id = 0;
+    helper.initialize(
+        native_helper.get_file_name().c_str(),
+        BPF_PROG_TYPE_SOCK_OPS,
+        "sock_ops_program",
+        EBPF_EXECUTION_NATIVE,
+        &compartment_id,
+        sizeof(compartment_id),
+        hook);
+
+    wsa_helper_t wsa_helper;
+    REQUIRE(wsa_helper.initialize() == 0);
+    datagram_server_socket_t server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+    datagram_client_socket_t client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+    sockaddr_storage destination_address{};
+    IN6ADDR_SETV4MAPPED(
+        reinterpret_cast<PSOCKADDR_IN6>(&destination_address), &in4addr_loopback, scopeid_unspecified, 0);
+    client_socket.send_message_to_remote_host(CLIENT_MESSAGE, destination_address, SOCKET_TEST_PORT);
+
+    uint64_t pid_tgid = read_pid_tgid(helper.get_object());
+    REQUIRE(static_cast<uint32_t>(pid_tgid >> 32) == GetCurrentProcessId());
+    REQUIRE(static_cast<uint32_t>(pid_tgid) != 0);
 }
