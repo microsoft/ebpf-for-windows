@@ -67,6 +67,11 @@
     <ClCompile Include="core_stress_tests_km.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ResourceCompile Update="$(SolutionDir)resource\ebpf_resource.rc">
+      <AdditionalIncludeDirectories>$(ProjectDir)ebpf_stress_tests_km;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\..\ebpfapi\ebpfapi.vcxproj">
       <Project>{75fe223a-3e45-4b0e-a2e8-04285e52e440}</Project>
     </ProjectReference>
