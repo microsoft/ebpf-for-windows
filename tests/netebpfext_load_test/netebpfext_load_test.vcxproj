@@ -20,7 +20,7 @@
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{C5E6F5C2-2E72-49E7-875B-1CF4B39358A3}</ProjectGuid>
-    <RootNamespace>netebpfextapitest</RootNamespace>
+    <RootNamespace>netebpfextloadtest</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
@@ -35,7 +35,7 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup>
-    <TargetName>netebpfext_api_test</TargetName>
+    <TargetName>netebpfext_load_test</TargetName>
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup>
@@ -52,14 +52,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="netebpfext_api_test.cpp" />
+    <ClCompile Include="netebpfext_load_test.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\ebpfapi\ebpfapi.vcxproj"><Project>{75fe223a-3e45-4b0e-a2e8-04285e52e440}</Project></ProjectReference>
     <ProjectReference Include="..\..\external\Catch2\build\src\Catch2WithMain.vcxproj"><Project>{8bd3552a-2cfb-4a59-ab15-2031b97ada1e}</Project></ProjectReference>
     <ProjectReference Include="..\..\external\usersim\cxplat\src\cxplat_winuser\cxplat_winuser.vcxproj"><Project>{f2ca70ab-af9a-47d1-9da9-94d5ab573ac2}</Project></ProjectReference>
     <ProjectReference Include="..\..\rpc_interface\rpc_interface.vcxproj"><Project>{1423245d-0249-40fc-a077-ff7780acfe3f}</Project></ProjectReference>
-    <ProjectReference Include="..\libs\common\common_tests.vcxproj"><Project>{3617528a-cb85-418b-82c1-e9cfc16755f6}</Project></ProjectReference>
     <ProjectReference Include="..\libs\util\test_util.vcxproj"><Project>{d6725f19-b9bf-435f-80f2-c5f3ef0f4b8f}</Project></ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -145,7 +145,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "api_test", "tests\api_test\
 		{231EE32B-EBA4-4FE5-A55B-DB18F539D403} = {231EE32B-EBA4-4FE5-A55B-DB18F539D403}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "netebpfext_api_test", "tests\netebpfext_api_test\netebpfext_api_test.vcxproj", "{C5E6F5C2-2E72-49E7-875B-1CF4B39358A3}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "netebpfext_load_test", "tests\netebpfext_load_test\netebpfext_load_test.vcxproj", "{C5E6F5C2-2E72-49E7-875B-1CF4B39358A3}"
 	ProjectSection(ProjectDependencies) = postProject
 		{231EE32B-EBA4-4FE5-A55B-DB18F539D403} = {231EE32B-EBA4-4FE5-A55B-DB18F539D403}
 	EndProjectSection
@@ -327,12 +327,12 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sample-package", "tools\sam
 		{231EE32B-EBA4-4FE5-A55B-DB18F539D403} = {231EE32B-EBA4-4FE5-A55B-DB18F539D403}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "netebpfext_stress_tests_km", "tests\stress\km\ebpf_stress_tests_km.vcxproj", "{4F082524-9496-44FA-8CBA-4BC0BDC62568}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "net_ebpf_stress_tests_km", "tests\stress\km\net_ebpf_stress_tests_km.vcxproj", "{4F082524-9496-44FA-8CBA-4BC0BDC62568}"
 	ProjectSection(ProjectDependencies) = postProject
 		{231EE32B-EBA4-4FE5-A55B-DB18F539D403} = {231EE32B-EBA4-4FE5-A55B-DB18F539D403}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ebpf_core_stress_tests_km", "tests\stress\km\ebpf_core_stress_tests_km.vcxproj", "{6C60537C-7B4A-45A6-B65B-74B4BF1B8088}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ebpf_stress_tests_km", "tests\stress\km\ebpf_stress_tests_km.vcxproj", "{6C60537C-7B4A-45A6-B65B-74B4BF1B8088}"
 	ProjectSection(ProjectDependencies) = postProject
 		{231EE32B-EBA4-4FE5-A55B-DB18F539D403} = {231EE32B-EBA4-4FE5-A55B-DB18F539D403}
 	EndProjectSection
