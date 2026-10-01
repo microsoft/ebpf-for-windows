@@ -2313,23 +2313,19 @@ _printk_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
-    program_info_provider_t bind_program_info;
-    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
-    uint32_t ifindex = 0;
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "printk_um.dll" : "printk.o");
     program_load_attach_helper_t program_helper;
-    program_helper.initialize(file_name, BPF_PROG_TYPE_BIND, "func", execution_type, &ifindex, sizeof(ifindex), hook);
+    program_helper.initialize(file_name, BPF_PROG_TYPE_SAMPLE, "func", execution_type, nullptr, 0, hook);
 
-    // The current bind hook only works with IPv4, so compose a sample IPv4 context.
-    SOCKADDR_IN addr = {AF_INET};
-    addr.sin_port = htons(80);
-    INITIALIZE_BIND_CONTEXT
-    ctx->process_id = GetCurrentProcessId();
-    ctx->protocol = 2;
-    ctx->socket_address_length = sizeof(addr);
-    memcpy(&ctx->socket_address, &addr, ctx->socket_address_length);
+    INITIALIZE_SAMPLE_CONTEXT
+    ctx->uint32_data = 123;
+    ctx->uint16_data = 45;
+    ctx->helper_data_1 = 678;
+    ctx->helper_data_2 = GetCurrentProcessId();
 
     capture_helper_t capture;
     std::vector<std::string> output;
@@ -2344,14 +2340,16 @@ _printk_test(ebpf_execution_type_t execution_type)
         output = capture.buffer_to_printk_vector(capture.get_stdout_contents());
         REQUIRE(hook_fire_result == EBPF_SUCCESS);
     }
+    std::string pid = std::to_string(ctx->helper_data_2);
     std::vector<std::string> expected_output = {
         "Hello, world",
         "Hello, world",
-        "PID: " + std::to_string(ctx->process_id) + " using %u",
-        "PID: " + std::to_string(ctx->process_id) + " using %lu",
-        "PID: " + std::to_string(ctx->process_id) + " using %llu",
-        "PID: " + std::to_string(ctx->process_id) + " PROTO: 2",
-        "PID: " + std::to_string(ctx->process_id) + " PROTO: 2 ADDRLEN: 16",
+        "PID: " + pid + " using %u",
+        "PID: " + pid + " using %lu",
+        "PID: " + pid + " using %llu",
+        "DATA: " + std::to_string(ctx->uint32_data) + " VALUE: " + std::to_string(ctx->uint16_data),
+        "DATA: " + std::to_string(ctx->uint32_data) + " VALUE: " + std::to_string(ctx->uint16_data) +
+            " HELPER: " + std::to_string(ctx->helper_data_1),
         "100% done"};
     REQUIRE(output.size() == expected_output.size());
     size_t output_length = 0;
