@@ -2,21 +2,21 @@
 // SPDX-License-Identifier: MIT
 
 // Sample program to validate native parsing when multiple top-level programs
-// share the same section name.
+// share the same short section name (<= 8 chars).
 
 #include "bpf_helpers.h"
-#include "sample_ext_helpers.h"
+#include "ebpf_nethooks.h"
 
-SEC("sample_ext")
-int
-prog1(sample_program_context_t* ctx)
+SEC("bind")
+bind_action_t
+prog1(bind_md_t* ctx)
 {
-    return 0;
+    return BIND_PERMIT_SOFT;
 }
 
-SEC("sample_ext")
-int
-prog2(sample_program_context_t* ctx)
+SEC("bind")
+bind_action_t
+prog2(bind_md_t* ctx)
 {
-    return 1;
+    return BIND_REDIRECT;
 }
