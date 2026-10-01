@@ -46,8 +46,8 @@
     <RootNamespace>sample</RootNamespace>
     <ClangFlags>-g -target bpf -O2 -Werror -I../../packages/clang.headers/include -I../../include -I../../external/bpftool -I$(WindowsSdkDir)\Include\$(WindowsTargetPlatformVersion)\shared</ClangFlags>
     <!-- BPF header dependencies for incremental build correctness. Update if new headers are added. -->
-    <BpfHeaderDeps>$(SolutionDir)include\bpf_helpers.h;$(SolutionDir)include\bpf_helpers_platform.h;$(SolutionDir)include\bpf_helper_defs.h;$(SolutionDir)include\bpf_endian.h;$(SolutionDir)include\ebpf_structs.h;$(SolutionDir)include\ebpf_windows.h;$(SolutionDir)include\ebpf_nethooks.h;$(SolutionDir)include\net\ip.h;$(SolutionDir)include\net\if_ether.h;$(SolutionDir)include\net\udp.h;$(SolutionDir)tests\socket\socket_tests_common.h;$(SolutionDir)tests\include\xdp_hooks.h;$(SolutionDir)tests\sample\sample_common_routines.h;$(SolutionDir)tests\sample\sample_test_common.h;$(SolutionDir)undocked\tests\sample\ext\inc\sample_ext_helpers.h</BpfHeaderDeps>
-    <BpfUndockedHeaderDeps>$(BpfHeaderDeps)</BpfUndockedHeaderDeps>
+    <BpfHeaderDeps>$(SolutionDir)include\bpf_helpers.h;$(SolutionDir)include\bpf_helpers_platform.h;$(SolutionDir)include\bpf_helper_defs.h;$(SolutionDir)include\bpf_endian.h;$(SolutionDir)include\ebpf_structs.h;$(SolutionDir)include\ebpf_windows.h;$(SolutionDir)include\ebpf_nethooks.h;$(SolutionDir)include\net\ip.h;$(SolutionDir)include\net\if_ether.h;$(SolutionDir)include\net\udp.h;$(SolutionDir)tests\socket\socket_tests_common.h;$(SolutionDir)tests\include\xdp_hooks.h;$(SolutionDir)tests\sample\sample_common_routines.h;$(SolutionDir)tests\sample\sample_test_common.h</BpfHeaderDeps>
+    <BpfUndockedHeaderDeps>$(BpfHeaderDeps);$(SolutionDir)undocked\tests\sample\ext\inc\sample_ext_helpers.h</BpfUndockedHeaderDeps>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">

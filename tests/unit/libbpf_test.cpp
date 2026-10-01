@@ -2261,8 +2261,8 @@ _test_multi_prog_same_section(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
-    program_info_provider_t sample_program_info;
-    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+    program_info_provider_t bind_program_info;
+    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
 
     const char* file_name =
         (execution_type == EBPF_EXECUTION_NATIVE ? "multi_prog_same_section_um.dll" : "multi_prog_same_section.o");
@@ -2275,9 +2275,9 @@ _test_multi_prog_same_section(ebpf_execution_type_t execution_type)
     struct bpf_program* prog2 = bpf_object__find_program_by_name(object, "prog2");
     REQUIRE(prog2 != nullptr);
 
-    // Both programs should be in the "sample_ext" section.
-    REQUIRE(strcmp(bpf_program__section_name(prog1), "sample_ext") == 0);
-    REQUIRE(strcmp(bpf_program__section_name(prog2), "sample_ext") == 0);
+    // Both programs should be in the "bind" section.
+    REQUIRE(strcmp(bpf_program__section_name(prog1), "bind") == 0);
+    REQUIRE(strcmp(bpf_program__section_name(prog2), "bind") == 0);
 
     // Verify program names.
     REQUIRE(strcmp(bpf_program__name(prog1), "prog1") == 0);

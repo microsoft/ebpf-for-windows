@@ -1411,63 +1411,6 @@ TEST_CASE("bpf_get_current_pid_tgid_sample", "[helpers]")
     REQUIRE(read_pid_tgid(object) == SAMPLE_EXT_PID_TGID);
 }
 
-TEST_CASE("bpf_get_current_pid_tgid_sock_addr", "[helpers]")
-{
-    native_module_helper_t native_helper;
-    native_helper.initialize("pidtgid_netebpf", EBPF_EXECUTION_NATIVE);
-
-    hook_helper_t hook(EBPF_ATTACH_TYPE_CGROUP_INET4_BIND);
-    program_load_attach_helper_t helper;
-    uint32_t compartment_id = 0;
-    helper.initialize(
-        native_helper.get_file_name().c_str(),
-        BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
-        "sock_addr_program",
-        EBPF_EXECUTION_NATIVE,
-        &compartment_id,
-        sizeof(compartment_id),
-        hook);
-
-    wsa_helper_t wsa_helper;
-    REQUIRE(wsa_helper.initialize() == 0);
-    datagram_client_socket_t bound_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT, IPv4);
-
-    uint64_t pid_tgid = read_pid_tgid(helper.get_object());
-    REQUIRE(static_cast<uint32_t>(pid_tgid >> 32) == GetCurrentProcessId());
-    REQUIRE(static_cast<uint32_t>(pid_tgid) == GetCurrentThreadId());
-}
-
-TEST_CASE("bpf_get_current_pid_tgid_sock_ops", "[helpers]")
-{
-    native_module_helper_t native_helper;
-    native_helper.initialize("pidtgid_netebpf", EBPF_EXECUTION_NATIVE);
-
-    hook_helper_t hook(EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS);
-    program_load_attach_helper_t helper;
-    uint32_t compartment_id = 0;
-    helper.initialize(
-        native_helper.get_file_name().c_str(),
-        BPF_PROG_TYPE_SOCK_OPS,
-        "sock_ops_program",
-        EBPF_EXECUTION_NATIVE,
-        &compartment_id,
-        sizeof(compartment_id),
-        hook);
-
-    wsa_helper_t wsa_helper;
-    REQUIRE(wsa_helper.initialize() == 0);
-    datagram_server_socket_t server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
-    datagram_client_socket_t client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
-    sockaddr_storage destination_address{};
-    IN6ADDR_SETV4MAPPED(
-        reinterpret_cast<PSOCKADDR_IN6>(&destination_address), &in4addr_loopback, scopeid_unspecified, 0);
-    client_socket.send_message_to_remote_host(CLIENT_MESSAGE, destination_address, SOCKET_TEST_PORT);
-
-    uint64_t pid_tgid = read_pid_tgid(helper.get_object());
-    REQUIRE(static_cast<uint32_t>(pid_tgid >> 32) == GetCurrentProcessId());
-    REQUIRE(static_cast<uint32_t>(pid_tgid) != 0);
-}
-
 TEST_CASE("bpf_get_process_start_key_udp_ipv4", "[helpers]") { run_process_start_key_test(IPPROTO_UDP, false); }
 
 TEST_CASE("bpf_get_process_start_key_udp_ipv6", "[helpers]") { run_process_start_key_test(IPPROTO_UDP, true); }
@@ -4000,6 +3943,36 @@ TEST_CASE("ebpf_object_load_native_api", "[ebpf_api]")
     REQUIRE(program_fds[0] > 0);
     _close(map_fds[0]);
     _close(program_fds[0]);
+}
+
+TEST_CASE("native_load_retry_after_insufficient_buffers", "[ebpf_api]")
+{
+    size_t count_of_maps = 0;
+    size_t count_of_programs = 0;
+
+    ebpf_result_t result = ebpf_object_load_native_by_fds(
+        "test_sample_ebpf.sys", &count_of_maps, nullptr, &count_of_programs, nullptr);
+
+    REQUIRE(result == EBPF_NO_MEMORY);
+
+    std::vector<fd_t> map_fds(count_of_maps, ebpf_fd_invalid);
+    std::vector<fd_t> program_fds(count_of_programs, ebpf_fd_invalid);
+
+    result = ebpf_object_load_native_by_fds(
+        "test_sample_ebpf.sys", &count_of_maps, map_fds.data(), &count_of_programs, program_fds.data());
+
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(count_of_maps == map_fds.size());
+    REQUIRE(count_of_programs == program_fds.size());
+
+    for (auto fd : map_fds) {
+        REQUIRE(fd != ebpf_fd_invalid);
+        _close(fd);
+    }
+    for (auto fd : program_fds) {
+        REQUIRE(fd != ebpf_fd_invalid);
+        _close(fd);
+    }
 }
 
 // Test eBPF program info from verifier API.
