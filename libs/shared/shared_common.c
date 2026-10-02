@@ -217,7 +217,8 @@ _ebpf_validate_extension_object_header(
 
     return (
         (header->version == _supported_ebpf_extension_version[object_type]) &&
-        (_ebpf_is_size_supported(supported_sizes, count, header->size)));
+        (_ebpf_is_size_supported(supported_sizes, count, header->size)) &&
+        (header->total_size >= header->size));
 }
 
 #ifndef GUID_NULL
@@ -381,7 +382,9 @@ ebpf_validate_object_header_native_helper_function_entry(
 {
     return (
         (native_helper_function_entry_header != NULL) &&
-        _ebpf_validate_extension_object_header(EBPF_NATIVE_HELPER_FUNCTION_ENTRY, native_helper_function_entry_header));
+        _ebpf_validate_extension_object_header(EBPF_NATIVE_HELPER_FUNCTION_ENTRY, native_helper_function_entry_header) &&
+        (native_helper_function_entry_header->total_size ==
+         EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE));
 }
 
 bool
@@ -389,15 +392,26 @@ ebpf_validate_object_header_native_map_entry(_In_ const ebpf_extension_header_t*
 {
     return (
         (native_map_entry_header != NULL) &&
-        _ebpf_validate_extension_object_header(EBPF_NATIVE_MAP_ENTRY, native_map_entry_header));
+        _ebpf_validate_extension_object_header(EBPF_NATIVE_MAP_ENTRY, native_map_entry_header) &&
+        (native_map_entry_header->total_size == EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_TOTAL_SIZE));
 }
 
 bool
 ebpf_validate_object_header_native_program_entry(_In_ const ebpf_extension_header_t* native_program_entry_header)
 {
+    if (native_program_entry_header == NULL) {
+        return false;
+    }
+
+    bool valid_total_size =
+        ((native_program_entry_header->size == EBPF_NATIVE_PROGRAM_ENTRY_SIZE_0) &&
+         (native_program_entry_header->total_size == EBPF_NATIVE_PROGRAM_ENTRY_SIZE_0)) ||
+        ((native_program_entry_header->size == EBPF_NATIVE_PROGRAM_ENTRY_SIZE_1) &&
+         (native_program_entry_header->total_size == EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_TOTAL_SIZE));
+
     return (
-        (native_program_entry_header != NULL) &&
-        _ebpf_validate_extension_object_header(EBPF_NATIVE_PROGRAM_ENTRY, native_program_entry_header));
+        _ebpf_validate_extension_object_header(EBPF_NATIVE_PROGRAM_ENTRY, native_program_entry_header) &&
+        valid_total_size);
 }
 
 bool
@@ -406,7 +420,9 @@ ebpf_validate_object_header_native_map_initial_values(
 {
     return (
         (native_map_initial_values_header != NULL) &&
-        _ebpf_validate_extension_object_header(EBPF_NATIVE_MAP_INITIAL_VALUES, native_map_initial_values_header));
+        _ebpf_validate_extension_object_header(EBPF_NATIVE_MAP_INITIAL_VALUES, native_map_initial_values_header) &&
+        (native_map_initial_values_header->total_size ==
+         EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION_TOTAL_SIZE));
 }
 
 bool
@@ -416,7 +432,9 @@ ebpf_validate_object_header_native_global_variable_section_info(
     return (
         (native_global_variable_section_info_header != NULL) &&
         _ebpf_validate_extension_object_header(
-            EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO, native_global_variable_section_info_header));
+            EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO, native_global_variable_section_info_header) &&
+        (native_global_variable_section_info_header->total_size ==
+         EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION_TOTAL_SIZE));
 }
 
 ebpf_result_t
