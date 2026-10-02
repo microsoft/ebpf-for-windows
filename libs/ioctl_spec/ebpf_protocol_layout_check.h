@@ -57,6 +57,9 @@ static_assert(
     offsetof(ebpf_operation_load_native_module_request_t, data) == 24,
     "ebpf_operation_load_native_module_request_t.data offset mismatch");
 static_assert(
+    offsetof(ebpf_operation_load_native_programs_request_t, pin_root_path) == 24,
+    "ebpf_operation_load_native_programs_request_t.pin_root_path offset mismatch");
+static_assert(
     offsetof(ebpf_operation_program_test_run_request_t, data) == 42,
     "ebpf_operation_program_test_run_request_t.data offset mismatch");
 static_assert(
