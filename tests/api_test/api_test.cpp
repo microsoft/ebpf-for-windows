@@ -3947,11 +3947,17 @@ TEST_CASE("ebpf_object_load_native_api", "[ebpf_api]")
 
 TEST_CASE("native_load_retry_after_insufficient_buffers", "[ebpf_api]")
 {
+    // Use a uniquely named copy of the file so this test's own two loads (and any other
+    // test's) never race the same native driver image path during asynchronous unload.
+    native_module_helper_t native_helper;
+    native_helper.initialize("test_sample_ebpf", EBPF_EXECUTION_NATIVE);
+    std::string file_name = native_helper.get_file_name();
+
     size_t count_of_maps = 0;
     size_t count_of_programs = 0;
 
     ebpf_result_t result = ebpf_object_load_native_by_fds(
-        "test_sample_ebpf.sys", &count_of_maps, nullptr, &count_of_programs, nullptr);
+        file_name.c_str(), &count_of_maps, nullptr, &count_of_programs, nullptr);
 
     REQUIRE(result == EBPF_NO_MEMORY);
 
@@ -3959,7 +3965,7 @@ TEST_CASE("native_load_retry_after_insufficient_buffers", "[ebpf_api]")
     std::vector<fd_t> program_fds(count_of_programs, ebpf_fd_invalid);
 
     result = ebpf_object_load_native_by_fds(
-        "test_sample_ebpf.sys", &count_of_maps, map_fds.data(), &count_of_programs, program_fds.data());
+        file_name.c_str(), &count_of_maps, map_fds.data(), &count_of_programs, program_fds.data());
 
     REQUIRE(result == EBPF_SUCCESS);
     REQUIRE(count_of_maps == map_fds.size());
