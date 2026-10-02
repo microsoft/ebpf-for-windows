@@ -68,17 +68,18 @@ typedef struct _map_cache
     prevail::EbpfMapDescriptor verifier_map_descriptor;
     ebpf_pin_type_t pinning;
     uint32_t inner_id;
+    uint32_t map_flags;
 
     _map_cache()
         : handle(0), id(EBPF_ID_NONE), section_offset(0), verifier_map_descriptor(), pinning(LIBBPF_PIN_NONE),
-          inner_id(EBPF_ID_NONE)
+          inner_id(EBPF_ID_NONE), map_flags(0)
     {
     }
 
     _map_cache(
         ebpf_handle_t handle, size_t section_offset, prevail::EbpfMapDescriptor descriptor, ebpf_pin_type_t pinning)
         : handle(handle), id(EBPF_ID_NONE), section_offset(section_offset), verifier_map_descriptor(descriptor),
-          pinning(pinning), inner_id(EBPF_ID_NONE)
+          pinning(pinning), inner_id(EBPF_ID_NONE), map_flags(0)
     {
     }
 
@@ -90,11 +91,12 @@ typedef struct _map_cache
         unsigned int key_size,
         unsigned int value_size,
         unsigned int max_entries,
+        uint32_t _map_flags,
         fd_t inner_map_original_fd,
         unsigned int _inner_id,
         size_t section_offset,
         ebpf_pin_type_t pinning)
-        : handle(handle), section_offset(section_offset), pinning(pinning)
+        : handle(handle), section_offset(section_offset), pinning(pinning), map_flags(_map_flags)
     {
         verifier_map_descriptor.original_fd = original_fd;
         verifier_map_descriptor.type = type;
@@ -125,6 +127,7 @@ cache_map_handle(
     uint32_t key_size,
     uint32_t value_size,
     uint32_t max_entries,
+    uint32_t map_flags,
     uint32_t inner_map_original_fd,
     uint32_t inner_id,
     size_t section_offset,

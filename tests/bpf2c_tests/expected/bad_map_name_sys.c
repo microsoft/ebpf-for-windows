@@ -173,21 +173,23 @@ static map_entry_t _maps[] = {
     {
      {0, 0},
      {
-         1,                 // Current Version.
-         80,                // Struct size up to the last field.
-         80,                // Total struct size including padding.
+         1,                                                                               // Current Version.
+         84,                                                                              // Struct size up to the last field.
+         88,                                                                              // Total struct size including padding.
      },
      {
-         BPF_MAP_TYPE_HASH, // Type of map.
-         4,                 // Size in bytes of a map key.
-         4,                 // Size in bytes of a map value.
-         1,                 // Maximum number of entries allowed in the map.
-         0,                 // Inner map index.
-         LIBBPF_PIN_NONE,   // Pinning type for the map.
-         8,                 // Identifier for a map template.
-         0,                 // The id of the inner map template.
+         BPF_MAP_TYPE_HASH,                                                               // Type of map.
+         4,                                                                               // Size in bytes of a map key.
+         4,                                                                               // Size in bytes of a map value.
+         1,                                                                               // Maximum number of entries allowed in the map.
+         0,                                                                               // Inner map index.
+         LIBBPF_PIN_NONE,                                                                 // Pinning type for the map.
+         8,                                                                               // Identifier for a map template.
+         0,                                                                               // The id of the inner map template.
      },
-     "this_map_has_a_name_that_is_longer_than_what_the_ebpfcore_driver_can_support"},
+     "this_map_has_a_name_that_is_longer_than_what_the_ebpfcore_driver_can_support",  // Map name.
+     0,                                                                               // Map creation flags.
+    },
 };
 #pragma data_seg(pop)
 
