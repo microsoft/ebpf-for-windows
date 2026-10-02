@@ -1,5 +1,5 @@
 
-# 1.0. ebpf_stress_tests_km.exe (test sources in .\km\)
+# 1.0. net_ebpf_stress_tests_km.exe (test sources in .\km\)
 
 This test application provides tests that are meant to be run against the real (kernel mode) eBPF sub-system. This
 application assumes that the requisite kernel drivers (`ebpfcore.sys, netebpfext.sys`) are loaded and running.
@@ -33,10 +33,10 @@ This test can be run with or without the extension restart option. If `-tt` is n
 
 Sample command line invocations:
 
-### 1.1.1. `ebpf_stress_tests_km.exe sockaddr_invoke_program_test`
+### 1.1.1. `net_ebpf_stress_tests_km.exe sockaddr_invoke_program_test`
 - Uses default values for all supported options.
 
-### 1.1.2. `ebpf_stress_tests_km.exe -tt=32 -td=15 -vo=true -er=true -erd=250 sockaddr_invoke_program_test`
+### 1.1.2. `net_ebpf_stress_tests_km.exe -tt=32 -td=15 -vo=true -er=true -erd=250 sockaddr_invoke_program_test`
 - Creates 32 test threads.
 - Runs test for 15 minutes.
 - Verbose test trace output enabled.
@@ -52,10 +52,10 @@ This test can be run with or without the extension restart option. If `-tt` is n
 
 Sample command line invocations:
 
-### 1.2.1. `ebpf_stress_tests_km.exe bindmonitor_tail_call_invoke_program_test`
+### 1.2.1. `net_ebpf_stress_tests_km.exe bindmonitor_tail_call_invoke_program_test`
 - Uses default values for all supported options.
 
-### 1.2.2. `ebpf_stress_tests_km.exe -tt=32 -td=15 -vo=true -er=true -erd=250 bindmonitor_tail_call_invoke_program_test`
+### 1.2.2. `net_ebpf_stress_tests_km.exe -tt=32 -td=15 -vo=true -er=true -erd=250 bindmonitor_tail_call_invoke_program_test`
 - Creates 32 test threads.
 - Runs test for 15 minutes.
 - Verbose test trace output enabled.

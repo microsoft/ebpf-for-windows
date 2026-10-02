@@ -9,8 +9,6 @@
 #include "ebpf_structs.h"
 #include "misc_helper.h"
 #include "program_helper.h"
-#include "sample_ext_helper.h"
-#include "sample_ext_test_common.h"
 #include "service_helper.h"
 #include "socket_helper.h"
 #include "socket_tests_common.h"
@@ -22,11 +20,6 @@
 
 constexpr uint32_t DEFAULT_KM_NATIVE_MT_THREAD_COUNT = 32;
 constexpr uint32_t DEFAULT_KM_NATIVE_MT_DURATION_MINUTES = 10;
-
-// Note: The 'program' and 'execution' types are not required for km tests.
-static const std::map<std::string, test_program_attributes> _test_program_info = {
-    {{"cgroup_sock_addr"},
-     {{"cgroup_sock_addr.o"}, {"cgroup_sock_addr.sys"}, {"netebpfext"}, nullptr, BPF_PROG_TYPE_UNSPEC}}};
 
 // Structure to store bpf_object_ptr elements.  A fixed-size table of these entries is shared between the 'creator',
 // 'attacher' and the 'destroyer' threads.
@@ -70,20 +63,6 @@ struct thread_context
     bool succeeded{true};
 };
 
-// This call is called by the common test initialization code to get a list of programs supported by the user mode
-// or kernel mode test suites. (For example, some programs could be meant for kernel mode stress testing only.)
-const std::vector<std::string>
-query_supported_program_names()
-{
-    std::vector<std::string> program_names{};
-
-    for (const auto& program_info : _test_program_info) {
-        program_names.push_back(program_info.first);
-    }
-
-    return program_names;
-}
-
 // This function is called by the common test initialization code to perform the requisite clean-up as the last action
 // prior to process termination.
 void
@@ -99,26 +78,7 @@ static std::once_flag _km_test_init_done;
 static void
 _km_test_init()
 {
-    std::call_once(_km_test_init_done, [&]() {
-        _global_test_control_info = get_test_control_info();
-        if (_global_test_control_info.programs.size()) {
-
-            // Paranoia check - ensure that the program(s) we got back is/are indeed from our supported list.
-            for (const auto& program : _global_test_control_info.programs) {
-                if (std::find(
-                        _global_test_control_info.programs.begin(),
-                        _global_test_control_info.programs.end(),
-                        program) == _global_test_control_info.programs.end()) {
-                    LOG_ERROR("ERROR: Uexpected program: {}", program);
-                    REQUIRE(0);
-                }
-            }
-        } else {
-
-            // No programs specified on the command line, so use the preferred default.
-            _global_test_control_info.programs.push_back({"cgroup_sock_addr"});
-        }
-    });
+    std::call_once(_km_test_init_done, [&]() { _global_test_control_info = get_test_control_info(); });
 
     // Detach all programs.
     // Enumerate all link objects and detach them.
@@ -131,136 +91,6 @@ _km_test_init()
         bpf_link_detach(link_fd);
         _close(link_fd);
     }
-}
-
-static bool
-_query_service_state(_In_ SC_HANDLE service_handle, _Out_ SERVICE_STATUS_PROCESS& service_status_process)
-{
-    DWORD bytes_needed{};
-    if (!QueryServiceStatusEx(
-            service_handle,
-            SC_STATUS_PROCESS_INFO,
-            reinterpret_cast<LPBYTE>(&service_status_process),
-            sizeof(SERVICE_STATUS_PROCESS),
-            &bytes_needed)) {
-        LOG_ERROR("FATAL ERROR: QueryServiceStatusEx failed. Error: {}", GetLastError());
-        return false;
-    }
-    return true;
-}
-
-static bool
-_wait_for_service_state(
-    _In_ SC_HANDLE service_handle, const std::string& service_name, DWORD desired_state, uint32_t timeout_seconds)
-{
-    using steady_clock = std::chrono::steady_clock;
-    auto deadline = steady_clock::now() + std::chrono::seconds(timeout_seconds);
-    while (steady_clock::now() < deadline) {
-        SERVICE_STATUS_PROCESS service_status_process{};
-        if (!_query_service_state(service_handle, service_status_process)) {
-            return false;
-        }
-        if (service_status_process.dwCurrentState == desired_state) {
-            return true;
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    }
-
-    const char* desired_state_name = desired_state == SERVICE_RUNNING ? "RUNNING" : "STOPPED";
-    LOG_ERROR(
-        "FATAL ERROR: Timed out waiting for service {} to reach {} state.", service_name.c_str(), desired_state_name);
-    return false;
-}
-
-static bool
-_restart_extension(const std::string& extension_name, uint32_t timeout)
-{
-    bool status = false;
-    SC_HANDLE scm_handle = nullptr;
-    SC_HANDLE service_handle = nullptr;
-
-    if (extension_name.size() == 0) {
-        LOG_ERROR("FATAL ERROR: Extension name is empty.");
-        return false;
-    }
-
-    // Get a handle to the SCM database.
-    scm_handle = OpenSCManager(nullptr, nullptr, SC_MANAGER_CONNECT);
-    if (scm_handle == nullptr) {
-        LOG_ERROR("FATAL ERROR: OpenSCManager failed. Error: {}", GetLastError());
-        return false;
-    }
-
-    // Get a handle to the extension.
-    std::wstring ws_extension_name(extension_name.begin(), extension_name.end());
-    service_handle =
-        OpenService(scm_handle, ws_extension_name.c_str(), (SERVICE_STOP | SERVICE_START | SERVICE_QUERY_STATUS));
-    if (service_handle == nullptr) {
-        LOG_ERROR("FATAL ERROR: OpenService failed. Service:{}, Error: {}", extension_name, GetLastError());
-        goto exit;
-    }
-
-    // Stop phase.
-    {
-        SERVICE_STATUS_PROCESS service_status_process{};
-        if (!_query_service_state(service_handle, service_status_process)) {
-            goto exit;
-        }
-        if (service_status_process.dwCurrentState != SERVICE_STOPPED) {
-            if (service_status_process.dwCurrentState != SERVICE_STOP_PENDING) {
-                SERVICE_STATUS service_status{};
-                if (!ControlService(service_handle, SERVICE_CONTROL_STOP, &service_status)) {
-                    auto error = GetLastError();
-                    if (error != ERROR_SERVICE_NOT_ACTIVE) {
-                        LOG_ERROR("FATAL ERROR: ControlService(STOP) failed for {}. Error: {}", extension_name, error);
-                        goto exit;
-                    }
-                }
-            }
-            if (!_wait_for_service_state(service_handle, extension_name, SERVICE_STOPPED, timeout)) {
-                goto exit;
-            }
-        }
-    }
-
-    // Start phase.
-    {
-        SERVICE_STATUS_PROCESS service_status_process{};
-        if (!_query_service_state(service_handle, service_status_process)) {
-            goto exit;
-        }
-        if (service_status_process.dwCurrentState != SERVICE_RUNNING) {
-            if (service_status_process.dwCurrentState != SERVICE_START_PENDING) {
-                if (!StartService(service_handle, 0, nullptr)) {
-                    auto error = GetLastError();
-                    if (error != ERROR_SERVICE_ALREADY_RUNNING) {
-                        LOG_ERROR("FATAL ERROR: StartService failed for {}. Error: {}", extension_name, error);
-                        goto exit;
-                    }
-                }
-            }
-            if (!_wait_for_service_state(service_handle, extension_name, SERVICE_RUNNING, timeout)) {
-                goto exit;
-            }
-        }
-    }
-
-    status = true;
-
-exit:
-    if (!status) {
-        LOG_ERROR("FATAL ERROR: Failed to restart extension: {}", extension_name.c_str());
-    }
-
-    if (service_handle != nullptr) {
-        CloseServiceHandle(service_handle);
-    }
-
-    if (scm_handle != nullptr) {
-        CloseServiceHandle(scm_handle);
-    }
-
-    return status;
 }
 
 static std::thread
@@ -291,7 +121,7 @@ _start_extension_restart_thread(
                 // the final status. 10 (ten) seconds seems a reasonable time for this polling.
                 constexpr uint32_t RESTART_TIMEOUT_SECONDS = 10;
                 LOG_VERBOSE("Toggling extension state for {} extension...", extension_name);
-                if (!_restart_extension(extension_name, RESTART_TIMEOUT_SECONDS)) {
+                if (!restart_extension(extension_name, RESTART_TIMEOUT_SECONDS)) {
                     LOG_ERROR("FATAL ERROR: Failed to restart extension: {}", extension_name);
                     context.succeeded = false;
                 }
@@ -1024,126 +854,4 @@ TEST_CASE("bindmonitor_tail_call_invoke_program_test", "[native_mt_stress_test]"
 
     _print_test_control_info(local_test_control_info);
     _mt_bindmonitor_tail_call_invoke_program_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
-}
-
-TEST_CASE("sample_attach_invoke_detach_race_km", "[stress_km]")
-{
-    _km_test_init();
-    LOG_INFO("\nStarting test *** sample_attach_invoke_detach_race_km ***");
-
-    hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
-
-    bpf_object* object = nullptr;
-    bpf_program* program = nullptr;
-    fd_t program_fd = -1;
-    fd_t map_fd = -1;
-    REQUIRE(
-        sample_stress_load_program(
-            "test_sample_ebpf.sys", BPF_PROG_TYPE_SAMPLE, &object, &program, &program_fd, &map_fd) == 0);
-    (void)map_fd;
-
-    auto test_control = get_test_control_info();
-    uint32_t duration_minutes =
-        test_control.duration_minutes == 0 ? DEFAULT_DURATION_MINUTES : test_control.duration_minutes;
-    uint32_t invoke_thread_count =
-        test_control.threads_count == 0 ? default_km_invoke_thread_count() : test_control.threads_count;
-    uint32_t attach_detach_delay_ms =
-        test_control.attach_detach_delay_ms == 0 ? DEFAULT_ATTACH_DETACH_DELAY_MS : test_control.attach_detach_delay_ms;
-    bool extension_restart_enabled = test_control.extension_restart_enabled;
-    // For sample attach/invoke/detach race tests, the default restart period is 10x attach/detach delay.
-    uint32_t extension_restart_delay_ms = test_control.extension_restart_delay_ms == 0
-                                              ? (attach_detach_delay_ms * 10)
-                                              : test_control.extension_restart_delay_ms;
-    if (extension_restart_enabled &&
-        (static_cast<uint64_t>(extension_restart_delay_ms) < static_cast<uint64_t>(attach_detach_delay_ms) * 2)) {
-        LOG_ERROR(
-            "Invalid extension restart delay: {} ms. For race tests with -er, -erd must be at least 2x -ad ({} ms).",
-            extension_restart_delay_ms,
-            attach_detach_delay_ms);
-        REQUIRE(false);
-    }
-    std::vector<uint32_t> attach_data(invoke_thread_count);
-    for (uint32_t i = 0; i < invoke_thread_count; i++) {
-        attach_data[i] = i;
-        REQUIRE(hook.attach(program, &attach_data[i], sizeof(attach_data[i])) != nullptr);
-    }
-
-    std::atomic<uint32_t> next_worker_id{0};
-    std::atomic<uint64_t> detach_failure_count{0};
-    std::atomic<uint64_t> attach_failure_count{0};
-    std::atomic<uint64_t> invoke_failure_count{0};
-    std::atomic<uint64_t> initialize_failure_count{0};
-    auto invoke_routine = [&]() {
-        thread_local const uint32_t worker_id = next_worker_id.fetch_add(1);
-        // One per invoke thread: client used to issue invocation requests through the sample extension path.
-        thread_local _sample_extension_helper sample_extension_client(false);
-        thread_local const bool sample_extension_client_initialized = sample_extension_client.initialize();
-        thread_local bool sample_extension_client_init_failure_reported = false;
-        if (!sample_extension_client_initialized) {
-            if (!sample_extension_client_init_failure_reported) {
-                ++initialize_failure_count;
-                LOG_ERROR("Invoke thread {}: failed to open sample extension device handle.", worker_id);
-                sample_extension_client_init_failure_reported = true;
-            }
-            return;
-        }
-        thread_local std::vector<char> input_buffer = {'r', 'a', 'i', 'n', 'y'};
-        thread_local std::vector<char> output_buffer(256);
-        uint32_t attach_value = attach_data[worker_id % invoke_thread_count];
-        if (!sample_extension_client.try_invoke_by_attach_parameter(
-                &attach_value, sizeof(attach_value), input_buffer, output_buffer)) {
-            // During detach/attach churn, invoke can fail with ERROR_NOT_FOUND when no program matches attach data.
-            if (GetLastError() != ERROR_NOT_FOUND) {
-                ++invoke_failure_count;
-            }
-        }
-    };
-    auto detach_routine = [&](bool extension_restarting) {
-        for (uint32_t i = 0; i < invoke_thread_count; i++) {
-            if (hook.detach(program_fd, &attach_data[i], sizeof(attach_data[i])) != EBPF_SUCCESS) {
-                // During restart windows, attach/detach failures are expected and should not count as test failures.
-                if (!extension_restarting) {
-                    ++detach_failure_count;
-                }
-            }
-        }
-    };
-    auto attach_routine = [&](bool extension_restarting) {
-        for (uint32_t i = 0; i < invoke_thread_count; i++) {
-            if (hook.attach(program, &attach_data[i], sizeof(attach_data[i])) == nullptr) {
-                // During restart windows, attach/detach failures are expected and should not count as test failures.
-                if (!extension_restarting) {
-                    ++attach_failure_count;
-                }
-            }
-        }
-    };
-    auto extension_restart_routine = [&]() -> bool {
-        constexpr uint32_t RESTART_TIMEOUT_SECONDS = 10;
-        return _restart_extension("SampleEbpfExt", RESTART_TIMEOUT_SECONDS);
-    };
-
-    REQUIRE(run_attach_invoke_detach_race(
-        invoke_routine,
-        detach_routine,
-        attach_routine,
-        duration_minutes,
-        invoke_thread_count,
-        attach_detach_delay_ms,
-        extension_restart_enabled,
-        extension_restart_delay_ms,
-        extension_restart_routine));
-    LOG_INFO(
-        "Race attach/detach/invoke failures: detach_failures={}, attach_failures={}, invoke_failures={}, "
-        "initialize_failures={}",
-        detach_failure_count.load(),
-        attach_failure_count.load(),
-        invoke_failure_count.load(),
-        initialize_failure_count.load());
-    REQUIRE(initialize_failure_count.load() == 0);
-
-    for (uint32_t i = 0; i < invoke_thread_count; i++) {
-        (void)hook.detach(program_fd, &attach_data[i], sizeof(attach_data[i]));
-    }
-    sample_stress_close_program(object);
 }

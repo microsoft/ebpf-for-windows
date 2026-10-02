@@ -65,6 +65,8 @@ $RequiredFiles = [ordered]@{
     # run_driver_tests.psm1: Invoke-CICDTests / Invoke-CICDStressTests
     "api_test.exe"                     = "tests\api_test\api_test.vcxproj"
     # run_driver_tests.psm1: Invoke-CICDTests
+    "netebpfext_load_test.exe"         = "tests\netebpfext_load_test\netebpfext_load_test.vcxproj"
+    # run_driver_tests.psm1: Invoke-CICDTests
     "bpftool_tests.exe"                = "tests\bpftool_tests\bpftool_tests.vcxproj"
     # run_driver_tests.psm1: Invoke-ConnectRedirectTest
     "connect_redirect_tests.exe"       = "tests\connect_redirect\connect_redirect_tests.vcxproj"
@@ -76,6 +78,8 @@ $RequiredFiles = [ordered]@{
     "ebpf_restart_test_helper.exe"     = "tests\stress\restart_test_helper\ebpf_restart_test_helper.vcxproj"
     # run_driver_tests.psm1: Invoke-CICDStressTests
     "ebpf_stress_tests_km.exe"         = "tests\stress\km\ebpf_stress_tests_km.vcxproj"
+    # run_driver_tests.psm1: Invoke-CICDStressTests
+    "net_ebpf_stress_tests_km.exe"     = "tests\stress\km\net_ebpf_stress_tests_km.vcxproj"
     # install_ebpf.psm1: Install-eBPFComponents
     "export_program_info_sample.exe"   = "undocked\tools\export_program_info_sample\export_program_info_sample.vcxproj"
     # run_driver_tests.psm1: Invoke-CICDTests

@@ -2313,23 +2313,19 @@ _printk_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
-    program_info_provider_t bind_program_info;
-    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
-    uint32_t ifindex = 0;
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "printk_um.dll" : "printk.o");
     program_load_attach_helper_t program_helper;
-    program_helper.initialize(file_name, BPF_PROG_TYPE_BIND, "func", execution_type, &ifindex, sizeof(ifindex), hook);
+    program_helper.initialize(file_name, BPF_PROG_TYPE_SAMPLE, "func", execution_type, nullptr, 0, hook);
 
-    // The current bind hook only works with IPv4, so compose a sample IPv4 context.
-    SOCKADDR_IN addr = {AF_INET};
-    addr.sin_port = htons(80);
-    INITIALIZE_BIND_CONTEXT
-    ctx->process_id = GetCurrentProcessId();
-    ctx->protocol = 2;
-    ctx->socket_address_length = sizeof(addr);
-    memcpy(&ctx->socket_address, &addr, ctx->socket_address_length);
+    INITIALIZE_SAMPLE_CONTEXT
+    ctx->uint32_data = 123;
+    ctx->uint16_data = 45;
+    ctx->helper_data_1 = 678;
+    ctx->helper_data_2 = GetCurrentProcessId();
 
     capture_helper_t capture;
     std::vector<std::string> output;
@@ -2344,14 +2340,16 @@ _printk_test(ebpf_execution_type_t execution_type)
         output = capture.buffer_to_printk_vector(capture.get_stdout_contents());
         REQUIRE(hook_fire_result == EBPF_SUCCESS);
     }
+    std::string pid = std::to_string(ctx->helper_data_2);
     std::vector<std::string> expected_output = {
         "Hello, world",
         "Hello, world",
-        "PID: " + std::to_string(ctx->process_id) + " using %u",
-        "PID: " + std::to_string(ctx->process_id) + " using %lu",
-        "PID: " + std::to_string(ctx->process_id) + " using %llu",
-        "PID: " + std::to_string(ctx->process_id) + " PROTO: 2",
-        "PID: " + std::to_string(ctx->process_id) + " PROTO: 2 ADDRLEN: 16",
+        "PID: " + pid + " using %u",
+        "PID: " + pid + " using %lu",
+        "PID: " + pid + " using %llu",
+        "DATA: " + std::to_string(ctx->uint32_data) + " VALUE: " + std::to_string(ctx->uint16_data),
+        "DATA: " + std::to_string(ctx->uint32_data) + " VALUE: " + std::to_string(ctx->uint16_data) +
+            " HELPER: " + std::to_string(ctx->helper_data_1),
         "100% done"};
     REQUIRE(output.size() == expected_output.size());
     size_t output_length = 0;
@@ -3613,10 +3611,10 @@ TEST_CASE("close_unload_test", "[close_cleanup]")
     bpf_link_ptr link;
     fd_t program_fd;
 
-    program_info_provider_t bind_program_info;
-    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
-    const char* file_name = "bindmonitor_tailcall_um.dll";
+    const char* file_name = "tail_call_multiple_um.dll";
     result = ebpf_program_load(
         file_name, BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, &unique_object, &program_fd, &error_message);
 
@@ -3627,17 +3625,17 @@ TEST_CASE("close_unload_test", "[close_cleanup]")
     REQUIRE(result == 0);
 
     // Set up tail calls.
-    struct bpf_program* callee0 = bpf_object__find_program_by_name(unique_object.get(), "BindMonitor_Callee0");
+    struct bpf_program* callee0 = bpf_object__find_program_by_name(unique_object.get(), "callee0");
     REQUIRE(callee0 != nullptr);
     fd_t callee0_fd = bpf_program__fd(callee0);
     REQUIRE(callee0_fd > 0);
 
-    struct bpf_program* callee1 = bpf_object__find_program_by_name(unique_object.get(), "BindMonitor_Callee1");
+    struct bpf_program* callee1 = bpf_object__find_program_by_name(unique_object.get(), "callee1");
     REQUIRE(callee1 != nullptr);
     fd_t callee1_fd = bpf_program__fd(callee1);
     REQUIRE(callee1_fd > 0);
 
-    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "prog_array_map");
+    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "map");
     REQUIRE(prog_map_fd > 0);
 
     uint32_t index = 0;
@@ -3645,7 +3643,7 @@ TEST_CASE("close_unload_test", "[close_cleanup]")
     index = 1;
     REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
 
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
     uint32_t ifindex = 0;
     REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
@@ -3694,10 +3692,10 @@ TEST_CASE("multiple_map_insert", "[close_cleanup]")
     bpf_link_ptr link;
     fd_t program_fd;
 
-    program_info_provider_t bind_program_info;
-    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
-    const char* file_name = "bindmonitor_tailcall_um.dll";
+    const char* file_name = "tail_call_multiple_um.dll";
     result = ebpf_program_load(
         file_name, BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, &unique_object, &program_fd, &error_message);
 
@@ -3708,17 +3706,17 @@ TEST_CASE("multiple_map_insert", "[close_cleanup]")
     REQUIRE(result == 0);
 
     // Set up tail calls.
-    struct bpf_program* callee0 = bpf_object__find_program_by_name(unique_object.get(), "BindMonitor_Callee0");
+    struct bpf_program* callee0 = bpf_object__find_program_by_name(unique_object.get(), "callee0");
     REQUIRE(callee0 != nullptr);
     fd_t callee0_fd = bpf_program__fd(callee0);
     REQUIRE(callee0_fd > 0);
 
-    struct bpf_program* callee1 = bpf_object__find_program_by_name(unique_object.get(), "BindMonitor_Callee1");
+    struct bpf_program* callee1 = bpf_object__find_program_by_name(unique_object.get(), "callee1");
     REQUIRE(callee1 != nullptr);
     fd_t callee1_fd = bpf_program__fd(callee1);
     REQUIRE(callee1_fd > 0);
 
-    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "prog_array_map");
+    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "map");
     REQUIRE(prog_map_fd > 0);
 
     uint32_t index = 0;
@@ -3737,7 +3735,7 @@ TEST_CASE("multiple_map_insert", "[close_cleanup]")
     index = 7;
     REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
 
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
     uint32_t ifindex = 0;
     REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
@@ -4386,11 +4384,11 @@ _test_prog_array_map_user_reference(ebpf_execution_type_t execution_type)
     bpf_link_ptr link;
     fd_t program_fd;
 
-    program_info_provider_t bind_program_info;
-    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
     const char* file_name =
-        (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_tailcall_um.dll" : "bindmonitor_tailcall.o");
+        (execution_type == EBPF_EXECUTION_NATIVE ? "tail_call_multiple_um.dll" : "tail_call_multiple.o");
     result =
         ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
 
@@ -4406,13 +4404,13 @@ _test_prog_array_map_user_reference(ebpf_execution_type_t execution_type)
     REQUIRE(prog_array_map_fd > 0);
 
     // Get FDs for the three programs.
-    fd_t program0_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "BindMonitor"));
+    fd_t program0_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "caller"));
     REQUIRE(program0_fd > 0);
 
-    fd_t program1_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "BindMonitor_Callee0"));
+    fd_t program1_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "callee0"));
     REQUIRE(program1_fd > 0);
 
-    fd_t program2_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "BindMonitor_Callee1"));
+    fd_t program2_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "callee1"));
     REQUIRE(program2_fd > 0);
 
     // Insert the program FDs into the prog_array_map.

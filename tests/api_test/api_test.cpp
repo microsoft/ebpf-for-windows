@@ -263,20 +263,6 @@ DECLARE_LOAD_TEST_CASE(
     "test_sample_redirect_map.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_INTERPRET, INTERPRET_LOAD_RESULT);
 DECLARE_LOAD_TEST_CASE("test_sample_redirect_map.sys", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, 0);
 
-// Load bindmonitor (JIT) without providing expected program type.
-DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_JIT, JIT_LOAD_RESULT);
-
-// Load bindmonitor (INTERPRET) without providing expected program type.
-DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_INTERPRET, INTERPRET_LOAD_RESULT);
-DECLARE_LOAD_TEST_CASE("bindmonitor.sys", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, 0);
-
-// Load bindmonitor with providing expected program type.
-DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_JIT, JIT_LOAD_RESULT);
-DECLARE_LOAD_TEST_CASE("bindmonitor.sys", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, 0);
-
-// Try to load bindmonitor with providing wrong program type.
-DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_ANY, get_expected_jit_result(-EACCES));
-
 // Try to load an unsafe program.
 DECLARE_LOAD_TEST_CASE("printk_unsafe.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_ANY, get_expected_jit_result(-EACCES));
 
@@ -299,7 +285,8 @@ TEST_CASE("test_ebpf_multiple_programs_load_interpret")
 TEST_CASE("test_ebpf_multiple_programs_load_native")
 {
     struct _ebpf_program_load_test_parameters test_parameters[] = {
-        {"test_sample_ebpf.sys", BPF_PROG_TYPE_SAMPLE}, {"bindmonitor.sys", BPF_PROG_TYPE_BIND}};
+        {"multiple_programs.sys", BPF_PROG_TYPE_UNSPEC}, {"pidtgid_sample.sys", BPF_PROG_TYPE_UNSPEC}};
+
     _test_multiple_programs_load(_countof(test_parameters), test_parameters, EBPF_EXECUTION_NATIVE, 0);
 }
 
@@ -1104,21 +1091,6 @@ TEST_CASE("bindmonitor_tailcall_native_test", "[native_tests]")
 }
 
 void
-bind_tailcall_test(_In_ struct bpf_object* object)
-{
-    UNREFERENCED_PARAMETER(object);
-    WSAData data;
-    SOCKET sockets[2];
-    REQUIRE(WSAStartup(2, &data) == 0);
-
-    // Now, trigger bind. bind should not succeed.
-    REQUIRE(perform_bind(&sockets[0], 30000) != 0);
-    REQUIRE(perform_bind(&sockets[1], 30001) != 0);
-
-    WSACleanup();
-}
-
-void
 send_traffic(IPPROTO protocol, bool is_ipv6)
 {
     const char* message = CLIENT_MESSAGE;
@@ -1348,29 +1320,31 @@ run_thread_start_time_test(IPPROTO protocol, bool is_ipv6)
 
 #define MAX_TAIL_CALL_PROGS MAX_TAIL_CALL_CNT + 2
 
-TEST_CASE("bind_tailcall_max_native_test", "[native_tests]")
+TEST_CASE("sample_tailcall_max_native_test", "[native_tests]")
 {
-    struct bpf_object* object = nullptr;
-    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    native_module_helper_t native_helper;
+    native_helper.initialize("tail_call_max_exceed", EBPF_EXECUTION_NATIVE);
 
-    program_load_attach_helper_t _helper;
-    native_module_helper_t _native_helper;
-    _native_helper.initialize("tail_call_max_exceed", EBPF_EXECUTION_NATIVE);
-    _helper.initialize(
-        _native_helper.get_file_name().c_str(),
-        BPF_PROG_TYPE_BIND,
-        "bind_test_caller",
-        EBPF_EXECUTION_NATIVE,
-        nullptr,
-        0,
-        hook);
-    object = _helper.get_object();
+    struct bpf_object* object = nullptr;
+    fd_t program_fd = ebpf_fd_invalid;
+    REQUIRE(
+        program_load_helper(
+            native_helper.get_file_name().c_str(),
+            BPF_PROG_TYPE_SAMPLE,
+            EBPF_EXECUTION_NATIVE,
+            &object,
+            &program_fd,
+            false) ==
+        0);
+    bpf_object_ptr object_ptr(object);
 
     fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "bind_tail_call_map");
     REQUIRE(prog_map_fd > 0);
 
     struct bpf_program* caller = bpf_object__find_program_by_name(object, "bind_test_caller");
     REQUIRE(caller != nullptr);
+    program_fd = bpf_program__fd(caller);
+    REQUIRE(program_fd > 0);
 
     // Check each tail call program in the map.
     for (int i = 0; i < MAX_TAIL_CALL_PROGS; i++) {
@@ -1381,8 +1355,18 @@ TEST_CASE("bind_tailcall_max_native_test", "[native_tests]")
         REQUIRE(program != nullptr);
     }
 
-    // Perform bind test.
-    bind_tailcall_test(object);
+    sample_program_context_t context{};
+    bpf_test_run_opts opts{};
+    opts.sz = sizeof(opts);
+    opts.ctx_in = &context;
+    opts.ctx_size_in = sizeof(context);
+    opts.ctx_out = &context;
+    opts.ctx_size_out = sizeof(context);
+    opts.repeat = 1;
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+
+    // The final callee returns 1; 2 proves execution stopped at the tail call limit.
+    REQUIRE(opts.retval == 2);
 
     // Clean up tail calls.
     for (int index = 0; index < MAX_TAIL_CALL_PROGS; index++) {
@@ -1425,63 +1409,6 @@ TEST_CASE("bpf_get_current_pid_tgid_sample", "[helpers]")
     REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
 
     REQUIRE(read_pid_tgid(object) == SAMPLE_EXT_PID_TGID);
-}
-
-TEST_CASE("bpf_get_current_pid_tgid_sock_addr", "[helpers]")
-{
-    native_module_helper_t native_helper;
-    native_helper.initialize("pidtgid_netebpf", EBPF_EXECUTION_NATIVE);
-
-    hook_helper_t hook(EBPF_ATTACH_TYPE_CGROUP_INET4_BIND);
-    program_load_attach_helper_t helper;
-    uint32_t compartment_id = 0;
-    helper.initialize(
-        native_helper.get_file_name().c_str(),
-        BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
-        "sock_addr_program",
-        EBPF_EXECUTION_NATIVE,
-        &compartment_id,
-        sizeof(compartment_id),
-        hook);
-
-    wsa_helper_t wsa_helper;
-    REQUIRE(wsa_helper.initialize() == 0);
-    datagram_client_socket_t bound_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT, IPv4);
-
-    uint64_t pid_tgid = read_pid_tgid(helper.get_object());
-    REQUIRE(static_cast<uint32_t>(pid_tgid >> 32) == GetCurrentProcessId());
-    REQUIRE(static_cast<uint32_t>(pid_tgid) == GetCurrentThreadId());
-}
-
-TEST_CASE("bpf_get_current_pid_tgid_sock_ops", "[helpers]")
-{
-    native_module_helper_t native_helper;
-    native_helper.initialize("pidtgid_netebpf", EBPF_EXECUTION_NATIVE);
-
-    hook_helper_t hook(EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS);
-    program_load_attach_helper_t helper;
-    uint32_t compartment_id = 0;
-    helper.initialize(
-        native_helper.get_file_name().c_str(),
-        BPF_PROG_TYPE_SOCK_OPS,
-        "sock_ops_program",
-        EBPF_EXECUTION_NATIVE,
-        &compartment_id,
-        sizeof(compartment_id),
-        hook);
-
-    wsa_helper_t wsa_helper;
-    REQUIRE(wsa_helper.initialize() == 0);
-    datagram_server_socket_t server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
-    datagram_client_socket_t client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
-    sockaddr_storage destination_address{};
-    IN6ADDR_SETV4MAPPED(
-        reinterpret_cast<PSOCKADDR_IN6>(&destination_address), &in4addr_loopback, scopeid_unspecified, 0);
-    client_socket.send_message_to_remote_host(CLIENT_MESSAGE, destination_address, SOCKET_TEST_PORT);
-
-    uint64_t pid_tgid = read_pid_tgid(helper.get_object());
-    REQUIRE(static_cast<uint32_t>(pid_tgid >> 32) == GetCurrentProcessId());
-    REQUIRE(static_cast<uint32_t>(pid_tgid) != 0);
 }
 
 TEST_CASE("bpf_get_process_start_key_udp_ipv4", "[helpers]") { run_process_start_key_test(IPPROTO_UDP, false); }
@@ -1558,12 +1485,12 @@ TEST_CASE("nomap_load_test", "[native_tests]")
 {
     // This test case tests loading of native ebpf programs that do not contain/refer-to any map.
     // This test should succeed as this is a valid use case.
-    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
     program_load_attach_helper_t _helper;
     native_module_helper_t _native_helper;
     _native_helper.initialize("printk", EBPF_EXECUTION_NATIVE);
     _helper.initialize(
-        _native_helper.get_file_name().c_str(), BPF_PROG_TYPE_BIND, "func", EBPF_EXECUTION_NATIVE, nullptr, 0, hook);
+        _native_helper.get_file_name().c_str(), BPF_PROG_TYPE_SAMPLE, "func", EBPF_EXECUTION_NATIVE, nullptr, 0, hook);
     auto object = _helper.get_object();
     REQUIRE(object != nullptr);
 }
@@ -3160,7 +3087,7 @@ TEST_CASE("Test program order", "[native_tests]")
     // we can validate that the correct / expected program was invoked by checking the return value.
     for (uint32_t i = 0; i < program_count; i++) {
         bpf_test_run_opts opts = {};
-        bind_md_t ctx = {};
+        sample_program_context_t ctx = {};
         std::string program_name = "program" + std::to_string(i + 1);
         struct bpf_program* program = bpf_object__find_program_by_name(object, program_name.c_str());
         REQUIRE(program != nullptr);
@@ -3375,69 +3302,6 @@ TEST_CASE("prog_array_map_user_reference-jit", "[user_reference]")
 TEST_CASE("prog_array_map_user_reference-native", "[user_reference]")
 {
     _test_prog_array_map_user_reference(EBPF_EXECUTION_NATIVE);
-}
-
-TEST_CASE("native_load_retry_after_insufficient_buffers", "[native_tests]")
-{
-    native_module_helper_t native_helper;
-    native_helper.initialize("bindmonitor", EBPF_EXECUTION_NATIVE);
-
-    std::vector<fd_t> map_fds(3, ebpf_fd_invalid);
-    std::vector<fd_t> program_fds(1, ebpf_fd_invalid);
-    size_t count_of_maps = 0;
-    size_t count_of_programs = 0;
-
-    ebpf_result_t result = ebpf_object_load_native_by_fds(
-        native_helper.get_file_name().c_str(), &count_of_maps, nullptr, &count_of_programs, nullptr);
-
-    REQUIRE(result == EBPF_NO_MEMORY);
-    REQUIRE(count_of_maps == map_fds.size());
-    REQUIRE(count_of_programs == program_fds.size());
-
-    result = ebpf_object_load_native_by_fds(
-        native_helper.get_file_name().c_str(), &count_of_maps, map_fds.data(), &count_of_programs, program_fds.data());
-
-    REQUIRE(result == EBPF_SUCCESS);
-    REQUIRE(count_of_maps == map_fds.size());
-    REQUIRE(count_of_programs == program_fds.size());
-
-    for (auto fd : map_fds) {
-        REQUIRE(fd != ebpf_fd_invalid);
-        _close(fd);
-    }
-    for (auto fd : program_fds) {
-        REQUIRE(fd != ebpf_fd_invalid);
-        _close(fd);
-    }
-}
-
-TEST_CASE("load_all_sample_programs", "[native_tests]")
-{
-    struct _ebpf_program_load_test_parameters test_parameters[] = {
-        {"bindmonitor.sys", BPF_PROG_TYPE_UNSPEC},
-        {"bindmonitor_bpf2bpf.sys", BPF_PROG_TYPE_UNSPEC},
-        {"bindmonitor_mt_tailcall.sys", BPF_PROG_TYPE_UNSPEC},
-        {"bindmonitor_perf_event_array.sys", BPF_PROG_TYPE_UNSPEC},
-        {"bindmonitor_ringbuf.sys", BPF_PROG_TYPE_UNSPEC},
-        {"bindmonitor_tailcall.sys", BPF_PROG_TYPE_UNSPEC},
-        {"cgroup_count_connect4.sys", BPF_PROG_TYPE_UNSPEC},
-        {"cgroup_count_connect6.sys", BPF_PROG_TYPE_UNSPEC},
-        {"cgroup_mt_connect4.sys", BPF_PROG_TYPE_UNSPEC},
-        {"cgroup_mt_connect6.sys", BPF_PROG_TYPE_UNSPEC},
-        {"cgroup_sock_addr.sys", BPF_PROG_TYPE_UNSPEC},
-        {"cgroup_sock_addr2.sys", BPF_PROG_TYPE_UNSPEC},
-        {"multiple_programs.sys", BPF_PROG_TYPE_UNSPEC},
-        {"pidtgid.sys", BPF_PROG_TYPE_UNSPEC},
-        {"printk.sys", BPF_PROG_TYPE_UNSPEC},
-        {"printk_legacy.sys", BPF_PROG_TYPE_UNSPEC},
-        {"process_start_key.sys", BPF_PROG_TYPE_UNSPEC},
-        {"sockops.sys", BPF_PROG_TYPE_UNSPEC},
-        {"strings.sys", BPF_PROG_TYPE_UNSPEC},
-        {"tail_call_max_exceed.sys", BPF_PROG_TYPE_UNSPEC},
-        {"thread_start_time.sys", BPF_PROG_TYPE_UNSPEC},
-        {"utility.sys", BPF_PROG_TYPE_UNSPEC}};
-
-    _test_multiple_programs_load(_countof(test_parameters), test_parameters, EBPF_EXECUTION_NATIVE, 0);
 }
 
 // Test eBPF string and type conversion APIs.
@@ -4079,6 +3943,42 @@ TEST_CASE("ebpf_object_load_native_api", "[ebpf_api]")
     REQUIRE(program_fds[0] > 0);
     _close(map_fds[0]);
     _close(program_fds[0]);
+}
+
+TEST_CASE("native_load_retry_after_insufficient_buffers", "[ebpf_api]")
+{
+    // Use a uniquely named copy of the file so this test's own two loads (and any other
+    // test's) never race the same native driver image path during asynchronous unload.
+    native_module_helper_t native_helper;
+    native_helper.initialize("test_sample_ebpf", EBPF_EXECUTION_NATIVE);
+    std::string file_name = native_helper.get_file_name();
+
+    size_t count_of_maps = 0;
+    size_t count_of_programs = 0;
+
+    ebpf_result_t result = ebpf_object_load_native_by_fds(
+        file_name.c_str(), &count_of_maps, nullptr, &count_of_programs, nullptr);
+
+    REQUIRE(result == EBPF_NO_MEMORY);
+
+    std::vector<fd_t> map_fds(count_of_maps, ebpf_fd_invalid);
+    std::vector<fd_t> program_fds(count_of_programs, ebpf_fd_invalid);
+
+    result = ebpf_object_load_native_by_fds(
+        file_name.c_str(), &count_of_maps, map_fds.data(), &count_of_programs, program_fds.data());
+
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(count_of_maps == map_fds.size());
+    REQUIRE(count_of_programs == program_fds.size());
+
+    for (auto fd : map_fds) {
+        REQUIRE(fd != ebpf_fd_invalid);
+        _close(fd);
+    }
+    for (auto fd : program_fds) {
+        REQUIRE(fd != ebpf_fd_invalid);
+        _close(fd);
+    }
 }
 
 // Test eBPF program info from verifier API.
