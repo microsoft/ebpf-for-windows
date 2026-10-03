@@ -89,10 +89,6 @@ function Invoke-MSBuild {
 
 # Define the commands to run
 $cmakeCommonArgs = "-G `"$cmakeGenerator`" -A $Architecture"
-# Restore the solution with the selected MSBuild so PackageReference projects (e.g. usersim's
-# cxplat_winkernel) resolve their WDK version against the intended Visual Studio version. Without
-# -MSBuildPath, nuget auto-detects the latest installed MSBuild, which can pin a different toolset's
-# WDK than the one we build with.
 $msbuildDir = if ($msbuildPath -and (Test-Path $msbuildPath)) { Split-Path -Parent $msbuildPath } else { $null }
 $nugetRestoreCommand = if ($msbuildDir) {
     "nuget restore ebpf-for-windows.sln -MSBuildPath `"$msbuildDir`""
@@ -105,7 +101,9 @@ $commands = @(
     "cmake $cmakeCommonArgs -S external\catch2 -B external\catch2\build -DBUILD_TESTING=OFF -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>$<$<CONFIG:FuzzerDebug>:Debug>",
     "cmake $cmakeCommonArgs -S external\ubpf -B external\ubpf\build -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>$<$<CONFIG:FuzzerDebug>:Debug>",
     "cmake $cmakeCommonArgs -S external\ubpf -B external\ubpf\build_fuzzer -DUBPF_ENABLE_LIBFUZZER=on",
-    $nugetRestoreCommand
+    # The legacy WiX project cannot be evaluated until its packages.config dependency exists.
+    # Restore it first so the subsequent solution restore can evaluate every PackageReference project.
+    "nuget restore installer\packages.config -PackagesDirectory packages"
 )
 
 # When switching between Visual Studio versions, an existing CMake build directory configured with a
@@ -137,8 +135,18 @@ foreach ($command in $commands) {
 }
 
 # Run msbuild restore commands using the call operator to avoid '/' parsing issues.
-Invoke-MSBuild -Arguments "/t:restore", "libs\elf_spec\elf_spec.vcxproj", "/p:Platform=$Architecture"
-Invoke-MSBuild -Arguments "/t:restore", "libs\ioctl_spec\ioctl_spec.vcxproj", "/p:Platform=$Architecture"
+$previousWdkTargetPlatform = $env:_EbpfWdkTargetPlatform
+try {
+    $env:_EbpfWdkTargetPlatform = $Architecture
+    Invoke-NativeCommand -Command $nugetRestoreCommand
+}
+finally {
+    if ($null -eq $previousWdkTargetPlatform) {
+        Remove-Item Env:_EbpfWdkTargetPlatform -ErrorAction SilentlyContinue
+    } else {
+        $env:_EbpfWdkTargetPlatform = $previousWdkTargetPlatform
+    }
+}
 Invoke-MSBuild -Arguments "/t:restore", "external\usersim\src\usersim.vcxproj", "/p:Platform=$Architecture"
 Invoke-MSBuild -Arguments "/t:restore", "external\usersim\usersim_dll_skeleton\usersim_dll_skeleton.vcxproj", "/p:Platform=$Architecture"
 Invoke-MSBuild -Arguments "/t:restore", "external\usersim\cxplat\src\cxplat_winkernel\cxplat_winkernel.vcxproj", "/p:Platform=$Architecture"

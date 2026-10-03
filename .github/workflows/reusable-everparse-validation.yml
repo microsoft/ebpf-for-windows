@@ -53,12 +53,22 @@ jobs:
           path: ${{ runner.temp }}\nuget-packages\everparse
           key: ${{ runner.os }}-nuget-everparse-${{ hashFiles('libs/everparse.props') }}
 
-      - name: Cache nuget packages
+      - name: Cache WDK packages
+        continue-on-error: true
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306
+        with:
+          path: |
+            ${{ runner.temp }}\nuget-packages\microsoft.windows.sdk.cpp
+            ${{ runner.temp }}\nuget-packages\microsoft.windows.sdk.cpp.x64
+            ${{ runner.temp }}\nuget-packages\microsoft.windows.wdk.x64
+          key: ${{ runner.os }}-nuget-wdk-${{ runner.arch }}-x64-vs18-${{ hashFiles('wdk.props', 'Directory.Build.targets', 'external/usersim/wdk.props', 'external/ebpf-extension-common/Directory.Build.targets', 'tools/bpf2c/templates/*.vcxproj') }}
+
+      - name: Cache legacy NuGet packages
         continue-on-error: true
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306
         with:
           path: packages
-          key: ${{ runner.os }}-everparse-validation-${{ hashFiles('**/packages.config') }}
+          key: ${{ runner.os }}-nuget-v2-${{ hashFiles('installer/packages.config') }}
 
       - name: Validate EverParse generated artifacts
         id: validate
