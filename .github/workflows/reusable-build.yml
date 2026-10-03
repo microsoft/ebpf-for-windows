@@ -78,6 +78,9 @@ permissions:
 
 jobs:
   build:
+    permissions:
+      contents: read
+      security-events: write
     outputs:
       should_skip: ${{ steps.skip_check.outputs.should_skip }}
       skipped_by: ${{ steps.skip_check.outputs.skipped_by }}
