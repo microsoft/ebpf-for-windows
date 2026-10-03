@@ -37,6 +37,15 @@ An **command line install/uninstall** is also supported, through the direct use 
     ADDLOCAL=eBPF_Runtime_Components,eBPF_Runtime_Components_JIT
     ```
 
+* The installer stops if an `eBPFCore` service is already registered. To replace existing eBPF services, pass
+  `FORCE=1`. This stops `NetEbpfExt`, `eBPFSvc`, and `eBPFCore`, then points
+  the driver services at the drivers installed under `INSTALLFOLDER`. The installation fails if a service cannot
+  be stopped.
+
+    ```bash
+    C:\Windows\system32\msiexec.exe /i eBPF-for-Windows.x.x.x.msi FORCE=1
+    ```
+
 Below are some examples of CLI installations/uninstallation, using "`C:\Program Files\ebpf-for-windows`" as the installation folder:
 
 * Installation:
