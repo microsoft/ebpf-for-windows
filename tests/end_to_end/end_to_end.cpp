@@ -2275,17 +2275,55 @@ TEST_CASE("array_map_invalid_key_size", "[end_to_end]")
     map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "bad_array_8", 8, sizeof(uint32_t), 4, nullptr);
     REQUIRE(map_fd < 0);
 
-    // Verify the same for PERCPU_ARRAY.
+    // Verify the same for PERCPU_ARRAY, for key sizes 1, 2, 3, and 8.
     map_fd = bpf_map_create(BPF_MAP_TYPE_PERCPU_ARRAY, "bad_percpu_1", 1, sizeof(uint32_t), 4, nullptr);
     REQUIRE(map_fd < 0);
 
-    // Verify the same for PROG_ARRAY.
+    map_fd = bpf_map_create(BPF_MAP_TYPE_PERCPU_ARRAY, "bad_percpu_2", 2, sizeof(uint32_t), 4, nullptr);
+    REQUIRE(map_fd < 0);
+
+    map_fd = bpf_map_create(BPF_MAP_TYPE_PERCPU_ARRAY, "bad_percpu_3", 3, sizeof(uint32_t), 4, nullptr);
+    REQUIRE(map_fd < 0);
+
+    map_fd = bpf_map_create(BPF_MAP_TYPE_PERCPU_ARRAY, "bad_percpu_8", 8, sizeof(uint32_t), 4, nullptr);
+    REQUIRE(map_fd < 0);
+
+    // Verify the same for PROG_ARRAY, for key sizes 1, 2, 3, and 8.
     map_fd = bpf_map_create(BPF_MAP_TYPE_PROG_ARRAY, "bad_prog_1", 1, sizeof(fd_t), 4, nullptr);
     REQUIRE(map_fd < 0);
 
+    map_fd = bpf_map_create(BPF_MAP_TYPE_PROG_ARRAY, "bad_prog_2", 2, sizeof(fd_t), 4, nullptr);
+    REQUIRE(map_fd < 0);
+
+    map_fd = bpf_map_create(BPF_MAP_TYPE_PROG_ARRAY, "bad_prog_3", 3, sizeof(fd_t), 4, nullptr);
+    REQUIRE(map_fd < 0);
+
+    map_fd = bpf_map_create(BPF_MAP_TYPE_PROG_ARRAY, "bad_prog_8", 8, sizeof(fd_t), 4, nullptr);
+    REQUIRE(map_fd < 0);
+
+    // Verify the same for ARRAY_OF_MAPS, for key sizes 1, 2, 3, and 8, using a valid inner map template.
+    fd_t inner_map_template_fd =
+        bpf_map_create(BPF_MAP_TYPE_ARRAY, "inner_map_template", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(inner_map_template_fd >= 0);
+    bpf_map_create_opts array_of_maps_opts = {.inner_map_fd = (uint32_t)inner_map_template_fd};
+
+    map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY_OF_MAPS, "bad_aom_1", 1, sizeof(uint32_t), 4, &array_of_maps_opts);
+    REQUIRE(map_fd < 0);
+
+    map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY_OF_MAPS, "bad_aom_2", 2, sizeof(uint32_t), 4, &array_of_maps_opts);
+    REQUIRE(map_fd < 0);
+
+    map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY_OF_MAPS, "bad_aom_3", 3, sizeof(uint32_t), 4, &array_of_maps_opts);
+    REQUIRE(map_fd < 0);
+
+    map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY_OF_MAPS, "bad_aom_8", 8, sizeof(uint32_t), 4, &array_of_maps_opts);
+    REQUIRE(map_fd < 0);
+
+    Platform::_close(inner_map_template_fd);
+
     // Verify key_size == 4 (valid) still works for all array types.
     map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "good_array", sizeof(uint32_t), sizeof(uint32_t), 4, nullptr);
-    REQUIRE(map_fd > 0);
+    REQUIRE(map_fd >= 0);
 
     // Verify next_key works correctly on a valid array map.
     uint32_t next_key = 0;
@@ -2299,7 +2337,7 @@ TEST_CASE("array_map_invalid_key_size", "[end_to_end]")
     Platform::_close(map_fd);
 
     map_fd = bpf_map_create(BPF_MAP_TYPE_PERCPU_ARRAY, "good_percpu", sizeof(uint32_t), sizeof(uint32_t), 4, nullptr);
-    REQUIRE(map_fd > 0);
+    REQUIRE(map_fd >= 0);
     Platform::_close(map_fd);
 }
 
@@ -2314,10 +2352,11 @@ TEST_CASE("array_map_key_size_1_rejected", "[end_to_end]")
     // Attempt to create an array map with key_size=1. This should be rejected
     // because array map operations use fixed uint32_t key accesses internally.
     fd_t map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "bad_array", 1, sizeof(uint64_t), 4, nullptr);
-    if (map_fd > 0) {
-        // Map creation should have been rejected due to key_size mismatch.
-        uint8_t next_key = 0;
-        (void)bpf_map_get_next_key(map_fd, nullptr, &next_key);
+    if (map_fd >= 0) {
+        // Map creation should have been rejected due to key_size mismatch. Close the fd and fail immediately
+        // without performing any map operation: array-map leaf functions always do fixed 4-byte uint32_t
+        // accesses, so exercising them against a map that (incorrectly) reports a 1-byte key could corrupt
+        // memory or crash instead of yielding a predictable test failure.
         Platform::_close(map_fd);
         FAIL("Array map creation with key_size=1 should have been rejected.");
     }

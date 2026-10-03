@@ -3821,11 +3821,12 @@ ebpf_map_create(
     if ((type == BPF_MAP_TYPE_ARRAY || type == BPF_MAP_TYPE_PERCPU_ARRAY || type == BPF_MAP_TYPE_ARRAY_OF_MAPS ||
          type == BPF_MAP_TYPE_PROG_ARRAY) &&
         ebpf_map_definition->key_size != sizeof(uint32_t)) {
-        EBPF_LOG_MESSAGE_UINT64(
+        EBPF_LOG_MESSAGE_UINT64_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
             "Invalid key size for array-type map",
-            ebpf_map_definition->key_size);
+            ebpf_map_definition->key_size,
+            type);
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
