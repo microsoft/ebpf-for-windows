@@ -102,7 +102,9 @@ next_key_null_output(int map_fd, uint32_t* key, uint32_t* value)
 {
     (void)key;
     (void)value;
-    return bpf_map_get_next_key(map_fd, NULL, NULL);
+    // A missing array key restarts iteration at the first element.
+    const uint32_t missing_key = UINT32_MAX;
+    return bpf_map_get_next_key(map_fd, &missing_key, NULL);
 }
 
 static int
