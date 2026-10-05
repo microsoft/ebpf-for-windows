@@ -2674,7 +2674,7 @@ _auto_pinned_maps_custom_path_test(ebpf_execution_type_t execution_type)
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_um.dll" : "map_reuse.o");
 
     struct bpf_object_open_opts opts = {0};
-    opts.pin_root_path = "/custompath/global";
+    opts.pin_root_path = GENERATE("/custompath/global", "/custompath/global/", "/custompath/global\\");
     bpf_object_ptr object;
     {
         struct bpf_object* local_object = bpf_object__open_file(file_name, &opts);
@@ -2683,6 +2683,7 @@ _auto_pinned_maps_custom_path_test(ebpf_execution_type_t execution_type)
     }
 
     // Load the program.
+    REQUIRE(ebpf_object_set_execution_type(object.get(), execution_type) == EBPF_SUCCESS);
     REQUIRE(bpf_object__load(object.get()) == 0);
 
     struct bpf_program* program = bpf_object__find_program_by_name(object.get(), "lookup_update");
@@ -2745,7 +2746,7 @@ _auto_pinned_maps_custom_path_test(ebpf_execution_type_t execution_type)
     REQUIRE(ebpf_object_unpin("/custompath/global/port_map") == EBPF_SUCCESS);
 }
 
-DECLARE_JIT_TEST_CASES("auto_pinned_maps_custom_path", "[end_to_end]", _auto_pinned_maps_custom_path_test);
+DECLARE_ALL_TEST_CASES("auto_pinned_maps_custom_path", "[end_to_end]", _auto_pinned_maps_custom_path_test);
 
 // This test validates that two objects sharing a custom pin root path reuse the same pinned maps.
 static void
@@ -2761,7 +2762,7 @@ _map_reuse_custom_path_test(ebpf_execution_type_t execution_type)
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_um.dll" : "map_reuse.o");
 
     struct bpf_object_open_opts opts = {0};
-    opts.pin_root_path = "/custompath/global";
+    opts.pin_root_path = GENERATE("/custompath/global", "/custompath/global/", "/custompath/global\\");
 
     bpf_object_ptr object1;
     {
@@ -2769,6 +2770,7 @@ _map_reuse_custom_path_test(ebpf_execution_type_t execution_type)
         REQUIRE(local_object != nullptr);
         object1.reset(local_object);
     }
+    REQUIRE(ebpf_object_set_execution_type(object1.get(), execution_type) == EBPF_SUCCESS);
     REQUIRE(bpf_object__load(object1.get()) == 0);
 
     struct bpf_map* map1 = bpf_object__find_map_by_name(object1.get(), "port_map");
@@ -2778,12 +2780,14 @@ _map_reuse_custom_path_test(ebpf_execution_type_t execution_type)
     REQUIRE(bpf_obj_get_info_by_fd(bpf_map__fd(map1), &info1, &info1_size) == 0);
 
     // A second object opened with the same custom root must reuse the already pinned map.
+    opts.pin_root_path = "/custompath/global";
     bpf_object_ptr object2;
     {
         struct bpf_object* local_object = bpf_object__open_file(file_name, &opts);
         REQUIRE(local_object != nullptr);
         object2.reset(local_object);
     }
+    REQUIRE(ebpf_object_set_execution_type(object2.get(), execution_type) == EBPF_SUCCESS);
     REQUIRE(bpf_object__load(object2.get()) == 0);
 
     struct bpf_map* map2 = bpf_object__find_map_by_name(object2.get(), "port_map");
@@ -2801,7 +2805,49 @@ _map_reuse_custom_path_test(ebpf_execution_type_t execution_type)
     REQUIRE(ebpf_object_unpin("/custompath/global/port_map") == EBPF_SUCCESS);
 }
 
-DECLARE_JIT_TEST_CASES("map_reuse_custom_path", "[end_to_end]", _map_reuse_custom_path_test);
+DECLARE_ALL_TEST_CASES("map_reuse_custom_path", "[end_to_end]", _map_reuse_custom_path_test);
+
+static void
+_auto_pinned_maps_path_length_limit_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name = execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_um.dll" : "map_reuse.o";
+    const size_t canonical_prefix_length = sizeof("BPF:") - 1;
+    const size_t longest_map_name_length = sizeof("outer_map") - 1;
+    std::string root(EBPF_MAX_PIN_PATH_LENGTH - canonical_prefix_length - longest_map_name_length - 1, 'a');
+    root.front() = '/';
+    root.back() = GENERATE('/', '\\');
+    struct bpf_object_open_opts opts = {};
+    opts.pin_root_path = root.c_str();
+    bpf_object_ptr object(bpf_object__open_file(file_name, &opts));
+    REQUIRE(object != nullptr);
+    REQUIRE(ebpf_object_set_execution_type(object.get(), execution_type) == EBPF_SUCCESS);
+    REQUIRE(bpf_object__load(object.get()) == 0);
+
+    struct bpf_map* outer_map = bpf_object__find_map_by_name(object.get(), "outer_map");
+    REQUIRE(outer_map != nullptr);
+    REQUIRE(outer_map->pin_path == root + "outer_map");
+    REQUIRE(bpf_map__is_pinned(outer_map));
+    char canonical_path[EBPF_MAX_PIN_PATH_LENGTH];
+    REQUIRE(ebpf_canonicalize_path(canonical_path, sizeof(canonical_path), outer_map->pin_path) == EBPF_SUCCESS);
+    REQUIRE(strlen(canonical_path) == EBPF_MAX_PIN_PATH_LENGTH - 1);
+    fd_t pinned_fd = bpf_obj_get(canonical_path);
+    REQUIRE(pinned_fd > 0);
+    Platform::_close(pinned_fd);
+    REQUIRE(bpf_map__unpin(outer_map, nullptr) == 0);
+
+    struct bpf_map* port_map = bpf_object__find_map_by_name(object.get(), "port_map");
+    REQUIRE(port_map != nullptr);
+    REQUIRE(bpf_map__unpin(port_map, nullptr) == 0);
+}
+
+DECLARE_ALL_TEST_CASES("auto_pinned_maps_path_length_limit", "[end_to_end]", _auto_pinned_maps_path_length_limit_test);
 
 static void
 _map_reuse_invalid_test(ebpf_execution_type_t execution_type)
@@ -3180,6 +3226,34 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
 
     // Delete the created service.
     Platform::_delete_service(service_handle);
+}
+
+TEST_CASE("test_ioctl_load_native_programs pin root path bounds", "[end_to_end][negative]")
+{
+    GUID module_id = {};
+    ebpf_handle_t map_handle = ebpf_handle_invalid;
+    ebpf_handle_t program_handle = ebpf_handle_invalid;
+
+    SECTION("valid lengths reach the dispatcher")
+    {
+        _test_helper_end_to_end test_helper;
+        test_helper.initialize();
+        std::string root(GENERATE(size_t{0}, size_t{1}, size_t{EBPF_MAX_PIN_PATH_LENGTH - 1}), 'a');
+        REQUIRE(
+            test_ioctl_load_native_programs(&module_id, root.c_str(), 1, &map_handle, 1, &program_handle) ==
+            ERROR_PATH_NOT_FOUND);
+    }
+
+    SECTION("overlong paths are rejected before device initialization")
+    {
+        std::string root(GENERATE(size_t{EBPF_MAX_PIN_PATH_LENGTH}, size_t{65536}), 'a');
+        REQUIRE(
+            test_ioctl_load_native_programs(&module_id, root.c_str(), 1, &map_handle, 1, &program_handle) ==
+            ERROR_INVALID_PARAMETER);
+    }
+
+    REQUIRE(map_handle == ebpf_handle_invalid);
+    REQUIRE(program_handle == ebpf_handle_invalid);
 }
 
 // Try to load a .sys in user mode.

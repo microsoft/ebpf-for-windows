@@ -654,8 +654,8 @@ _ebpf_core_protocol_load_native_programs(
     size_t pin_root_path_length = 0;
     char pin_root_path[EBPF_MAX_PIN_PATH_LENGTH];
 
-    // Extract the optional pin root path. Older clients omit this field entirely, in which case the
-    // length is zero and the default pin root path is used by ebpf_native_load_programs.
+    // Extract the optional pin root path. With no path bytes, ebpf_native_load_programs uses
+    // the default pin root path.
     result = ebpf_safe_size_t_subtract(
         request->header.length,
         EBPF_OFFSET_OF(ebpf_operation_load_native_programs_request_t, pin_root_path),
@@ -670,7 +670,12 @@ _ebpf_core_protocol_load_native_programs(
     }
 
     // The path on the wire is not null terminated, so copy it into a null terminated buffer.
-    memcpy(pin_root_path, request->pin_root_path, pin_root_path_length);
+    if (pin_root_path_length > 0) {
+        memcpy(
+            pin_root_path,
+            (const uint8_t*)request + EBPF_OFFSET_OF(ebpf_operation_load_native_programs_request_t, pin_root_path),
+            pin_root_path_length);
+    }
     pin_root_path[pin_root_path_length] = '\0';
 
     // Embedded null characters would silently truncate the path.

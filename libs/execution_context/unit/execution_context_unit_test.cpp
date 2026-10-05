@@ -2242,6 +2242,17 @@ TEST_CASE("EBPF_OPERATION_LOAD_NATIVE_PROGRAMS", "[execution_context][negative]"
     load_native_programs_request->module_id = {};
     REQUIRE(invoke_protocol(EBPF_OPERATION_LOAD_NATIVE_PROGRAMS, request, reply) == EBPF_OBJECT_NOT_FOUND);
 
+    const char pin_root_path[] = "/custompath/global";
+    request.resize(
+        EBPF_OFFSET_OF(ebpf_operation_load_native_programs_request_t, pin_root_path) + sizeof(pin_root_path) - 1);
+    load_native_programs_request = reinterpret_cast<ebpf_operation_load_native_programs_request_t*>(request.data());
+    load_native_programs_request->module_id = {};
+    memcpy(
+        request.data() + EBPF_OFFSET_OF(ebpf_operation_load_native_programs_request_t, pin_root_path),
+        pin_root_path,
+        sizeof(pin_root_path) - 1);
+    REQUIRE(invoke_protocol(EBPF_OPERATION_LOAD_NATIVE_PROGRAMS, request, reply) == EBPF_OBJECT_NOT_FOUND);
+
     // A pin root path that does not fit in EBPF_MAX_PIN_PATH_LENGTH must be rejected.
     request.resize(EBPF_OFFSET_OF(ebpf_operation_load_native_programs_request_t, pin_root_path) + 512);
     load_native_programs_request = reinterpret_cast<ebpf_operation_load_native_programs_request_t*>(request.data());

@@ -1718,11 +1718,22 @@ ebpf_map_pin(_In_ struct bpf_map* map, _In_opt_z_ const char* path) NO_EXCEPT_TR
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
+static ebpf_result_t
+_validate_native_map_pin_path(_In_ const ebpf_map_t& map, _In_opt_z_ const char* path) noexcept;
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_set_pin_path(_In_ struct bpf_map* map, _In_opt_z_ const char* path) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(map);
+    if (map->object != nullptr && map->object->execution_type == EBPF_EXECUTION_NATIVE &&
+        (!map->object->loaded || map->pinned)) {
+        ebpf_result_t result = _validate_native_map_pin_path(*map, path);
+        if (result != EBPF_SUCCESS) {
+            EBPF_RETURN_RESULT(result);
+        }
+    }
+
     char* old_path = map->pin_path;
     if (path != nullptr) {
         path = cxplat_duplicate_string(path);
@@ -2597,61 +2608,71 @@ Exit:
 CATCH_NO_MEMORY_EBPF_RESULT
 
 static ebpf_result_t
+_validate_native_map_pin_path(_In_ const ebpf_map_t& map, _In_opt_z_ const char* path) noexcept
+{
+    EBPF_LOG_ENTRY();
+
+    if (map.map_definition.pinning != LIBBPF_PIN_BY_NAME) {
+        EBPF_RETURN_RESULT(EBPF_SUCCESS);
+    }
+
+    if (path == nullptr) {
+        EBPF_LOG_MESSAGE_STRING(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_API,
+            "_validate_native_map_pin_path: clearing an automatic pin path is not supported for native maps",
+            map.name);
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+
+    ebpf_assert(map.object != nullptr);
+    char automatic_path[EBPF_MAX_PIN_PATH_LENGTH];
+    const char* expected_path = map.pin_path;
+    if (!map.object->loaded) {
+        ebpf_result_t result = ebpf_build_map_pin_path(
+            automatic_path,
+            sizeof(automatic_path),
+            map.object->pin_root_path ? map.object->pin_root_path : DEFAULT_PIN_ROOT_PATH,
+            map.name);
+        if (result != EBPF_SUCCESS) {
+            EBPF_RETURN_RESULT(result);
+        }
+        expected_path = automatic_path;
+    }
+    ebpf_assert(expected_path != nullptr);
+
+    char canonical_expected_path[EBPF_MAX_PIN_PATH_LENGTH];
+    char canonical_map_path[EBPF_MAX_PIN_PATH_LENGTH];
+    ebpf_result_t result =
+        ebpf_canonicalize_path(canonical_expected_path, sizeof(canonical_expected_path), expected_path);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
+    result = ebpf_canonicalize_path(canonical_map_path, sizeof(canonical_map_path), path);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
+    if (strcmp(canonical_expected_path, canonical_map_path) != 0) {
+        EBPF_LOG_MESSAGE_STRING(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_API,
+            "_validate_native_map_pin_path: overriding an automatic pin path is not supported for native maps",
+            map.name);
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+
+    EBPF_RETURN_RESULT(EBPF_SUCCESS);
+}
+
+static ebpf_result_t
 _validate_native_map_pin_paths(_In_ const ebpf_object_t& object) noexcept
 {
     EBPF_LOG_ENTRY();
 
     for (const auto* map : object.maps) {
-        if (map->map_definition.pinning != LIBBPF_PIN_BY_NAME) {
-            if (map->pin_path != nullptr) {
-                EBPF_LOG_MESSAGE_STRING(
-                    EBPF_TRACELOG_LEVEL_ERROR,
-                    EBPF_TRACELOG_KEYWORD_API,
-                    "_validate_native_map_pin_paths: per-map pin path is not supported for native maps",
-                    map->name);
-                EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
-            }
-            continue;
-        }
-
-        if (map->pin_path == nullptr) {
-            EBPF_LOG_MESSAGE_STRING(
-                EBPF_TRACELOG_LEVEL_ERROR,
-                EBPF_TRACELOG_KEYWORD_API,
-                "_validate_native_map_pin_paths: clearing an automatic pin path is not supported for native maps",
-                map->name);
-            EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
-        }
-
-        char expected_path[EBPF_MAX_PIN_PATH_LENGTH];
-        int length = snprintf(
-            expected_path,
-            sizeof(expected_path),
-            "%s/%s",
-            object.pin_root_path ? object.pin_root_path : DEFAULT_PIN_ROOT_PATH,
-            map->name);
-        if (length < 0 || length >= EBPF_MAX_PIN_PATH_LENGTH) {
-            EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
-        }
-
-        char canonical_expected_path[EBPF_MAX_PIN_PATH_LENGTH];
-        char canonical_map_path[EBPF_MAX_PIN_PATH_LENGTH];
-        ebpf_result_t result =
-            ebpf_canonicalize_path(canonical_expected_path, sizeof(canonical_expected_path), expected_path);
+        ebpf_result_t result = _validate_native_map_pin_path(*map, map->pin_path);
         if (result != EBPF_SUCCESS) {
             EBPF_RETURN_RESULT(result);
-        }
-        result = ebpf_canonicalize_path(canonical_map_path, sizeof(canonical_map_path), map->pin_path);
-        if (result != EBPF_SUCCESS) {
-            EBPF_RETURN_RESULT(result);
-        }
-        if (strcmp(canonical_expected_path, canonical_map_path) != 0) {
-            EBPF_LOG_MESSAGE_STRING(
-                EBPF_TRACELOG_LEVEL_ERROR,
-                EBPF_TRACELOG_KEYWORD_API,
-                "_validate_native_map_pin_paths: overriding an automatic pin path is not supported for native maps",
-                map->name);
-            EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
         }
     }
 
@@ -2752,6 +2773,16 @@ _initialize_ebpf_object_native(
         goto Exit;
     }
 
+    // The kernel pins metadata-declared maps; caller-supplied paths on other maps are pinned here.
+    for (auto* map : object.maps) {
+        if (map->pin_path != nullptr && !map->pinned) {
+            result = ebpf_map_pin(map, nullptr);
+            if (result != EBPF_SUCCESS) {
+                goto Exit;
+            }
+        }
+    }
+
     // Populate _ebpf_maps so that native maps are discoverable by handle,
     // consistent with the non-native flow in _ebpf_object_create_maps.
     // On failure, the Exit block calls clean_up_ebpf_maps which erases
@@ -2788,6 +2819,11 @@ _initialize_ebpf_object_native(
 
 Exit:
     if (result != EBPF_SUCCESS) {
+        for (auto* map : object.maps) {
+            if (map->map_definition.pinning != LIBBPF_PIN_BY_NAME && map->pinned) {
+                ebpf_assert_success(ebpf_map_unpin(map, nullptr));
+            }
+        }
         clean_up_ebpf_programs(object.programs);
         clean_up_ebpf_maps(object.maps);
     }
@@ -2930,6 +2966,10 @@ _initialize_ebpf_object_from_file(
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
+
+    if (pin_root_path != nullptr && pin_root_path[0] == '\0') {
+        pin_root_path = nullptr;
+    }
 
     if (std::holds_alternative<std::string>(file_or_data)) {
         std::string path = std::get<std::string>(file_or_data);
@@ -3171,14 +3211,12 @@ _ebpf_pe_get_map_definitions(
                 }
                 if (map->map_definition.pinning == LIBBPF_PIN_BY_NAME) {
                     char pin_path_buffer[EBPF_MAX_PIN_PATH_LENGTH];
-                    int len = snprintf(
+                    pe_context->result = ebpf_build_map_pin_path(
                         pin_path_buffer,
-                        EBPF_MAX_PIN_PATH_LENGTH,
-                        "%s/%s",
+                        sizeof(pin_path_buffer),
                         pe_context->pin_root_path ? pe_context->pin_root_path : DEFAULT_PIN_ROOT_PATH,
                         map->name);
-                    if (len < 0 || len >= EBPF_MAX_PIN_PATH_LENGTH) {
-                        pe_context->result = EBPF_INVALID_ARGUMENT;
+                    if (pe_context->result != EBPF_SUCCESS) {
                         goto Error;
                     }
                     map->pin_path = cxplat_duplicate_string(pin_path_buffer);

@@ -144,6 +144,12 @@ The default pin root path of "/ebpf/global" can be overridden by setting the
 with a `pin_root_path` of "/custompath/global" pins the map at
 "/custompath/global/my_map".
 
+An omitted or empty `pin_root_path` uses the default root, "/ebpf/global".
+
+A root that already ends in `/` or `\` uses that separator directly rather
+than appending another one. For example, "/custompath/global/" produces the
+same pin path as "/custompath/global".
+
 Note that "/ebpf/global/" is treated as an alias for the pin root, so
 "/ebpf/global/my_map" and "my_map" both canonicalize to the same path
 ("BPF:\my_map").  A custom root is therefore a genuinely distinct namespace
@@ -155,14 +161,22 @@ Which component performs the pinning depends on the execution type:
   user mode.
 * For native programs, `ebpfcore.sys` creates and pins the maps in kernel mode.
   The pin root path is passed down to the driver as part of the
-  `EBPF_OPERATION_LOAD_NATIVE_PROGRAMS` request.  A request that omits the path
-  (as sent by older versions of `ebpfapi.dll`) uses the default pin root path.
+  `EBPF_OPERATION_LOAD_NATIVE_PROGRAMS` request.  A request with no path bytes
+  uses the default pin root path.
 
 Both paths apply the same canonicalization, so a given `pin_root_path` resolves
 to the same pin path regardless of execution type.
 
-Native programs do not support changing an individual map's pin path with
-`bpf_map__set_pin_path()` before loading. Native map creation and reuse happen
-in the kernel using the object-level `pin_root_path` and the map metadata, so
-such an override cannot be honored consistently and causes
-`bpf_object__load()` to fail with `EINVAL`.
+For native programs, `bpf_map__set_pin_path()` cannot override or clear a
+`LIBBPF_PIN_BY_NAME` map's automatic pin path before loading, or while the map
+is pinned. Native map creation and reuse happen in the kernel using the
+object-level `pin_root_path` and the map metadata, so the setter rejects such
+changes with `EINVAL` without modifying the existing path. Setting a path
+that canonicalizes to the same automatic path is allowed.
+
+For maps without `LIBBPF_PIN_BY_NAME`, a per-map path set before loading is
+supported in all execution modes. Native maps are pinned at that path by
+`ebpfapi.dll` after kernel map creation, just as JIT and interpreted maps are
+pinned in user mode. Setting the path after loading does not itself pin the
+map; call `bpf_map__pin()` to pin it explicitly. If native loading fails,
+any per-map pins newly created in user mode are removed.

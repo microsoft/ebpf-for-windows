@@ -1278,28 +1278,14 @@ _ebpf_native_initialize_maps(
             char pin_path[EBPF_MAX_PIN_PATH_LENGTH];
             char canonical_path[EBPF_MAX_PIN_PATH_LENGTH];
 
-            if (pin_root_path != NULL) {
-                if ((strcpy_s(pin_path, sizeof(pin_path), pin_root_path) != 0) ||
-                    (strcat_s(pin_path, sizeof(pin_path), "/") != 0) ||
-                    (strcat_s(pin_path, sizeof(pin_path), entry->name) != 0)) {
-                    result = EBPF_INVALID_ARGUMENT;
-                    EBPF_LOG_MESSAGE_GUID(
-                        EBPF_TRACELOG_LEVEL_ERROR,
-                        EBPF_TRACELOG_KEYWORD_NATIVE,
-                        "_ebpf_native_initialize_maps: map pin path too long",
-                        module_id);
-                    goto Done;
-                }
-            } else {
-                if (strcpy_s(pin_path, sizeof(pin_path), entry->name) != 0) {
-                    result = EBPF_INVALID_ARGUMENT;
-                    EBPF_LOG_MESSAGE_GUID(
-                        EBPF_TRACELOG_LEVEL_ERROR,
-                        EBPF_TRACELOG_KEYWORD_NATIVE,
-                        "_ebpf_native_initialize_maps: map pin path too long",
-                        module_id);
-                    goto Done;
-                }
+            result = ebpf_build_map_pin_path(pin_path, sizeof(pin_path), pin_root_path, entry->name);
+            if (result != EBPF_SUCCESS) {
+                EBPF_LOG_MESSAGE_GUID(
+                    EBPF_TRACELOG_LEVEL_ERROR,
+                    EBPF_TRACELOG_KEYWORD_NATIVE,
+                    "_ebpf_native_initialize_maps: map pin path too long",
+                    module_id);
+                goto Done;
             }
 
             result = ebpf_canonicalize_path(canonical_path, sizeof(canonical_path), pin_path);
