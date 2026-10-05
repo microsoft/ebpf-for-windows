@@ -176,6 +176,16 @@ Push-Location $repository_root
 try {
     Invoke-BuildTool -FilePath $nuget_path -Arguments @("restore", "ebpf-for-windows.sln")
 
+    foreach ($unit in $selected_units) {
+        Invoke-BuildTool -FilePath $msbuild_path -Arguments @(
+            "/t:Restore",
+            "/p:Configuration=$Configuration",
+            "/p:Platform=$Platform",
+            "/p:SolutionDir=$solution_dir",
+            $unit.project
+        )
+    }
+
     $diverged_units = @()
     $infrastructure_error_units = @()
 

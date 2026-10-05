@@ -64,6 +64,7 @@ permissions:
   checks: read  # Required by fountainhead/action-wait-for-check to wait for another GitHub check to complete.
   contents: read  # Required by actions/checkout to fetch code.
   issues: write  # Required to create issues.
+  repository-projects: write  # Required to set Type=Bug on project items.
 
 jobs:
   run_test:
@@ -373,7 +374,7 @@ jobs:
 
       - name: Upload Report to Codecov attempt 1
         if: (steps.skip_check.outputs.should_skip != 'true') && (steps.check_coverage.outputs.files_exists == 'true')
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         id: upload_code_coverage_report_1
         continue-on-error: true
         with:
@@ -388,7 +389,7 @@ jobs:
 
       - name: Upload Report to Codecov attempt 2
         if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_1.outcome == 'failure')
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         id: upload_code_coverage_report_2
         continue-on-error: true
         with:
@@ -403,7 +404,7 @@ jobs:
 
       - name: Upload Report to Codecov attempt 3
         if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_2.outcome == 'failure')
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         id: upload_code_coverage_report_3
         continue-on-error: true
         with:
@@ -418,7 +419,7 @@ jobs:
 
       - name: Upload Report to Codecov attempt 4
         if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_3.outcome == 'failure')
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         id: upload_code_coverage_report_4
         continue-on-error: true
         with:
@@ -530,6 +531,8 @@ jobs:
     needs: run_test
     if: ${{ failure() }}
     runs-on: ubuntu-latest
+    outputs:
+      issue_node_id: ${{ steps.create_or_update_issue.outputs.issue_node_id }}
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1  # v2.21.1
@@ -545,7 +548,8 @@ jobs:
           cancel_others: 'false'
           paths_ignore: '["**.md", "**/docs/**"]'
 
-      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd  # v8.0.0
+        id: create_or_update_issue
         if: (github.event_name == 'schedule') || (github.event_name == 'push' || github.event_name == 'merge_group') && (steps.skip_check.outputs.should_skip != 'true')
         env:
           TITLE: Workflow failed - ${{inputs.name}}
@@ -554,7 +558,7 @@ jobs:
             [Codebase](https://github.com/${{ github.repository }}/tree/${{ github.sha }})
             Test name - `${{ inputs.name }}`
             Event - ${{ github.event_name }}
-          LABELS: bug,ci/cd${{ github.event_name == 'merge_group' && ',merge-queue-regression' || '' }}
+          LABELS: ci/cd${{ github.event_name == 'merge_group' && ',merge-queue-regression' || '' }}
 
         with:
           script: |
@@ -582,15 +586,25 @@ jobs:
                   repo,
                   body,
                 });
+                core.setOutput('issue_node_id', issue.node_id);
                 return;
               }
             }
             // Existing issue not found, create a new one.
             console.log(`Creating issue ${title}`);
-            await github.rest.issues.create({
+            const created_issue = await github.rest.issues.create({
               owner: owner,
               repo: repo,
               title: title,
               body: body,
               labels: label_array,
             });
+            core.setOutput('issue_node_id', created_issue.data.node_id);
+
+  set_issue_type:
+    needs: create_or_update_issue
+    if: ${{ needs.create_or_update_issue.outputs.issue_node_id != '' }}
+    uses: ./.github/workflows/reusable-set-issue-type.yml
+    with:
+      issue_node_id: ${{ needs.create_or_update_issue.outputs.issue_node_id }}
+      issue_type: Bug
