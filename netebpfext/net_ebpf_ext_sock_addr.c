@@ -23,6 +23,55 @@
         CLEAN_UP_FILTER_CONTEXT(&(filter_context)->base);                 \
     }
 
+// A higher-priority WFP sublayer performed a hard permit or block and cleared FWPS_RIGHT_ACTION_WRITE. Preserve the
+// current WFP action: do not invoke an eBPF program and do not exercise WFP's block-veto exception.
+#define BAIL_ON_NO_WRITE_RIGHT(classify_output, action_write_allowed)                          \
+    do {                                                                                       \
+        (action_write_allowed) = (((classify_output)->rights & FWPS_RIGHT_ACTION_WRITE) != 0); \
+        if (!(action_write_allowed)) {                                                         \
+            EBPF_EXT_LOG_MESSAGE(                                                              \
+                EBPF_EXT_TRACELOG_LEVEL_VERBOSE,                                               \
+                EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,                                           \
+                __FUNCTION__ " - No \"write\" right; exiting.");                               \
+            goto Exit;                                                                         \
+        }                                                                                      \
+    } while (false)
+
+#define BAIL_ON_INACTIVE_FILTER_CONTEXT(filter, filter_context)                                   \
+    do {                                                                                          \
+        (filter_context) = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)(filter)->context; \
+        ASSERT((filter_context) != NULL);                                                         \
+        if ((filter_context) == NULL) {                                                           \
+            EBPF_EXT_LOG_MESSAGE_NTSTATUS(                                                        \
+                EBPF_EXT_TRACELOG_LEVEL_ERROR,                                                    \
+                EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,                                              \
+                __FUNCTION__ " - filter_context is NULL.",                                        \
+                STATUS_INVALID_PARAMETER);                                                        \
+            goto Exit;                                                                            \
+        }                                                                                         \
+        /* This lock-free check opportunistically detects that every client has detached. */      \
+        if ((filter_context)->base.context_deleting) {                                            \
+            EBPF_EXT_LOG_MESSAGE_NTSTATUS(                                                        \
+                EBPF_EXT_TRACELOG_LEVEL_VERBOSE,                                                  \
+                EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,                                              \
+                __FUNCTION__ " - Client detach detected.",                                        \
+                STATUS_INVALID_PARAMETER);                                                        \
+            goto Exit;                                                                            \
+        }                                                                                         \
+    } while (false)
+
+#define NET_EBPF_EXT_LOG_SOCK_ADDR_PROGRAM_INVOCATION_FAILURE(program_result)                        \
+    do {                                                                                             \
+        ebpf_result_t local_program_result = (program_result);                                       \
+        if (local_program_result != EBPF_SUCCESS && local_program_result != EBPF_OBJECT_NOT_FOUND) { \
+            EBPF_EXT_LOG_MESSAGE_UINT32(                                                             \
+                EBPF_EXT_TRACELOG_LEVEL_ERROR,                                                       \
+                EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,                                                 \
+                __FUNCTION__ " - Program invocation failed; using REJECT verdict.",                  \
+                local_program_result);                                                               \
+        }                                                                                            \
+    } while (false)
+
 #define NET_EBPF_EXT_SOCK_ADDR_CLASSIFY_MESSAGE "NetEbpfExtSockAddrClassify"
 
 #define NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV4(                    \
@@ -2107,22 +2156,50 @@ _net_ebpf_extension_sock_addr_accumulate_verdict(_Inout_ void* program_context, 
 }
 
 /**
- * @brief Apply an accumulated eBPF verdict to the WFP classify output.
+ * @brief Select the effective sock_addr verdict after program dispatch.
+ *
+ * @param[in] program_result Program dispatch status.
+ * @param[in] program_verdict Verdict reported by the invocation or accumulated by a process-verdict callback.
+ * @param[in] current_verdict Verdict in effect before program dispatch.
+ *
+ * @return program_verdict on success, current_verdict if no matching program was found, and
+ * BPF_SOCK_ADDR_VERDICT_REJECT for any other program dispatch failure.
+ */
+static inline uint32_t
+_net_ebpf_extension_sock_addr_get_effective_verdict(
+    ebpf_result_t program_result, uint32_t program_verdict, uint32_t current_verdict)
+{
+    if (program_result == EBPF_SUCCESS) {
+        return program_verdict;
+    }
+
+    if (program_result == EBPF_OBJECT_NOT_FOUND) {
+        return current_verdict;
+    }
+
+    return BPF_SOCK_ADDR_VERDICT_REJECT;
+}
+
+/**
+ * @brief Apply an eBPF verdict to a sock_addr WFP classify output.
  *
  * Maps a BPF_SOCK_ADDR_VERDICT_* value onto the WFP action, clearing
  * FWPS_RIGHT_ACTION_WRITE for the terminal verdicts (hard permit and block) so that a
  * lower-weight callout cannot override them. Any verdict other than PROCEED_SOFT or
  * PROCEED_HARD is treated as a block, matching _normalize_sock_addr_verdict().
  *
- * Callers must hold FWPS_RIGHT_ACTION_WRITE: the classify routines bail out before invoking
- * any eBPF program when a higher-weight callout has revoked it.
- *
  * @param[in,out] classify_output Output structure containing the action to take.
  * @param[in] verdict Accumulated BPF_SOCK_ADDR_VERDICT_* value across the attached programs.
+ * @param[in] action_write_allowed Whether FWPS_RIGHT_ACTION_WRITE was set when the classify callback began.
  */
-static void
-_net_ebpf_extension_sock_addr_apply_verdict(_Inout_ FWPS_CLASSIFY_OUT* classify_output, uint32_t verdict)
+static inline void
+_net_ebpf_extension_sock_addr_apply_verdict(
+    _Inout_ FWPS_CLASSIFY_OUT* classify_output, uint32_t verdict, bool action_write_allowed)
 {
+    if (!action_write_allowed) {
+        return;
+    }
+
     switch (verdict) {
     case BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT:
         classify_output->actionType = FWP_ACTION_PERMIT;
@@ -2138,6 +2215,26 @@ _net_ebpf_extension_sock_addr_apply_verdict(_Inout_ FWPS_CLASSIFY_OUT* classify_
     }
 }
 
+static inline void
+_net_ebpf_extension_sock_addr_apply_redirect_verdict(
+    _Inout_ FWPS_CLASSIFY_OUT* classify_output,
+    uint32_t verdict,
+    bool action_write_allowed,
+    bool reauthorization,
+    bool redirected)
+{
+    if (!action_write_allowed) {
+        return;
+    }
+
+    // Reauthorization, redirects, and rejected connections return PERMIT, stopping further filter evaluation in the
+    // current sublayer. Rejections are cached and enforced later by CONNECT_AUTHORIZATION; non-redirected proceed
+    // verdicts return CONTINUE.
+    classify_output->actionType = (reauthorization || redirected || verdict == BPF_SOCK_ADDR_VERDICT_REJECT)
+                                      ? FWP_ACTION_PERMIT
+                                      : FWP_ACTION_CONTINUE;
+}
+
 //
 // WFP callout callback functions.
 //
@@ -2147,7 +2244,7 @@ _net_ebpf_extension_sock_addr_apply_verdict(_Inout_ FWPS_CLASSIFY_OUT* classify_
  *
  * This function is invoked when a socket enters the listening state.
  * It calls attached eBPF programs to determine whether to allow or block the listen operation.
- * Default action is PERMIT (if no program is attached or an error occurs).
+ * The default verdict is PROCEED_SOFT. Program invocation failures are rejected.
  *
  * @param[in] incoming_fixed_values Fixed values from the classify request.
  * @param[in] incoming_metadata_values Metadata values from the classify request.
@@ -2168,43 +2265,21 @@ net_ebpf_extension_sock_addr_authorize_listen_classify(
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 {
     EBPF_EXT_LOG_ENTRY();
-    uint32_t result;
+    uint32_t effective_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+    uint32_t program_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_sock_addr_t net_ebpf_sock_addr_ctx = {0};
     bpf_sock_addr_t* sock_addr_ctx = &net_ebpf_sock_addr_ctx.base;
     uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID;
     ebpf_result_t program_result;
+    bool action_write_allowed = false;
 
-    UNREFERENCED_PARAMETER(incoming_metadata_values);
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(flow_context);
 
-    if ((classify_output->rights & FWPS_RIGHT_ACTION_WRITE) == 0) {
-        // A callout with higher weight has revoked the write permission. Bail out without
-        // invoking any eBPF program and without touching classify_output->actionType, matching
-        // net_ebpf_extension_sock_addr_redirect_connection_classify().
-        EBPF_EXT_LOG_MESSAGE(
-            EBPF_EXT_TRACELOG_LEVEL_VERBOSE, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "No \"write\" right; exiting.");
-        goto Exit;
-    }
-
-    classify_output->actionType = FWP_ACTION_PERMIT;
-
-    filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter->context;
-    ASSERT(filter_context != NULL);
-    if (filter_context == NULL) {
-        goto Exit;
-    }
-
-    if (filter_context->base.context_deleting) {
-        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "net_ebpf_extension_sock_addr_authorize_listen_classify - Client detach detected.",
-            STATUS_INVALID_PARAMETER);
-        goto Exit;
-    }
+    BAIL_ON_NO_WRITE_RIGHT(classify_output, action_write_allowed);
+    BAIL_ON_INACTIVE_FILTER_CONTEXT(filter, filter_context);
 
     _net_ebpf_extension_sock_addr_copy_wfp_listen_fields(
         incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
@@ -2227,29 +2302,24 @@ net_ebpf_extension_sock_addr_authorize_listen_classify(
         goto Exit;
     }
 
-    program_result =
-        net_ebpf_extension_hook_expand_stack_and_invoke_programs(sock_addr_ctx, &filter_context->base, &result);
-    if (program_result == EBPF_OBJECT_NOT_FOUND) {
-        // No eBPF program is attached to this filter.
-        goto Exit;
-    } else if (program_result != EBPF_SUCCESS) {
-        // We failed to invoke at least one program in the chain, block the request.
-        classify_output->actionType = FWP_ACTION_BLOCK;
-        goto Exit;
+    program_result = net_ebpf_extension_hook_expand_stack_and_invoke_programs(
+        sock_addr_ctx, &filter_context->base, &program_verdict);
+    NET_EBPF_EXT_LOG_SOCK_ADDR_PROGRAM_INVOCATION_FAILURE(program_result);
+    effective_verdict =
+        _net_ebpf_extension_sock_addr_get_effective_verdict(program_result, program_verdict, effective_verdict);
+
+    if (program_result == EBPF_SUCCESS) {
+        _net_ebpf_ext_log_sock_addr_classify(
+            "listen_classify",
+            0, // No transport endpoint handle for listen.
+            sock_addr_ctx,
+            NULL,
+            effective_verdict,
+            compartment_id);
     }
 
-    // Set action type based on the program verdict.
-    _net_ebpf_extension_sock_addr_apply_verdict(classify_output, result);
-
-    _net_ebpf_ext_log_sock_addr_classify(
-        "listen_classify",
-        0, // No transport endpoint handle for listen.
-        sock_addr_ctx,
-        NULL,
-        result,
-        compartment_id);
-
 Exit:
+    _net_ebpf_extension_sock_addr_apply_verdict(classify_output, effective_verdict, action_write_allowed);
     EBPF_EXT_LOG_EXIT();
 }
 
@@ -2279,45 +2349,21 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 {
     EBPF_EXT_LOG_ENTRY();
-    uint32_t result;
+    uint32_t effective_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+    uint32_t program_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_sock_addr_t net_ebpf_sock_addr_ctx = {0};
     bpf_sock_addr_t* sock_addr_ctx = &net_ebpf_sock_addr_ctx.base;
     uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID;
     ebpf_result_t program_result;
+    bool action_write_allowed = false;
 
-    UNREFERENCED_PARAMETER(incoming_metadata_values);
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(flow_context);
 
-    if ((classify_output->rights & FWPS_RIGHT_ACTION_WRITE) == 0) {
-        // A callout with higher weight has revoked the write permission. Bail out without
-        // invoking any eBPF program and without touching classify_output->actionType, matching
-        // net_ebpf_extension_sock_addr_redirect_connection_classify().
-        EBPF_EXT_LOG_MESSAGE(
-            EBPF_EXT_TRACELOG_LEVEL_VERBOSE, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "No \"write\" right; exiting.");
-        goto Exit;
-    }
-
-    classify_output->actionType = FWP_ACTION_PERMIT;
-
-    filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter->context;
-    ASSERT(filter_context != NULL);
-    if (filter_context == NULL) {
-        goto Exit;
-    }
-
-    // Note: This is intentionally not guarded by a lock as this is opportunistically checking if all the
-    // clients have detached and the filter context is being deleted.
-    if (filter_context->base.context_deleting) {
-        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "net_ebpf_extension_sock_addr_authorize_recv_accept_classify - Client detach detected.",
-            STATUS_INVALID_PARAMETER);
-        goto Exit;
-    }
+    BAIL_ON_NO_WRITE_RIGHT(classify_output, action_write_allowed);
+    BAIL_ON_INACTIVE_FILTER_CONTEXT(filter, filter_context);
 
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
         incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
@@ -2340,29 +2386,24 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
         goto Exit;
     }
 
-    program_result =
-        net_ebpf_extension_hook_expand_stack_and_invoke_programs(sock_addr_ctx, &filter_context->base, &result);
-    if (program_result == EBPF_OBJECT_NOT_FOUND) {
-        // No eBPF program is attached to this filter.
-        goto Exit;
-    } else if (program_result != EBPF_SUCCESS) {
-        // We failed to invoke at least one program in the chain, block the request.
-        classify_output->actionType = FWP_ACTION_BLOCK;
-        goto Exit;
+    program_result = net_ebpf_extension_hook_expand_stack_and_invoke_programs(
+        sock_addr_ctx, &filter_context->base, &program_verdict);
+    NET_EBPF_EXT_LOG_SOCK_ADDR_PROGRAM_INVOCATION_FAILURE(program_result);
+    effective_verdict =
+        _net_ebpf_extension_sock_addr_get_effective_verdict(program_result, program_verdict, effective_verdict);
+
+    if (program_result == EBPF_SUCCESS) {
+        _net_ebpf_ext_log_sock_addr_classify(
+            "recv_accept_classify",
+            incoming_metadata_values->transportEndpointHandle,
+            sock_addr_ctx,
+            NULL,
+            effective_verdict,
+            compartment_id);
     }
 
-    // Set action type based on the program verdict.
-    _net_ebpf_extension_sock_addr_apply_verdict(classify_output, result);
-
-    _net_ebpf_ext_log_sock_addr_classify(
-        "recv_accept_classify",
-        incoming_metadata_values->transportEndpointHandle,
-        sock_addr_ctx,
-        NULL,
-        result,
-        compartment_id);
-
 Exit:
+    _net_ebpf_extension_sock_addr_apply_verdict(classify_output, effective_verdict, action_write_allowed);
     EBPF_EXT_LOG_EXIT();
 }
 
@@ -2395,43 +2436,23 @@ net_ebpf_extension_sock_addr_bind_classify(
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 {
     EBPF_EXT_LOG_ENTRY();
-    uint32_t ignored_result;
-    uint32_t verdict;
+    uint32_t effective_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+    // The invocation API requires a verdict output for each program. The accumulated result is stored in
+    // net_ebpf_sock_addr_ctx.verdict by the process-verdict callback.
+    uint32_t program_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_sock_addr_t net_ebpf_sock_addr_ctx = {0};
     bpf_sock_addr_t* sock_addr_ctx = &net_ebpf_sock_addr_ctx.base;
     uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID;
     ebpf_result_t program_result;
+    bool action_write_allowed = false;
 
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(flow_context);
 
-    if ((classify_output->rights & FWPS_RIGHT_ACTION_WRITE) == 0) {
-        // A callout with higher weight has revoked the write permission. Bail out without
-        // invoking any eBPF program and without touching classify_output->actionType, matching
-        // net_ebpf_extension_sock_addr_redirect_connection_classify().
-        EBPF_EXT_LOG_MESSAGE(
-            EBPF_EXT_TRACELOG_LEVEL_VERBOSE, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "No \"write\" right; exiting.");
-        goto Exit;
-    }
-
-    classify_output->actionType = FWP_ACTION_PERMIT;
-
-    filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter->context;
-    ASSERT(filter_context != NULL);
-    if (filter_context == NULL) {
-        goto Exit;
-    }
-
-    if (filter_context->base.context_deleting) {
-        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "net_ebpf_extension_sock_addr_bind_classify - Client detach detected.",
-            STATUS_INVALID_PARAMETER);
-        goto Exit;
-    }
+    BAIL_ON_NO_WRITE_RIGHT(classify_output, action_write_allowed);
+    BAIL_ON_INACTIVE_FILTER_CONTEXT(filter, filter_context);
 
     _net_ebpf_extension_sock_addr_copy_wfp_bind_fields(
         incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
@@ -2455,33 +2476,25 @@ net_ebpf_extension_sock_addr_bind_classify(
     memcpy(&sock_addr_ctx_original, sock_addr_ctx, sizeof(sock_addr_ctx_original));
     net_ebpf_sock_addr_ctx.original_context = &sock_addr_ctx_original;
 
-    program_result =
-        net_ebpf_extension_hook_expand_stack_and_invoke_programs(sock_addr_ctx, &filter_context->base, &ignored_result);
-    if (program_result == EBPF_OBJECT_NOT_FOUND) {
-        // No eBPF program is attached to this filter.
-        goto Exit;
-    } else if (program_result != EBPF_SUCCESS) {
-        // Failed to invoke at least one program in the chain — block the bind.
-        classify_output->actionType = FWP_ACTION_BLOCK;
-        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
-        goto Exit;
+    program_result = net_ebpf_extension_hook_expand_stack_and_invoke_programs(
+        sock_addr_ctx, &filter_context->base, &program_verdict);
+    NET_EBPF_EXT_LOG_SOCK_ADDR_PROGRAM_INVOCATION_FAILURE(program_result);
+    effective_verdict = _net_ebpf_extension_sock_addr_get_effective_verdict(
+        program_result, net_ebpf_sock_addr_ctx.verdict, effective_verdict);
+
+    if (program_result == EBPF_SUCCESS) {
+        // Bind hooks do not support address modification. Changes are ignored for WFP and restored between programs.
+        _net_ebpf_ext_log_sock_addr_classify(
+            "bind_classify",
+            incoming_metadata_values->transportEndpointHandle,
+            sock_addr_ctx,
+            NULL,
+            effective_verdict,
+            compartment_id);
     }
 
-    // Use the accumulated verdict from the accumulate_verdict callback. Bind hooks do not
-    // support address modification: any changes the program made to user_ip/user_port are
-    // silently ignored (and restored between programs by the shared accumulator).
-    verdict = net_ebpf_sock_addr_ctx.verdict;
-    _net_ebpf_extension_sock_addr_apply_verdict(classify_output, verdict);
-
-    _net_ebpf_ext_log_sock_addr_classify(
-        "bind_classify",
-        incoming_metadata_values->transportEndpointHandle,
-        sock_addr_ctx,
-        NULL,
-        verdict,
-        compartment_id);
-
 Exit:
+    _net_ebpf_extension_sock_addr_apply_verdict(classify_output, effective_verdict, action_write_allowed);
     EBPF_EXT_LOG_EXIT();
 }
 
@@ -2499,11 +2512,8 @@ _net_ebpf_extension_sock_addr_is_auth_connect_program(_In_ const net_ebpf_extens
                 sizeof(ebpf_attach_type_t)) == 0);
 }
 
-/*
- * Default action is BLOCK. If this callout is being invoked, it means at least one
- * eBPF program is attached. Hence no connection should be allowed unless allowed by
- * the eBPF program.
- */
+// The default verdict is PROCEED_SOFT. A cached redirect verdict or an attached authorization program can make the
+// decision terminal.
 void
 net_ebpf_extension_sock_addr_authorize_connection_classify(
     _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
@@ -2515,36 +2525,22 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 {
     EBPF_EXT_LOG_ENTRY();
-    uint32_t verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
+    uint32_t effective_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+    // The invocation API requires a verdict output for each program. The accumulated result is stored in
+    // net_ebpf_sock_addr_ctx.verdict by the process-verdict callback.
+    uint32_t program_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_sock_addr_t net_ebpf_sock_addr_ctx = {0};
     bpf_sock_addr_t* sock_addr_ctx = &net_ebpf_sock_addr_ctx.base;
     uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID;
     ebpf_result_t program_result;
-    bool rights_revoked = FALSE;
+    bool action_write_allowed = ((classify_output->rights & FWPS_RIGHT_ACTION_WRITE) != 0);
 
-    UNREFERENCED_PARAMETER(incoming_metadata_values);
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(flow_context);
 
-    filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter->context;
-    ASSERT(filter_context != NULL);
-    if (filter_context == NULL) {
-        goto Exit;
-    }
-
-    // Note: This is intentionally not guarded by a lock as this is opportunistically checking if all the
-    // clients have detached and the filter context is being deleted.
-    if (filter_context->base.context_deleting) {
-        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "net_ebpf_extension_sock_addr_authorize_connection_classify - Client detach detected.",
-            STATUS_INVALID_PARAMETER);
-        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
-        goto Exit;
-    }
+    BAIL_ON_INACTIVE_FILTER_CONTEXT(filter, filter_context);
 
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
         incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
@@ -2559,35 +2555,25 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
             "The cgroup_sock_addr eBPF program is not interested in this compartment ID",
             sock_addr_ctx->compartment_id);
 
-        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         goto Exit;
     }
 
     // First, try to find and use existing connection context from redirect layer.
-    // This must happen before the rights check so the cached entry is always cleaned up,
-    // even when a higher-weight callout has revoked our write permission.
-    verdict = _net_ebpf_ext_find_and_remove_connection_context(
+    effective_verdict = _net_ebpf_ext_find_and_remove_connection_context(
         incoming_metadata_values->transportEndpointHandle, sock_addr_ctx);
 
-    if ((classify_output->rights & FWPS_RIGHT_ACTION_WRITE) == 0) {
-        // A callout with higher weight has revoked the write permission. Bail out without
-        // invoking any eBPF program and without touching classify_output->actionType (the
-        // Exit-block verdict is also skipped via rights_revoked). The cache cleanup above
-        // has already run.
-        EBPF_EXT_LOG_MESSAGE(
-            EBPF_EXT_TRACELOG_LEVEL_VERBOSE, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "No \"write\" right; exiting.");
-        rights_revoked = TRUE;
-        goto Exit;
-    }
+    // Keep this cache lookup before the no-write bail so a cached verdict is consumed even when an earlier WFP
+    // decision is final.
+    BAIL_ON_NO_WRITE_RIGHT(classify_output, action_write_allowed);
 
     // CONNECT_AUTHORIZATION programs run for all non-REJECT verdicts from the redirect layer.
     // REJECT is already final. PROCEED_HARD and PROCEED_SOFT both allow authorization programs
     // to run so they can make decisions based on route-dependent metadata.
     // The verdict priority system ensures REJECT from authorization overrides PROCEED_HARD,
     // while PROCEED_SOFT from authorization does not downgrade PROCEED_HARD.
-    if (verdict != BPF_SOCK_ADDR_VERDICT_REJECT) {
+    if (effective_verdict != BPF_SOCK_ADDR_VERDICT_REJECT) {
         // Initialize the accumulated verdict with the cached redirect-layer verdict.
-        net_ebpf_sock_addr_ctx.verdict = verdict;
+        net_ebpf_sock_addr_ctx.verdict = effective_verdict;
 
         // Note: sock_addr_ctx_original is a stack-local variable. The pointer stored in
         // net_ebpf_sock_addr_ctx.original_context is only valid during the synchronous
@@ -2596,42 +2582,32 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
         memcpy(&sock_addr_ctx_original, sock_addr_ctx, sizeof(sock_addr_ctx_original));
         net_ebpf_sock_addr_ctx.original_context = &sock_addr_ctx_original;
 
-        uint32_t ignored_verdict;
         program_result = net_ebpf_extension_hook_expand_stack_and_invoke_filtered_programs(
             sock_addr_ctx,
             &filter_context->base,
-            &ignored_verdict,
+            &program_verdict,
             _net_ebpf_extension_sock_addr_is_auth_connect_program);
-        if (program_result == EBPF_OBJECT_NOT_FOUND) {
-            // No eBPF program is attached to this filter, leave the verdict as is.
-        } else if (program_result != EBPF_SUCCESS) {
-            // We failed to invoke at least one program in the chain, block the request.
-            verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
-        } else {
-            // Use the accumulated verdict from process_verdict callback.
-            verdict = net_ebpf_sock_addr_ctx.verdict;
-        }
+        NET_EBPF_EXT_LOG_SOCK_ADDR_PROGRAM_INVOCATION_FAILURE(program_result);
+        effective_verdict = _net_ebpf_extension_sock_addr_get_effective_verdict(
+            program_result, net_ebpf_sock_addr_ctx.verdict, effective_verdict);
     } else {
         // Attach point not invoked due to prior REJECT verdict.
         EBPF_EXT_LOG_MESSAGE_UINT32(
             EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
             EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "CONNECT_AUTHORIZATION attach point skipped due to prior REJECT verdict",
-            verdict);
+            effective_verdict);
     }
 
 Exit:
-    // Set action type based on the accumulated verdict.
-    if (!rights_revoked) {
-        _net_ebpf_extension_sock_addr_apply_verdict(classify_output, verdict);
-    }
+    _net_ebpf_extension_sock_addr_apply_verdict(classify_output, effective_verdict, action_write_allowed);
 
     _net_ebpf_ext_log_sock_addr_classify(
         "auth_connect_classify",
         incoming_metadata_values->transportEndpointHandle,
         sock_addr_ctx,
         NULL,
-        verdict,
+        effective_verdict,
         compartment_id);
 
     EBPF_EXT_LOG_EXIT();
@@ -2873,7 +2849,7 @@ _net_ebpf_extension_sock_addr_is_connect_program(_In_ const net_ebpf_extension_h
  * If the program modifies the destination IP of the connection, connection redirection will be performed by this
  * callout. If on the other hand, the program returns a REJECT verdict, that decision will be cached and enforced
  * later by a corresponding callout at the WFP CONNECT_AUTHORIZATION layer.
- * By default, the local variable for verdict is set to REJECT.
+ * The default verdict is PROCEED_SOFT. Program invocation failures are rejected.
  */
 void
 net_ebpf_extension_sock_addr_redirect_connection_classify(
@@ -2886,13 +2862,15 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 {
     EBPF_EXT_LOG_ENTRY();
-    uint32_t verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
+    uint32_t effective_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+    // The invocation API requires a verdict output for each program. The accumulated result is stored in
+    // net_ebpf_sock_addr_ctx.verdict by the process-verdict callback.
+    uint32_t program_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     NTSTATUS status = STATUS_SUCCESS;
-    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_result_t program_result = EBPF_SUCCESS;
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
 
-    // Initialize the verdict as invalid
-    net_ebpf_sock_addr_t net_ebpf_sock_addr_ctx = {.verdict = -1};
+    net_ebpf_sock_addr_t net_ebpf_sock_addr_ctx = {.verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT};
 
     bpf_sock_addr_t* sock_addr_ctx = (bpf_sock_addr_t*)&net_ebpf_sock_addr_ctx.base;
     bpf_sock_addr_t sock_addr_ctx_original = {0};
@@ -2905,49 +2883,23 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     bool redirected = FALSE;
     bool reauthorization = FALSE;
     bool cache_verdict = TRUE;
+    bool context_initialized = false;
+    bool action_write_allowed = false;
 
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(flow_context);
 
-    if ((classify_output->rights & FWPS_RIGHT_ACTION_WRITE) == 0) {
-        // A callout with higher weight has revoked the write permission. Bail out.
-        EBPF_EXT_LOG_MESSAGE(
-            EBPF_EXT_TRACELOG_LEVEL_VERBOSE, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "No \"write\" right; exiting.");
-        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
-        goto Exit;
-    }
-
-    filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter->context;
-    ASSERT(filter_context != NULL);
-    if (filter_context == NULL) {
-        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "filter_context is NULL.",
-            STATUS_INVALID_PARAMETER);
-        goto Exit;
-    }
-
-    // Note: This is intentionally not guarded by a lock as this is opportunistically checking if all the
-    // clients have detached and the filter context is being deleted.
-    if (filter_context->base.context_deleting) {
-        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "net_ebpf_extension_sock_addr_redirect_connection_classify - Client detach detected.",
-            STATUS_INVALID_PARAMETER);
-        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
-        goto Exit;
-    }
+    BAIL_ON_NO_WRITE_RIGHT(classify_output, action_write_allowed);
+    BAIL_ON_INACTIVE_FILTER_CONTEXT(filter, filter_context);
 
     // Populate the sock_addr context with WFP classify input fields.
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
         incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
+    context_initialized = true;
 
     // In case of re-authorization, the eBPF programs have already inspected the connection.
     // Skip invoking the program(s) again. In this case the verdict is always to proceed (terminating).
     if (net_ebpf_sock_addr_ctx.flags & FWP_CONDITION_FLAG_IS_REAUTHORIZE) {
-        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         reauthorization = TRUE;
         EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
             EBPF_EXT_TRACELOG_LEVEL_ERROR,
@@ -2967,7 +2919,6 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
             EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "The cgroup_sock_addr eBPF program is not interested in this compartment ID.",
             sock_addr_ctx->compartment_id);
-        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         goto Exit;
     }
 
@@ -2987,7 +2938,6 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
             (uint64_t)sock_addr_ctx->compartment_id);
 
         // This connection was previously redirected.
-        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         goto Exit;
     }
 
@@ -2995,7 +2945,6 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
 
     // Check if the eBPF program should be invoked based on the IP address family and the hook attach type.
     if (!_net_ebpf_extension_sock_addr_should_invoke_ebpf_program(filter_context, sock_addr_ctx, v4_mapped)) {
-        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         goto Exit;
     }
     net_ebpf_sock_addr_ctx.v4_mapped = v4_mapped;
@@ -3029,36 +2978,30 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     memcpy(&sock_addr_ctx_original, sock_addr_ctx, sizeof(sock_addr_ctx_original));
     net_ebpf_sock_addr_ctx.original_context = &sock_addr_ctx_original;
 
-    // This parameter is not used. Verdict in net_ebpf_sock_addr_ctx is used instead as long as it's valid.
-    uint32_t ignored_verdict;
-    result = net_ebpf_extension_hook_expand_stack_and_invoke_filtered_programs(
-        sock_addr_ctx, &filter_context->base, &ignored_verdict, _net_ebpf_extension_sock_addr_is_connect_program);
+    program_result = net_ebpf_extension_hook_expand_stack_and_invoke_filtered_programs(
+        sock_addr_ctx, &filter_context->base, &program_verdict, _net_ebpf_extension_sock_addr_is_connect_program);
 
-    if (net_ebpf_sock_addr_ctx.verdict >= 0) {
-        verdict = net_ebpf_sock_addr_ctx.verdict;
-    }
-
-    if (result == EBPF_OBJECT_NOT_FOUND) {
-        // No eBPF program is attached to this filter.
-        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
-    } else if (result != EBPF_SUCCESS) {
-        // We failed to invoke at least one program in the chain, block the request.
-        verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
-    }
+    NET_EBPF_EXT_LOG_SOCK_ADDR_PROGRAM_INVOCATION_FAILURE(program_result);
+    effective_verdict = _net_ebpf_extension_sock_addr_get_effective_verdict(
+        program_result, net_ebpf_sock_addr_ctx.verdict, effective_verdict);
 
     // Since the eBPF program turned in a REJECT verdict, there is no need to process
     // connection redirection, even if the program modified the destination.
-    if (verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {
-        EBPF_EXT_LOG_MESSAGE(
-            EBPF_EXT_TRACELOG_LEVEL_WARNING,
-            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "cgroup_sock_addr eBPF program returned REJECT verdict.");
+    if (effective_verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {
+        if (program_result == EBPF_SUCCESS) {
+            EBPF_EXT_LOG_MESSAGE(
+                EBPF_EXT_TRACELOG_LEVEL_WARNING,
+                EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+                "cgroup_sock_addr eBPF program returned REJECT verdict.");
+        }
+        // The destination rewrite was not applied, so cache the rejection using the original connection tuple.
+        *sock_addr_ctx = sock_addr_ctx_original;
         goto Exit;
     }
 
     redirected = net_ebpf_sock_addr_ctx.redirected;
 
-    if (verdict != BPF_SOCK_ADDR_VERDICT_REJECT) {
+    if (effective_verdict != BPF_SOCK_ADDR_VERDICT_REJECT) {
         if (v4_mapped) {
             // Change original sock addr context back for logging.
             sock_addr_ctx_original.family = AF_INET6;
@@ -3092,27 +3035,22 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         incoming_metadata_values->transportEndpointHandle,
         &sock_addr_ctx_original,
         redirected ? sock_addr_ctx : NULL,
-        verdict,
+        effective_verdict,
         compartment_id);
 Exit:
-    if (cache_verdict) {
+    if (cache_verdict && context_initialized) {
         _cache_connection_context_verdict(
             sock_addr_ctx,
             &sock_addr_ctx_original,
             redirected,
             v4_mapped,
             reauthorization,
-            verdict,
+            effective_verdict,
             incoming_metadata_values->transportEndpointHandle);
     }
 
-    // Callout at CONNECT_REDIRECT layer always returns WFP action PERMIT / CONTINUE.
-    // If the connection was redirected or blocked, make the action TERMINATING.
-    if (reauthorization || redirected || verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {
-        classify_output->actionType = FWP_ACTION_PERMIT;
-    } else {
-        classify_output->actionType = FWP_ACTION_CONTINUE;
-    }
+    _net_ebpf_extension_sock_addr_apply_redirect_verdict(
+        classify_output, effective_verdict, action_write_allowed, reauthorization, redirected);
 
     if (classify_handle_acquired) {
         FwpsReleaseClassifyHandle(classify_handle);

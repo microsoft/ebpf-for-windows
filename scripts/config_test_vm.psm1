@@ -711,21 +711,44 @@ function Initialize-NetworkInterfaces {
         [Parameter(Mandatory=$false)][bool] $ExecuteOnVM = $false,
         [Parameter(Mandatory=$false)] $VMList = @(),
         [Parameter(Mandatory=$true)][string] $TestWorkingDirectory,
-        [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false
+        [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false,
+        [Parameter(Mandatory=$false)][bool] $KmTracing = $false,
+        [Parameter(Mandatory=$false)][string] $KmTraceType = "file"
     )
 
     $commandScriptBlock = {
         param([Parameter(Mandatory=$true)] [string] $WorkingDirectory,
-              [Parameter(Mandatory=$true)][string] $LogFileName)
+              [Parameter(Mandatory=$true)][string] $LogFileName,
+              [Parameter(Mandatory=$true)][bool] $KmTracing,
+              [Parameter(Mandatory=$true)][string] $KmTraceType)
+        $traceStarted = $false
         Push-Location $WorkingDirectory
-        Import-Module .\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Write-Log "Installing DuoNic driver"
-        .\duonic.ps1 -Install -NumNicPairs 2
-        Set-NetAdapterAdvancedProperty duo? -DisplayName Checksum -RegistryValue 0
-        Pop-Location
+        try {
+            Import-Module .\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+            if ($KmTracing) {
+                Import-Module .\tracing_utils.psm1 -ArgumentList ($LogFileName, $WorkingDirectory) -Force -WarningAction SilentlyContinue
+                Start-WPRTrace -TraceType $KmTraceType -FailOnError
+                $traceStarted = $true
+            }
+            Write-Log "Installing DuoNic driver"
+            $LASTEXITCODE = 0
+            .\duonic.ps1 -Install -NumNicPairs 2
+            if ($LASTEXITCODE -ne 0) {
+                throw "DuoNic installation failed with exit code $LASTEXITCODE."
+            }
+            Set-NetAdapterAdvancedProperty duo? -DisplayName Checksum -RegistryValue 0
+        } finally {
+            try {
+                if ($traceStarted) {
+                    Stop-WPRTrace -FileName "initialize_network_interfaces"
+                }
+            } finally {
+                Pop-Location
+            }
+        }
     }
 
-    $argumentList = @($TestWorkingDirectory, $LogFileName)
+    $argumentList = @($TestWorkingDirectory, $LogFileName, $KmTracing, $KmTraceType)
 
     if ($ExecuteOnVM) {
         # Execute on VMs.

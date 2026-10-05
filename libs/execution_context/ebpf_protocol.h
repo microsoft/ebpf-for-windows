@@ -57,6 +57,29 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_LINK_SET_LEGACY_MODE,
 } ebpf_operation_id_t;
 
+static inline bool
+ebpf_operation_is_enumeration(ebpf_operation_id_t operation_id)
+{
+    switch (operation_id) {
+    case EBPF_OPERATION_MAP_GET_NEXT_KEY:
+    case EBPF_OPERATION_GET_NEXT_LINK_ID:
+    case EBPF_OPERATION_GET_NEXT_MAP_ID:
+    case EBPF_OPERATION_GET_NEXT_PROGRAM_ID:
+    case EBPF_OPERATION_GET_NEXT_PINNED_PROGRAM_PATH:
+    case EBPF_OPERATION_MAP_GET_NEXT_KEY_VALUE_BATCH:
+    case EBPF_OPERATION_GET_NEXT_PINNED_OBJECT_PATH:
+        return 1;
+    default:
+        return 0;
+    }
+}
+
+#define EBPF_OPERATION_IS_WIN32_ENUMERATION_END(operation_id, error) \
+    ((error) == ERROR_NO_MORE_MATCHES && ebpf_operation_is_enumeration(operation_id))
+
+#define EBPF_OPERATION_IS_NTSTATUS_ENUMERATION_END(operation_id, status) \
+    ((status) == STATUS_NO_MORE_MATCHES && ebpf_operation_is_enumeration(operation_id))
+
 typedef enum _ebpf_code_type
 {
     EBPF_CODE_NONE,
