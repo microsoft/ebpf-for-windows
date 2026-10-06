@@ -2625,7 +2625,7 @@ _validate_native_map_pin_path(_In_ const ebpf_map_t& map, _In_opt_z_ const char*
         EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
 
-    ebpf_assert(map.object != nullptr);
+    ebpf_assert_assume(map.object != nullptr);
     char automatic_path[EBPF_MAX_PIN_PATH_LENGTH];
     const char* expected_path = map.pin_path;
     if (!map.object->loaded) {
@@ -2639,7 +2639,7 @@ _validate_native_map_pin_path(_In_ const ebpf_map_t& map, _In_opt_z_ const char*
         }
         expected_path = automatic_path;
     }
-    ebpf_assert(expected_path != nullptr);
+    ebpf_assert_assume(expected_path != nullptr);
 
     char canonical_expected_path[EBPF_MAX_PIN_PATH_LENGTH];
     char canonical_map_path[EBPF_MAX_PIN_PATH_LENGTH];

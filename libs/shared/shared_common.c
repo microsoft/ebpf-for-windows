@@ -762,7 +762,7 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_build_map_pin_path(
     _Out_writes_(output_size) char* output,
     size_t output_size,
