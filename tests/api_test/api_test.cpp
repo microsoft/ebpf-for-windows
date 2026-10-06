@@ -3079,7 +3079,7 @@ TEST_CASE("ebpf_string_apis", "[ebpf_api]")
     ebpf_attach_type_t sample_attach_type = EBPF_ATTACH_TYPE_SAMPLE_GUID;
     const char* attach_name = ebpf_get_attach_type_name(&sample_attach_type);
     REQUIRE(attach_name != nullptr);
-    REQUIRE(std::string(attach_name) == "sample"); // Verify actual content
+    REQUIRE(std::string(attach_name) == "sample_ext"); // Verify actual content
 
     // Test with invalid/unknown program type to verify graceful handling.
     ebpf_program_type_t invalid_type = {0};
