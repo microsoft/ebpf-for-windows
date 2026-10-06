@@ -109,6 +109,23 @@ extern "C"
     } btf_resolved_function_data_t;
 
     /**
+     * @brief Stable map definition embedded in native module metadata.
+     *
+     * New native map properties must be added to map_entry_t instead of this structure.
+     */
+    typedef struct _ebpf_native_map_definition
+    {
+        ebpf_map_type_t type;
+        uint32_t key_size;
+        uint32_t value_size;
+        uint32_t max_entries;
+        uint32_t inner_map_idx;
+        ebpf_pin_type_t pinning;
+        uint32_t id;
+        uint32_t inner_id;
+    } ebpf_native_map_definition_t;
+
+    /**
      * @brief Map entry.
      * This structure contains the address of the map and the map definition. The address is written into the entry
      * during load time. The map definition is used to initialize the map when the program is loaded.
@@ -121,8 +138,9 @@ extern "C"
         uint64_t zero_marker[2];
 
         ebpf_native_module_header_t header;
-        ebpf_map_definition_in_file_t definition;
+        ebpf_native_map_definition_t definition;
         const char* name;
+        uint32_t map_flags;
     } map_entry_t;
 
     typedef struct _map_data
@@ -311,7 +329,7 @@ extern "C"
      EBPF_NATIVE_BTF_RESOLVED_FUNCTION_DATA_CURRENT_VERSION_TOTAL_SIZE}
 
 #define EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION 1
-#define EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(map_entry_t, name)
+#define EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(map_entry_t, map_flags)
 #define EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_TOTAL_SIZE sizeof(map_entry_t)
 #define EBPF_NATIVE_MAP_ENTRY_HEADER             \
     {EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION,      \
