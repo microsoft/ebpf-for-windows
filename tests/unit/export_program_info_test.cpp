@@ -278,7 +278,7 @@ TEST_CASE("validate_native_entry_header_total_size", "[shared]")
         REQUIRE_FALSE(ebpf_validate_object_header_native_helper_function_entry(&header));
 
         header.total_size = EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE + 1;
-        REQUIRE_FALSE(ebpf_validate_object_header_native_helper_function_entry(&header));
+        REQUIRE(ebpf_validate_object_header_native_helper_function_entry(&header));
     }
 
     // Map entry.
@@ -297,7 +297,7 @@ TEST_CASE("validate_native_entry_header_total_size", "[shared]")
         REQUIRE_FALSE(ebpf_validate_object_header_native_map_entry(&header));
 
         header.total_size = EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_TOTAL_SIZE + 1;
-        REQUIRE_FALSE(ebpf_validate_object_header_native_map_entry(&header));
+        REQUIRE(ebpf_validate_object_header_native_map_entry(&header));
     }
 
     // Program entry.
