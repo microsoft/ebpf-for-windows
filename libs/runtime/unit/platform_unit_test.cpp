@@ -8,6 +8,7 @@
 #include "ebpf_async.h"
 #include "ebpf_bitmap.h"
 #include "ebpf_epoch.h"
+#include "ebpf_error.h"
 #include "ebpf_hash_table.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_pinning_table.h"
@@ -2668,6 +2669,18 @@ TEST_CASE("error codes", "[platform]")
         ebpf_result_t result2 = win32_error_code_to_ebpf_result(error);
         REQUIRE(result2 == result);
     }
+}
+
+TEST_CASE("ebpf_result_to_ntstatus", "[platform]")
+{
+    for (ebpf_result_t result = EBPF_SUCCESS; result < EBPF_RESULT_COUNT; result = (ebpf_result_t)(result + 1)) {
+        NTSTATUS status = ebpf_result_to_ntstatus(result);
+        REQUIRE(_ntstatus_to_ebpf_result(status) == result);
+    }
+
+    // Out of range values must not index past the end of the mapping table.
+    REQUIRE(ebpf_result_to_ntstatus((ebpf_result_t)-1) == STATUS_UNSUCCESSFUL);
+    REQUIRE(ebpf_result_to_ntstatus((ebpf_result_t)EBPF_RESULT_COUNT) == STATUS_UNSUCCESSFUL);
 }
 
 TEST_CASE("interlocked operations", "[platform]")

@@ -739,7 +739,7 @@ _test_libbpf_map(ebpf_execution_type_t execution_type)
     // NULL key.
     result = bpf_map_lookup_elem(map_fd, NULL, &value);
     REQUIRE(result < 0);
-    REQUIRE(errno == EINVAL);
+    REQUIRE(errno == EFAULT);
 
     // Invalid key.
     result = bpf_map_delete_elem(map_fd, &index);
@@ -759,7 +759,7 @@ _test_libbpf_map(ebpf_execution_type_t execution_type)
     // NULL key.
     result = bpf_map_update_elem(map_fd, NULL, &value, 0);
     REQUIRE(result < 0);
-    REQUIRE(errno == EINVAL);
+    REQUIRE(errno == EFAULT);
 
     // Invalid key.
     result = bpf_map_update_elem(map_fd, &index, &value, 0);
@@ -881,7 +881,7 @@ _test_libbpf_map(ebpf_execution_type_t execution_type)
     // next_key is NULL.
     result = bpf_map_get_next_key(map_fd, NULL, NULL);
     REQUIRE(result < 0);
-    REQUIRE(errno == EINVAL);
+    REQUIRE(errno == EFAULT);
 
     bpf_object__close(object);
 }
