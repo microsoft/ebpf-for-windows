@@ -293,13 +293,11 @@ TEST_CASE("test_ebpf_multiple_programs_load_native")
 TEST_CASE("test_ebpf_program_next_previous_native", "[test_ebpf_program_next_previous]")
 {
     test_program_next_previous("test_sample_ebpf.sys", SAMPLE_PROGRAM_COUNT);
-    test_program_next_previous("bindmonitor.sys", BIND_MONITOR_PROGRAM_COUNT);
 }
 
 TEST_CASE("test_ebpf_map_next_previous_native", "[test_ebpf_map_next_previous]")
 {
     test_map_next_previous("test_sample_ebpf.sys", SAMPLE_MAP_COUNT);
-    test_map_next_previous("bindmonitor.sys", BIND_MONITOR_MAP_COUNT);
 }
 
 void
@@ -952,144 +950,6 @@ TEST_CASE("duplicate_fd", "")
 
 TEST_CASE("tailcall_load_test_native", "[tailcall_load_test]") { tailcall_load_test("tail_call_multiple.sys"); }
 
-int
-perform_bind(_Out_ SOCKET* socket, uint16_t port_number)
-{
-    *socket = WSASocket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP, nullptr, 0, 0);
-    REQUIRE(*socket != INVALID_SOCKET);
-    SOCKADDR_STORAGE sock_addr;
-    sock_addr.ss_family = AF_INET6;
-    INETADDR_SETANY((PSOCKADDR)&sock_addr);
-
-    // Perform bind operation.
-    ((PSOCKADDR_IN6)&sock_addr)->sin6_port = htons(port_number);
-    return (bind(*socket, (PSOCKADDR)&sock_addr, sizeof(sock_addr)));
-}
-
-void
-bindmonitor_test(_In_ struct bpf_object* object)
-{
-    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
-    REQUIRE(process_map_fd > 0);
-
-    fd_t limits_map_fd = bpf_object__find_map_fd_by_name(object, "limits_map");
-    REQUIRE(limits_map_fd > 0);
-
-    // Set the limit to 2. Third bind from same app should fail.
-    uint32_t key = 0;
-    uint32_t value = 2;
-    int error = bpf_map_update_elem(limits_map_fd, &key, &value, 0);
-    REQUIRE(error == 0);
-
-    WSAData data;
-    SOCKET sockets[3];
-    REQUIRE(WSAStartup(2, &data) == 0);
-
-    // First and second binds should succeed.
-    REQUIRE(perform_bind(&sockets[0], 30000) == 0);
-    REQUIRE(perform_bind(&sockets[1], 30001) == 0);
-
-    // Third bind from the same app should fail.
-    REQUIRE(perform_bind(&sockets[2], 30002) != 0);
-
-    WSACleanup();
-}
-
-TEST_CASE("bindmonitor_native_test", "[native_tests]")
-{
-    struct bpf_object* object = nullptr;
-    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
-    program_load_attach_helper_t _helper;
-    native_module_helper_t _native_helper;
-    _native_helper.initialize("bindmonitor", EBPF_EXECUTION_NATIVE);
-    _helper.initialize(
-        _native_helper.get_file_name().c_str(),
-        BPF_PROG_TYPE_BIND,
-        "BindMonitor",
-        EBPF_EXECUTION_NATIVE,
-        nullptr,
-        0,
-        hook);
-    object = _helper.get_object();
-
-    bindmonitor_test(object);
-}
-
-TEST_CASE("bindmonitor_tailcall_native_test", "[native_tests]")
-{
-    struct bpf_object* object = nullptr;
-    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
-    program_load_attach_helper_t _helper;
-    native_module_helper_t _native_helper;
-    _native_helper.initialize("bindmonitor_tailcall", EBPF_EXECUTION_NATIVE);
-    _helper.initialize(
-        _native_helper.get_file_name().c_str(),
-        BPF_PROG_TYPE_BIND,
-        "BindMonitor",
-        EBPF_EXECUTION_NATIVE,
-        nullptr,
-        0,
-        hook);
-    object = _helper.get_object();
-
-    // Setup tail calls.
-    struct bpf_program* callee0 = bpf_object__find_program_by_name(object, "BindMonitor_Callee0");
-    REQUIRE(callee0 != nullptr);
-    fd_t callee0_fd = bpf_program__fd(callee0);
-    REQUIRE(callee0_fd > 0);
-
-    struct bpf_program* callee1 = bpf_object__find_program_by_name(object, "BindMonitor_Callee1");
-    REQUIRE(callee1 != nullptr);
-    fd_t callee1_fd = bpf_program__fd(callee1);
-    REQUIRE(callee1_fd > 0);
-
-    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "prog_array_map");
-    REQUIRE(prog_map_fd > 0);
-
-    uint32_t index = 0;
-    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee0_fd, 0) == 0);
-    index = 1;
-    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
-
-    bindmonitor_test(object);
-
-    auto cleanup = [prog_map_fd, &index]() {
-        index = 0;
-        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
-        index = 1;
-        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
-    };
-
-    // Test map-in-maps.
-    struct bpf_map* outer_map = bpf_object__find_map_by_name(object, "dummy_outer_map");
-    if (outer_map == nullptr) {
-        cleanup();
-    }
-    REQUIRE(outer_map != nullptr);
-
-    int outer_map_fd = bpf_map__fd(outer_map);
-    if (outer_map_fd <= 0) {
-        cleanup();
-    }
-    REQUIRE(outer_map_fd > 0);
-
-    // Test map-in-maps.
-    struct bpf_map* outer_idx_map = bpf_object__find_map_by_name(object, "dummy_outer_idx_map");
-    if (outer_idx_map == nullptr) {
-        cleanup();
-    }
-    REQUIRE(outer_idx_map != nullptr);
-
-    int outer_idx_map_fd = bpf_map__fd(outer_idx_map);
-    if (outer_idx_map_fd <= 0) {
-        cleanup();
-    }
-    REQUIRE(outer_idx_map_fd > 0);
-
-    // Clean up tail calls.
-    cleanup();
-}
-
 void
 send_traffic(IPPROTO protocol, bool is_ipv6)
 {
@@ -1496,107 +1356,6 @@ TEST_CASE("nomap_load_test", "[native_tests]")
 }
 
 TEST_CASE("bpf_user_helpers_test_native", "[api_test]") { bpf_user_helpers_test(EBPF_EXECUTION_NATIVE); }
-
-// This test tests resource reclamation and clean-up after a premature/abnormal user mode application exit.
-TEST_CASE("close_unload_test", "[native_tests][native_close_cleanup_tests]")
-{
-    struct bpf_object* object = nullptr;
-    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
-    program_load_attach_helper_t _helper;
-    native_module_helper_t _native_helper;
-    _native_helper.initialize("bindmonitor_tailcall", EBPF_EXECUTION_NATIVE);
-    _helper.initialize(
-        _native_helper.get_file_name().c_str(),
-        BPF_PROG_TYPE_BIND,
-        "BindMonitor",
-        EBPF_EXECUTION_NATIVE,
-        nullptr,
-        0,
-        hook);
-    object = _helper.get_object();
-
-    // Set up tail calls.
-    struct bpf_program* callee0 = bpf_object__find_program_by_name(object, "BindMonitor_Callee0");
-    REQUIRE(callee0 != nullptr);
-    fd_t callee0_fd = bpf_program__fd(callee0);
-    REQUIRE(callee0_fd > 0);
-
-    struct bpf_program* callee1 = bpf_object__find_program_by_name(object, "BindMonitor_Callee1");
-    REQUIRE(callee1 != nullptr);
-    fd_t callee1_fd = bpf_program__fd(callee1);
-    REQUIRE(callee1_fd > 0);
-
-    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "prog_array_map");
-    REQUIRE(prog_map_fd > 0);
-
-    uint32_t index = 0;
-    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee0_fd, 0) == 0);
-
-    index = 1;
-    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
-
-    // Now insert the same program for multiple keys in the same map.
-    index = 2;
-    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
-
-    index = 4;
-    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
-
-    index = 7;
-    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
-
-    bindmonitor_test(object);
-
-    // The block of commented code after this comment is for documentation purposes only.
-    //
-    // A well-behaved user mode application _should_ call these calls to correctly free the allocated objects. In case
-    // of careless applications that do not do so (or even well behaved applications, when they crash or terminate for
-    // some reason before getting to this point), the 'premature application close' event handling _should_ take care
-    // of reclaiming and free'ing such objects. All unit tests belonging to the '[native_close_cleanup_tests]'
-    // unit-test class simulate this behavior by _not_ calling the clean-up api calls.
-    //
-    // For native tests (meant for execution on the kernel mode ebpf-for-windows driver), this event will be handled
-    // by the ebpf-core kernel mode driver on test application termination.
-    //
-    // The success/failure of the [native_close_cleanup_tests] tests can only be (indirectly) checked by attempting to
-    // stop the ebpf-core driver after executing this class of tests.  If the clean-up by the ebpf-core driver is not
-    // successful, it cannot be stopped/unloaded.  This step is performed automatically by the CI/CD test pass runs and
-    // will need to be performed as an explicit manual step after a manually initiated test-run.
-    //
-    // On a final note, each test in the [native_close_cleanup_tests] set _must_ load a .sys driver (if it needs one)
-    // that either has not been loaded yet, or was loaded but has since been unloaded (before start of the test). Given
-    // that we deliberately skip the clean-up API calls, the drivers stay loaded at the end of the individual test. An
-    // attempt to (re)load the same driver again (by the next test) will fail (as it should), but leads to spurious
-    // test failures (by way of an assert due to an error returned by bpf_object__load() in the
-    // program_load_attach_helper_t constructor).
-
-    /*
-        --- DO NOT REMOVE OR UN-COMMENT ---
-
-    auto cleanup = [prog_map_fd, &index]() {
-        index = 0;
-        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
-
-        index = 1;
-        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
-
-        index = 2;
-        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
-
-        index = 4;
-        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
-
-        index = 7;
-        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
-    };
-
-    // Clean up tail calls.
-    cleanup();
-
-    // Free the program as well.
-    bpf_object__close(object);
-    */
-}
 
 TEST_CASE("ioctl_stress", "[stress]")
 {
@@ -3311,16 +3070,16 @@ TEST_CASE("ebpf_string_apis", "[ebpf_api]")
     ebpf_free_string(nullptr);
 
     // Test program type name lookup.
-    ebpf_program_type_t sample_program_type = EBPF_PROGRAM_TYPE_BIND_GUID;
+    ebpf_program_type_t sample_program_type = EBPF_PROGRAM_TYPE_SAMPLE_GUID;
     const char* type_name = ebpf_get_program_type_name(&sample_program_type);
     REQUIRE(type_name != nullptr);
-    REQUIRE(std::string(type_name) == "bind"); // Verify actual content
+    REQUIRE(std::string(type_name) == "sample"); // Verify actual content
 
     // Test attach type name lookup.
-    ebpf_attach_type_t bind_attach_type = EBPF_ATTACH_TYPE_BIND_GUID;
-    const char* attach_name = ebpf_get_attach_type_name(&bind_attach_type);
+    ebpf_attach_type_t sample_attach_type = EBPF_ATTACH_TYPE_SAMPLE_GUID;
+    const char* attach_name = ebpf_get_attach_type_name(&sample_attach_type);
     REQUIRE(attach_name != nullptr);
-    REQUIRE(std::string(attach_name) == "bind"); // Verify actual content
+    REQUIRE(std::string(attach_name) == "sample"); // Verify actual content
 
     // Test with invalid/unknown program type to verify graceful handling.
     ebpf_program_type_t invalid_type = {0};
@@ -3342,23 +3101,26 @@ TEST_CASE("ebpf_type_conversion_apis", "[ebpf_api]")
 
     // Test BPF to eBPF attach type conversion.
     ebpf_attach_type_t ebpf_attach_type;
-    ebpf_result_t result = ebpf_get_ebpf_attach_type(BPF_ATTACH_TYPE_BIND, &ebpf_attach_type);
+    ebpf_result_t result = ebpf_get_ebpf_attach_type(BPF_ATTACH_TYPE_SAMPLE, &ebpf_attach_type);
     REQUIRE(result == EBPF_SUCCESS);
 
     // Test reverse conversion.
     bpf_attach_type_t bpf_attach_type = ebpf_get_bpf_attach_type(&ebpf_attach_type);
-    REQUIRE(bpf_attach_type == BPF_ATTACH_TYPE_BIND);
+    REQUIRE(bpf_attach_type == BPF_ATTACH_TYPE_SAMPLE);
 
     // Test program type lookup by name.
     ebpf_program_type_t program_type;
     ebpf_attach_type_t expected_attach_type;
-    result = ebpf_get_program_type_by_name("bind", &program_type, &expected_attach_type);
+    result = ebpf_get_program_type_by_name("sample_ext", &program_type, &expected_attach_type);
     REQUIRE(result == EBPF_SUCCESS);
 
     // Verify the lookup worked by converting back to name.
     const char* retrieved_name = ebpf_get_program_type_name(&program_type);
     REQUIRE(retrieved_name != nullptr);
-    REQUIRE(std::string(retrieved_name) == "bind");
+    REQUIRE(std::string(retrieved_name) == "sample");
+    const char* retrieved_attach_name = ebpf_get_attach_type_name(&expected_attach_type);
+    REQUIRE(retrieved_attach_name != nullptr);
+    REQUIRE(std::string(retrieved_attach_name) == "sample_ext");
 }
 
 // Test path canonicalization API.
@@ -3385,47 +3147,25 @@ TEST_CASE("ebpf_canonicalize_pin_path", "[ebpf_api]")
 // Test enumerate programs API.
 TEST_CASE("ebpf_enumerate_programs", "[ebpf_api]")
 {
-    // Test with a known test file path - using sample programs from the project.
-    auto test_cases = std::map<std::string, std::function<void(ebpf_api_program_info_t*)>>{
-        {"test_sample_ebpf.o",
-         [](ebpf_api_program_info_t* info) {
-             REQUIRE(std::string(info->section_name) == "sample_ext");
-             REQUIRE(std::string(info->program_name) == "test_program_entry");
-             REQUIRE(info->program_type == EBPF_PROGRAM_TYPE_SAMPLE);
-             REQUIRE(info->expected_attach_type == EBPF_ATTACH_TYPE_SAMPLE);
-         }},
-        {"bindmonitor.o", [](ebpf_api_program_info_t* info) {
-             REQUIRE(std::string(info->section_name) == "bind");
-             REQUIRE(std::string(info->program_name) == "BindMonitor");
-             REQUIRE(info->program_type == EBPF_PROGRAM_TYPE_BIND);
-             REQUIRE(info->expected_attach_type == EBPF_ATTACH_TYPE_BIND);
-         }}};
-
-    for (const auto& [file, validate] : test_cases) {
-        ebpf_api_program_info_t* program_infos = nullptr;
-        const char* error_message = nullptr;
-
-        // Try to enumerate programs from test file.
-        ebpf_result_t result = ebpf_enumerate_programs(file.c_str(), false, &program_infos, &error_message);
-
-        if (result == EBPF_SUCCESS && program_infos != nullptr) {
-            // Verify we got some program info.
-            REQUIRE(program_infos->section_name != nullptr);
-            REQUIRE(strlen(program_infos->section_name) > 0);
-            validate(program_infos);
-
-            // Clean up.
-            ebpf_free_programs(program_infos);
-        }
-
-        // Clean up error message if any.
-        ebpf_free_string(error_message);
-    }
-
-    // Test with non-existent file - should fail gracefully.
     ebpf_api_program_info_t* program_infos = nullptr;
     const char* error_message = nullptr;
-    ebpf_result_t result = ebpf_enumerate_programs("non_existent_file.o", false, &program_infos, &error_message);
+
+    // Enumerate the sample extension program.
+    ebpf_result_t result = ebpf_enumerate_programs("test_sample_ebpf.o", false, &program_infos, &error_message);
+    if (result == EBPF_SUCCESS && program_infos != nullptr) {
+        REQUIRE(program_infos->section_name != nullptr);
+        REQUIRE(std::string(program_infos->section_name) == "sample_ext");
+        REQUIRE(std::string(program_infos->program_name) == "test_program_entry");
+        REQUIRE(program_infos->program_type == EBPF_PROGRAM_TYPE_SAMPLE);
+        REQUIRE(program_infos->expected_attach_type == EBPF_ATTACH_TYPE_SAMPLE);
+        ebpf_free_programs(program_infos);
+    }
+    ebpf_free_string(error_message);
+
+    // Test with non-existent file - should fail gracefully.
+    program_infos = nullptr;
+    error_message = nullptr;
+    result = ebpf_enumerate_programs("non_existent_file.o", false, &program_infos, &error_message);
     REQUIRE(result != EBPF_SUCCESS);
     // Should provide error message when operation fails.
     REQUIRE(error_message != nullptr);
