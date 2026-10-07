@@ -374,7 +374,7 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: regression_driver_ws2022_n_minus_1
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=regression-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-{0}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=regression-n1-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-{0}"]'
       # Driver test copies dumps to testlog folder.
       gather_dumps: false
       # Driver tests manually gather code coverage.
