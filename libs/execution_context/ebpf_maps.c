@@ -3824,7 +3824,7 @@ ebpf_map_create(
         EBPF_LOG_MESSAGE_UINT64_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
-            "Invalid key size for array-type map",
+            "Invalid key size for array-type map (expected 4)",
             ebpf_map_definition->key_size,
             type);
         result = EBPF_INVALID_ARGUMENT;
