@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "bpf_helpers.h"
-#include "ebpf_nethooks.h"
+#include "sample_ext_helpers.h"
 
 struct
 {
@@ -36,29 +36,29 @@ struct
     __uint(max_entries, 1);
 } hashmap3 SEC(".maps");
 
-SEC("bind/1")
+SEC("sample_ext/1")
 int
-prog1(bind_md_t* ctx)
+prog1(sample_program_context_t* ctx)
 {
-    uint32_t key = (uint32_t)ctx->process_id;
+    uint32_t key = ctx->uint32_data;
     uint16_t* value = bpf_map_lookup_elem(&hashmap1, &key);
     return value != NULL && bpf_map_lookup_elem(&array_map, value) != NULL;
 }
 
-SEC("bind/2")
+SEC("sample_ext/2")
 int
-prog2(bind_md_t* ctx)
+prog2(sample_program_context_t* ctx)
 {
-    uint32_t key = (uint32_t)ctx->process_id;
+    uint32_t key = ctx->uint32_data;
     uint32_t* value = bpf_map_lookup_elem(&hashmap2, &key);
     return value != NULL && bpf_map_lookup_elem(&array_map, value) != NULL;
 }
 
-SEC("bind/3")
+SEC("sample_ext/3")
 int
-prog3(bind_md_t* ctx)
+prog3(sample_program_context_t* ctx)
 {
-    uint32_t key = (uint32_t)ctx->process_id;
+    uint32_t key = ctx->uint32_data;
     uint64_t* value = bpf_map_lookup_elem(&hashmap3, &key);
     return value != NULL && bpf_map_lookup_elem(&array_map, value) != NULL;
 }

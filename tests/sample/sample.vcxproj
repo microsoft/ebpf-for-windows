@@ -401,15 +401,24 @@
       <BuildInParallel>true</BuildInParallel>
     </CustomBuild>
   </ItemGroup>
-  <!-- This verifier regression sample needs Clang to emit a key access that crosses the runtime 512-byte stack. -->
+  <!-- These verifier regression samples are compiled without native conversion (Convert-BpfToNative)
+       because they intentionally contain programs that fail verification. -->
   <ItemGroup>
+    <CustomBuild Include="manual\map_value_as_key.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -I. -I../../undocked/tests/sample/ext/inc -c manual\%(Filename).c -o $(OutputPath)%(Filename).o
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o</Outputs>
+      <AdditionalInputs>$(BpfUndockedHeaderDeps)</AdditionalInputs>
+    </CustomBuild>
     <CustomBuild Include="manual\stack_key_size.c">
       <FileType>CppCode</FileType>
       <Command>
-        $(ClangExec) $(ClangFlags) -mllvm -bpf-stack-size=1024 -I../xdp -I../socket -I./ext/inc -I../include -c manual\%(Filename).c -o $(OutputPath)%(Filename).o
+        $(ClangExec) $(ClangFlags) -mllvm -bpf-stack-size=1024 -I../xdp -I../socket -I./ext/inc -I../include -I. -I../../undocked/tests/sample/ext/inc -c manual\%(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
-      <AdditionalInputs>$(BpfHeaderDeps)</AdditionalInputs>
+      <AdditionalInputs>$(BpfUndockedHeaderDeps)</AdditionalInputs>
     </CustomBuild>
   </ItemGroup>
   <!-- Build BPF programs that pass verification and build native images for them but require custom program type. -->

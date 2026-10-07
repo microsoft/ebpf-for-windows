@@ -437,8 +437,8 @@ TEST_CASE("show verification map value as array key", "[netsh][verification]")
     for (const auto& [program, expected_result] : std::vector<std::pair<const wchar_t*, int>>{
              {L"program=prog1", ERROR_SUPPRESS_OUTPUT}, {L"program=prog2", NO_ERROR}, {L"program=prog3", NO_ERROR}}) {
         int result;
-        std::string output =
-            _run_netsh_command(handle_ebpf_show_verification, L"map_value_as_key.o", program, nullptr, &result);
+        std::string output = _run_netsh_command(
+            handle_ebpf_show_verification, L"map_value_as_key.o", program, L"type=sample_ext", &result);
         REQUIRE(result == expected_result);
         REQUIRE(output.starts_with(expected_result == NO_ERROR ? "Verification succeeded\n" : "Verification failed\n"));
     }
@@ -452,8 +452,8 @@ TEST_CASE("show verification stack variable as array key", "[netsh][verification
     for (const auto& [program, expected_result] : std::vector<std::pair<const wchar_t*, int>>{
              {L"program=prog1", ERROR_SUPPRESS_OUTPUT}, {L"program=prog2", NO_ERROR}}) {
         int result;
-        std::string output =
-            _run_netsh_command(handle_ebpf_show_verification, L"stack_key_size.o", program, nullptr, &result);
+        std::string output = _run_netsh_command(
+            handle_ebpf_show_verification, L"stack_key_size.o", program, L"type=sample_ext", &result);
         REQUIRE(result == expected_result);
         REQUIRE(output.starts_with(expected_result == NO_ERROR ? "Verification succeeded\n" : "Verification failed\n"));
     }

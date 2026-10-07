@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "bpf_helpers.h"
-#include "ebpf_nethooks.h"
+#include "sample_ext_helpers.h"
 
 struct
 {
@@ -18,23 +18,23 @@ typedef struct _stack_key
     uint16_t key;
 } stack_key_t;
 
-SEC("bind/1")
+SEC("sample_ext/1")
 int
-prog1(bind_md_t* ctx)
+prog1(sample_program_context_t* ctx)
 {
     stack_key_t stack_key;
 
     stack_key.padding[0] = 0;
     stack_key.padding[sizeof(stack_key.padding) - 1] = 0;
-    stack_key.key = (uint16_t)ctx->process_id;
+    stack_key.key = ctx->uint16_data;
 
     return bpf_map_lookup_elem(&array_map, &stack_key.key) != NULL;
 }
 
-SEC("bind/2")
+SEC("sample_ext/2")
 int
-prog2(bind_md_t* ctx)
+prog2(sample_program_context_t* ctx)
 {
-    uint16_t key = (uint16_t)ctx->process_id;
+    uint16_t key = ctx->uint16_data;
     return bpf_map_lookup_elem(&array_map, &key) != NULL;
 }
