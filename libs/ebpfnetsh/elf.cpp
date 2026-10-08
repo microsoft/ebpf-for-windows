@@ -164,6 +164,8 @@ handle_ebpf_show_sections(
         level = VL_VERBOSE;
     }
 
+    std::cout << std::setfill(' ');
+
     ebpf_api_program_info_t* program_data = nullptr;
     const char* error_message = nullptr;
     if (ebpf_enumerate_programs(filename.c_str(), level == VL_VERBOSE, &program_data, &error_message) != 0) {

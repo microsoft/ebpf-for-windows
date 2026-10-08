@@ -2632,6 +2632,7 @@ TEST_CASE("ring_buffer_notify", "[platform][ring_buffer]")
     reserved_data = nullptr;
     REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &reserved_data, data.size()) == EBPF_SUCCESS);
     REQUIRE(reserved_data != nullptr);
+    memset(reserved_data, 0, data.size());
     REQUIRE(ebpf_ring_buffer_discard(reserved_data, EBPF_RINGBUF_FLAG_FORCE_WAKEUP) == EBPF_SUCCESS);
     REQUIRE(KeWaitForSingleObject(&event, Executive, KernelMode, TRUE, &short_timeout) == STATUS_SUCCESS);
     KeClearEvent(&event);
