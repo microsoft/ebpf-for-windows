@@ -279,6 +279,7 @@ jobs:
         image:
           - 'server2022'
           - 'server2025'
+          - 'win11'
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1 -GranularTracing
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD" -Options @("ProofOfVerification") -GranularTracing
@@ -303,6 +304,7 @@ jobs:
         image:
           - 'server2022'
           - 'server2025'
+          - 'win11'
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1 -EnableHVCI "On" -GranularTracing
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD" -Options @("ProofOfVerification") -GranularTracing
