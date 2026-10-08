@@ -5,6 +5,7 @@
 #include "catch_wrapper.hpp"
 #include "device_helper.hpp"
 #include "ebpf_protocol.h"
+#include "ebpf_shared_framework.h"
 #include "ioctl_helper.h"
 
 #include <future>
@@ -90,28 +91,56 @@ test_ioctl_map_write(ebpf_handle_t map_handle, _In_reads_bytes_(data_length) con
 uint32_t
 test_ioctl_load_native_programs(
     _In_ const GUID* module_id,
+    _In_opt_z_ const char* pin_root_path,
     size_t count_of_maps,
     _Out_writes_(count_of_maps) ebpf_handle_t* map_handles,
     size_t count_of_programs,
     _Out_writes_(count_of_programs) ebpf_handle_t* program_handles)
 {
+    EBPF_LOG_ENTRY();
     uint32_t error = ERROR_SUCCESS;
+    ebpf_protocol_buffer_t request_buffer;
     ebpf_protocol_buffer_t reply_buffer;
-    ebpf_operation_load_native_programs_request_t request;
+    ebpf_operation_load_native_programs_request_t* request;
     ebpf_operation_load_native_programs_reply_t* reply;
     size_t map_handles_size = count_of_maps * sizeof(ebpf_handle_t);
     size_t program_handles_size = count_of_programs * sizeof(ebpf_handle_t);
     size_t handles_size = map_handles_size + program_handles_size;
+    size_t pin_root_path_size = pin_root_path ? strlen(pin_root_path) : 0;
+    size_t request_size = 0;
+    uint16_t request_length = 0;
+
+    if (pin_root_path_size >= EBPF_MAX_PIN_PATH_LENGTH) {
+        EBPF_RETURN_ERROR(ERROR_INVALID_PARAMETER);
+    }
+
+    ebpf_result_t result = ebpf_safe_size_t_add(
+        offsetof(ebpf_operation_load_native_programs_request_t, pin_root_path), pin_root_path_size, &request_size);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_ERROR(ERROR_ARITHMETIC_OVERFLOW);
+    }
+    result = ebpf_safe_size_t_to_uint16(request_size, &request_length);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_ERROR(ERROR_ARITHMETIC_OVERFLOW);
+    }
 
     size_t buffer_size = offsetof(ebpf_operation_load_native_programs_reply_t, data) + handles_size;
+    request_buffer.resize(request_size);
     reply_buffer.resize(buffer_size);
 
+    request = reinterpret_cast<ebpf_operation_load_native_programs_request_t*>(request_buffer.data());
     reply = reinterpret_cast<ebpf_operation_load_native_programs_reply_t*>(reply_buffer.data());
-    request.header.id = EBPF_OPERATION_LOAD_NATIVE_PROGRAMS;
-    request.header.length = sizeof(ebpf_operation_load_native_programs_request_t);
-    request.module_id = *module_id;
+    request->header.id = EBPF_OPERATION_LOAD_NATIVE_PROGRAMS;
+    request->header.length = request_length;
+    request->module_id = *module_id;
+    if (pin_root_path_size > 0) {
+        memcpy(
+            request_buffer.data() + offsetof(ebpf_operation_load_native_programs_request_t, pin_root_path),
+            pin_root_path,
+            pin_root_path_size);
+    }
 
-    error = invoke_ioctl(request, reply_buffer);
+    error = invoke_ioctl(request_buffer, reply_buffer);
     if (error != ERROR_SUCCESS) {
         goto Done;
     }
@@ -123,7 +152,7 @@ test_ioctl_load_native_programs(
     memcpy(program_handles, reply->data + map_handles_size, program_handles_size);
 
 Done:
-    return error;
+    EBPF_RETURN_ERROR(error);
 }
 
 uint32_t

@@ -584,9 +584,8 @@ load_byte_code(
             }
             if (descriptor.pinning == LIBBPF_PIN_BY_NAME) {
                 char buffer[EBPF_MAX_PIN_PATH_LENGTH];
-                int len = snprintf(buffer, EBPF_MAX_PIN_PATH_LENGTH, "%s/%s", pin_root_path, map->name);
-                if (len < 0 || len >= EBPF_MAX_PIN_PATH_LENGTH) {
-                    result = EBPF_INVALID_ARGUMENT;
+                result = ebpf_build_map_pin_path(buffer, sizeof(buffer), pin_root_path, map->name);
+                if (result != EBPF_SUCCESS) {
                     goto Exit;
                 }
                 map->pin_path = cxplat_duplicate_string(buffer);

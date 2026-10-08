@@ -1243,6 +1243,7 @@ _ebpf_native_get_next_map_to_create(_In_reads_(map_count) ebpf_native_map_t* map
 static ebpf_result_t
 _ebpf_native_initialize_maps(
     _In_ const GUID* module_id,
+    _In_opt_z_ const char* pin_root_path,
     _Out_writes_(map_count) ebpf_native_map_t* native_maps,
     _In_reads_(map_count) const map_entry_t* maps,
     size_t map_count)
@@ -1277,9 +1278,23 @@ _ebpf_native_initialize_maps(
         native_maps[i].original_id = i + ORIGINAL_ID_OFFSET;
 
         if (entry->definition.pinning == LIBBPF_PIN_BY_NAME) {
-            // Construct the pin path.
+            // Construct the pin path by prefixing the map name with the requested pin root path.
+            // ebpf_canonicalize_path treats a relative path as relative to the root, so when no
+            // pin root path is supplied the bare map name yields the default pin root.
+            char pin_path[EBPF_MAX_PIN_PATH_LENGTH];
             char canonical_path[EBPF_MAX_PIN_PATH_LENGTH];
-            result = ebpf_canonicalize_path(canonical_path, sizeof(canonical_path), entry->name);
+
+            result = ebpf_build_map_pin_path(pin_path, sizeof(pin_path), pin_root_path, entry->name);
+            if (result != EBPF_SUCCESS) {
+                EBPF_LOG_MESSAGE_GUID(
+                    EBPF_TRACELOG_LEVEL_ERROR,
+                    EBPF_TRACELOG_KEYWORD_NATIVE,
+                    "_ebpf_native_initialize_maps: map pin path too long",
+                    module_id);
+                goto Done;
+            }
+
+            result = ebpf_canonicalize_path(canonical_path, sizeof(canonical_path), pin_path);
             if (result != EBPF_SUCCESS) {
                 EBPF_LOG_MESSAGE_GUID(
                     EBPF_TRACELOG_LEVEL_ERROR,
@@ -1593,7 +1608,7 @@ _ebpf_native_initialize_global_variables(
 }
 
 static ebpf_result_t
-_ebpf_native_create_maps(_Inout_ ebpf_native_module_instance_t* instance)
+_ebpf_native_create_maps(_Inout_ ebpf_native_module_instance_t* instance, _In_opt_z_ const char* pin_root_path)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
@@ -1623,7 +1638,7 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_instance_t* instance)
     instance->map_count = map_count;
     native_maps = instance->maps;
 
-    result = _ebpf_native_initialize_maps(&module->client_module_id, native_maps, maps, map_count);
+    result = _ebpf_native_initialize_maps(&module->client_module_id, pin_root_path, native_maps, maps, map_count);
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
@@ -2459,6 +2474,7 @@ Done:
 _Must_inspect_result_ ebpf_result_t
 ebpf_native_load_programs(
     _In_ const GUID* module_id,
+    _In_opt_z_ const char* pin_root_path,
     size_t count_of_map_handles,
     _Out_writes_opt_(count_of_map_handles) ebpf_handle_t* map_handles,
     size_t count_of_program_handles,
@@ -2538,7 +2554,7 @@ ebpf_native_load_programs(
     lock_acquired = false;
 
     // Create maps.
-    result = _ebpf_native_create_maps(&instance);
+    result = _ebpf_native_create_maps(&instance, pin_root_path);
     if (result != EBPF_SUCCESS) {
         EBPF_LOG_MESSAGE_GUID(
             EBPF_TRACELOG_LEVEL_VERBOSE,
