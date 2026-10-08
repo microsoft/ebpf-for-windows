@@ -396,19 +396,9 @@ ebpf_validate_object_header_native_map_entry(_In_ const ebpf_extension_header_t*
 bool
 ebpf_validate_object_header_native_program_entry(_In_ const ebpf_extension_header_t* native_program_entry_header)
 {
-    if (native_program_entry_header == NULL) {
-        return false;
-    }
-
-    bool valid_total_size =
-        ((native_program_entry_header->size == EBPF_NATIVE_PROGRAM_ENTRY_SIZE_0) &&
-         (native_program_entry_header->total_size == EBPF_NATIVE_PROGRAM_ENTRY_SIZE_0)) ||
-        ((native_program_entry_header->size == EBPF_NATIVE_PROGRAM_ENTRY_SIZE_1) &&
-         (native_program_entry_header->total_size == EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_TOTAL_SIZE));
-
     return (
-        _ebpf_validate_extension_object_header(EBPF_NATIVE_PROGRAM_ENTRY, native_program_entry_header) &&
-        valid_total_size);
+        (native_program_entry_header != NULL) &&
+        _ebpf_validate_extension_object_header(EBPF_NATIVE_PROGRAM_ENTRY, native_program_entry_header));
 }
 
 bool
@@ -417,9 +407,7 @@ ebpf_validate_object_header_native_map_initial_values(
 {
     return (
         (native_map_initial_values_header != NULL) &&
-        _ebpf_validate_extension_object_header(EBPF_NATIVE_MAP_INITIAL_VALUES, native_map_initial_values_header) &&
-        (native_map_initial_values_header->total_size ==
-         EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION_TOTAL_SIZE));
+        _ebpf_validate_extension_object_header(EBPF_NATIVE_MAP_INITIAL_VALUES, native_map_initial_values_header));
 }
 
 bool
@@ -429,9 +417,7 @@ ebpf_validate_object_header_native_global_variable_section_info(
     return (
         (native_global_variable_section_info_header != NULL) &&
         _ebpf_validate_extension_object_header(
-            EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO, native_global_variable_section_info_header) &&
-        (native_global_variable_section_info_header->total_size ==
-         EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION_TOTAL_SIZE));
+            EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO, native_global_variable_section_info_header));
 }
 
 ebpf_result_t

@@ -259,7 +259,7 @@ _ebpf_validate_native_btf_resolved_function_entry(_In_ const btf_resolved_functi
     valid_header =
         ((native_btf_entry->header.version == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION) &&
          (native_btf_entry->header.size == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_SIZE) &&
-         (native_btf_entry->header.total_size == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE));
+         (native_btf_entry->header.total_size >= native_btf_entry->header.size));
 
     return (
         valid_header &&

@@ -316,14 +316,14 @@ TEST_CASE("validate_native_entry_header_total_size", "[shared]")
         REQUIRE_FALSE(ebpf_validate_object_header_native_program_entry(&header));
 
         header.total_size = EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_TOTAL_SIZE + 1;
-        REQUIRE_FALSE(ebpf_validate_object_header_native_program_entry(&header));
+        REQUIRE(ebpf_validate_object_header_native_program_entry(&header));
 
         header.size = EBPF_SIZE_INCLUDING_FIELD(program_entry_t, program_info_hash_type);
         header.total_size = header.size;
         REQUIRE(ebpf_validate_object_header_native_program_entry(&header));
 
         header.total_size++;
-        REQUIRE_FALSE(ebpf_validate_object_header_native_program_entry(&header));
+        REQUIRE(ebpf_validate_object_header_native_program_entry(&header));
     }
 
     // Map initial values.
@@ -342,7 +342,7 @@ TEST_CASE("validate_native_entry_header_total_size", "[shared]")
         REQUIRE_FALSE(ebpf_validate_object_header_native_map_initial_values(&header));
 
         header.total_size = EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION_TOTAL_SIZE + 1;
-        REQUIRE_FALSE(ebpf_validate_object_header_native_map_initial_values(&header));
+        REQUIRE(ebpf_validate_object_header_native_map_initial_values(&header));
     }
 
     // Global variable section info.
@@ -361,6 +361,6 @@ TEST_CASE("validate_native_entry_header_total_size", "[shared]")
         REQUIRE_FALSE(ebpf_validate_object_header_native_global_variable_section_info(&header));
 
         header.total_size = EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION_TOTAL_SIZE + 1;
-        REQUIRE_FALSE(ebpf_validate_object_header_native_global_variable_section_info(&header));
+        REQUIRE(ebpf_validate_object_header_native_global_variable_section_info(&header));
     }
 }
