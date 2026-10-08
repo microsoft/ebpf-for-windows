@@ -340,7 +340,7 @@ jobs:
       # Skip ETW tracing as the individual testcases will capture their own traces.
       capture_etw: false
 
-  # Run the regression driver tests on self-hosted runners (only for 2022).
+  # Run the regression driver tests (N) on self-hosted runners (only for 2022).
   regression_driver_ws2022:
     # Always run this job.
     # Only run this on repos that have self-host runners.
@@ -361,8 +361,8 @@ jobs:
       # Skip ETW tracing as the individual testcases will capture their own traces.
       capture_etw: false
 
-  # Run the regression driver tests on self-hosted runners (only for 2022).
-  regression_driver_ws2022_n_minus_1:
+  # Run the regression driver tests (N-1) on self-hosted runners (only for 2022).
+  regression_driver_ws2022_n_1:
     # Always run this job.
     # Only run this on repos that have self-host runners.
     needs: regular
@@ -372,7 +372,7 @@ jobs:
       pre_test: .\setup_ebpf_cicd_tests.ps1 -TestMode "Regression" -RegressionArtifactsVersion "1.5.0" -GranularTracing
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Regression" -Options @("ProofOfVerification") -GranularTracing
       post_test: .\cleanup_ebpf_cicd_tests.ps1
-      name: regression_driver_ws2022_n_minus_1
+      name: regression_driver_ws2022_n_1
       build_artifact: Build-x64
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=regression-n1-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-{0}"]'
       # Driver test copies dumps to testlog folder.
@@ -382,8 +382,8 @@ jobs:
       # Skip ETW tracing as the individual testcases will capture their own traces.
       capture_etw: false
 
-  # Run the regression driver tests on self-hosted runners (only for 2022).
-  regression_driver_ws2022_n_minus_2:
+  # Run the regression driver tests (N-2) on self-hosted runners (only for 2022).
+  regression_driver_ws2022_n_2:
     # Always run this job.
     # Only run this on repos that have self-host runners.
     needs: regular
@@ -393,9 +393,9 @@ jobs:
       pre_test: .\setup_ebpf_cicd_tests.ps1 -TestMode "Regression" -RegressionArtifactsVersion "1.4.0" -GranularTracing
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Regression" -Options @("ProofOfVerification") -GranularTracing
       post_test: .\cleanup_ebpf_cicd_tests.ps1
-      name: regression_driver_ws2022_n_minus_2
+      name: regression_driver_ws2022_n_2
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=regression-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-{0}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=regression-n2-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-{0}"]'
       # Driver test copies dumps to testlog folder.
       gather_dumps: false
       # Driver tests manually gather code coverage.
@@ -403,8 +403,8 @@ jobs:
       # Skip ETW tracing as the individual testcases will capture their own traces.
       capture_etw: false
 
-  # Run the regression driver tests on self-hosted runners (only for 2022).
-  regression_driver_ws2022_n_minus_3:
+  # Run the regression driver tests (N-3) on self-hosted runners (only for 2022).
+  regression_driver_ws2022_n_3:
     # Always run this job.
     # Only run this on repos that have self-host runners.
     needs: regular
@@ -414,9 +414,9 @@ jobs:
       pre_test: .\setup_ebpf_cicd_tests.ps1 -TestMode "Regression" -RegressionArtifactsVersion "1.3.0" -GranularTracing
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Regression" -Options @("ProofOfVerification") -GranularTracing
       post_test: .\cleanup_ebpf_cicd_tests.ps1
-      name: regression_driver_ws2022_n_minus_3
+      name: regression_driver_ws2022_n_3
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=regression-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-{0}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=regression-n3-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-{0}"]'
       # Driver test copies dumps to testlog folder.
       gather_dumps: false
       # Driver tests manually gather code coverage.
