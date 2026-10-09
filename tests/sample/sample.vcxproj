@@ -350,7 +350,7 @@
   </ItemGroup>
   <!-- For BPF programs that fail verification, build native images without verification only for Debug build. -->
   <ItemGroup Condition="'$(Configuration)'=='Debug'">
-    <CustomBuild Include="unsafe\*.c">
+    <CustomBuild Include="unsafe\*.c" Exclude="unsafe\map_value_as_key.c;unsafe\stack_key_size.c">
       <FileType>CppCode</FileType>
       <Command>
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
@@ -360,7 +360,7 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)'=='NativeOnlyDebug'">
-    <CustomBuild Include="unsafe\*.c">
+    <CustomBuild Include="unsafe\*.c" Exclude="unsafe\map_value_as_key.c;unsafe\stack_key_size.c">
       <FileType>CppCode</FileType>
       <Command>
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
@@ -370,7 +370,7 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)'=='FuzzerDebug'">
-    <CustomBuild Include="unsafe\*.c">
+    <CustomBuild Include="unsafe\*.c" Exclude="unsafe\map_value_as_key.c;unsafe\stack_key_size.c">
       <FileType>CppCode</FileType>
       <Command>
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
@@ -380,7 +380,7 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)'=='Release'">
-    <CustomBuild Include="unsafe\*.c">
+    <CustomBuild Include="unsafe\*.c" Exclude="unsafe\map_value_as_key.c;unsafe\stack_key_size.c">
       <FileType>CppCode</FileType>
       <Command>
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
@@ -391,7 +391,7 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)'=='NativeOnlyRelease'">
-    <CustomBuild Include="unsafe\*.c">
+    <CustomBuild Include="unsafe\*.c" Exclude="unsafe\map_value_as_key.c;unsafe\stack_key_size.c">
       <FileType>CppCode</FileType>
       <Command>
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
@@ -401,21 +401,23 @@
       <BuildInParallel>true</BuildInParallel>
     </CustomBuild>
   </ItemGroup>
-  <!-- These verifier regression samples are compiled without native conversion (Convert-BpfToNative)
-       because they intentionally contain programs that fail verification. -->
+  <!-- These unsafe verifier regression samples use the sample_ext program type and are compiled without native
+       conversion (Convert-BpfToNative) because they intentionally contain programs that fail verification. -->
   <ItemGroup>
-    <CustomBuild Include="manual\map_value_as_key.c">
+    <CustomBuild Include="unsafe\map_value_as_key.c">
       <FileType>CppCode</FileType>
       <Command>
-        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -I. -I../../undocked/tests/sample/ext/inc -c manual\%(Filename).c -o $(OutputPath)%(Filename).o
+        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -I. -I../../undocked/tests/sample/ext/inc -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
       <AdditionalInputs>$(BpfUndockedHeaderDeps)</AdditionalInputs>
     </CustomBuild>
-    <CustomBuild Include="manual\stack_key_size.c">
+    <CustomBuild Include="unsafe\stack_key_size.c">
       <FileType>CppCode</FileType>
+      <!-- This sample intentionally creates a 512-byte stack object to test verifier bounds at the default stack
+           limit. Clang needs a 1024-byte limit to emit the object file so the verifier can evaluate the program. -->
       <Command>
-        $(ClangExec) $(ClangFlags) -mllvm -bpf-stack-size=1024 -I../xdp -I../socket -I./ext/inc -I../include -I. -I../../undocked/tests/sample/ext/inc -c manual\%(Filename).c -o $(OutputPath)%(Filename).o
+        $(ClangExec) $(ClangFlags) -mllvm -bpf-stack-size=1024 -I../xdp -I../socket -I./ext/inc -I../include -I. -I../../undocked/tests/sample/ext/inc -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
       <AdditionalInputs>$(BpfUndockedHeaderDeps)</AdditionalInputs>
