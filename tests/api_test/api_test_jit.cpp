@@ -128,28 +128,15 @@ perform_socket_bind(const uint16_t test_port, bool expect_success = true)
     WSACleanup();
 }
 
-int32_t
-get_expected_jit_result(int32_t expected_result)
-{
-#if defined(CONFIG_BPF_JIT_DISABLED)
-    UNREFERENCED_PARAMETER(expected_result);
-    return -ENOTSUP;
-#else
-    return expected_result;
-#endif
-}
-
 #if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("test_ebpf_program_next_previous_jit", "[test_ebpf_program_next_previous]")
 {
     test_program_next_previous("test_sample_ebpf.o", SAMPLE_PROGRAM_COUNT);
-    test_program_next_previous("bindmonitor.o", BIND_MONITOR_PROGRAM_COUNT);
 }
 
 TEST_CASE("test_ebpf_map_next_previous_jit", "[test_ebpf_map_next_previous]")
 {
     test_map_next_previous("test_sample_ebpf.o", SAMPLE_MAP_COUNT);
-    test_map_next_previous("bindmonitor.o", BIND_MONITOR_MAP_COUNT);
 }
 
 TEST_CASE("ringbuf_api_jit", "[test_ringbuf_api][ring_buffer]") { ring_buffer_api_test(EBPF_EXECUTION_JIT); }

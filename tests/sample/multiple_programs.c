@@ -12,32 +12,32 @@
 // .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
 
 #include "bpf_helpers.h"
-#include "ebpf_nethooks.h"
+#include "sample_ext_helpers.h"
 
-SEC("bind_2")
+SEC("sample_ext/2")
 int
-program3(bind_md_t* ctx)
+program3(sample_program_context_t* ctx)
 {
     return 3;
 }
 
-SEC("bind_4")
+SEC("sample_ext/4")
 int
-program1(bind_md_t* ctx)
+program1(sample_program_context_t* ctx)
 {
     return 1;
 }
 
-SEC("bind_3")
+SEC("sample_ext/3")
 int
-program2(bind_md_t* ctx)
+program2(sample_program_context_t* ctx)
 {
     return 2;
 }
 
-SEC("bind_1")
+SEC("sample_ext/1")
 int
-program4(bind_md_t* ctx)
+program4(sample_program_context_t* ctx)
 {
     return 4;
 }

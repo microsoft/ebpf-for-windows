@@ -36,8 +36,16 @@ typedef struct _audit_entry
 #define JIT_LOAD_RESULT 0
 #endif
 
-int32_t
-get_expected_jit_result(int32_t expected_result);
+inline int32_t
+get_expected_jit_result(int32_t expected_result)
+{
+#if defined(CONFIG_BPF_JIT_DISABLED)
+    UNREFERENCED_PARAMETER(expected_result);
+    return -ENOTSUP;
+#else
+    return expected_result;
+#endif
+}
 
 void
 perform_socket_bind(const uint16_t test_port, bool expect_success);

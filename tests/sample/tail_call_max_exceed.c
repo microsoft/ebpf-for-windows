@@ -12,22 +12,22 @@
 // .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
 
 #include "bpf_helpers.h"
-#include "ebpf_nethooks.h"
+#include "sample_ext_helpers.h"
 
-// Define a macro that defines a program which tail calls a function for the bind hook.
+// Define a macro that defines a program which tail calls a function for the sample hook.
 #define DEFINE_BIND_TAIL_FUNC(x)                                            \
-    SEC("bind/" #x)                                                         \
-    bind_action_t bind_test_callee##x(bind_md_t* ctx)                       \
+    SEC("sample_ext/" #x)                                                   \
+    uint32_t bind_test_callee##x(sample_program_context_t* ctx)             \
     {                                                                       \
         int i = x + 1;                                                      \
         bpf_printk("Calling tail call index [x = %d], [x+1 = %d]\n", x, i); \
         if (bpf_tail_call(ctx, &bind_tail_call_map, i) < 0) {               \
             bpf_printk("Tail call failed at index %d\n", i);                \
         }                                                                   \
-        return BIND_DENY;                                                   \
+        return 2;                                                           \
     }
 
-#define DECLARE_BIND_TAIL_FUNC(x) bind_action_t bind_test_callee##x(bind_md_t* ctx);
+#define DECLARE_BIND_TAIL_FUNC(x) uint32_t bind_test_callee##x(sample_program_context_t* ctx);
 
 DECLARE_BIND_TAIL_FUNC(0)
 DECLARE_BIND_TAIL_FUNC(1)
@@ -70,7 +70,7 @@ struct
     __uint(type, BPF_MAP_TYPE_PROG_ARRAY);
     __type(key, uint32_t);
     __uint(max_entries, MAX_TAIL_CALL_CNT + 2);
-    __array(values, bind_action_t(bind_md_t* ctx));
+    __array(values, uint32_t(sample_program_context_t* ctx));
 } bind_tail_call_map SEC(".maps") = {
     .values = {
         bind_test_callee0,  bind_test_callee1,  bind_test_callee2,  bind_test_callee3,  bind_test_callee4,
@@ -117,26 +117,24 @@ DEFINE_BIND_TAIL_FUNC(31)
 DEFINE_BIND_TAIL_FUNC(32)
 DEFINE_BIND_TAIL_FUNC(33)
 
-bind_hook_t bind_test_caller;
+uint32_t bind_test_caller(sample_program_context_t* ctx);
 
-SEC("bind")
-bind_action_t
-bind_test_caller(bind_md_t* ctx)
+SEC("sample_ext")
+uint32_t
+bind_test_caller(sample_program_context_t* ctx)
 {
     bpf_printk("bind_test_caller: Start tail caller.\n");
     if (bpf_tail_call(ctx, &bind_tail_call_map, 0) < 0) {
         bpf_printk("Failed tail call index %d\n", 0);
     }
 
-    return BIND_DENY;
+    return 2;
 }
 
-SEC("bind/34")
-bind_action_t
-bind_test_callee34(bind_md_t* ctx)
+SEC("sample_ext/34")
+uint32_t
+bind_test_callee34(sample_program_context_t* ctx)
 {
     bpf_printk("Last tail call index: bind_test_callee34\n");
-    // This function is the last tail call function for the bind hook.
-    // This function returns BIND_PERMIT_SOFT to allow the bind request to proceed.
-    return BIND_PERMIT_SOFT;
+    return 1;
 }
