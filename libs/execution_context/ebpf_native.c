@@ -259,7 +259,7 @@ _ebpf_validate_native_btf_resolved_function_entry(_In_ const btf_resolved_functi
     valid_header =
         ((native_btf_entry->header.version == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION) &&
          (native_btf_entry->header.size == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_SIZE) &&
-         (native_btf_entry->header.total_size == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE));
+         (native_btf_entry->header.total_size >= native_btf_entry->header.size));
 
     return (
         valid_header &&
@@ -353,12 +353,18 @@ _ebpf_validate_native_program_entry_array(
         if (native_program_entry_array == NULL) {
             return false;
         }
+
+        if (!_ebpf_validate_native_program_entry(native_program_entry_array)) {
+            return false;
+        }
+
         // Use "total_size" to calculate the actual size of the program_entry_t struct.
         size_t program_entry_size = native_program_entry_array[0].header.total_size;
-        for (size_t i = 0; i < count; i++) {
+        for (size_t i = 1; i < count; i++) {
             const program_entry_t* program_entry =
                 (const program_entry_t*)ARRAY_ELEMENT_INDEX(native_program_entry_array, i, program_entry_size);
-            if (!_ebpf_validate_native_program_entry(program_entry)) {
+            if ((program_entry->header.total_size != program_entry_size) ||
+                !_ebpf_validate_native_program_entry(program_entry)) {
                 return false;
             }
         }
@@ -1256,7 +1262,7 @@ _ebpf_native_initialize_maps(
     for (uint32_t i = 0; i < map_count; i++) {
         // Copy the map_entry_t from native module to ebpf_native_map_t.
         map_entry_t* map_entry = (map_entry_t*)ARRAY_ELEMENT_INDEX(maps, i, map_entry_size);
-        memcpy(&native_maps[i].entry, map_entry, map_entry_size);
+        memcpy(&native_maps[i].entry, map_entry, min(map_entry_size, sizeof(native_maps[i].entry)));
         map_entry_t* entry = &native_maps[i].entry;
 
         if (entry->definition.pinning != LIBBPF_PIN_NONE && entry->definition.pinning != LIBBPF_PIN_BY_NAME) {
@@ -1555,7 +1561,10 @@ _ebpf_native_initialize_global_variables(
                 global_variables, i, global_variable_section_info_size);
 
         // Copy the global variable section info.
-        memcpy(&local_global_section_info, global_variable_section_info, global_variable_section_info_size);
+        memcpy(
+            &local_global_section_info,
+            global_variable_section_info,
+            min(global_variable_section_info_size, sizeof(local_global_section_info)));
         global_variable_section_info = NULL;
 
         const ebpf_native_map_t* native_map = _ebpf_native_find_map_by_name(instance, local_global_section_info.name);
@@ -1825,7 +1834,7 @@ _ebpf_native_resolve_helpers_for_program(
             helper_function_entry_t local_helper_entry = {0};
             const helper_function_entry_t* entry =
                 (const helper_function_entry_t*)ARRAY_ELEMENT_INDEX(helper_info, i, helper_entry_size);
-            memcpy(&local_helper_entry, entry, helper_entry_size);
+            memcpy(&local_helper_entry, entry, min(helper_entry_size, sizeof(local_helper_entry)));
 
             if (local_helper_entry.helper_id == 0) {
                 // Sentinel entry — this helper is not used by this program.
@@ -1977,7 +1986,12 @@ _ebpf_native_initialize_programs(_Inout_ ebpf_native_module_instance_t* instance
             for (uint32_t i = 0; i < native_program->program_entry.helper_count; i++) {
                 const helper_function_entry_t* helper_entry =
                     (const helper_function_entry_t*)ARRAY_ELEMENT_INDEX(helper_info, i, helper_entry_size);
-                memcpy(&native_program->program_entry.helpers[i], helper_entry, helper_entry_size);
+                memcpy(
+                    &native_program->program_entry.helpers[i],
+                    helper_entry,
+                    min(helper_entry_size, sizeof(native_program->program_entry.helpers[i])));
+                native_program->program_entry.helpers[i].header =
+                    (ebpf_native_module_header_t)EBPF_NATIVE_HELPER_FUNCTION_ENTRY_HEADER;
                 helper_entry = NULL;
             }
         }
@@ -2717,7 +2731,7 @@ _ebpf_native_helper_address_changed(
             helper_function_entry_t local_helper_entry = {0};
             const helper_function_entry_t* entry =
                 (const helper_function_entry_t*)ARRAY_ELEMENT_INDEX(helper_info, i, helper_entry_size);
-            memcpy(&local_helper_entry, entry, helper_entry_size);
+            memcpy(&local_helper_entry, entry, min(helper_entry_size, sizeof(local_helper_entry)));
 
             if (local_helper_entry.helper_id == 0) {
                 // Sentinel entry — skip.
