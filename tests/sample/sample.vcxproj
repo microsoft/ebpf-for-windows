@@ -401,6 +401,28 @@
       <BuildInParallel>true</BuildInParallel>
     </CustomBuild>
   </ItemGroup>
+  <!-- These undocked unsafe verifier regression samples are compiled without native conversion
+       (Convert-BpfToNative) because they intentionally contain programs that fail verification. -->
+  <ItemGroup>
+    <CustomBuild Include="undocked\unsafe\*.c" Exclude="undocked\unsafe\stack_key_size.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -I. -I../../undocked/tests/sample/ext/inc -c undocked\unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o</Outputs>
+      <AdditionalInputs>$(BpfUndockedHeaderDeps)</AdditionalInputs>
+    </CustomBuild>
+    <CustomBuild Include="undocked\unsafe\stack_key_size.c">
+      <FileType>CppCode</FileType>
+      <!-- This sample intentionally creates a 512-byte stack object to test verifier bounds at the default stack
+           limit. Clang needs a 1024-byte limit to emit the object file so the verifier can evaluate the program. -->
+      <Command>
+        $(ClangExec) $(ClangFlags) -mllvm -bpf-stack-size=1024 -I../xdp -I../socket -I./ext/inc -I../include -I. -I../../undocked/tests/sample/ext/inc -c undocked\unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o</Outputs>
+      <AdditionalInputs>$(BpfUndockedHeaderDeps)</AdditionalInputs>
+    </CustomBuild>
+  </ItemGroup>
   <!-- Build BPF programs that pass verification and build native images for them but require custom program type. -->
   <ItemGroup Condition="'$(Analysis)'=='' And '$(Configuration)'!='FuzzerDebug' And '$(Platform)'=='$(HostPlatform)'">
     <CustomBuild Include="custom_program_type\*.c">

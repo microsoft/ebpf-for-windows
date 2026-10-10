@@ -2254,6 +2254,83 @@ TEST_CASE("create_map_name", "[end_to_end]")
     Platform::_close(map_fd);
 }
 
+// Verify that array-type maps reject key_size != sizeof(uint32_t) at creation,
+// since all array key operations use fixed 4-byte uint32_t accesses internally.
+TEST_CASE("array_map_invalid_key_size", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    const uint32_t invalid_key_sizes[] = {1, 2, 3, 8};
+
+    // Helper: attempt to create an array-type map with an invalid key_size.
+    // If creation unexpectedly succeeds, close the fd to avoid handle leaks
+    // before failing the test.
+    auto expect_create_fails = [&](bpf_map_type type,
+                                   const char* name,
+                                   uint32_t key_size,
+                                   uint32_t value_size,
+                                   uint32_t max_entries,
+                                   const bpf_map_create_opts* opts) {
+        fd_t map_fd = bpf_map_create(type, name, key_size, value_size, max_entries, opts);
+        if (map_fd >= 0) {
+            Platform::_close(map_fd);
+            FAIL("Map creation with key_size=" << key_size << " should have been rejected for " << name);
+        }
+        REQUIRE(map_fd < 0);
+    };
+
+    // Verify ARRAY, PERCPU_ARRAY, and PROG_ARRAY reject invalid key sizes.
+    for (auto key_size : invalid_key_sizes) {
+        expect_create_fails(BPF_MAP_TYPE_ARRAY, "bad_array", key_size, sizeof(uint32_t), 4, nullptr);
+        expect_create_fails(BPF_MAP_TYPE_PERCPU_ARRAY, "bad_percpu", key_size, sizeof(uint32_t), 4, nullptr);
+        expect_create_fails(BPF_MAP_TYPE_PROG_ARRAY, "bad_prog", key_size, sizeof(fd_t), 4, nullptr);
+    }
+
+    // Verify ARRAY_OF_MAPS rejects invalid key sizes (requires a valid inner map template).
+    fd_t inner_map_template_fd =
+        bpf_map_create(BPF_MAP_TYPE_ARRAY, "inner_map_template", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(inner_map_template_fd >= 0);
+    bpf_map_create_opts array_of_maps_opts = {.inner_map_fd = (uint32_t)inner_map_template_fd};
+
+    for (auto key_size : invalid_key_sizes) {
+        expect_create_fails(BPF_MAP_TYPE_ARRAY_OF_MAPS, "bad_aom", key_size, sizeof(uint32_t), 4, &array_of_maps_opts);
+    }
+
+    Platform::_close(inner_map_template_fd);
+}
+
+static void
+test_array_map_invalid_key_size_program_load(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    const char* program_names[] = {
+        "invalid_array_map_key_size",
+        "invalid_percpu_array_map_key_size",
+        "invalid_program_array_map_key_size",
+        "invalid_array_of_maps_key_size"};
+
+    for (const auto& program_name : program_names) {
+        std::string file_name = program_name + std::string(execution_type == EBPF_EXECUTION_NATIVE ? "_um.dll" : ".o");
+        const char* error_message = nullptr;
+        bpf_object_ptr object;
+        fd_t program_fd;
+
+        INFO("Loading " << file_name);
+        int result = ebpf_program_load(
+            file_name.c_str(), BPF_PROG_TYPE_UNSPEC, execution_type, &object, &program_fd, &error_message);
+        if (error_message) {
+            ebpf_free((void*)error_message);
+        }
+        REQUIRE(result == -EINVAL);
+    }
+}
+
+DECLARE_ALL_TEST_CASES(
+    "array map invalid key size program load", "[end_to_end]", test_array_map_invalid_key_size_program_load)
+
 TEST_CASE("array_of_maps_large_index_test", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
