@@ -834,7 +834,7 @@ function Execute-CommandOnVM {
     The amount of memory to allocate for the VM.
 
 .PARAMETER UnattendPath
-    The path to the unattend file to use for the VM. This will notably be used for configuring the user accounts and passwords.
+    The path to the unattend file to copy for the VM. The original is preserved; the copy is used for configuring the user accounts and passwords.
 
 .PARAMETER VmSwitchName
     The name of the switch to use for the VM.
@@ -869,9 +869,9 @@ function Create-VM {
         Move-Item -Path $VhdPath -Destination $VmStoragePath -Force
         $VmVhdPath = Join-Path -Path $VmStoragePath -ChildPath (Split-Path -Path $VhdPath -Leaf)
 
-        # Move unattend to the path and replace placeholder strings
-        Write-Log "Moving $UnattendPath file to $VmStoragePath"
-        Move-Item -Path $UnattendPath -Destination $VmStoragePath -Force
+        # Copy unattend to the path and replace placeholder strings in the copy.
+        Write-Log "Copying $UnattendPath file to $VmStoragePath"
+        Copy-Item -Path $UnattendPath -Destination $VmStoragePath -Force
         $VmUnattendPath = Join-Path -Path $VmStoragePath -ChildPath (Split-Path -Path $UnattendPath -Leaf)
 
         # Replace password placeholder in unattend.xml with the canonical password from Get-VMPassword.
@@ -928,6 +928,9 @@ function Create-VM {
     An optional array of hashtables specifying files to copy to the VM before checkpointing.
     Each hashtable should have 'Source' (host path) and 'Destination' (VM path) keys.
 
+.PARAMETER RebootVM
+    Reboot the VM after configuration and before creating the baseline checkpoint. Default is $True.
+
 .EXAMPLE
     Initialize-VM -VmName "MyVM" -VMCpuCount 4
 
@@ -943,7 +946,8 @@ function Initialize-VM {
         [Parameter(Mandatory=$True)][int]$VMCpuCount,
         [Parameter(Mandatory=$False)][string]$VMWorkingDirectory='C:\ebpf_cicd',
         [Parameter(Mandatory=$False)][string]$VMSetupScript='.\configure_vm.ps1',
-        [Parameter(Mandatory=$False)][array]$FilesToCopy=@()
+        [Parameter(Mandatory=$False)][array]$FilesToCopy=@(),
+        [Parameter(Mandatory=$False)][bool]$RebootVM=$True
     )
 
     try {
@@ -985,6 +989,12 @@ function Initialize-VM {
                     Write-Log "Warning: Source file not found: $($file.Source)" -ForegroundColor Yellow
                 }
             }
+        }
+
+        if ($RebootVM) {
+            Write-Log "Restarting VM before checkpointing: $VmName"
+            Restart-VM -Name $VmName -Force -ErrorAction Stop
+            Wait-AllVMsToInitialize -VMList $vmList
         }
 
         # Checkpoint the VM. This can sometimes fail if other operations are in progress, so retry a few times to ensure a successful checkpoint.
