@@ -141,6 +141,48 @@ function Wait-AllVMsToInitialize
     }
 }
 
+<#
+.SYNOPSIS
+    Restarts a VM from the guest and waits for it to become ready again.
+
+.PARAMETER VmName
+    The name of the VM to restart.
+
+.PARAMETER VMIsRemote
+    Indicates if the VM is remote.
+
+.EXAMPLE
+    Restart-VMAndWait -VmName 'MyVM'
+#>
+function Restart-VMAndWait {
+    param(
+        [Parameter(Mandatory = $true)][string]$VmName,
+        [Parameter(Mandatory = $false)][bool]$VMIsRemote = $false
+    )
+
+    Write-Log "Restarting VM: $VmName"
+    $vmCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
+    $commandScriptBlock = {
+        Restart-Computer -Force -ErrorAction Stop
+    }
+    Invoke-CommandOnVM `
+        -VMName $VmName `
+        -VMIsRemote $VMIsRemote `
+        -Credential $vmCredential `
+        -ScriptBlock $commandScriptBlock
+
+    Write-Log "Waiting for VM: $VmName to restart"
+    Start-Sleep -Seconds 60
+
+    $vmList = @(@{ Name = $VmName })
+    if (-not $VMIsRemote) {
+        Wait-AllVMsToInitialize -VMList $vmList
+    } else {
+        $vmCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
+        Wait-AllVMsReadyForCommands -VMList $vmList -TestCredential $vmCredential -VMIsRemote:$VMIsRemote
+    }
+}
+
 function Restore-AllVMs
 {
     param ([Parameter(Mandatory=$True)] $VMList)
@@ -834,7 +876,7 @@ function Execute-CommandOnVM {
     The amount of memory to allocate for the VM.
 
 .PARAMETER UnattendPath
-    The path to the unattend file to use for the VM. This will notably be used for configuring the user accounts and passwords.
+    The path to the unattend file to copy for the VM. The original is preserved; the copy is used for configuring the user accounts and passwords.
 
 .PARAMETER VmSwitchName
     The name of the switch to use for the VM.
@@ -869,9 +911,9 @@ function Create-VM {
         Move-Item -Path $VhdPath -Destination $VmStoragePath -Force
         $VmVhdPath = Join-Path -Path $VmStoragePath -ChildPath (Split-Path -Path $VhdPath -Leaf)
 
-        # Move unattend to the path and replace placeholder strings
-        Write-Log "Moving $UnattendPath file to $VmStoragePath"
-        Move-Item -Path $UnattendPath -Destination $VmStoragePath -Force
+        # Copy unattend to the path and replace placeholder strings in the copy.
+        Write-Log "Copying $UnattendPath file to $VmStoragePath"
+        Copy-Item -Path $UnattendPath -Destination $VmStoragePath -Force
         $VmUnattendPath = Join-Path -Path $VmStoragePath -ChildPath (Split-Path -Path $UnattendPath -Leaf)
 
         # Replace password placeholder in unattend.xml with the canonical password from Get-VMPassword.
@@ -928,6 +970,9 @@ function Create-VM {
     An optional array of hashtables specifying files to copy to the VM before checkpointing.
     Each hashtable should have 'Source' (host path) and 'Destination' (VM path) keys.
 
+.PARAMETER RebootVM
+    Reboot the VM after configuration and before creating the baseline checkpoint. Default is $True.
+
 .EXAMPLE
     Initialize-VM -VmName "MyVM" -VMCpuCount 4
 
@@ -943,7 +988,8 @@ function Initialize-VM {
         [Parameter(Mandatory=$True)][int]$VMCpuCount,
         [Parameter(Mandatory=$False)][string]$VMWorkingDirectory='C:\ebpf_cicd',
         [Parameter(Mandatory=$False)][string]$VMSetupScript='.\configure_vm.ps1',
-        [Parameter(Mandatory=$False)][array]$FilesToCopy=@()
+        [Parameter(Mandatory=$False)][array]$FilesToCopy=@(),
+        [Parameter(Mandatory=$False)][bool]$RebootVM=$True
     )
 
     try {
@@ -985,6 +1031,11 @@ function Initialize-VM {
                     Write-Log "Warning: Source file not found: $($file.Source)" -ForegroundColor Yellow
                 }
             }
+        }
+
+        if ($RebootVM) {
+            Write-Log "Restarting VM before checkpointing: $VmName"
+            Restart-VMAndWait -VmName $VmName
         }
 
         # Checkpoint the VM. This can sometimes fail if other operations are in progress, so retry a few times to ensure a successful checkpoint.
@@ -1146,27 +1197,13 @@ function Enable-HVCIOnVM {
             # Enable HVCI
             New-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios" -Name "HypervisorEnforcedCodeIntegrity" -ItemType Directory -Force
             Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" -Name "Enabled" -Value 1 -Force
-            # Restart the VM to apply changes
-            Restart-Computer -Force -ErrorAction Stop
         }
         Invoke-CommandOnVM -VMName $VmName -VMIsRemote $VMIsRemote -Credential $vmCredential -ScriptBlock $commandScriptBlock
     } catch {
         throw "Failed to enable HVCI on VM: $VmName with error: $_"
     }
 
-    # Wait 1 minute for the VM to restart
-    Write-Log "Waiting for 1 minute for VM: $VmName to restart"
-    Start-Sleep -Seconds 60
-
-    $VMList = @(@{ Name = $VmName })
-    if (-not $VMIsRemote){
-        # Wait for the VM to restart and be ready again
-        Write-Log "Waiting for VM: $VmName to restart and be ready again"
-        Wait-AllVMsToInitialize -VMList $VMList
-    } else {
-        $TestCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
-        Wait-AllVMsReadyForCommands -VMList $VMList -TestCredential $TestCredential -VMIsRemote:$VMIsRemote
-    }
+    Restart-VMAndWait -VmName $VmName -VMIsRemote $VMIsRemote
 
     Write-Log "HVCI enabled successfully on VM: $VmName" -ForegroundColor Green
 }
