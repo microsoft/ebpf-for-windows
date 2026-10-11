@@ -158,7 +158,7 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: bpf_api_behavior_windows
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2025_v2", "JobId=bpf-api-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-{0}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2025", "JobId=bpf-api-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-{0}"]'
       configurations: '["Debug"]'
       gather_dumps: false
       code_coverage: false

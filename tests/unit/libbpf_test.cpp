@@ -2750,9 +2750,10 @@ _ebpf_test_count_entries_map_in_map(int outer_map_fd)
     return entries_count;
 }
 
-static void
-_ebpf_test_map_in_map(ebpf_map_type_t type)
+// Verify libbpf can create and update arrays and hash tables of maps.
+TEMPLATE_TEST_CASE("simple map of maps", "[libbpf]", MAP_OF_MAPS_TYPES)
 {
+    constexpr ebpf_map_type_t type = TestType::value;
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
 
@@ -2786,7 +2787,7 @@ _ebpf_test_map_in_map(ebpf_map_type_t type)
 
     uint32_t count = _ebpf_test_count_entries_map_in_map(outer_map_fd);
     // Verify the number of elements in the outer map.
-    if (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+    if constexpr (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
         REQUIRE(count == 1);
     } else {
         // For ARRAY_OF_MAPS, the count is max_entries.
@@ -2796,7 +2797,7 @@ _ebpf_test_map_in_map(ebpf_map_type_t type)
     // Verify that we can read it back.
     REQUIRE(bpf_map_lookup_elem(outer_map_fd, &outer_key, &inner_map_id) == 0);
 
-    if (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+    if constexpr (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
         // Replacing an existing hash-of-maps entry must release the stored object pointer.
         REQUIRE(bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0) == 0);
         ebpf_id_t replaced_inner_map_id;
@@ -2817,7 +2818,7 @@ _ebpf_test_map_in_map(ebpf_map_type_t type)
     REQUIRE(error < 0);
     REQUIRE(errno == EBADF);
 
-    if (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+    if constexpr (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
         // Try deleting outer key that doesn't exist.
         error = bpf_map_delete_elem(outer_map_fd, &outer_key);
         REQUIRE(error < 0);
@@ -2839,7 +2840,7 @@ _ebpf_test_map_in_map(ebpf_map_type_t type)
     REQUIRE(error == 0);
 
     // Verify the number of elements in the outer map is 0.
-    if (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+    if constexpr (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
         REQUIRE(_ebpf_test_count_entries_map_in_map(outer_map_fd) == 0);
     } else {
         // For ARRAY_OF_MAPS, the count is max_entries.
@@ -2854,12 +2855,6 @@ _ebpf_test_map_in_map(ebpf_map_type_t type)
     REQUIRE(bpf_map_get_next_id(0, &id) < 0);
     REQUIRE(errno == ENOENT);
 }
-
-// Verify libbpf can create and update arrays of maps.
-TEST_CASE("simple array of maps", "[libbpf]") { _ebpf_test_map_in_map(BPF_MAP_TYPE_ARRAY_OF_MAPS); }
-
-// Verify libbpf can create and update hash tables of maps.
-TEST_CASE("simple hash of maps", "[libbpf]") { _ebpf_test_map_in_map(BPF_MAP_TYPE_HASH_OF_MAPS); }
 
 // Verify an app can communicate with an eBPF program via an array of maps.
 static void
@@ -4054,9 +4049,9 @@ TEST_CASE("libbpf_num_possible_cpus", "[libbpf]")
     REQUIRE(cpu_count > 0);
 }
 
-void
-_test_nested_maps(bpf_map_type map_type)
+TEMPLATE_TEST_CASE("map_of_maps", "[libbpf]", MAP_OF_MAPS_TYPES)
 {
+    constexpr bpf_map_type map_type = TestType::value;
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
 
@@ -4097,9 +4092,6 @@ _test_nested_maps(bpf_map_type map_type)
     Platform::_close(inner_map_fd1);
     Platform::_close(outer_map_fd);
 }
-
-TEST_CASE("array_map_of_maps", "[libbpf]") { _test_nested_maps(BPF_MAP_TYPE_ARRAY_OF_MAPS); }
-TEST_CASE("hash_map_of_maps", "[libbpf]") { _test_nested_maps(BPF_MAP_TYPE_HASH_OF_MAPS); }
 
 TEST_CASE("libbpf_load_stress", "[libbpf]")
 {

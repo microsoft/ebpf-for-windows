@@ -52,7 +52,7 @@ static const ebpf_program_info_t _mock_xdp_program_info = {
 
 // Mock XDP section info
 static ebpf_program_section_info_t _mock_xdp_section_info[] = {
-    {{EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION, EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_SIZE},
+    {EBPF_PROGRAM_SECTION_INFORMATION_HEADER,
      L"xdp",
      &EBPF_PROGRAM_TYPE_XDP,
      &EBPF_ATTACH_TYPE_XDP,
