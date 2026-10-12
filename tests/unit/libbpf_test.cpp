@@ -890,7 +890,11 @@ DECLARE_ALL_TEST_CASES("libbpf map", "[libbpf]", _test_libbpf_map);
 
 static void
 _test_map_max_entries_program(
-    ebpf_execution_type_t execution_type, bool no_max_entries, const char* object_name_override = nullptr)
+    ebpf_execution_type_t execution_type,
+    bool no_max_entries,
+    const char* object_name_override = nullptr,
+    const char* program_name_override = nullptr,
+    const char* map_name_override = nullptr)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -908,8 +912,10 @@ _test_map_max_entries_program(
     REQUIRE(ebpf_object_set_execution_type(object.get(), execution_type) == EBPF_SUCCESS);
     REQUIRE(bpf_object__load(object.get()) == 0);
 
-    const char* program_name = no_max_entries ? "map_no_max_entries" : "map_max_entries";
-    const char* map_name = no_max_entries ? "no_max_entries_map" : "max_entries_map";
+    const char* program_name =
+        program_name_override ? program_name_override : (no_max_entries ? "map_no_max_entries" : "map_max_entries");
+    const char* map_name =
+        map_name_override ? map_name_override : (no_max_entries ? "no_max_entries_map" : "max_entries_map");
     bpf_program* program = bpf_object__find_program_by_name(object.get(), program_name);
     REQUIRE(program != nullptr);
     bpf_map* map = bpf_object__find_map_by_name(object.get(), map_name);
@@ -985,6 +991,12 @@ _test_legacy_map_bounded_entries_program(ebpf_execution_type_t execution_type)
     _test_map_max_entries_program(execution_type, false, "map_max_entries_legacy");
 }
 
+static void
+_test_legacy_map_compat_program(ebpf_execution_type_t execution_type)
+{
+    _test_map_max_entries_program(execution_type, false, "map_legacy_compat", "map_legacy_compat", "legacy_map");
+}
+
 DECLARE_JIT_TEST_CASES(
     "libbpf map no max entries program", "[libbpf][map_no_max_entries]", _test_map_no_max_entries_program);
 DECLARE_JIT_TEST_CASES(
@@ -997,6 +1009,10 @@ DECLARE_JIT_TEST_CASES(
     "libbpf legacy map bounded entries program",
     "[libbpf][map_no_max_entries][legacy_map]",
     _test_legacy_map_bounded_entries_program);
+DECLARE_JIT_TEST_CASES(
+    "libbpf legacy 32-byte map definition",
+    "[libbpf][map_no_max_entries][legacy_map]",
+    _test_legacy_map_compat_program);
 
 TEST_CASE("libbpf map_no_max_entries_flag", "[libbpf]")
 {
