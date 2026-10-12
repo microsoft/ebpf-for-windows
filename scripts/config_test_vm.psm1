@@ -775,8 +775,9 @@ function Log-OSBuildInformationOnVM
 
     $TestCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
     Invoke-CommandOnVM -VMName $VMName -VMIsRemote:$VMIsRemote -Credential $TestCredential -ScriptBlock {
-        $buildLabEx = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name 'BuildLabEx'
-        Write-Host "OS Build Information: $($buildLabEx.BuildLabEx)"
+        $currentVersion = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+        Write-Host "OS Build Information: $($currentVersion.CurrentBuild).$($currentVersion.UBR)"
+        Write-Host "OS Build Lab: $($currentVersion.BuildLabEx)"
     }
 }
 
