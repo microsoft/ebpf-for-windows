@@ -3632,8 +3632,9 @@ TEMPLATE_TEST_CASE(
 // ---------------------------------------------------------------------------
 // Wildcard and compartment-specific listen attach.
 //
-// Listen tests must always use a socket of the requested address family. A
-// dual-stack socket selects the IPv6 listen layer even for an IPv4 address.
+// Use a socket matching the listen attach type under test. The framework's default
+// dual-stack server is an AF_INET6 socket bound to ::, so listen() classifies at
+// ALE_AUTH_LISTEN_V6 and cannot exercise BPF_CGROUP_INET4_LISTEN.
 // ---------------------------------------------------------------------------
 
 struct listen_filter_scope_scenario
