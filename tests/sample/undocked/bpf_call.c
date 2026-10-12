@@ -17,7 +17,7 @@
 struct
 {
     __uint(type, BPF_MAP_TYPE_ARRAY);
-    __uint(key_size, 2);
+    __uint(key_size, 4);
     __uint(value_size, 4);
     __uint(max_entries, 512);
 } map SEC(".maps");
