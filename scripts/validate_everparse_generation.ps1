@@ -167,6 +167,7 @@ if ($selected_units.Count -eq 0) {
 
 $nuget_path = Get-Command nuget -ErrorAction Stop | Select-Object -ExpandProperty Source
 $msbuild_path = Get-Command msbuild -ErrorAction Stop | Select-Object -ExpandProperty Source
+$msbuild_directory = Split-Path -Parent $msbuild_path
 $solution_dir = $repository_root
 if (-not $solution_dir.EndsWith("\")) {
     $solution_dir += "\"
@@ -183,7 +184,12 @@ try {
     $previous_wdk_target_platform = $env:_EbpfWdkTargetPlatform
     try {
         $env:_EbpfWdkTargetPlatform = $Platform
-        Invoke-BuildTool -FilePath $nuget_path -Arguments @("restore", "ebpf-for-windows.sln")
+        Invoke-BuildTool -FilePath $nuget_path -Arguments @(
+            "restore",
+            "ebpf-for-windows.sln",
+            "-MSBuildPath",
+            $msbuild_directory
+        )
     } finally {
         if ($null -eq $previous_wdk_target_platform) {
             Remove-Item Env:_EbpfWdkTargetPlatform -ErrorAction SilentlyContinue
