@@ -22,14 +22,8 @@ SPDX-License-Identifier: MIT
 		<Property Id="EXISTING_EBPFCORE">
 			<RegistrySearch Id="FindExistingEbpfCore" Root="HKLM" Key="SYSTEM\CurrentControlSet\Services\eBPFCore" Name="ImagePath" Type="raw" Win64="yes" />
 		</Property>
-		<Property Id="EXISTING_EBPFCORE_START">
-			<RegistrySearch Id="FindExistingEbpfCoreStart" Root="HKLM" Key="SYSTEM\CurrentControlSet\Services\eBPFCore" Name="Start" Type="raw" Win64="yes" />
-		</Property>
 		<Property Id="EXISTING_NETEBPFEXT">
 			<RegistrySearch Id="FindExistingNetEbpfExt" Root="HKLM" Key="SYSTEM\CurrentControlSet\Services\NetEbpfExt" Name="ImagePath" Type="raw" Win64="yes" />
-		</Property>
-		<Property Id="EXISTING_NETEBPFEXT_START">
-			<RegistrySearch Id="FindExistingNetEbpfExtStart" Root="HKLM" Key="SYSTEM\CurrentControlSet\Services\NetEbpfExt" Name="Start" Type="raw" Win64="yes" />
 		</Property>
 		<Property Id="INSTALLFOLDER" Secure="yes">
 			<RegistrySearch Id="FindInstallLocation" Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\[WIX_UPGRADE_DETECTED]" Name="InstallLocation" Type="raw" Win64="yes" />
@@ -52,20 +46,29 @@ SPDX-License-Identifier: MIT
 			<!--Rollback sequence-->
 			<Custom Action="eBPF_netsh_helper_uninstall_rollback" Before="eBPF_netsh_helper_install">NOT Installed</Custom>
 
-			<Custom Action="Force_eBPFCore_Driver_restore" Before="eBPFCore_Driver_configure">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
-			<Custom Action="eBPFCore_Driver_stop_rollback" Before="eBPFCore_Driver_install">NOT Installed AND NOT EXISTING_EBPFCORE</Custom>
+			<Custom Action="eBPFCore_Driver_stop_rollback" Before="eBPFCore_Driver_install">NOT Installed AND (NOT EXISTING_EBPFCORE OR FORCE = "1")</Custom>
 			<Custom Action="eBPFCore_Driver_uninstall_rollback" Before="eBPFCore_Driver_install">NOT Installed AND NOT EXISTING_EBPFCORE</Custom>
+			<Custom Action="Force_eBPFCore_Driver_restore" Before="Force_eBPFCore_Driver_configure">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
 
-			<Custom Action="Force_NetEbpfExt_Driver_restore" Before="NetEbpfExt_Driver_configure">NOT Installed AND EXISTING_NETEBPFEXT AND FORCE = "1"</Custom>
-			<Custom Action="NetEbpfExt_Driver_stop_rollback" Before="NetEbpfExt_Driver_install">NOT Installed AND NOT EXISTING_NETEBPFEXT</Custom>
+			<Custom Action="NetEbpfExt_Driver_stop_rollback" Before="NetEbpfExt_Driver_install">NOT Installed AND (NOT EXISTING_NETEBPFEXT OR FORCE = "1")</Custom>
 			<Custom Action="NetEbpfExt_Driver_uninstall_rollback" Before="NetEbpfExt_Driver_install">NOT Installed AND NOT EXISTING_NETEBPFEXT</Custom>
+			<Custom Action="Force_NetEbpfExt_Driver_restore" Before="Force_NetEbpfExt_Driver_configure">NOT Installed AND EXISTING_NETEBPFEXT AND FORCE = "1"</Custom>
+			<Custom Action="Force_eBPF_binaries_restore" Before="Force_eBPF_binaries_hardlink">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
+			<Custom Action="Force_eBPFSvc_stop_rollback" Before="Force_eBPFSvc_configure">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
+			<Custom Action="Force_eBPF_store_rollback_HKLM" Before="Force_eBPF_store_backup_HKLM">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
+			<Custom Action="Force_eBPF_store_rollback_HKCU" Before="Force_eBPF_store_backup_HKCU">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
 
 			<!--Install sequence-->
 			<Custom Action="Force_NetEbpfExt_Driver_stop" After="InstallInitialize">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
 			<Custom Action="Force_eBPFSvc_stop" After="Force_NetEbpfExt_Driver_stop">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
 			<Custom Action="Force_eBPFCore_Driver_stop" After="Force_eBPFSvc_stop">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
+			<Custom Action="Force_eBPF_binaries_hardlink" After="InstallFiles">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
+			<Custom Action="Force_eBPF_binaries_cleanup" After="Force_eBPF_binaries_hardlink">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
+			<Custom Action="Force_eBPF_store_backup_HKLM" After="Force_eBPF_binaries_cleanup">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
+			<Custom Action="Force_eBPF_store_backup_HKCU" After="Force_eBPF_store_backup_HKLM">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
+			<Custom Action="Force_eBPF_store_commit" After="Setup_eBPF_store_HKCU">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
 
-			<Custom Action="Clear_eBPF_store_HKLM" After="InstallFiles">NOT Installed</Custom>
+			<Custom Action="Clear_eBPF_store_HKLM" After="Force_eBPF_store_backup_HKCU">NOT Installed</Custom>
 			<Custom Action="Setup_eBPF_store_HKLM" After="Clear_eBPF_store_HKLM">NOT Installed</Custom>
 			<Custom Action="Clear_eBPF_store_HKCU" After="Setup_eBPF_store_HKLM">NOT Installed</Custom>
 			<Custom Action="Setup_eBPF_store_HKCU" After="Clear_eBPF_store_HKCU">NOT Installed</Custom>
@@ -73,12 +76,14 @@ SPDX-License-Identifier: MIT
 			<Custom Action="eBPF_netsh_helper_install" After="Setup_eBPF_store_HKCU">NOT Installed</Custom>
 
 			<Custom Action="eBPFCore_Driver_install" After="Setup_eBPF_store_HKCU">NOT Installed AND NOT EXISTING_EBPFCORE</Custom>
-			<Custom Action="eBPFCore_Driver_configure" After="eBPFCore_Driver_install">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
-			<Custom Action="eBPFCore_Driver_start" After="eBPFCore_Driver_configure">NOT Installed</Custom>
+			<Custom Action="Force_eBPFCore_Driver_configure" After="eBPFCore_Driver_install">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
+			<Custom Action="eBPFCore_Driver_start" After="Force_eBPFCore_Driver_configure">NOT Installed</Custom>
 
-			<Custom Action="NetEbpfExt_Driver_install" After="Setup_eBPF_store_HKCU">NOT Installed AND NOT EXISTING_NETEBPFEXT</Custom>
-			<Custom Action="NetEbpfExt_Driver_configure" After="NetEbpfExt_Driver_install">NOT Installed AND EXISTING_NETEBPFEXT AND FORCE = "1"</Custom>
-			<Custom Action="NetEbpfExt_Driver_start" After="NetEbpfExt_Driver_configure">NOT Installed</Custom>
+			<Custom Action="NetEbpfExt_Driver_install" After="Setup_eBPF_store_HKCU">NOT Installed AND NOT EXISTING_NETEBPFEXT AND NOT (EXISTING_EBPFCORE AND FORCE = "1")</Custom>
+			<Custom Action="Force_NetEbpfExt_Driver_install" After="NetEbpfExt_Driver_install">NOT Installed AND NOT EXISTING_NETEBPFEXT AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
+			<Custom Action="Force_NetEbpfExt_Driver_configure" After="Force_NetEbpfExt_Driver_install">NOT Installed AND EXISTING_NETEBPFEXT AND FORCE = "1"</Custom>
+			<Custom Action="NetEbpfExt_Driver_start" After="Force_NetEbpfExt_Driver_configure">NOT Installed</Custom>
+			<Custom Action="Force_eBPFSvc_configure" After="InstallServices">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
 
 			<!--Uninstall sequence-->
 			<Custom Action="eBPF_netsh_helper_uninstall" After="InstallInitialize">REMOVE="ALL"</Custom>
@@ -89,8 +94,8 @@ SPDX-License-Identifier: MIT
 			<Custom Action="NetEbpfExt_Driver_stop" After="InstallInitialize">REMOVE="ALL"</Custom>
 			<Custom Action="NetEbpfExt_Driver_uninstall" After="NetEbpfExt_Driver_stop">REMOVE="ALL"</Custom>
 
-			<Custom Action="Clear_eBPF_store_uninstall_HKLM" After="NetEbpfExt_Driver_uninstall">REMOVE="ALL"</Custom>
-			<Custom Action="Clear_eBPF_store_uninstall_HKCU" After="Clear_eBPF_store_uninstall_HKLM">REMOVE="ALL"</Custom>
+			<Custom Action="Force_eBPF_store_restore_HKLM" Before="Force_eBPF_store_restore_HKCU">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
+			<Custom Action="Force_eBPF_store_restore_HKCU" Before="RemoveFiles">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
 			<Custom Action="eBPFCore_Driver_uninstall_flush" After="InstallFinalize">REMOVE="ALL"</Custom>
 		</InstallExecuteSequence>
 
@@ -126,6 +131,9 @@ SPDX-License-Identifier: MIT
 			</Component>
 			<Component Id="LICENSE" Guid="{AF22EAE5-7D8D-4F22-BB64-6B6A079A2947}">
 				<File Id="LICENSE.txt" Name="LICENSE.txt" DiskId="1" KeyPath="yes" Source="$(var.SolutionDir)LICENSE.txt" />
+			</Component>
+			<Component Id="FORCE_EBPF_STACK.PS1" Guid="{92C5A39B-CF29-4DC4-AC49-32F449CFF561}">
+				<File Id="FORCE_EBPF_STACK.PS1" Name="ForceEbpfStack.ps1" DiskId="1" KeyPath="yes" Source="$(var.SolutionDir)installer\ForceEbpfStack.ps1" />
 			</Component>
 			<Component Id="BPF2C.EXE" DiskId="1" Guid="{BD23322B-91C3-4848-96E0-04E3745411E1}">
 				<File Id="BPF2C.EXE" Name="bpf2c.exe" KeyPath="yes" Source="$(var.bpf2c.TargetDir)bpf2c.exe" />
@@ -177,6 +185,20 @@ SPDX-License-Identifier: MIT
 		<CustomAction Id="Setup_eBPF_store_HKLM" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
 		<SetProperty Id="Setup_eBPF_store_HKCU" Value='"[#EXPORT_PROGRAM_INFO.EXE]"' Before="Setup_eBPF_store_HKCU" Sequence="execute"/>
 		<CustomAction Id="Setup_eBPF_store_HKCU" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="yes"/>
+		<SetProperty Id="Force_eBPF_store_backup_HKLM" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action BackupStore -Scope HKLM -OwnerProductCode &quot;[ProductCode]&quot; -OwnerUpgradeCode &quot;$(var.UpgradeCode)&quot;" Before="Force_eBPF_store_backup_HKLM" Sequence="execute"/>
+		<CustomAction Id="Force_eBPF_store_backup_HKLM" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
+		<SetProperty Id="Force_eBPF_store_backup_HKCU" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action BackupStore -Scope HKCU -OwnerProductCode &quot;[ProductCode]&quot; -OwnerUpgradeCode &quot;$(var.UpgradeCode)&quot;" Before="Force_eBPF_store_backup_HKCU" Sequence="execute"/>
+		<CustomAction Id="Force_eBPF_store_backup_HKCU" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="yes"/>
+		<SetProperty Id="Force_eBPF_store_rollback_HKLM" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action RollbackStore -Scope HKLM" Before="Force_eBPF_store_rollback_HKLM" Sequence="execute"/>
+		<CustomAction Id="Force_eBPF_store_rollback_HKLM" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="check" Impersonate="no"/>
+		<SetProperty Id="Force_eBPF_store_rollback_HKCU" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action RollbackStore -Scope HKCU" Before="Force_eBPF_store_rollback_HKCU" Sequence="execute"/>
+		<CustomAction Id="Force_eBPF_store_rollback_HKCU" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="check" Impersonate="yes"/>
+		<SetProperty Id="Force_eBPF_store_commit" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action CommitStore" Before="Force_eBPF_store_commit" Sequence="execute"/>
+		<CustomAction Id="Force_eBPF_store_commit" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="commit" Return="check" Impersonate="no"/>
+		<SetProperty Id="Force_eBPF_store_restore_HKLM" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action RestoreStore -Scope HKLM" Before="Force_eBPF_store_restore_HKLM" Sequence="execute"/>
+		<CustomAction Id="Force_eBPF_store_restore_HKLM" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
+		<SetProperty Id="Force_eBPF_store_restore_HKCU" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action RestoreStore -Scope HKCU" Before="Force_eBPF_store_restore_HKCU" Sequence="execute"/>
+		<CustomAction Id="Force_eBPF_store_restore_HKCU" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="yes"/>
 
 		<!--Install/Uninstall the netsh helper-->
 		<!--qtexec does not currently support a working directory (ref. https://github.com/wixtoolset/issues/issues/1265)-->
@@ -194,7 +216,7 @@ SPDX-License-Identifier: MIT
 				<File Id="EBPFSVC.PDB" Name="EbpfSvc.pdb" Source="$(var.ebpfsvc.TargetDir)ebpfsvc.pdb" />
 			</Component>
 			<Component Id="eBPF_Service" Guid="{25F4F9A3-78EB-4598-9982-98FB65377A51}">
-				<File Source="$(var.ebpfsvc.TargetPath)" KeyPath="yes" />
+				<File Id="EBPFSVC.EXE" Source="$(var.ebpfsvc.TargetPath)" KeyPath="yes" />
 				<ServiceInstall Id="eBPFSvcInstaller" Name="eBPFSvc" DisplayName="eBPF Service" Description="eBPF Service"
 								Start="auto"
 								Type="ownProcess"
@@ -229,16 +251,24 @@ SPDX-License-Identifier: MIT
 		</ComponentGroup>
 		<SetProperty Id="Force_eBPFSvc_stop" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;&amp; { $service = Get-Service -Name eBPFSvc -ErrorAction SilentlyContinue; if ($null -ne $service -and $service.Status -ne 'Stopped') { Stop-Service -Name eBPFSvc -ErrorAction Stop; for ($i = 0; $i -lt 30 -and (Get-Service -Name eBPFSvc).Status -ne 'Stopped'; $i++) { Start-Sleep -Seconds 1 }; if ((Get-Service -Name eBPFSvc).Status -ne 'Stopped') { throw 'eBPFSvc did not stop' } } }&quot;" Before="Force_eBPFSvc_stop" Sequence="execute"/>
 		<CustomAction Id="Force_eBPFSvc_stop" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
+		<SetProperty Id="Force_eBPFSvc_stop_rollback" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;&amp; { $service = Get-Service -Name eBPFSvc -ErrorAction SilentlyContinue; if ($null -ne $service -and $service.Status -ne 'Stopped') { Stop-Service -Name eBPFSvc -ErrorAction SilentlyContinue } }&quot;" Before="Force_eBPFSvc_stop_rollback" Sequence="execute"/>
+		<CustomAction Id="Force_eBPFSvc_stop_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
 		<SetProperty Id="Force_NetEbpfExt_Driver_stop" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;&amp; { $service = Get-Service -Name NetEbpfExt -ErrorAction SilentlyContinue; if ($null -ne $service -and $service.Status -ne 'Stopped') { Stop-Service -Name NetEbpfExt -ErrorAction Stop; for ($i = 0; $i -lt 30 -and (Get-Service -Name NetEbpfExt).Status -ne 'Stopped'; $i++) { Start-Sleep -Seconds 1 }; if ((Get-Service -Name NetEbpfExt).Status -ne 'Stopped') { throw 'NetEbpfExt did not stop' } } }&quot;" Before="Force_NetEbpfExt_Driver_stop" Sequence="execute"/>
 		<CustomAction Id="Force_NetEbpfExt_Driver_stop" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
 		<SetProperty Id="Force_eBPFCore_Driver_stop" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;&amp; { $service = Get-Service -Name eBPFCore -ErrorAction Stop; if ($service.Status -ne 'Stopped') { Stop-Service -Name eBPFCore -ErrorAction Stop; for ($i = 0; $i -lt 30 -and (Get-Service -Name eBPFCore).Status -ne 'Stopped'; $i++) { Start-Sleep -Seconds 1 }; if ((Get-Service -Name eBPFCore).Status -ne 'Stopped') { throw 'eBPFCore did not stop' } } }&quot;" Before="Force_eBPFCore_Driver_stop" Sequence="execute"/>
 		<CustomAction Id="Force_eBPFCore_Driver_stop" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
-		<SetProperty Id="Force_eBPFCore_Driver_restore" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;&amp; { $path = '[EXISTING_EBPFCORE]'; if ($path.StartsWith('#%')) { $path = $path.Substring(2) }; $startValue = '[EXISTING_EBPFCORE_START]'.TrimStart('#'); $start = switch ($startValue) { '0' { 'boot' } '1' { 'system' } '2' { 'auto' } '3' { 'demand' } '4' { 'disabled' } default { throw 'Invalid original eBPFCore start type' } }; &amp; sc.exe config eBPFCore start= $start binpath= $path; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } }&quot;" Before="Force_eBPFCore_Driver_restore" Sequence="execute"/>
-		<CustomAction Id="Force_eBPFCore_Driver_restore" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
+		<SetProperty Id="Force_eBPF_binaries_hardlink" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action Install" Before="Force_eBPF_binaries_hardlink" Sequence="execute"/>
+		<CustomAction Id="Force_eBPF_binaries_hardlink" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
+		<SetProperty Id="Force_eBPF_binaries_restore" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action Rollback" Before="Force_eBPF_binaries_restore" Sequence="execute"/>
+		<CustomAction Id="Force_eBPF_binaries_restore" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="check" Impersonate="no"/>
+		<SetProperty Id="Force_eBPF_binaries_cleanup" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action Commit" Before="Force_eBPF_binaries_cleanup" Sequence="execute"/>
+		<CustomAction Id="Force_eBPF_binaries_cleanup" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="commit" Return="check" Impersonate="no"/>
 		<SetProperty Id="eBPFCore_Driver_install" Value='"sc.exe" create eBPFCore type=kernel start=auto binpath="[#eBPFCore.sys]"' Before="eBPFCore_Driver_install" Sequence="execute"/>
 		<CustomAction Id="eBPFCore_Driver_install" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
-		<SetProperty Id="eBPFCore_Driver_configure" Value='"sc.exe" config eBPFCore type=kernel start=auto binpath="[#eBPFCore.sys]"' Before="eBPFCore_Driver_configure" Sequence="execute"/>
-		<CustomAction Id="eBPFCore_Driver_configure" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
+		<SetProperty Id="Force_eBPFCore_Driver_restore" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action RestoreService -ServiceName eBPFCore -ImagePath &quot;[EXISTING_EBPFCORE]&quot;" Before="Force_eBPFCore_Driver_restore" Sequence="execute"/>
+		<CustomAction Id="Force_eBPFCore_Driver_restore" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="check" Impersonate="no"/>
+		<SetProperty Id="Force_eBPFCore_Driver_configure" Value='"sc.exe" config eBPFCore type=kernel binpath="[System64Folder]drivers\eBPFCore.sys"' Before="Force_eBPFCore_Driver_configure" Sequence="execute"/>
+		<CustomAction Id="Force_eBPFCore_Driver_configure" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
 		<Property Id="eBPFCore_Driver_start" Value='"net.exe" start eBPFCore' />
 		<CustomAction Id="eBPFCore_Driver_start" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
 		<Property Id="eBPFCore_Driver_stop" Value='"net.exe" stop eBPFCore' />
@@ -266,10 +296,12 @@ SPDX-License-Identifier: MIT
 		</ComponentGroup>
 		<SetProperty Id="NetEbpfExt_Driver_install" Value='"sc.exe" create NetEbpfExt type=kernel start=auto binpath="[#NetEbpfExt.sys]"' Before="NetEbpfExt_Driver_install" Sequence="execute"/>
 		<CustomAction Id="NetEbpfExt_Driver_install" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
-		<SetProperty Id="Force_NetEbpfExt_Driver_restore" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;&amp; { $path = '[EXISTING_NETEBPFEXT]'; if ($path.StartsWith('#%')) { $path = $path.Substring(2) }; $startValue = '[EXISTING_NETEBPFEXT_START]'.TrimStart('#'); $start = switch ($startValue) { '0' { 'boot' } '1' { 'system' } '2' { 'auto' } '3' { 'demand' } '4' { 'disabled' } default { throw 'Invalid original NetEbpfExt start type' } }; &amp; sc.exe config NetEbpfExt start= $start binpath= $path; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } }&quot;" Before="Force_NetEbpfExt_Driver_restore" Sequence="execute"/>
-		<CustomAction Id="Force_NetEbpfExt_Driver_restore" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
-		<SetProperty Id="NetEbpfExt_Driver_configure" Value='"sc.exe" config NetEbpfExt type=kernel start=auto binpath="[#NetEbpfExt.sys]"' Before="NetEbpfExt_Driver_configure" Sequence="execute"/>
-		<CustomAction Id="NetEbpfExt_Driver_configure" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
+		<SetProperty Id="Force_NetEbpfExt_Driver_install" Value='"sc.exe" create NetEbpfExt type=kernel start=auto binpath="[System64Folder]drivers\NetEbpfExt.sys"' Before="Force_NetEbpfExt_Driver_install" Sequence="execute"/>
+		<CustomAction Id="Force_NetEbpfExt_Driver_install" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
+		<SetProperty Id="Force_NetEbpfExt_Driver_restore" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action RestoreService -ServiceName NetEbpfExt -ImagePath &quot;[EXISTING_NETEBPFEXT]&quot;" Before="Force_NetEbpfExt_Driver_restore" Sequence="execute"/>
+		<CustomAction Id="Force_NetEbpfExt_Driver_restore" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="check" Impersonate="no"/>
+		<SetProperty Id="Force_NetEbpfExt_Driver_configure" Value='"sc.exe" config NetEbpfExt type=kernel binpath="[System64Folder]drivers\NetEbpfExt.sys"' Before="Force_NetEbpfExt_Driver_configure" Sequence="execute"/>
+		<CustomAction Id="Force_NetEbpfExt_Driver_configure" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
 		<Property Id="NetEbpfExt_Driver_start" Value='"net.exe" start NetEbpfExt' />
 		<CustomAction Id="NetEbpfExt_Driver_start" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
 		<Property Id="NetEbpfExt_Driver_stop" Value='"net.exe" stop NetEbpfExt' />
@@ -280,5 +312,7 @@ SPDX-License-Identifier: MIT
 		<CustomAction Id="NetEbpfExt_Driver_stop_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
 		<Property Id="NetEbpfExt_Driver_uninstall_rollback" Value='"sc.exe" delete NetEbpfExt' />
 		<CustomAction Id="NetEbpfExt_Driver_uninstall_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
+		<SetProperty Id="Force_eBPFSvc_configure" Value='"sc.exe" config eBPFSvc binpath="[System64Folder]ebpfsvc.exe"' Before="Force_eBPFSvc_configure" Sequence="execute"/>
+		<CustomAction Id="Force_eBPFSvc_configure" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
 	</Fragment>
 </Wix>
