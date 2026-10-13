@@ -15,11 +15,23 @@ Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName, $WorkingD
 # VM Initialization functions
 #
 
+<#
+.SYNOPSIS
+    Waits for VMs to accept guest commands.
+.DESCRIPTION
+    Normally waits only for guest commands to succeed. For VMs with an entry in
+    PreviousBootTimes, also requires the guest boot time to change before accepting
+    readiness. This function does not request a restart.
+.PARAMETER PreviousBootTimes
+    Optional mapping of VM names to pre-restart guest boot times in UTC ticks,
+    supplied by Restart-VMAndWait. VMs without an entry use ordinary readiness checks.
+#>
 function Wait-AllVMsReadyForCommands
 {
     param([Parameter(Mandatory=$True)]$VMList,
           [Parameter(Mandatory=$True)][PSCredential] $TestCredential,
-          [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false)
+          [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false,
+          [Parameter(Mandatory=$false)][hashtable] $PreviousBootTimes = @{})
 
     $totalSleepTime = 0
     $ReadyList = @{}
@@ -30,8 +42,24 @@ function Wait-AllVMsReadyForCommands
                 Write-Log "Poking $VMName to see if it is ready to accept commands"
                 $ret = $False
                 try {
-                    Invoke-CommandOnVM -VMName $VMName -VMIsRemote $VMIsRemote -Credential $TestCredential -ErrorAction SilentlyContinue -ScriptBlock {$True}
-                    $ret = $True
+                    if ($PreviousBootTimes.ContainsKey($VMName)) {
+                        $bootTime = Invoke-CommandOnVM -VMName $VMName -VMIsRemote $VMIsRemote `
+                            -Credential $TestCredential -ScriptBlock {
+                                $os = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
+                                $os.LastBootUpTime.ToUniversalTime().Ticks
+                            } -ErrorAction Stop
+                        if ($null -eq $bootTime) {
+                            Write-Log "Could not read the boot time of VM $VMName."
+                            throw "Could not read the boot time of VM $VMName."
+                        }
+                        $ret = $bootTime -ne $PreviousBootTimes[$VMName]
+                        if (-not $ret) {
+                            Write-Log "VM $VMName is still on the previous boot. Waiting for the restart to complete."
+                        }
+                    } else {
+                        Invoke-CommandOnVM -VMName $VMName -VMIsRemote $VMIsRemote -Credential $TestCredential -ErrorAction SilentlyContinue -ScriptBlock {$True}
+                        $ret = $True
+                    }
                 } catch {
                         if (-not $VMIsRemote) {
                         # Transient PS Direct failures during restore/boot often look like this:
@@ -74,7 +102,8 @@ function Wait-AllVMsReadyForCommands
 function Wait-AllVMsToInitialize
 {
     param([Parameter(Mandatory=$True)]$VMList,
-          [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false)
+          [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false,
+          [Parameter(Mandatory=$false)][hashtable] $PreviousBootTimes = @{})
 
     $totalSleepTime = 0
     $ReadyList = @{}
@@ -105,7 +134,8 @@ function Wait-AllVMsToInitialize
     }
 
     $TestCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
-    Wait-AllVMsReadyForCommands -VMList $VMList -TestCredential $TestCredential -VMIsRemote:$VMIsRemote
+    Wait-AllVMsReadyForCommands -VMList $VMList -TestCredential $TestCredential `
+        -VMIsRemote:$VMIsRemote -PreviousBootTimes $PreviousBootTimes
 
     # Enable guest-services on each VM.
     $ReadyList.Clear()
@@ -143,7 +173,7 @@ function Wait-AllVMsToInitialize
 
 <#
 .SYNOPSIS
-    Restarts a VM from the guest and waits for it to become ready again.
+    Restarts a VM from the guest and waits for a new boot that accepts commands.
 
 .PARAMETER VmName
     The name of the VM to restart.
@@ -160,8 +190,17 @@ function Restart-VMAndWait {
         [Parameter(Mandatory = $false)][bool]$VMIsRemote = $false
     )
 
-    Write-Log "Restarting VM: $VmName"
     $vmCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
+    $previousBootTime = Invoke-CommandOnVM -VMName $VmName -VMIsRemote $VMIsRemote `
+        -Credential $vmCredential -ScriptBlock {
+            $os = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
+            $os.LastBootUpTime.ToUniversalTime().Ticks
+        } -ErrorAction Stop
+    if ($null -eq $previousBootTime) {
+        throw "Could not read the boot time of VM $VmName before restarting."
+    }
+
+    Write-Log "Restarting VM: $VmName"
     $commandScriptBlock = {
         Restart-Computer -Force -ErrorAction Stop
     }
@@ -171,15 +210,15 @@ function Restart-VMAndWait {
         -Credential $vmCredential `
         -ScriptBlock $commandScriptBlock
 
-    Write-Log "Waiting for VM: $VmName to restart"
-    Start-Sleep -Seconds 60
-
+    Write-Log "Waiting for VM $VmName to complete a new boot."
     $vmList = @(@{ Name = $VmName })
+    $previousBootTimes = @{ $VmName = $previousBootTime }
     if (-not $VMIsRemote) {
-        Wait-AllVMsToInitialize -VMList $vmList
+        Wait-AllVMsToInitialize -VMList $vmList -PreviousBootTimes $previousBootTimes
     } else {
         $vmCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
-        Wait-AllVMsReadyForCommands -VMList $vmList -TestCredential $vmCredential -VMIsRemote:$VMIsRemote
+        Wait-AllVMsReadyForCommands -VMList $vmList -TestCredential $vmCredential `
+            -VMIsRemote:$VMIsRemote -PreviousBootTimes $previousBootTimes
     }
 }
 
