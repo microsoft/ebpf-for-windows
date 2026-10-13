@@ -13,6 +13,7 @@
 #include "capture_helper.hpp"
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
+#include "device_helper.hpp"
 #include "ebpf_core.h"
 #include "ebpf_store_helper.h"
 #include "ebpf_tracelog.h"
@@ -3255,6 +3256,89 @@ TEST_CASE("load_native_program_negative3", "[end-to-end]")
     REQUIRE(
         test_ioctl_load_native_programs(
             &provider_module_id, nullptr, MAP_COUNT, map_handles, PROGRAM_COUNT, program_handles) != ERROR_SUCCESS);
+}
+
+TEST_CASE("load_native_program_reply_compatibility", "[end_to_end][native]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    program_info_provider_t xdp_program_info;
+    REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
+
+    GUID provider_module_id = GUID_NULL;
+    SC_HANDLE service_handle = nullptr;
+    _test_handle_helper module_handle;
+    size_t count_of_maps = 0;
+    size_t count_of_programs = 0;
+    REQUIRE(UuidCreate(&provider_module_id) == RPC_S_OK);
+    _create_service_helper(L"droppacket_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
+    REQUIRE(ebpf_authorize_native_module_wrapper(&provider_module_id, "droppacket_um.dll") == EBPF_SUCCESS);
+
+    std::wstring service_path = std::wstring(SERVICE_PATH_PREFIX) + NATIVE_DRIVER_SERVICE_NAME;
+    REQUIRE(
+        test_ioctl_load_native_module(
+            service_path,
+            &provider_module_id,
+            module_handle.get_handle_pointer(),
+            &count_of_maps,
+            &count_of_programs) == ERROR_SUCCESS);
+    REQUIRE(count_of_maps == 2);
+    REQUIRE(count_of_programs == 1);
+
+    ebpf_protocol_buffer_t request_buffer(offsetof(ebpf_operation_load_native_programs_request_t, pin_root_path));
+    auto* request = reinterpret_cast<ebpf_operation_load_native_programs_request_t*>(request_buffer.data());
+    request->header.id = EBPF_OPERATION_LOAD_NATIVE_PROGRAMS;
+    request->header.length = static_cast<uint16_t>(request_buffer.size());
+    request->module_id = provider_module_id;
+
+    const size_t handles_size = (count_of_maps + count_of_programs) * sizeof(ebpf_handle_t);
+    const size_t legacy_reply_size = offsetof(ebpf_operation_load_native_programs_reply_t, data) + handles_size;
+    const size_t extra_reply_bytes = GENERATE(size_t{0}, size_t{1}, size_t{2}, size_t{3});
+    const bool direct_dispatch = GENERATE(false, true);
+    const size_t reply_length = legacy_reply_size + extra_reply_bytes;
+    ebpf_protocol_buffer_t reply_buffer(reply_length + (direct_dispatch ? 1 : 0), 0xa5);
+    if (direct_dispatch) {
+        REQUIRE(
+            ebpf_core_invoke_protocol_handler(
+                EBPF_OPERATION_LOAD_NATIVE_PROGRAMS,
+                request_buffer.data(),
+                static_cast<uint16_t>(request_buffer.size()),
+                reply_buffer.data(),
+                static_cast<uint16_t>(reply_length),
+                nullptr,
+                nullptr) == EBPF_SUCCESS);
+        REQUIRE(reply_buffer[reply_length] == 0xa5);
+    } else {
+        REQUIRE(invoke_ioctl(request_buffer, reply_buffer) == ERROR_SUCCESS);
+    }
+    auto* reply = reinterpret_cast<ebpf_operation_load_native_programs_reply_t*>(reply_buffer.data());
+    REQUIRE(reply->map_handle_count == count_of_maps);
+    REQUIRE(reply->program_handle_count == count_of_programs);
+
+    for (size_t i = 0; i < count_of_maps; i++) {
+        _test_handle_helper map_handle;
+        memcpy(map_handle.get_handle_pointer(), reply->data + i * sizeof(ebpf_handle_t), sizeof(ebpf_handle_t));
+        struct bpf_map_info info = {};
+        uint32_t info_size = sizeof(info);
+        REQUIRE(ebpf_object_get_info(*map_handle.get_handle_pointer(), &info, &info_size, nullptr) == EBPF_SUCCESS);
+        REQUIRE(info.id != EBPF_ID_NONE);
+    }
+    _test_handle_helper program_handle;
+    memcpy(
+        program_handle.get_handle_pointer(),
+        reply->data + count_of_maps * sizeof(ebpf_handle_t),
+        sizeof(ebpf_handle_t));
+    struct bpf_prog_info info = {};
+    uint32_t info_size = sizeof(info);
+    REQUIRE(ebpf_object_get_info(*program_handle.get_handle_pointer(), &info, &info_size, nullptr) == EBPF_SUCCESS);
+    REQUIRE(info.id != EBPF_ID_NONE);
+
+    // Direct dispatch leaves unused bytes untouched; the buffered IOCTL zero-initializes them.
+    for (size_t i = 0; i < extra_reply_bytes; i++) {
+        uint8_t expected = (extra_reply_bytes >= count_of_maps && i < count_of_maps) || !direct_dispatch ? 0 : 0xa5;
+        REQUIRE(reply_buffer[legacy_reply_size + i] == expected);
+    }
+    Platform::_delete_service(service_handle);
 }
 
 // Load native module and then try to load programs with incorrect params.

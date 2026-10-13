@@ -507,7 +507,9 @@ typedef struct _ebpf_operation_load_native_programs_reply
     struct _ebpf_operation_header header;
     size_t program_handle_count;
     size_t map_handle_count;
-    // Map handles, program handles, then one reuse-status byte per map (0 = created, 1 = reused).
+    // Map handles followed by program handles.
+    // If the reply buffer has room for all map reuse-status bytes, they follow the handle arrays
+    // (one byte per map: 0 = created, 1 = reused). Legacy handle-only reply buffers remain supported.
     uint8_t data[1];
 } ebpf_operation_load_native_programs_reply_t;
 

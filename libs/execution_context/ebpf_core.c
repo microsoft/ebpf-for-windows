@@ -651,6 +651,7 @@ _ebpf_core_protocol_load_native_programs(
     size_t required_reply_length = 0;
     size_t map_handles_size = 0;
     size_t program_handles_size = 0;
+    uint8_t* map_reused = NULL;
     size_t pin_root_path_length = 0;
     char pin_root_path[EBPF_MAX_PIN_PATH_LENGTH];
 
@@ -708,10 +709,6 @@ _ebpf_core_protocol_load_native_programs(
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
-    result = ebpf_safe_size_t_add(required_reply_length, count_of_map_handles, &required_reply_length);
-    if (result != EBPF_SUCCESS) {
-        goto Done;
-    }
     result = ebpf_safe_size_t_add(
         EBPF_OFFSET_OF(ebpf_operation_load_native_programs_reply_t, data),
         required_reply_length,
@@ -723,6 +720,11 @@ _ebpf_core_protocol_load_native_programs(
     if (reply_length < required_reply_length) {
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
+    }
+
+    // Legacy callers allocate only the handle arrays. Emit reuse status only if the entire tail fits.
+    if (count_of_map_handles > 0 && reply_length - required_reply_length >= count_of_map_handles) {
+        map_reused = (uint8_t*)reply + required_reply_length;
     }
 
     if (count_of_map_handles) {
@@ -756,7 +758,7 @@ _ebpf_core_protocol_load_native_programs(
         (pin_root_path_length > 0) ? pin_root_path : NULL,
         count_of_map_handles,
         map_handles,
-        reply->data + map_handles_size + program_handles_size,
+        map_reused,
         count_of_program_handles,
         program_handles);
     if (result != EBPF_SUCCESS) {

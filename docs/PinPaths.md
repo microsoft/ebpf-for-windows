@@ -181,3 +181,8 @@ pinned in user mode. Setting the path after loading does not itself pin the
 map; call `bpf_map__pin()` to pin it explicitly. If native loading fails,
 any pins newly created by that load, including automatic pins created in
 the kernel, are removed. Pre-existing pins reused by the load are preserved.
+
+Native-load IOCTL replies retain the handle-only layout for older clients.
+Clients that allocate space for the optional reuse-status tail receive one
+byte per map identifying which maps were reused, enabling rollback without
+removing pre-existing pins.
