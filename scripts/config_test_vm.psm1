@@ -15,11 +15,23 @@ Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName, $WorkingD
 # VM Initialization functions
 #
 
+<#
+.SYNOPSIS
+    Waits for VMs to accept guest commands.
+.DESCRIPTION
+    Normally waits only for guest commands to succeed. For VMs with an entry in
+    PreviousBootTimes, also requires the guest boot time to change before accepting
+    readiness. This function does not request a restart.
+.PARAMETER PreviousBootTimes
+    Optional mapping of VM names to pre-restart guest boot times in UTC ticks,
+    supplied by Restart-VMAndWait. VMs without an entry use ordinary readiness checks.
+#>
 function Wait-AllVMsReadyForCommands
 {
     param([Parameter(Mandatory=$True)]$VMList,
           [Parameter(Mandatory=$True)][PSCredential] $TestCredential,
-          [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false)
+          [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false,
+          [Parameter(Mandatory=$false)][hashtable] $PreviousBootTimes = @{})
 
     $totalSleepTime = 0
     $ReadyList = @{}
@@ -30,23 +42,39 @@ function Wait-AllVMsReadyForCommands
                 Write-Log "Poking $VMName to see if it is ready to accept commands"
                 $ret = $False
                 try {
-                    Invoke-CommandOnVM -VMName $VMName -VMIsRemote $VMIsRemote -Credential $TestCredential -ErrorAction SilentlyContinue -ScriptBlock {$True}
-                    $ret = $True
+                    if ($PreviousBootTimes.ContainsKey($VMName)) {
+                        $bootTime = Invoke-CommandOnVM -VMName $VMName -VMIsRemote $VMIsRemote `
+                            -Credential $TestCredential -ScriptBlock {
+                                $os = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
+                                $os.LastBootUpTime.ToUniversalTime().Ticks
+                            } -ErrorAction Stop
+                        if ($null -eq $bootTime) {
+                            throw "Could not read the boot time of VM $VMName."
+                        }
+                        $ret = $bootTime -ne $PreviousBootTimes[$VMName]
+                        if (-not $ret) {
+                            Write-Log "VM $VMName is still on the previous boot. Waiting for the restart to complete."
+                        }
+                    } else {
+                        Invoke-CommandOnVM -VMName $VMName -VMIsRemote $VMIsRemote -Credential $TestCredential -ErrorAction Stop -ScriptBlock {$True}
+                        $ret = $True
+                    }
                 } catch {
-                        if (-not $VMIsRemote) {
-                        # Transient PS Direct failures during restore/boot often look like this:
-                        # "The credential is invalid." with PSDirectException / PSSessionStateBroken
-                        $isTransient =
+                    # Transient PS Direct failures during restore/boot often look like this:
+                    # "The credential is invalid." with PSDirectException / PSSessionStateBroken
+                    $isTransient =
+                        ($_.Exception -is [System.Management.Automation.Remoting.PSRemotingTransportException]) -or
+                        ((-not $VMIsRemote) -and (
                             ($_.CategoryInfo.Reason -eq 'PSDirectException') -or
                             ($_.FullyQualifiedErrorId -eq 'PSSessionStateBroken') -or
-                            ($_.Exception.Message -match 'credential is invalid')
+                            ($_.Exception.Message -match 'credential is invalid') -or
+                            ($_.Exception.Message -match 'virtual machine .+ is not in running state')))
 
-                        if ($isTransient) {
-                            Write-Log "PS Direct threw transient exception for $VMName - $($_.Exception.Message). Will retry."
-                        } else {
-                            Write-Log "PS Direct threw fatal exception for $VMName - $($_.Exception.Message)."
-                            break
-                        }
+                    if ($isTransient) {
+                        Write-Log "Transient connection failure for $VMName - $($_.Exception.Message). Will retry."
+                    } else {
+                        Write-Log "Fatal error checking VM $VMName readiness - $($_.Exception.Message)."
+                        throw
                     }
                 }
                 if ($ret -eq $True) {
@@ -74,7 +102,8 @@ function Wait-AllVMsReadyForCommands
 function Wait-AllVMsToInitialize
 {
     param([Parameter(Mandatory=$True)]$VMList,
-          [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false)
+          [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false,
+          [Parameter(Mandatory=$false)][hashtable] $PreviousBootTimes = @{})
 
     $totalSleepTime = 0
     $ReadyList = @{}
@@ -105,7 +134,8 @@ function Wait-AllVMsToInitialize
     }
 
     $TestCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
-    Wait-AllVMsReadyForCommands -VMList $VMList -TestCredential $TestCredential -VMIsRemote:$VMIsRemote
+    Wait-AllVMsReadyForCommands -VMList $VMList -TestCredential $TestCredential `
+        -VMIsRemote:$VMIsRemote -PreviousBootTimes $PreviousBootTimes
 
     # Enable guest-services on each VM.
     $ReadyList.Clear()
@@ -138,6 +168,41 @@ function Wait-AllVMsToInitialize
 
     if ($ReadyList.Count -ne $VMList.Count) {
         throw ("Guest service failed to get enabled on one or more VMs after waiting for 1 minute.")
+    }
+}
+
+<#
+.SYNOPSIS
+    Restarts a VM and waits for a new guest boot before accepting readiness.
+#>
+function Restart-VMAndWait {
+    param(
+        [Parameter(Mandatory=$True)][string]$VmName,
+        [Parameter(Mandatory=$false)][bool]$VMIsRemote = $false
+    )
+
+    $vmCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
+    $previousBootTime = Invoke-CommandOnVM -VMName $VmName -VMIsRemote $VMIsRemote `
+        -Credential $vmCredential -ScriptBlock {
+            $os = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
+            $os.LastBootUpTime.ToUniversalTime().Ticks
+        } -ErrorAction Stop
+    if ($null -eq $previousBootTime) {
+        throw "Could not read the boot time of VM $VmName before restarting."
+    }
+
+    Write-Log "Restarting VM: $VmName"
+    Invoke-CommandOnVM -VMName $VmName -VMIsRemote $VMIsRemote -Credential $vmCredential `
+        -ScriptBlock { Restart-Computer -Force -ErrorAction Stop } -ErrorAction Stop
+
+    $vmList = @(@{ Name = $VmName })
+    $previousBootTimes = @{ $VmName = $previousBootTime }
+    Write-Log "Waiting for VM $VmName to complete a new boot."
+    if ($VMIsRemote) {
+        Wait-AllVMsReadyForCommands -VMList $vmList -TestCredential $vmCredential `
+            -VMIsRemote:$true -PreviousBootTimes $previousBootTimes
+    } else {
+        Wait-AllVMsToInitialize -VMList $vmList -PreviousBootTimes $previousBootTimes
     }
 }
 
@@ -971,7 +1036,7 @@ function Initialize-VM {
         Execute-CommandOnVM -VMName $VmName -Command "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope LocalMachine; cd $VMWorkingDirectory; .\$VMSetupScript"
         Write-Log "Successfully executed VM configuration script ($VMSetupScript) on VM: $VmName" -ForegroundColor Green
 
-        Wait-AllVMsToInitialize -VMList $vmList
+        Restart-VMAndWait -VmName $VmName
 
         # Copy any additional files to the VM before checkpointing.
         if ($FilesToCopy.Count -gt 0) {
@@ -1146,27 +1211,13 @@ function Enable-HVCIOnVM {
             # Enable HVCI
             New-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios" -Name "HypervisorEnforcedCodeIntegrity" -ItemType Directory -Force
             Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" -Name "Enabled" -Value 1 -Force
-            # Restart the VM to apply changes
-            Restart-Computer -Force -ErrorAction Stop
         }
         Invoke-CommandOnVM -VMName $VmName -VMIsRemote $VMIsRemote -Credential $vmCredential -ScriptBlock $commandScriptBlock
     } catch {
         throw "Failed to enable HVCI on VM: $VmName with error: $_"
     }
 
-    # Wait 1 minute for the VM to restart
-    Write-Log "Waiting for 1 minute for VM: $VmName to restart"
-    Start-Sleep -Seconds 60
-
-    $VMList = @(@{ Name = $VmName })
-    if (-not $VMIsRemote){
-        # Wait for the VM to restart and be ready again
-        Write-Log "Waiting for VM: $VmName to restart and be ready again"
-        Wait-AllVMsToInitialize -VMList $VMList
-    } else {
-        $TestCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
-        Wait-AllVMsReadyForCommands -VMList $VMList -TestCredential $TestCredential -VMIsRemote:$VMIsRemote
-    }
+    Restart-VMAndWait -VmName $VmName -VMIsRemote $VMIsRemote
 
     Write-Log "HVCI enabled successfully on VM: $VmName" -ForegroundColor Green
 }
