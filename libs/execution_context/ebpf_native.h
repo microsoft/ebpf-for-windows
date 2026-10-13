@@ -66,6 +66,7 @@ extern "C"
      *  pinning maps declared with LIBBPF_PIN_BY_NAME. If NULL, the default pin root path is used.
      * @param[in] count_of_map_handles Count of maps in the native module.
      * @param[out] map_handles Array of handles of the maps created.
+     * @param[out] map_reused One reuse-status byte per map (0 = created, 1 = reused).
      * @param[in] count_of_program_handles Count of programs in the native module.
      * @param[out] program_handles Array of handles for the programs created.
      *
@@ -83,6 +84,7 @@ extern "C"
         _In_opt_z_ const char* pin_root_path,
         size_t count_of_map_handles,
         _Out_writes_opt_(count_of_map_handles) ebpf_handle_t* map_handles,
+        _Out_writes_opt_(count_of_map_handles) uint8_t* map_reused,
         size_t count_of_program_handles,
         _Out_writes_(count_of_program_handles) ebpf_handle_t* program_handles);
 

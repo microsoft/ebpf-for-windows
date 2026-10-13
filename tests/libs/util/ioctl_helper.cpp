@@ -103,9 +103,10 @@ test_ioctl_load_native_programs(
     ebpf_protocol_buffer_t reply_buffer;
     ebpf_operation_load_native_programs_request_t* request;
     ebpf_operation_load_native_programs_reply_t* reply;
-    size_t map_handles_size = count_of_maps * sizeof(ebpf_handle_t);
-    size_t program_handles_size = count_of_programs * sizeof(ebpf_handle_t);
-    size_t handles_size = map_handles_size + program_handles_size;
+    size_t map_handles_size = 0;
+    size_t program_handles_size = 0;
+    size_t handles_size = 0;
+    size_t buffer_size = 0;
     size_t pin_root_path_size = pin_root_path ? strlen(pin_root_path) : 0;
     size_t request_size = 0;
     uint16_t request_length = 0;
@@ -124,7 +125,27 @@ test_ioctl_load_native_programs(
         EBPF_RETURN_ERROR(ERROR_ARITHMETIC_OVERFLOW);
     }
 
-    size_t buffer_size = offsetof(ebpf_operation_load_native_programs_reply_t, data) + handles_size;
+    result = ebpf_safe_size_t_multiply(count_of_maps, sizeof(ebpf_handle_t), &map_handles_size);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_ERROR(ERROR_ARITHMETIC_OVERFLOW);
+    }
+    result = ebpf_safe_size_t_multiply(count_of_programs, sizeof(ebpf_handle_t), &program_handles_size);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_ERROR(ERROR_ARITHMETIC_OVERFLOW);
+    }
+    result = ebpf_safe_size_t_add(map_handles_size, program_handles_size, &handles_size);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_ERROR(ERROR_ARITHMETIC_OVERFLOW);
+    }
+    result =
+        ebpf_safe_size_t_add(offsetof(ebpf_operation_load_native_programs_reply_t, data), handles_size, &buffer_size);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_ERROR(ERROR_ARITHMETIC_OVERFLOW);
+    }
+    result = ebpf_safe_size_t_add(buffer_size, count_of_maps, &buffer_size);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_ERROR(ERROR_ARITHMETIC_OVERFLOW);
+    }
     request_buffer.resize(request_size);
     reply_buffer.resize(buffer_size);
 

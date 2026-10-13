@@ -179,4 +179,5 @@ supported in all execution modes. Native maps are pinned at that path by
 `ebpfapi.dll` after kernel map creation, just as JIT and interpreted maps are
 pinned in user mode. Setting the path after loading does not itself pin the
 map; call `bpf_map__pin()` to pin it explicitly. If native loading fails,
-any per-map pins newly created in user mode are removed.
+any pins newly created by that load, including automatic pins created in
+the kernel, are removed. Pre-existing pins reused by the load are preserved.

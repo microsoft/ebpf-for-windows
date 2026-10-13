@@ -2610,17 +2610,9 @@ _initialize_ebpf_maps_native(
         }
         map->map_handle = map_handles[i];
         map_handles[i] = ebpf_handle_invalid;
-
-        // For native objects, ebpfcore pins LIBBPF_PIN_BY_NAME maps as part of loading the module.
-        if (map->map_definition.pinning == LIBBPF_PIN_BY_NAME) {
-            map->pinned = true;
-        }
     }
 
 Exit:
-    if (result != EBPF_SUCCESS) {
-        clean_up_ebpf_maps(maps);
-    }
     EBPF_RETURN_RESULT(result);
 }
 CATCH_NO_MEMORY_EBPF_RESULT
@@ -2771,15 +2763,23 @@ _initialize_ebpf_object_native(
     ebpf_handle_t native_module_handle,
     size_t count_of_maps,
     _In_reads_opt_(count_of_maps) ebpf_handle_t* map_handles,
+    _In_ const std::vector<uint8_t>& map_reused,
     size_t count_of_programs,
     _In_reads_opt_(count_of_programs) ebpf_handle_t* program_handles,
-    _Out_ ebpf_object_t& object) NO_EXCEPT_TRY
+    _Inout_ ebpf_object_t& object) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
 
     ebpf_assert(count_of_maps == 0 || map_handles);
     ebpf_assert(count_of_programs == 0 || program_handles);
+
+    ebpf_assert(count_of_maps == object.maps.size());
+    ebpf_assert(count_of_maps == map_reused.size());
+    for (size_t i = 0; i < count_of_maps; i++) {
+        object.maps[i]->reused = map_reused[i] != 0;
+        object.maps[i]->pinned = object.maps[i]->map_definition.pinning == LIBBPF_PIN_BY_NAME;
+    }
 
     result = _initialize_ebpf_programs_native(count_of_programs, program_handles, object.programs);
     if (result != EBPF_SUCCESS) {
@@ -2838,8 +2838,9 @@ _initialize_ebpf_object_native(
 Exit:
     if (result != EBPF_SUCCESS) {
         for (auto* map : object.maps) {
-            if (map->map_definition.pinning != LIBBPF_PIN_BY_NAME && map->pinned) {
-                ebpf_assert_success(ebpf_map_unpin(map, nullptr));
+            if (map->pinned && (map->map_definition.pinning != LIBBPF_PIN_BY_NAME || !map->reused)) {
+                // Initialization can fail before this map has a user-mode fd.
+                ebpf_assert_success(ebpf_object_unpin(map->pin_path));
             }
         }
         clean_up_ebpf_programs(object.programs);
@@ -4281,7 +4282,8 @@ _load_native_programs(
     size_t count_of_maps,
     _Outptr_result_buffer_maybenull_(count_of_maps) ebpf_handle_t** map_handles,
     size_t count_of_programs,
-    _Outptr_result_buffer_maybenull_(count_of_programs) ebpf_handle_t** program_handles) noexcept(false)
+    _Outptr_result_buffer_maybenull_(count_of_programs) ebpf_handle_t** program_handles,
+    _Out_opt_ std::vector<uint8_t>* map_reused) noexcept(false)
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(module_id);
@@ -4333,6 +4335,10 @@ _load_native_programs(
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
+    result = ebpf_safe_size_t_add(buffer_size, count_of_maps, &buffer_size);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
 
     if (count_of_maps > 0) {
         *map_handles = (ebpf_handle_t*)ebpf_allocate_with_tag(map_handles_size, EBPF_POOL_TAG_DEFAULT);
@@ -4360,6 +4366,9 @@ _load_native_programs(
 
     request_buffer.resize(request_size);
     reply_buffer.resize(buffer_size);
+    if (map_reused != nullptr) {
+        map_reused->resize(count_of_maps);
+    }
 
     request = reinterpret_cast<ebpf_operation_load_native_programs_request_t*>(request_buffer.data());
     reply = reinterpret_cast<ebpf_operation_load_native_programs_reply_t*>(reply_buffer.data());
@@ -4399,6 +4408,9 @@ _load_native_programs(
     if (*program_handles != nullptr) {
         memcpy(*program_handles, reply->data + map_handles_size, program_handles_size);
     }
+    if (map_reused != nullptr && count_of_maps > 0) {
+        memcpy(map_reused->data(), reply->data + map_handles_size + program_handles_size, count_of_maps);
+    }
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 
 Done:
@@ -4434,7 +4446,8 @@ _ebpf_object_load_native(
     _Inout_ size_t* count_of_maps,
     _Outptr_result_buffer_all_maybenull_(*count_of_maps) ebpf_handle_t** map_handles,
     _Inout_ size_t* count_of_programs,
-    _Outptr_result_buffer_all_maybenull_(*count_of_programs) ebpf_handle_t** program_handles) NO_EXCEPT_TRY
+    _Outptr_result_buffer_all_maybenull_(*count_of_programs) ebpf_handle_t** program_handles,
+    _Out_opt_ std::vector<uint8_t>* map_reused = nullptr) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
 
@@ -4555,7 +4568,8 @@ _ebpf_object_load_native(
             real_count_of_maps,
             map_handles,
             real_count_of_programs,
-            program_handles);
+            program_handles,
+            map_reused);
         if (result != EBPF_SUCCESS) {
             EBPF_LOG_MESSAGE_STRING(
                 EBPF_TRACELOG_LEVEL_ERROR,
@@ -4690,6 +4704,7 @@ _ebpf_program_load_native(
     ebpf_handle_t* program_handles = nullptr;
     size_t count_of_maps = SIZE_MAX;
     size_t count_of_programs = SIZE_MAX;
+    std::vector<uint8_t> map_reused;
 
     try {
         result = _validate_native_map_pin_paths(*object);
@@ -4704,13 +4719,14 @@ _ebpf_program_load_native(
             &count_of_maps,
             &map_handles,
             &count_of_programs,
-            &program_handles);
+            &program_handles,
+            &map_reused);
         if (result != EBPF_SUCCESS) {
             EBPF_RETURN_RESULT(result);
         }
 
         result = _initialize_ebpf_object_native(
-            native_module_handle, count_of_maps, map_handles, count_of_programs, program_handles, *object);
+            native_module_handle, count_of_maps, map_handles, map_reused, count_of_programs, program_handles, *object);
         if (result != EBPF_SUCCESS) {
             EBPF_LOG_MESSAGE_STRING(
                 EBPF_TRACELOG_LEVEL_ERROR,

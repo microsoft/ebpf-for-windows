@@ -708,6 +708,10 @@ _ebpf_core_protocol_load_native_programs(
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
+    result = ebpf_safe_size_t_add(required_reply_length, count_of_map_handles, &required_reply_length);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
     result = ebpf_safe_size_t_add(
         EBPF_OFFSET_OF(ebpf_operation_load_native_programs_reply_t, data),
         required_reply_length,
@@ -752,6 +756,7 @@ _ebpf_core_protocol_load_native_programs(
         (pin_root_path_length > 0) ? pin_root_path : NULL,
         count_of_map_handles,
         map_handles,
+        reply->data + map_handles_size + program_handles_size,
         count_of_program_handles,
         program_handles);
     if (result != EBPF_SUCCESS) {

@@ -2477,6 +2477,7 @@ ebpf_native_load_programs(
     _In_opt_z_ const char* pin_root_path,
     size_t count_of_map_handles,
     _Out_writes_opt_(count_of_map_handles) ebpf_handle_t* map_handles,
+    _Out_writes_opt_(count_of_map_handles) uint8_t* map_reused,
     size_t count_of_program_handles,
     _Out_writes_(count_of_program_handles) ebpf_handle_t* program_handles)
 {
@@ -2601,6 +2602,9 @@ ebpf_native_load_programs(
 
     for (int i = 0; i < count_of_map_handles; i++) {
         map_handles[i] = instance.maps[i].handle;
+        if (map_reused != NULL) {
+            map_reused[i] = instance.maps[i].reused ? 1 : 0;
+        }
         instance.maps[i].handle = ebpf_handle_invalid;
     }
 

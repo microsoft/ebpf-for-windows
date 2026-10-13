@@ -3896,6 +3896,84 @@ TEST_CASE("bpf_object__load with native per-map pin path rollback", "[libbpf]")
     }
 }
 
+TEST_CASE("bpf_object__load with native automatic pin path rollback", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    const bool reuse_outer = GENERATE(false, true);
+    const bool reuse_port = GENERATE(false, true);
+    struct bpf_object_open_opts opts = {};
+    opts.pin_root_path = "/custompath/native_rollback";
+    bpf_object_ptr existing_object(bpf_object__open_file("map_reuse_um.dll", &opts));
+    REQUIRE(existing_object != nullptr);
+    REQUIRE(bpf_object__load(existing_object.get()) == 0);
+
+    struct bpf_map* existing_outer = bpf_object__find_map_by_name(existing_object.get(), "outer_map");
+    struct bpf_map* existing_port = bpf_object__find_map_by_name(existing_object.get(), "port_map");
+    REQUIRE(existing_outer != nullptr);
+    REQUIRE(existing_port != nullptr);
+    if (!reuse_outer) {
+        REQUIRE(bpf_map__unpin(existing_outer, nullptr) == 0);
+    }
+    if (!reuse_port) {
+        REQUIRE(bpf_map__unpin(existing_port, nullptr) == 0);
+    }
+
+    const char* explicit_path = "/custompath/native_rollback/explicit";
+    fd_t collision_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(collision_fd > 0);
+    REQUIRE(bpf_obj_pin(collision_fd, explicit_path) == 0);
+
+    bpf_object_ptr object(bpf_object__open_file("map_reuse_um.dll", &opts));
+    REQUIRE(object != nullptr);
+    struct bpf_map* inner = bpf_object__find_map_by_name(object.get(), "inner_map");
+    REQUIRE(inner != nullptr);
+    REQUIRE(bpf_map__set_pin_path(inner, explicit_path) == 0);
+
+    SECTION("per-map pinning fails") { REQUIRE(bpf_object__load(object.get()) == -EEXIST); }
+
+    SECTION("program initialization fails before map initialization")
+    {
+        std::vector<ebpf_program_t*> saved_programs;
+        saved_programs.swap(object->programs);
+        int result = bpf_object__load(object.get());
+        saved_programs.swap(object->programs);
+        REQUIRE(result == -EINVAL);
+    }
+
+    auto check_pin = [](const char* path, fd_t original_fd, bool expected) {
+        fd_t pinned_fd = bpf_obj_get(path);
+        if (!expected) {
+            REQUIRE(pinned_fd < 0);
+            REQUIRE(errno == ENOENT);
+            return;
+        }
+        REQUIRE(pinned_fd > 0);
+        struct bpf_map_info original_info = {};
+        struct bpf_map_info pinned_info = {};
+        uint32_t info_size = sizeof(original_info);
+        REQUIRE(bpf_obj_get_info_by_fd(original_fd, &original_info, &info_size) == 0);
+        info_size = sizeof(pinned_info);
+        REQUIRE(bpf_obj_get_info_by_fd(pinned_fd, &pinned_info, &info_size) == 0);
+        REQUIRE(pinned_info.id == original_info.id);
+        Platform::_close(pinned_fd);
+    };
+
+    check_pin(existing_outer->pin_path, bpf_map__fd(existing_outer), reuse_outer);
+    check_pin(existing_port->pin_path, bpf_map__fd(existing_port), reuse_port);
+    check_pin(explicit_path, collision_fd, true);
+
+    if (reuse_outer) {
+        REQUIRE(bpf_map__unpin(existing_outer, nullptr) == 0);
+    }
+    if (reuse_port) {
+        REQUIRE(bpf_map__unpin(existing_port, nullptr) == 0);
+    }
+    REQUIRE(ebpf_object_unpin(explicit_path) == EBPF_SUCCESS);
+    Platform::_close(collision_fd);
+}
+
 // Test bpf() with the following command ids:
 // BPF_MAP_CREATE, BPF_MAP_UPDATE_ELEM, BPF_MAP_LOOKUP_ELEM,
 // BPF_MAP_GET_NEXT_KEY, BPF_MAP_LOOKUP_AND_DELETE_ELEM, and BPF_MAP_DELETE_ELEM.
