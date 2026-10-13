@@ -38,7 +38,6 @@
     <PackageReference Include="Microsoft.Windows.SDK.CPP.$(Platform)" Version="$(WDKVersion)"/>
     <PackageReference Include="Microsoft.Windows.SDK.CPP.$(HostPlatform)" Condition="'$(HostPlatform)' != '$(Platform)'" Version="$(WDKVersion)"/>
     <PackageReference Include="Microsoft.Windows.WDK.$(Platform)" Version="$(WDKVersion)"/>
-    <PackageReference Include="Microsoft.Windows.WDK.$(HostPlatform)" Condition="'$(HostPlatform)' != '$(Platform)'" Version="$(WDKVersion)"/>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{172DFDF9-3B0D-44AD-B780-92627EA469A2}</ProjectGuid>
@@ -56,7 +55,8 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup>
     <TargetVersion>Windows10</TargetVersion>
-    <UseDebugLibraries>true</UseDebugLibraries>
+    <UseDebugLibraries Condition="'$(Configuration)'=='Debug'">true</UseDebugLibraries>
+    <UseDebugLibraries Condition="'$(Configuration)'=='Release'">false</UseDebugLibraries>
     <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
     <ConfigurationType>Driver</ConfigurationType>
     <DriverType>WDM</DriverType>
