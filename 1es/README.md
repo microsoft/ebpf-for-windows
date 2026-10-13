@@ -36,16 +36,6 @@ utilize. It is used by `Setup.ps1`.
 - `scripts\config_test_vm.psm1` - This holds some common helper functions that the runtime tests
 also utilize, focusing on functionality related to the inner VM. It is used by `Setup.ps1`
 
-### Reboot synchronization
-`configure_vm.ps1` configures the guest without restarting it. `Initialize-VM` requests
-the restart and waits for the guest's `LastBootUpTime` to change before creating the
-baseline checkpoint. Runtime HVCI setup uses the same `Restart-VMAndWait` helper.
-Heartbeat and remoting alone are not sufficient: the old boot can still respond during
-shutdown. Transient connection failures are retried, with a five-minute readiness timeout.
-
-The mocked reboot regression tests can be run from Windows PowerShell with:
-`Invoke-Pester -Script .\scripts\tests\config_test_vm.Tests.ps1 -EnableExit`.
-
 ## Creating a New Image
 The following steps can be used to onboard a new test image:
 - Create a new azure storage blob container within the `ebpfcicdstorage` storage account.

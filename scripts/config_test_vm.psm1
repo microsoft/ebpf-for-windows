@@ -15,6 +15,17 @@ Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName, $WorkingD
 # VM Initialization functions
 #
 
+<#
+.SYNOPSIS
+    Waits for VMs to accept guest commands.
+.DESCRIPTION
+    Normally waits only for guest commands to succeed. For VMs with an entry in
+    PreviousBootTimes, also requires the guest boot time to change before accepting
+    readiness. This function does not request a restart.
+.PARAMETER PreviousBootTimes
+    Optional mapping of VM names to pre-restart guest boot times in UTC ticks,
+    supplied by Restart-VMAndWait. VMs without an entry use ordinary readiness checks.
+#>
 function Wait-AllVMsReadyForCommands
 {
     param([Parameter(Mandatory=$True)]$VMList,
@@ -22,7 +33,7 @@ function Wait-AllVMsReadyForCommands
           [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false,
           [Parameter(Mandatory=$false)][hashtable] $PreviousBootTimes = @{})
 
-    $timer = [System.Diagnostics.Stopwatch]::StartNew()
+    $totalSleepTime = 0
     $ReadyList = @{}
     do {
         foreach($VM in $VMList) {
@@ -49,6 +60,8 @@ function Wait-AllVMsReadyForCommands
                         $ret = $True
                     }
                 } catch {
+                    # Transient PS Direct failures during restore/boot often look like this:
+                    # "The credential is invalid." with PSDirectException / PSSessionStateBroken
                     $isTransient =
                         ($_.Exception -is [System.Management.Automation.Remoting.PSRemotingTransportException]) -or
                         ((-not $VMIsRemote) -and (
@@ -76,9 +89,10 @@ function Wait-AllVMsReadyForCommands
             Write-Log "Waiting $sleepSeconds seconds for $VMName to be responsive."
             # Sleep for sleepSeconds seconds.
             Start-Sleep -seconds $sleepSeconds
+            $totalSleepTime += $sleepSeconds
         }
     }
-    until (($ReadyList.Count -eq $VMList.Count) -or ($timer.Elapsed.TotalSeconds -ge 5*60))
+    until (($ReadyList.Count -eq $VMList.Count) -or ($totalSleepTime -gt 5*60))
 
     if ($ReadyList.Count -ne $VMList.Count) {
         throw ("One or more VMs not ready after 5 minutes.")
