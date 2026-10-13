@@ -41,3 +41,5 @@ This will generate a token for the self-hosted runner.
       - `scripts\config_test_vm.psm1`
    1. The script requires an `unattend` file. One is available in [`unattend.xml`](../1es/unattend.xml).
 1. Run the [`configure_vm.ps1`](../1es/configure_vm.ps1) script to configure the test VM.
+   If running this script manually inside the guest, restart the guest afterward to apply
+   the settings. `Setup.ps1` already performs and waits for this restart during VM initialization.

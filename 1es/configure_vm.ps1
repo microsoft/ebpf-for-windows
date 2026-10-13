@@ -27,5 +27,4 @@ New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl" -Na
 # Enable driver verifier on the eBPF platform drivers.
 verifier /standard /bootmode persistent /driver ebpfcore.sys netebpfext.sys sample_ebpf_ext.sys
 
-# Reboot the machine to apply the changes.
-Restart-Computer -Force
+# Initialize-VM restarts the guest and verifies a new boot before checkpointing.
