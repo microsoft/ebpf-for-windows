@@ -38,9 +38,18 @@ An **command line install/uninstall** is also supported, through the direct use 
     ```
 
 * The installer stops if an `eBPFCore` service is already registered. To replace existing eBPF services, pass
-  `FORCE=1`. This stops `NetEbpfExt`, `eBPFSvc`, and `eBPFCore`, then points
-  the driver services at the drivers installed under `INSTALLFOLDER`. The installation fails if a service cannot
-  be stopped.
+  `FORCE=1`. This stops `NetEbpfExt`, `eBPFSvc`, and `eBPFCore`, then replaces the six canonical eBPF binary names
+  under `System32` and `System32\drivers` with NTFS hard links to the binaries installed under `INSTALLFOLDER`.
+  The service registrations are updated to use the canonical Windows paths. The installation fails before changing
+  any canonical link if a service cannot be stopped, a canonical binary is missing, or the replacement hard links
+  cannot be staged (for example, because `INSTALLFOLDER` is on another volume). The installer temporarily grants
+  itself access to protected inbox binaries while changing their hard links and then restores their original ACLs.
+  It also saves the existing machine and installing-user eBPF registry stores under
+  `%ProgramData%\eBPF-for-Windows\MsiBackup`, replaces them with metadata for the installed version, and restores the
+  saved stores during a final uninstall. Store restoration is skipped when removal is part of a major upgrade.
+  Because `HKCU` is specific to a Windows account, uninstall must run as the same user that performed the forced
+  installation to restore that user's store; the installer fails rather than importing the backup into another
+  user's registry hive.
 
     ```bash
     C:\Windows\system32\msiexec.exe /i eBPF-for-Windows.x.x.x.msi FORCE=1
