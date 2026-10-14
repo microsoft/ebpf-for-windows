@@ -12,7 +12,9 @@ param(
         "BackupStore",
         "RollbackStore",
         "CommitStore",
-        "RestoreStore")]
+        "RestoreStore",
+        "RestoreLinks",
+        "RollbackRestoreLinks")]
     [string]$Action,
 
     [string]$InstallRoot,
@@ -55,6 +57,13 @@ namespace EbpfMsi
         private const uint OWNER_SECURITY_INFORMATION = 0x00000001;
         private const uint GROUP_SECURITY_INFORMATION = 0x00000002;
         private const uint DACL_SECURITY_INFORMATION = 0x00000004;
+        private const uint GENERIC_READ = 0x80000000;
+        private const uint FILE_SHARE_READ = 0x00000001;
+        private const uint FILE_SHARE_WRITE = 0x00000002;
+        private const uint FILE_SHARE_DELETE = 0x00000004;
+        private const uint OPEN_EXISTING = 3;
+        private const uint FILE_FLAG_BACKUP_SEMANTICS = 0x02000000;
+
         [StructLayout(LayoutKind.Sequential)]
         private struct Luid
         {
@@ -70,8 +79,37 @@ namespace EbpfMsi
             public uint Attributes;
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        private struct ByHandleFileInformation
+        {
+            public uint FileAttributes;
+            public System.Runtime.InteropServices.ComTypes.FILETIME CreationTime;
+            public System.Runtime.InteropServices.ComTypes.FILETIME LastAccessTime;
+            public System.Runtime.InteropServices.ComTypes.FILETIME LastWriteTime;
+            public uint VolumeSerialNumber;
+            public uint FileSizeHigh;
+            public uint FileSizeLow;
+            public uint NumberOfLinks;
+            public uint FileIndexHigh;
+            public uint FileIndexLow;
+        }
+
         [DllImport("kernel32.dll")]
         private static extern IntPtr GetCurrentProcess();
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern IntPtr CreateFile(
+            string fileName,
+            uint desiredAccess,
+            uint shareMode,
+            IntPtr securityAttributes,
+            uint creationDisposition,
+            uint flagsAndAttributes,
+            IntPtr templateFile);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool GetFileInformationByHandle(
+            IntPtr fileHandle, out ByHandleFileInformation fileInformation);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool CloseHandle(IntPtr handle);
@@ -131,6 +169,40 @@ namespace EbpfMsi
                 OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION;
             if (!SetFileSecurity(path, securityInformation, descriptor)) {
                 throw new Win32Exception(Marshal.GetLastWin32Error());
+            }
+        }
+
+        public static bool AreSameFile(string firstPath, string secondPath)
+        {
+            ByHandleFileInformation first = GetFileInformation(firstPath);
+            ByHandleFileInformation second = GetFileInformation(secondPath);
+            return first.VolumeSerialNumber == second.VolumeSerialNumber &&
+                first.FileIndexHigh == second.FileIndexHigh &&
+                first.FileIndexLow == second.FileIndexLow;
+        }
+
+        private static ByHandleFileInformation GetFileInformation(string path)
+        {
+            IntPtr handle = CreateFile(
+                path,
+                GENERIC_READ,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                IntPtr.Zero,
+                OPEN_EXISTING,
+                FILE_FLAG_BACKUP_SEMANTICS,
+                IntPtr.Zero);
+            if (handle == new IntPtr(-1)) {
+                throw new Win32Exception(Marshal.GetLastWin32Error());
+            }
+
+            try {
+                ByHandleFileInformation information;
+                if (!GetFileInformationByHandle(handle, out information)) {
+                    throw new Win32Exception(Marshal.GetLastWin32Error());
+                }
+                return information;
+            } finally {
+                CloseHandle(handle);
             }
         }
     }
@@ -243,6 +315,157 @@ function Restore-FileAcl
 
     [EbpfMsi.NativeSecurity]::TryEnablePrivilege("SeRestorePrivilege") | Out-Null
     [EbpfMsi.NativeSecurity]::RestoreFileAcl($Path, $Acl.Descriptor)
+}
+
+function Test-SameFile
+{
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$FirstPath,
+
+        [Parameter(Mandatory = $true)]
+        [string]$SecondPath)
+
+    return [EbpfMsi.NativeSecurity]::AreSameFile($FirstPath, $SecondPath)
+}
+
+function Get-BackupCount
+{
+    return @(
+        $mappings |
+            Where-Object { Test-Path -LiteralPath ($_.Link + ".ebpf-msi-backup") -PathType Leaf }
+    ).Count
+}
+
+function Rollback-InstalledLinks
+{
+    Invoke-ForAllMappings {
+        param($mapping)
+
+        $backup = $mapping.Link + ".ebpf-msi-backup"
+        $replacement = $mapping.Link + ".ebpf-msi-new"
+        $rollback = $mapping.Link + ".ebpf-msi-rollback"
+        if (Test-Path -LiteralPath $rollback -PathType Leaf) {
+            if (Test-Path -LiteralPath $mapping.Link) {
+                Remove-Item -LiteralPath $mapping.Link -Force
+            }
+            Move-Item -LiteralPath $rollback -Destination $mapping.Link
+            if ((Test-Path -LiteralPath $backup -PathType Leaf) -and
+                (Test-SameFile -FirstPath $backup -SecondPath $mapping.Link)) {
+                Remove-Item -LiteralPath $backup -Force
+            }
+        }
+        if (Test-Path -LiteralPath $replacement) {
+            Remove-Item -LiteralPath $replacement -Force
+        }
+    }
+}
+
+function Restore-OriginalLinks
+{
+    $backupCount = Get-BackupCount
+    if ($backupCount -eq 0) {
+        Write-Output "No forced-install eBPF hard-link backups were found."
+        return
+    }
+    if ($backupCount -ne $mappings.Count) {
+        throw "Only $backupCount of $($mappings.Count) eBPF hard-link backups exist."
+    }
+
+    $originalAcls = @{}
+    $msiAcls = @{}
+    foreach ($mapping in $mappings) {
+        $backup = $mapping.Link + ".ebpf-msi-backup"
+        if (-not (Test-Path -LiteralPath $mapping.Source -PathType Leaf)) {
+            throw "Installed eBPF binary is missing: $($mapping.Source)"
+        }
+        if (-not (Test-Path -LiteralPath $mapping.Link -PathType Leaf)) {
+            throw "Canonical eBPF binary is missing: $($mapping.Link)"
+        }
+        if (-not (Test-SameFile -FirstPath $mapping.Link -SecondPath $mapping.Source)) {
+            throw "Canonical eBPF binary no longer points to the MSI file: $($mapping.Link)"
+        }
+        if (Test-SameFile -FirstPath $backup -SecondPath $mapping.Link) {
+            throw "The backup and canonical eBPF paths unexpectedly point to the same file: $($mapping.Link)"
+        }
+        $originalAcls[$mapping.Link] = Get-RestorableFileAcl -Path $backup
+        $msiAcls[$mapping.Link] = Get-RestorableFileAcl -Path $mapping.Link
+    }
+
+    try {
+        foreach ($mapping in $mappings) {
+            Enable-SystemFileAccess -Path $mapping.Link
+            Enable-SystemFileAccess -Path ($mapping.Link + ".ebpf-msi-backup")
+        }
+        foreach ($mapping in $mappings) {
+            Remove-Item -LiteralPath $mapping.Link -Force
+            Move-Item -LiteralPath ($mapping.Link + ".ebpf-msi-backup") -Destination $mapping.Link
+            Restore-FileAcl -Path $mapping.Link -Acl $originalAcls[$mapping.Link]
+            Restore-FileAcl -Path $mapping.Source -Acl $msiAcls[$mapping.Link]
+        }
+    } catch {
+        $restoreError = $_
+        try {
+            Restore-MsiLinks
+            foreach ($mapping in $mappings) {
+                $backup = $mapping.Link + ".ebpf-msi-backup"
+                if (Test-Path -LiteralPath $backup -PathType Leaf) {
+                    Restore-FileAcl -Path $backup -Acl $originalAcls[$mapping.Link]
+                }
+                if (Test-Path -LiteralPath $mapping.Source -PathType Leaf) {
+                    Restore-FileAcl -Path $mapping.Source -Acl $msiAcls[$mapping.Link]
+                }
+            }
+        } catch {
+            throw "$($restoreError.Exception.Message)$([Environment]::NewLine)Failed to roll back link restoration: $($_.Exception.Message)"
+        }
+        throw $restoreError
+    }
+}
+
+function Restore-MsiLinks
+{
+    $mappingsToRestore = @()
+    foreach ($mapping in $mappings) {
+        $backup = $mapping.Link + ".ebpf-msi-backup"
+        if (-not (Test-Path -LiteralPath $mapping.Source -PathType Leaf)) {
+            throw "Installed eBPF binary is missing during uninstall rollback: $($mapping.Source)"
+        }
+        if (-not (Test-Path -LiteralPath $mapping.Link -PathType Leaf)) {
+            throw "Restored canonical eBPF binary is missing: $($mapping.Link)"
+        }
+        if (Test-Path -LiteralPath $backup -PathType Leaf) {
+            if (Test-SameFile -FirstPath $mapping.Link -SecondPath $mapping.Source) {
+                continue
+            }
+            if (-not (Test-SameFile -FirstPath $mapping.Link -SecondPath $backup)) {
+                throw "The canonical eBPF binary points to neither the backup nor the MSI file: $($mapping.Link)"
+            }
+        } elseif (Test-SameFile -FirstPath $mapping.Link -SecondPath $mapping.Source) {
+            throw "The canonical eBPF binary points to the MSI file but its backup is missing: $($mapping.Link)"
+        }
+        $mappingsToRestore += @{
+            Mapping = $mapping
+            OriginalAcl = Get-RestorableFileAcl -Path $mapping.Link
+        }
+    }
+
+    foreach ($mappingState in $mappingsToRestore) {
+        $mapping = $mappingState.Mapping
+        $backup = $mapping.Link + ".ebpf-msi-backup"
+        Enable-SystemFileAccess -Path $mapping.Link
+        $replacement = $mapping.Link + ".ebpf-msi-new"
+        Remove-Item -LiteralPath $replacement -Force -ErrorAction SilentlyContinue
+        New-Item -ItemType HardLink -Path $replacement -Target $mapping.Source |
+            Out-Null
+        if (-not (Test-Path -LiteralPath $backup -PathType Leaf)) {
+            New-Item -ItemType HardLink -Path $backup -Target $mapping.Link |
+                Out-Null
+        }
+        Remove-Item -LiteralPath $mapping.Link -Force
+        Move-Item -LiteralPath $replacement -Destination $mapping.Link
+        Restore-FileAcl -Path $backup -Acl $mappingState.OriginalAcl
+    }
 }
 
 function Get-StorePaths
@@ -449,19 +672,29 @@ function Restore-Store
 switch ($Action) {
     "Install" {
         $originalAcls = @{}
+        $backupCount = Get-BackupCount
+        if ($backupCount -ne 0 -and $backupCount -ne $mappings.Count) {
+            throw "Only $backupCount of $($mappings.Count) eBPF hard-link backups exist."
+        }
+        $createDurableBackups = $backupCount -eq 0
         foreach ($mapping in $mappings) {
             $backup = $mapping.Link + ".ebpf-msi-backup"
             $replacement = $mapping.Link + ".ebpf-msi-new"
+            $rollback = $mapping.Link + ".ebpf-msi-rollback"
             if (-not (Test-Path -LiteralPath $mapping.Source -PathType Leaf)) {
                 throw "Installed eBPF binary is missing: $($mapping.Source)"
             }
             if (-not (Test-Path -LiteralPath $mapping.Link -PathType Leaf)) {
                 throw "Canonical eBPF binary is missing: $($mapping.Link)"
             }
-            if ((Test-Path -LiteralPath $backup) -or (Test-Path -LiteralPath $replacement)) {
+            if ((Test-Path -LiteralPath $replacement) -or (Test-Path -LiteralPath $rollback)) {
                 throw "Stale eBPF hard-link staging file exists for: $($mapping.Link)"
             }
-            $originalAcls[$mapping.Link] = Get-RestorableFileAcl -Path $mapping.Link
+            if ($createDurableBackups) {
+                $originalAcls[$mapping.Link] = Get-RestorableFileAcl -Path $mapping.Link
+            } elseif (Test-SameFile -FirstPath $backup -SecondPath $mapping.Link) {
+                throw "The backup and canonical eBPF paths unexpectedly point to the same file: $($mapping.Link)"
+            }
         }
 
         try {
@@ -471,8 +704,12 @@ switch ($Action) {
 
             foreach ($mapping in $mappings) {
                 Write-Output "Staging hard links for $($mapping.Link)"
-                New-Item -ItemType HardLink -Path ($mapping.Link + ".ebpf-msi-backup") -Target $mapping.Link |
+                New-Item -ItemType HardLink -Path ($mapping.Link + ".ebpf-msi-rollback") -Target $mapping.Link |
                     Out-Null
+                if ($createDurableBackups) {
+                    New-Item -ItemType HardLink -Path ($mapping.Link + ".ebpf-msi-backup") -Target $mapping.Link |
+                        Out-Null
+                }
                 New-Item -ItemType HardLink -Path ($mapping.Link + ".ebpf-msi-new") -Target $mapping.Source |
                     Out-Null
             }
@@ -480,66 +717,33 @@ switch ($Action) {
             foreach ($mapping in $mappings) {
                 Remove-Item -LiteralPath $mapping.Link -Force
                 Move-Item -LiteralPath ($mapping.Link + ".ebpf-msi-new") -Destination $mapping.Link
-                Restore-FileAcl `
-                    -Path ($mapping.Link + ".ebpf-msi-backup") `
-                    -Acl $originalAcls[$mapping.Link]
+                if ($createDurableBackups) {
+                    Restore-FileAcl `
+                        -Path ($mapping.Link + ".ebpf-msi-backup") `
+                        -Acl $originalAcls[$mapping.Link]
+                }
             }
         } catch {
             $installError = $_
-            $restoreFailures = @()
-            foreach ($mapping in $mappings) {
-                try {
-                    $backup = $mapping.Link + ".ebpf-msi-backup"
-                    $replacement = $mapping.Link + ".ebpf-msi-new"
-                    if (Test-Path -LiteralPath $backup -PathType Leaf) {
-                        if (Test-Path -LiteralPath $mapping.Link) {
-                            Remove-Item -LiteralPath $mapping.Link -Force
-                        }
-                        Move-Item -LiteralPath $backup -Destination $mapping.Link
-                    }
-                    if (Test-Path -LiteralPath $replacement) {
-                        Remove-Item -LiteralPath $replacement -Force
-                    }
-                    if ($originalAcls.ContainsKey($mapping.Link) -and
-                        (Test-Path -LiteralPath $mapping.Link -PathType Leaf)) {
-                        Restore-FileAcl -Path $mapping.Link -Acl $originalAcls[$mapping.Link]
-                    }
-                } catch {
-                    $restoreFailures += "$($mapping.Link): $($_.Exception.Message)"
-                }
-            }
-
-            if ($restoreFailures.Count -ne 0) {
-                throw "$($installError.Exception.Message)$([Environment]::NewLine)Restoration failures:$([Environment]::NewLine)$($restoreFailures -join [Environment]::NewLine)"
+            try {
+                Rollback-InstalledLinks
+            } catch {
+                throw "$($installError.Exception.Message)$([Environment]::NewLine)Restoration failure: $($_.Exception.Message)"
             }
             throw $installError
         }
     }
 
     "Rollback" {
-        Invoke-ForAllMappings {
-            param($mapping)
-
-            $backup = $mapping.Link + ".ebpf-msi-backup"
-            $replacement = $mapping.Link + ".ebpf-msi-new"
-            if (Test-Path -LiteralPath $backup -PathType Leaf) {
-                if (Test-Path -LiteralPath $mapping.Link) {
-                    Remove-Item -LiteralPath $mapping.Link -Force
-                }
-                Move-Item -LiteralPath $backup -Destination $mapping.Link
-            }
-            if (Test-Path -LiteralPath $replacement) {
-                Remove-Item -LiteralPath $replacement -Force
-            }
-        }
+        Rollback-InstalledLinks
     }
 
     "Commit" {
         Invoke-ForAllMappings {
             param($mapping)
 
-            Remove-Item -LiteralPath ($mapping.Link + ".ebpf-msi-backup") -Force -ErrorAction SilentlyContinue
             Remove-Item -LiteralPath ($mapping.Link + ".ebpf-msi-new") -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath ($mapping.Link + ".ebpf-msi-rollback") -Force -ErrorAction SilentlyContinue
         }
     }
 
@@ -575,5 +779,13 @@ switch ($Action) {
 
     "RestoreStore" {
         Restore-Store
+    }
+
+    "RestoreLinks" {
+        Restore-OriginalLinks
+    }
+
+    "RollbackRestoreLinks" {
+        Restore-MsiLinks
     }
 }
