@@ -186,3 +186,6 @@ Native-load IOCTL replies retain the handle-only layout for older clients.
 Clients that allocate space for the optional reuse-status tail receive one
 byte per map identifying which maps were reused, enabling rollback without
 removing pre-existing pins.
+An explicit marker following these bytes confirms that the driver provided
+reuse status. With older drivers that omit the marker, the API preserves
+automatic pins on load failure because it cannot safely determine ownership.

@@ -11,9 +11,11 @@
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
 #include "ebpf_platform.h"
+#include "ebpf_protocol.h"
 #include "ebpf_tracelog.h"
 #include "helpers.h"
 #include "libbpf_test_jit.h"
+#include "mock.h"
 #include "platform.h"
 #include "program_helper.h"
 #include "spec/vm_isa.hpp"
@@ -3903,6 +3905,7 @@ TEST_CASE("bpf_object__load with native automatic pin path rollback", "[libbpf]"
 
     const bool reuse_outer = GENERATE(false, true);
     const bool reuse_port = GENERATE(false, true);
+    const size_t legacy_reply = GENERATE(size_t{0}, size_t{1}, size_t{2});
     struct bpf_object_open_opts opts = {};
     opts.pin_root_path = "/custompath/native_rollback";
     bpf_object_ptr existing_object(bpf_object__open_file("map_reuse_um.dll", &opts));
@@ -3931,6 +3934,36 @@ TEST_CASE("bpf_object__load with native automatic pin path rollback", "[libbpf]"
     REQUIRE(inner != nullptr);
     REQUIRE(bpf_map__set_pin_path(inner, explicit_path) == 0);
 
+    auto original_handler = device_io_control_handler;
+    if (legacy_reply != 0) {
+        device_io_control_handler = [original_handler, legacy_reply](
+                                        HANDLE device,
+                                        DWORD code,
+                                        void* input,
+                                        DWORD input_size,
+                                        void* output,
+                                        DWORD output_size,
+                                        DWORD* bytes_returned,
+                                        OVERLAPPED* overlapped) -> BOOL {
+            auto* request = static_cast<ebpf_operation_header_t*>(input);
+            const bool native_load = input_size >= sizeof(ebpf_operation_header_t) && request != nullptr &&
+                                     request->id == EBPF_OPERATION_LOAD_NATIVE_PROGRAMS;
+            BOOL success =
+                original_handler(device, code, input, input_size, output, output_size, bytes_returned, overlapped);
+            if (success && native_load) {
+                auto* reply = static_cast<ebpf_operation_load_native_programs_reply_t*>(output);
+                size_t legacy_size = offsetof(ebpf_operation_load_native_programs_reply_t, data) +
+                                     (reply->map_handle_count + reply->program_handle_count) * sizeof(ebpf_handle_t);
+                if (legacy_reply == 2) {
+                    legacy_size += reply->map_handle_count;
+                }
+                memset(static_cast<uint8_t*>(output) + legacy_size, 0, output_size - legacy_size);
+                *bytes_returned = static_cast<DWORD>(legacy_size);
+            }
+            return success;
+        };
+    }
+
     SECTION("per-map pinning fails") { REQUIRE(bpf_object__load(object.get()) == -EEXIST); }
 
     SECTION("program initialization fails before map initialization")
@@ -3941,8 +3974,9 @@ TEST_CASE("bpf_object__load with native automatic pin path rollback", "[libbpf]"
         saved_programs.swap(object->programs);
         REQUIRE(result == -EINVAL);
     }
+    device_io_control_handler = original_handler;
 
-    auto check_pin = [](const char* path, fd_t original_fd, bool expected) {
+    auto check_pin = [](const char* path, fd_t original_fd, bool expected, bool reused) {
         fd_t pinned_fd = bpf_obj_get(path);
         if (!expected) {
             REQUIRE(pinned_fd < 0);
@@ -3956,19 +3990,27 @@ TEST_CASE("bpf_object__load with native automatic pin path rollback", "[libbpf]"
         REQUIRE(bpf_obj_get_info_by_fd(original_fd, &original_info, &info_size) == 0);
         info_size = sizeof(pinned_info);
         REQUIRE(bpf_obj_get_info_by_fd(pinned_fd, &pinned_info, &info_size) == 0);
-        REQUIRE(pinned_info.id == original_info.id);
+        if (reused) {
+            REQUIRE(pinned_info.id == original_info.id);
+        } else {
+            REQUIRE(pinned_info.id != original_info.id);
+        }
         Platform::_close(pinned_fd);
     };
 
-    check_pin(existing_outer->pin_path, bpf_map__fd(existing_outer), reuse_outer);
-    check_pin(existing_port->pin_path, bpf_map__fd(existing_port), reuse_port);
-    check_pin(explicit_path, collision_fd, true);
+    check_pin(existing_outer->pin_path, bpf_map__fd(existing_outer), reuse_outer || legacy_reply != 0, reuse_outer);
+    check_pin(existing_port->pin_path, bpf_map__fd(existing_port), reuse_port || legacy_reply != 0, reuse_port);
+    check_pin(explicit_path, collision_fd, true, true);
 
     if (reuse_outer) {
         REQUIRE(bpf_map__unpin(existing_outer, nullptr) == 0);
+    } else if (legacy_reply != 0) {
+        REQUIRE(ebpf_object_unpin(existing_outer->pin_path) == EBPF_SUCCESS);
     }
     if (reuse_port) {
         REQUIRE(bpf_map__unpin(existing_port, nullptr) == 0);
+    } else if (legacy_reply != 0) {
+        REQUIRE(ebpf_object_unpin(existing_port->pin_path) == EBPF_SUCCESS);
     }
     REQUIRE(ebpf_object_unpin(explicit_path) == EBPF_SUCCESS);
     Platform::_close(collision_fd);

@@ -774,6 +774,10 @@ _ebpf_core_protocol_load_native_programs(
     if (program_handles) {
         memcpy(reply->data + map_handles_size, program_handles, program_handles_size);
     }
+    if (map_reused != NULL && reply_length - required_reply_length - count_of_map_handles >= sizeof(uint32_t)) {
+        uint32_t marker = EBPF_NATIVE_MAP_REUSE_STATUS_PRESENT;
+        memcpy(map_reused + count_of_map_handles, &marker, sizeof(marker));
+    }
 
 Done:
     ebpf_free(map_handles);

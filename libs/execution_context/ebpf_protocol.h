@@ -502,6 +502,8 @@ typedef struct _ebpf_map_information
     uint8_t data[1];
 } ebpf_map_information_t;
 
+#define EBPF_NATIVE_MAP_REUSE_STATUS_PRESENT 0x53554552u
+
 typedef struct _ebpf_operation_load_native_programs_reply
 {
     struct _ebpf_operation_header header;
@@ -510,6 +512,8 @@ typedef struct _ebpf_operation_load_native_programs_reply
     // Map handles followed by program handles.
     // If the reply buffer has room for all map reuse-status bytes, they follow the handle arrays
     // (one byte per map: 0 = created, 1 = reused). Legacy handle-only reply buffers remain supported.
+    // When space permits, EBPF_NATIVE_MAP_REUSE_STATUS_PRESENT follows the reuse-status bytes as a uint32_t.
+    // Clients must not use the status bytes for rollback unless this marker is present.
     uint8_t data[1];
 } ebpf_operation_load_native_programs_reply_t;
 

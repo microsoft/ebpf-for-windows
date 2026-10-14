@@ -4301,6 +4301,7 @@ _load_native_programs(
     size_t program_handles_size = 0;
     size_t handles_size = 0;
     size_t buffer_size = 0;
+    uint32_t reuse_status_marker = 0;
     size_t pin_root_path_size = pin_root_path ? strlen(pin_root_path) : 0;
     size_t request_size = 0;
 
@@ -4336,6 +4337,10 @@ _load_native_programs(
         goto Done;
     }
     result = ebpf_safe_size_t_add(buffer_size, count_of_maps, &buffer_size);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+    result = ebpf_safe_size_t_add(buffer_size, sizeof(reuse_status_marker), &buffer_size);
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
@@ -4409,7 +4414,19 @@ _load_native_programs(
         memcpy(*program_handles, reply->data + map_handles_size, program_handles_size);
     }
     if (map_reused != nullptr && count_of_maps > 0) {
-        memcpy(map_reused->data(), reply->data + map_handles_size + program_handles_size, count_of_maps);
+        memcpy(
+            &reuse_status_marker,
+            reply_buffer.data() + buffer_size - sizeof(reuse_status_marker),
+            sizeof(reuse_status_marker));
+        if (reuse_status_marker == EBPF_NATIVE_MAP_REUSE_STATUS_PRESENT) {
+            memcpy(map_reused->data(), reply->data + handles_size, count_of_maps);
+        } else {
+            EBPF_LOG_MESSAGE(
+                EBPF_TRACELOG_LEVEL_WARNING,
+                EBPF_TRACELOG_KEYWORD_API,
+                "Native map reuse status unavailable; automatic pins will be preserved on load failure");
+            std::fill(map_reused->begin(), map_reused->end(), uint8_t{1});
+        }
     }
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 

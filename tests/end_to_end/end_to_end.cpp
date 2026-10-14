@@ -3293,7 +3293,8 @@ TEST_CASE("load_native_program_reply_compatibility", "[end_to_end][native]")
 
     const size_t handles_size = (count_of_maps + count_of_programs) * sizeof(ebpf_handle_t);
     const size_t legacy_reply_size = offsetof(ebpf_operation_load_native_programs_reply_t, data) + handles_size;
-    const size_t extra_reply_bytes = GENERATE(size_t{0}, size_t{1}, size_t{2}, size_t{3});
+    const size_t extra_reply_bytes =
+        GENERATE(size_t{0}, size_t{1}, size_t{2}, size_t{3}, size_t{5}, size_t{6}, size_t{7});
     const bool direct_dispatch = GENERATE(false, true);
     const size_t reply_length = legacy_reply_size + extra_reply_bytes;
     ebpf_protocol_buffer_t reply_buffer(reply_length + (direct_dispatch ? 1 : 0), 0xa5);
@@ -3333,9 +3334,15 @@ TEST_CASE("load_native_program_reply_compatibility", "[end_to_end][native]")
     REQUIRE(ebpf_object_get_info(*program_handle.get_handle_pointer(), &info, &info_size, nullptr) == EBPF_SUCCESS);
     REQUIRE(info.id != EBPF_ID_NONE);
 
+    const bool marker_present = extra_reply_bytes >= count_of_maps + sizeof(uint32_t);
+    uint32_t marker = EBPF_NATIVE_MAP_REUSE_STATUS_PRESENT;
+    const auto* marker_bytes = reinterpret_cast<const uint8_t*>(&marker);
     // Direct dispatch leaves unused bytes untouched; the buffered IOCTL zero-initializes them.
     for (size_t i = 0; i < extra_reply_bytes; i++) {
         uint8_t expected = (extra_reply_bytes >= count_of_maps && i < count_of_maps) || !direct_dispatch ? 0 : 0xa5;
+        if (marker_present && i >= count_of_maps && i < count_of_maps + sizeof(marker)) {
+            expected = marker_bytes[i - count_of_maps];
+        }
         REQUIRE(reply_buffer[legacy_reply_size + i] == expected);
     }
     Platform::_delete_service(service_handle);
