@@ -44,6 +44,9 @@ An **command line install/uninstall** is also supported, through the direct use 
   any canonical link if a service cannot be stopped, a canonical binary is missing, or the replacement hard links
   cannot be staged (for example, because `INSTALLFOLDER` is on another volume). The installer temporarily grants
   itself access to protected inbox binaries while changing their hard links and then restores their original ACLs.
+  The original hard links remain under `.ebpf-msi-backup` names until a final uninstall restores them. All six backup
+  links must be present; the installer fails safely if it detects a partial backup set. Link restoration is skipped
+  when removal is part of a major upgrade, and is rolled back if the uninstall fails.
   It also saves the existing machine and installing-user eBPF registry stores under
   `%ProgramData%\eBPF-for-Windows\MsiBackup`, replaces them with metadata for the installed version, and restores the
   saved stores during a final uninstall. Store restoration is skipped when removal is part of a major upgrade.
