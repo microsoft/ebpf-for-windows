@@ -35,7 +35,8 @@ typedef enum _sock_addr_test_action
     SOCK_ADDR_TEST_ACTION_REDIRECT,
     SOCK_ADDR_TEST_ACTION_FAILURE,
     SOCK_ADDR_TEST_ACTION_ROUND_ROBIN,
-    SOCK_ADDR_TEST_ACTION_REDIRECT_REJECT
+    SOCK_ADDR_TEST_ACTION_REDIRECT_REJECT,
+    SOCK_ADDR_TEST_ACTION_INVALID
 } sock_addr_test_action_t;
 
 _Must_inspect_result_ ebpf_result_t
@@ -198,7 +199,8 @@ TEST_CASE("bind_context", "[netebpfext]")
             sizeof(input_context),
             (void**)&bind_context) == EBPF_SUCCESS);
     REQUIRE(bind_context->app_id_start <= bind_context->app_id_end);
-    REQUIRE(wcscmp((wchar_t*)bind_context->app_id_start, valid_app_id_1) == 0);
+    REQUIRE((bind_context->app_id_end - bind_context->app_id_start) == sizeof(valid_app_id_1));
+    REQUIRE(memcmp(bind_context->app_id_start, valid_app_id_1, sizeof(valid_app_id_1)) == 0);
     bind_program_data->context_destroy(bind_context, nullptr, &output_data_size, nullptr, &output_context_size);
 
     // Positive test:
@@ -213,7 +215,8 @@ TEST_CASE("bind_context", "[netebpfext]")
             sizeof(input_context),
             (void**)&bind_context) == EBPF_SUCCESS);
     REQUIRE(bind_context->app_id_start <= bind_context->app_id_end);
-    REQUIRE(wcscmp((wchar_t*)bind_context->app_id_start, truncated_app_id_2) == 0);
+    REQUIRE((bind_context->app_id_end - bind_context->app_id_start) == sizeof(truncated_app_id_2));
+    REQUIRE(memcmp(bind_context->app_id_start, truncated_app_id_2, sizeof(truncated_app_id_2)) == 0);
     bind_program_data->context_destroy(bind_context, nullptr, &output_data_size, nullptr, &output_context_size);
 
     // Positive test:
@@ -229,7 +232,40 @@ TEST_CASE("bind_context", "[netebpfext]")
             sizeof(input_context),
             (void**)&bind_context) == EBPF_SUCCESS);
     REQUIRE(bind_context->app_id_start <= bind_context->app_id_end);
-    REQUIRE(wcscmp((wchar_t*)bind_context->app_id_start, truncated_app_id_3) == 0);
+    REQUIRE((bind_context->app_id_end - bind_context->app_id_start) == sizeof(truncated_app_id_3));
+    REQUIRE(memcmp(bind_context->app_id_start, truncated_app_id_3, sizeof(truncated_app_id_3)) == 0);
+    bind_program_data->context_destroy(bind_context, nullptr, &output_data_size, nullptr, &output_context_size);
+
+    // Positive test:
+    // Valid app id with consecutive backslashes
+    wchar_t valid_app_id_4[] = L"C:\\Windows\\\\TestAppId.exe";
+    wchar_t truncated_app_id_4[] = L"TestAppId.exe";
+    REQUIRE(
+        bind_program_data->context_create(
+            (uint8_t*)valid_app_id_4,
+            sizeof(valid_app_id_4),
+            (const uint8_t*)&input_context,
+            sizeof(input_context),
+            (void**)&bind_context) == EBPF_SUCCESS);
+    REQUIRE(bind_context->app_id_start <= bind_context->app_id_end);
+    REQUIRE((bind_context->app_id_end - bind_context->app_id_start) == sizeof(truncated_app_id_4));
+    REQUIRE(memcmp(bind_context->app_id_start, truncated_app_id_4, sizeof(truncated_app_id_4)) == 0);
+    bind_program_data->context_destroy(bind_context, nullptr, &output_data_size, nullptr, &output_context_size);
+
+    // Positive test:
+    // Valid app id - multiple backslashes only
+    wchar_t valid_app_id_5[] = L"\\\\";
+    wchar_t truncated_app_id_5[] = L"";
+    REQUIRE(
+        bind_program_data->context_create(
+            (uint8_t*)valid_app_id_5,
+            sizeof(valid_app_id_5),
+            (const uint8_t*)&input_context,
+            sizeof(input_context),
+            (void**)&bind_context) == EBPF_SUCCESS);
+    REQUIRE(bind_context->app_id_start <= bind_context->app_id_end);
+    REQUIRE((bind_context->app_id_end - bind_context->app_id_start) == sizeof(truncated_app_id_5));
+    REQUIRE(memcmp(bind_context->app_id_start, truncated_app_id_5, sizeof(truncated_app_id_5)) == 0);
     bind_program_data->context_destroy(bind_context, nullptr, &output_data_size, nullptr, &output_context_size);
 
     // Negative test:
@@ -444,6 +480,9 @@ netebpfext_unit_invoke_sock_addr_program(
         break;
     case SOCK_ADDR_TEST_ACTION_FAILURE:
         return_result = EBPF_FAILED;
+        break;
+    case SOCK_ADDR_TEST_ACTION_INVALID:
+        *result = UINT32_MAX;
         break;
     default:
         *result = BPF_SOCK_ADDR_VERDICT_REJECT;
@@ -1791,6 +1830,24 @@ TEST_CASE("sock_addr_listen_invoke", "[netebpfext]")
 
     result = helper.test_cgroup_inet6_listen(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
+
+    // Test program invocation failures.
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_FAILURE;
+
+    result = helper.test_cgroup_inet4_listen(&parameters);
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
+    result = helper.test_cgroup_inet6_listen(&parameters);
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
+    // Test invalid verdict normalization.
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_INVALID;
+
+    result = helper.test_cgroup_inet4_listen(&parameters);
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
+    result = helper.test_cgroup_inet6_listen(&parameters);
+    REQUIRE(result == FWP_ACTION_BLOCK);
 }
 
 TEST_CASE("sock_addr_listen_context", "[netebpfext]")

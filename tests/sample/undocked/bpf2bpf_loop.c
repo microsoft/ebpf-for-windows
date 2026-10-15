@@ -30,7 +30,7 @@ caller_with_loop(sample_program_context_t* ctx)
     uint32_t key = 0;
     uint32_t counter = 0;
 
-    for (volatile int i = 0; i < 10; i++) {
+    for (volatile uint64_t i = 0; i < 10; i++) {
         counter = increment(counter);
     }
 
