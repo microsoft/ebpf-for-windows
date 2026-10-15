@@ -19,19 +19,14 @@ Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName, $WorkingD
 .SYNOPSIS
     Waits for VMs to accept guest commands.
 .DESCRIPTION
-    Normally waits only for guest commands to succeed. For VMs with an entry in
-    PreviousBootTimes, also requires the guest boot time to change before accepting
-    readiness. This function does not request a restart.
-.PARAMETER PreviousBootTimes
-    Optional mapping of VM names to pre-restart guest boot times in UTC ticks,
-    supplied by Restart-VMAndWait. VMs without an entry use ordinary readiness checks.
+    Runs a guest command on each VM until it returns the expected response.
+    This function does not request or verify a restart.
 #>
 function Wait-AllVMsReadyForCommands
 {
     param([Parameter(Mandatory=$True)]$VMList,
           [Parameter(Mandatory=$True)][PSCredential] $TestCredential,
-          [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false,
-          [Parameter(Mandatory=$false)][hashtable] $PreviousBootTimes = @{})
+          [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false)
 
     $totalSleepTime = 0
     $ReadyList = @{}
@@ -42,26 +37,10 @@ function Wait-AllVMsReadyForCommands
                 Write-Log "Poking $VMName to see if it is ready to accept commands"
                 $ret = $False
                 try {
-                    if ($PreviousBootTimes.ContainsKey($VMName)) {
-                        $bootTime = Invoke-CommandOnVM -VMName $VMName -VMIsRemote $VMIsRemote `
-                            -Credential $TestCredential -ScriptBlock {
-                                $os = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
-                                $os.LastBootUpTime.ToUniversalTime().Ticks
-                            } -ErrorAction Stop
-                        if ($null -eq $bootTime) {
-                            Write-Log "Could not read the boot time of VM $VMName."
-                            throw "Could not read the boot time of VM $VMName."
-                        }
-                        $ret = $bootTime -ne $PreviousBootTimes[$VMName]
-                        if (-not $ret) {
-                            Write-Log "VM $VMName is still on the previous boot. Waiting for the restart to complete."
-                        }
-                    } else {
-                        Invoke-CommandOnVM -VMName $VMName -VMIsRemote $VMIsRemote -Credential $TestCredential -ErrorAction SilentlyContinue -ScriptBlock {$True}
-                        $ret = $True
-                    }
+                    $ret = Invoke-CommandOnVM -VMName $VMName -VMIsRemote $VMIsRemote `
+                        -Credential $TestCredential -ErrorAction Stop -ScriptBlock {$True}
                 } catch {
-                        if (-not $VMIsRemote) {
+                    if (-not $VMIsRemote) {
                         # Transient PS Direct failures during restore/boot often look like this:
                         # "The credential is invalid." with PSDirectException / PSSessionStateBroken
                         $isTransient =
@@ -75,6 +54,8 @@ function Wait-AllVMsReadyForCommands
                             Write-Log "PS Direct threw fatal exception for $VMName - $($_.Exception.Message)."
                             break
                         }
+                    } else {
+                        Write-Log "Guest command failed for $VMName - $($_.Exception.Message). Will retry."
                     }
                 }
                 if ($ret -eq $True) {
@@ -99,43 +80,56 @@ function Wait-AllVMsReadyForCommands
     }
 }
 
+<#
+.SYNOPSIS
+    Waits for the test VMs to be ready.
+.DESCRIPTION
+    Local VMs are ready when Hyper-V heartbeat is OK, a guest command succeeds through
+    PowerShell Direct, and the Guest Service Interface used by Copy-VMFile is enabled and OK.
+    Remote VMs are ready when a guest command succeeds through PowerShell remoting.
+#>
 function Wait-AllVMsToInitialize
 {
     param([Parameter(Mandatory=$True)]$VMList,
-          [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false,
-          [Parameter(Mandatory=$false)][hashtable] $PreviousBootTimes = @{})
+          [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false)
 
-    $totalSleepTime = 0
-    $ReadyList = @{}
-    do {
-        foreach ($VM in $VMList) {
-            $VMName= $VM.Name
-            if ($ReadyList[$VMName] -ne $True) {
-                $HeartBeat = (Get-VMIntegrationService $VMName | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription
-                if ($HeartBeat -eq "OK") {
-                    $ReadyList += @{$VMName = $True}
-                } else {
-                    continue
+    if (-not $VMIsRemote) {
+        $totalSleepTime = 0
+        $ReadyList = @{}
+        do {
+            foreach ($VM in $VMList) {
+                $VMName= $VM.Name
+                if ($ReadyList[$VMName] -ne $True) {
+                    $HeartBeat = (Get-VMIntegrationService $VMName | ?{$_.name -eq "Heartbeat"}).PrimaryStatusDescription
+                    if ($HeartBeat -eq "OK") {
+                        $ReadyList += @{$VMName = $True}
+                    } else {
+                        continue
+                    }
+                    Write-Log "Heartbeat OK on $VMName" -ForegroundColor Green
                 }
-                Write-Log "Heartbeat OK on $VMName" -ForegroundColor Green
+            }
+            if ($ReadyList.Count -ne $VMList.Count) {
+                Write-Log ("{0} of {1} VMs are ready." -f $ReadyList.Count, $VMList.Count)
+                # Sleep for sleepSeconds seconds.
+                Start-Sleep -seconds $sleepSeconds
+                $totalSleepTime += $sleepSeconds
             }
         }
-        if ($ReadyList.Count -ne $VMList.Count) {
-            Write-Log ("{0} of {1} VMs are ready." -f $ReadyList.Count, $VMList.Count)
-            # Sleep for sleepSeconds seconds.
-            Start-Sleep -seconds $sleepSeconds
-            $totalSleepTime += $sleepSeconds
-        }
-    }
-    until (($ReadyList.Count -eq $VMList.Count) -or ($totalSleepTime -gt 5*60))
+        until (($ReadyList.Count -eq $VMList.Count) -or ($totalSleepTime -gt 5*60))
 
-    if ($ReadyList.Count -ne $VMList.Count) {
-        throw ("Did not get heartbeat from one or more VMs 5 minutes after starting")
+        if ($ReadyList.Count -ne $VMList.Count) {
+            throw ("Did not get heartbeat from one or more VMs 5 minutes after starting")
+        }
     }
 
     $TestCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
     Wait-AllVMsReadyForCommands -VMList $VMList -TestCredential $TestCredential `
-        -VMIsRemote:$VMIsRemote -PreviousBootTimes $PreviousBootTimes
+        -VMIsRemote:$VMIsRemote
+
+    if ($VMIsRemote) {
+        return
+    }
 
     # Enable guest-services on each VM.
     $ReadyList.Clear()
@@ -173,7 +167,12 @@ function Wait-AllVMsToInitialize
 
 <#
 .SYNOPSIS
-    Restarts a VM from the guest and waits for a new boot that accepts commands.
+    Restarts a local or remote VM and waits for a new boot that accepts commands.
+
+.DESCRIPTION
+    Restarts the guest operating system and polls until a guest command returns a
+    changed boot time. Query failures and unchanged boot times are retried until timeout.
+    A successful query with a changed boot time also establishes command readiness.
 
 .PARAMETER VmName
     The name of the VM to restart.
@@ -181,45 +180,67 @@ function Wait-AllVMsToInitialize
 .PARAMETER VMIsRemote
     Indicates if the VM is remote.
 
+.PARAMETER TimeoutSeconds
+    Maximum wait for a guest command to confirm a changed boot time after the restart request.
+    Accepts 1 through 600 seconds. Defaults to 300 seconds.
+
 .EXAMPLE
     Restart-VMAndWait -VmName 'MyVM'
 #>
 function Restart-VMAndWait {
     param(
         [Parameter(Mandatory = $true)][string]$VmName,
-        [Parameter(Mandatory = $false)][bool]$VMIsRemote = $false
+        [Parameter(Mandatory = $false)][bool]$VMIsRemote = $false,
+        [Parameter(Mandatory = $false)][ValidateRange(1, 600)][int]$TimeoutSeconds = 300
     )
 
-    $vmCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
-    $previousBootTime = Invoke-CommandOnVM -VMName $VmName -VMIsRemote $VMIsRemote `
-        -Credential $vmCredential -ScriptBlock {
-            $os = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
-            $os.LastBootUpTime.ToUniversalTime().Ticks
-        } -ErrorAction Stop
-    if ($null -eq $previousBootTime) {
+    $VmCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
+    $GetBootTime = {
+        $Os = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
+        $Os.LastBootUpTime.ToUniversalTime().Ticks
+    }
+    $PreviousBootTime = Invoke-CommandOnVM -VMName $VmName -VMIsRemote $VMIsRemote `
+        -Credential $VmCredential -ScriptBlock $GetBootTime -ErrorAction Stop
+    if ($null -eq $PreviousBootTime) {
         throw "Could not read the boot time of VM $VmName before restarting."
     }
 
     Write-Log "Restarting VM: $VmName"
-    $commandScriptBlock = {
-        Restart-Computer -Force -ErrorAction Stop
-    }
-    Invoke-CommandOnVM `
-        -VMName $VmName `
-        -VMIsRemote $VMIsRemote `
-        -Credential $vmCredential `
-        -ScriptBlock $commandScriptBlock
+    Invoke-CommandOnVM -VMName $VmName -VMIsRemote $VMIsRemote -Credential $VmCredential `
+        -ScriptBlock { Restart-Computer -Force -ErrorAction Stop } -ErrorAction Stop
 
     Write-Log "Waiting for VM $VmName to complete a new boot."
-    $vmList = @(@{ Name = $VmName })
-    $previousBootTimes = @{ $VmName = $previousBootTime }
-    if (-not $VMIsRemote) {
-        Wait-AllVMsToInitialize -VMList $vmList -PreviousBootTimes $previousBootTimes
-    } else {
-        $vmCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
-        Wait-AllVMsReadyForCommands -VMList $vmList -TestCredential $vmCredential `
-            -VMIsRemote:$VMIsRemote -PreviousBootTimes $previousBootTimes
+    $RestartTimer = [System.Diagnostics.Stopwatch]::StartNew()
+    $RestartConfirmed = $false
+    while ($RestartTimer.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
+        try {
+            $BootTime = Invoke-CommandOnVM -VMName $VmName -VMIsRemote $VMIsRemote `
+                -Credential $VmCredential -ScriptBlock $GetBootTime -SuppressInvocationErrorLogging $true -ErrorAction Stop
+            if ($null -eq $BootTime) {
+                Write-Log "Could not read the boot time of VM $VmName. Will retry."
+            } else {
+                $RestartConfirmed = $BootTime -ne $PreviousBootTime
+                if (-not $RestartConfirmed) {
+                    Write-Log "VM $VmName is still on the previous boot."
+                }
+            }
+        } catch {
+            Write-Log "VM likely rebooting, will retry ($VmName)." `
+                -ForegroundColor Yellow
+        }
+
+        if ($RestartConfirmed) {
+            break
+        }
+        $RemainingSeconds = $TimeoutSeconds - $RestartTimer.Elapsed.TotalSeconds
+        if ($RemainingSeconds -gt 0) {
+            Start-Sleep -Milliseconds ([Math]::Min($sleepSeconds * 1000, [Math]::Ceiling($RemainingSeconds * 1000)))
+        }
     }
+    if (-not $RestartConfirmed -or $RestartTimer.Elapsed.TotalSeconds -ge $TimeoutSeconds) {
+        throw "VM $VmName did not confirm a new boot within $TimeoutSeconds seconds."
+    }
+    Write-Log "VM $VmName completed a new boot and accepts commands." -ForegroundColor Green
 }
 
 function Restore-AllVMs
@@ -252,14 +273,8 @@ function Initialize-AllVMs
     # Start the VMs.
     Start-AllVMs -VMList $VMList
 
-    if (-not $VMIsRemote) {
-        # Wait for VMs to be ready.
-        Write-Log "Waiting for all the VMs to be in ready state..." -ForegroundColor Yellow
-        Wait-AllVMsToInitialize -VMList $VMList
-    } else {
-        $TestCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $true
-        Wait-AllVMsReadyForCommands -VMList $VMList -TestCredential $TestCredential -VMIsRemote:$true
-    }
+    Write-Log "Waiting for all the VMs to be in ready state..." -ForegroundColor Yellow
+    Wait-AllVMsToInitialize -VMList $VMList -VMIsRemote $VMIsRemote
 }
 
 #
@@ -339,9 +354,12 @@ function Export-BuildArtifactsToVMs
 
         Write-Log "Unpacking $tempFileName to $VMSystemDrive\eBPF on $VMName"
         Invoke-Command -Session $VMSession -ScriptBlock {
-            cd $Env:SystemDrive\eBPF
-            &tar @("xf", "ebpf.tgz")
-        }
+            Set-Location "$Env:SystemDrive\eBPF" -ErrorAction Stop
+            & tar xf ebpf.tgz
+            if ($LASTEXITCODE -ne 0) {
+                throw "Artifact extraction failed with exit code $LASTEXITCODE."
+            }
+        } -ErrorAction Stop
         Write-Log "Unpacked $tempFileName to $VMSystemDrive\eBPF on $VMName"
 
         Write-Log "Export completed." -ForegroundColor Green
@@ -803,11 +821,11 @@ function Initialize-NetworkInterfaces {
               [Parameter(Mandatory=$true)][bool] $KmTracing,
               [Parameter(Mandatory=$true)][string] $KmTraceType)
         $traceStarted = $false
-        Push-Location $WorkingDirectory
+        Push-Location $WorkingDirectory -ErrorAction Stop
         try {
-            Import-Module .\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+            Import-Module .\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue -ErrorAction Stop
             if ($KmTracing) {
-                Import-Module .\tracing_utils.psm1 -ArgumentList ($LogFileName, $WorkingDirectory) -Force -WarningAction SilentlyContinue
+                Import-Module .\tracing_utils.psm1 -ArgumentList ($LogFileName, $WorkingDirectory) -Force -WarningAction SilentlyContinue -ErrorAction Stop
                 Start-WPRTrace -TraceType $KmTraceType -FailOnError
                 $traceStarted = $true
             }
@@ -817,7 +835,7 @@ function Initialize-NetworkInterfaces {
             if ($LASTEXITCODE -ne 0) {
                 throw "DuoNic installation failed with exit code $LASTEXITCODE."
             }
-            Set-NetAdapterAdvancedProperty duo? -DisplayName Checksum -RegistryValue 0
+            Set-NetAdapterAdvancedProperty duo? -DisplayName Checksum -RegistryValue 0 -ErrorAction Stop
         } finally {
             try {
                 if ($traceStarted) {
@@ -1055,8 +1073,6 @@ function Initialize-VM {
         Copy-VMFile -VMName $VmName -FileSource Host -SourcePath $VMSetupScript -DestinationPath "$VMWorkingDirectory\$VMSetupScript" -CreateFullPath
         Execute-CommandOnVM -VMName $VmName -Command "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope LocalMachine; cd $VMWorkingDirectory; .\$VMSetupScript"
         Write-Log "Successfully executed VM configuration script ($VMSetupScript) on VM: $VmName" -ForegroundColor Green
-
-        Wait-AllVMsToInitialize -VMList $vmList
 
         # Copy any additional files to the VM before checkpointing.
         if ($FilesToCopy.Count -gt 0) {
