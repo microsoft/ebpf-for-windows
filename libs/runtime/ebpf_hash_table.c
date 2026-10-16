@@ -3,7 +3,6 @@
 
 #include "ebpf_epoch.h"
 #include "ebpf_hash_table.h"
-#include "ebpf_random.h"
 
 #include <intrin.h>
 
@@ -920,7 +919,8 @@ ebpf_hash_table_create(_Out_ ebpf_hash_table_t** hash_table, _In_ const ebpf_has
     table->bucket_count = bucket_count;
     table->bucket_count_mask = bucket_count - 1;
     table->entry_count = 0;
-    table->seed = ebpf_random_uint32();
+    uint64_t seed = cxplat_query_time_since_boot_precise(false);
+    table->seed = (uint32_t)(seed ^ (seed >> 32) ^ (uintptr_t)table);
     table->extract = options->extract_function;
 #if defined(NDEBUG)
     table->max_entry_count = options->max_entries;
