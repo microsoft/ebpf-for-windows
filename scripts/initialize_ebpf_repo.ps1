@@ -8,7 +8,8 @@ param (
     # Use this on a machine with multiple Visual Studio versions installed to set up a build for a
     # specific toolset, so the CMake generator, platform toolset, and NuGet/MSBuild restore all match
     # the Visual Studio version you intend to build with.
-    [parameter(Mandatory = $false)][string] $VisualStudioVersion = ""
+    [parameter(Mandatory = $false)][string] $VisualStudioVersion = "",
+    [parameter(Mandatory = $false)][switch] $SkipHostToolBootstrap
 )
 
 # Ensure errors are treated as terminating exceptions
@@ -78,7 +79,6 @@ function Invoke-NativeCommand {
 # because PowerShell interprets '/' in msbuild arguments as a division operator).
 function Invoke-MSBuild {
     param([string[]]$Arguments)
-    $cmd = "& `"$msbuildPath`" $($Arguments -join ' ')"
     Write-Host ">> Running command: $msbuildPath $($Arguments -join ' ')"
     & $msbuildPath @Arguments
     if ($LASTEXITCODE -ne 0) {
@@ -87,12 +87,38 @@ function Invoke-MSBuild {
     }
 }
 
+$architectureSpecificBuildDirectories = @(
+    "external\ebpf-verifier\build",
+    "external\catch2\build",
+    "external\ubpf\build",
+    "external\ubpf\build_fuzzer")
+
+function Remove-ArchitectureSpecificBuildDirectories {
+    foreach ($buildDirectory in $architectureSpecificBuildDirectories) {
+        if (Test-Path $buildDirectory) {
+            Write-Host "Removing architecture-specific CMake build directory '$buildDirectory'."
+            Remove-Item $buildDirectory -Recurse -Force
+        }
+    }
+}
+
+$hostArchitecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
+if (!$SkipHostToolBootstrap -and $Architecture -ieq "ARM64" -and $hostArchitecture -ieq "x64") {
+    Write-Host "Bootstrapping x64 bpf2c host tools before configuring the ARM64 target."
+    Remove-ArchitectureSpecificBuildDirectories
+    & $PSCommandPath -Architecture x64 -VisualStudioVersion $VisualStudioVersion -SkipHostToolBootstrap
+    if (!$?) {
+        throw "Failed to initialize x64 host dependencies."
+    }
+
+    foreach ($configuration in @("Debug", "Release", "NativeOnlyDebug", "NativeOnlyRelease")) {
+        Invoke-MSBuild -Arguments "/m", "ebpf-for-windows.sln", "/t:tools\bpf2c", "/p:Configuration=$configuration", "/p:Platform=x64", "/p:HostPlatform=x64"
+    }
+    Remove-ArchitectureSpecificBuildDirectories
+}
+
 # Define the commands to run
 $cmakeCommonArgs = "-G `"$cmakeGenerator`" -A $Architecture"
-# Restore the solution with the selected MSBuild so PackageReference projects (e.g. usersim's
-# cxplat_winkernel) resolve their WDK version against the intended Visual Studio version. Without
-# -MSBuildPath, nuget auto-detects the latest installed MSBuild, which can pin a different toolset's
-# WDK than the one we build with.
 $msbuildDir = if ($msbuildPath -and (Test-Path $msbuildPath)) { Split-Path -Parent $msbuildPath } else { $null }
 $nugetRestoreCommand = if ($msbuildDir) {
     "nuget restore ebpf-for-windows.sln -MSBuildPath `"$msbuildDir`""
@@ -105,30 +131,31 @@ $commands = @(
     "cmake $cmakeCommonArgs -S external\catch2 -B external\catch2\build -DBUILD_TESTING=OFF -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>$<$<CONFIG:FuzzerDebug>:Debug>",
     "cmake $cmakeCommonArgs -S external\ubpf -B external\ubpf\build -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>$<$<CONFIG:FuzzerDebug>:Debug>",
     "cmake $cmakeCommonArgs -S external\ubpf -B external\ubpf\build_fuzzer -DUBPF_ENABLE_LIBFUZZER=on",
-    $nugetRestoreCommand
+    # The legacy WiX project cannot be evaluated until its packages.config dependency exists.
+    # Restore it first so the subsequent solution restore can evaluate every PackageReference project.
+    "nuget restore installer\packages.config -PackagesDirectory packages"
 )
 
 # When switching between Visual Studio versions, an existing CMake build directory configured with a
 # different generator cannot be reused (CMake errors on a generator mismatch). Remove any such stale
 # build directory so it is regenerated with the selected generator.
 function Clear-StaleCMakeBuildDir {
-    param([string]$BuildDir, [string]$Generator)
+    param([string]$BuildDir, [string]$Generator, [string]$Architecture)
     $cachePath = Join-Path $BuildDir "CMakeCache.txt"
     if (Test-Path $cachePath) {
         $cachedGenerator = (Select-String -Path $cachePath -Pattern '^CMAKE_GENERATOR:INTERNAL=(.*)$' |
             Select-Object -First 1).Matches.Groups[1].Value
-        if ($cachedGenerator -and ($cachedGenerator -ne $Generator)) {
-            Write-Host "Removing stale CMake build dir '$BuildDir' (generator '$cachedGenerator' != '$Generator')."
+        $cachedArchitecture = (Select-String -Path $cachePath -Pattern '^CMAKE_GENERATOR_PLATFORM:INTERNAL=(.*)$' |
+            Select-Object -First 1).Matches.Groups[1].Value
+        if (($cachedGenerator -and ($cachedGenerator -ne $Generator)) -or
+            ($cachedArchitecture -and ($cachedArchitecture -ine $Architecture))) {
+            Write-Host "Removing stale CMake build dir '$BuildDir' (generator '$cachedGenerator', architecture '$cachedArchitecture'; requested '$Generator', '$Architecture')."
             Remove-Item $BuildDir -Recurse -Force
         }
     }
 }
-foreach ($buildDir in @(
-        "external\ebpf-verifier\build",
-        "external\catch2\build",
-        "external\ubpf\build",
-        "external\ubpf\build_fuzzer")) {
-    Clear-StaleCMakeBuildDir -BuildDir $buildDir -Generator $cmakeGenerator
+foreach ($buildDir in $architectureSpecificBuildDirectories) {
+    Clear-StaleCMakeBuildDir -BuildDir $buildDir -Generator $cmakeGenerator -Architecture $Architecture
 }
 
 # Run non-msbuild commands via Invoke-Expression.
@@ -137,10 +164,21 @@ foreach ($command in $commands) {
 }
 
 # Run msbuild restore commands using the call operator to avoid '/' parsing issues.
-Invoke-MSBuild -Arguments "/t:restore", "libs\elf_spec\elf_spec.vcxproj", "/p:Platform=$Architecture"
-Invoke-MSBuild -Arguments "/t:restore", "libs\ioctl_spec\ioctl_spec.vcxproj", "/p:Platform=$Architecture"
+$previousWdkTargetPlatform = $env:_EbpfWdkTargetPlatform
+try {
+    $env:_EbpfWdkTargetPlatform = $Architecture
+    Invoke-NativeCommand -Command $nugetRestoreCommand
+}
+finally {
+    if ($null -eq $previousWdkTargetPlatform) {
+        Remove-Item Env:_EbpfWdkTargetPlatform -ErrorAction SilentlyContinue
+    } else {
+        $env:_EbpfWdkTargetPlatform = $previousWdkTargetPlatform
+    }
+}
 Invoke-MSBuild -Arguments "/t:restore", "external\usersim\src\usersim.vcxproj", "/p:Platform=$Architecture"
 Invoke-MSBuild -Arguments "/t:restore", "external\usersim\usersim_dll_skeleton\usersim_dll_skeleton.vcxproj", "/p:Platform=$Architecture"
 Invoke-MSBuild -Arguments "/t:restore", "external\usersim\cxplat\src\cxplat_winkernel\cxplat_winkernel.vcxproj", "/p:Platform=$Architecture"
+Invoke-MSBuild -Arguments "/m", "ebpf-for-windows.sln", "/t:idl\rpc_interface:Rebuild", "/p:Configuration=Release", "/p:Platform=$Architecture", "/p:HostPlatform=$hostArchitecture"
 
 Write-Host "All commands succeeded."
