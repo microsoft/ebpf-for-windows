@@ -1270,6 +1270,9 @@ global_variable_test(ebpf_execution_type_t execution_type)
     bpf_object__close(unique_object.release());
 }
 
+/**
+ * @brief State used to temporarily adjust the size of a native global variable section.
+ */
 typedef struct _global_variable_size_mutation
 {
     int64_t size_adjustment;
@@ -1278,6 +1281,12 @@ typedef struct _global_variable_size_mutation
     bool applied = false;
 } global_variable_size_mutation_t;
 
+/**
+ * @brief Adjust the first native global variable section size for a negative load test.
+ *
+ * @param[in, out] table Native module metadata table.
+ * @param[in, out] context Pointer to a global_variable_size_mutation_t.
+ */
 static void
 _mutate_global_variable_size(_Inout_ metadata_table_t* table, _Inout_opt_ void* context)
 {
@@ -1299,6 +1308,11 @@ _mutate_global_variable_size(_Inout_ metadata_table_t* table, _Inout_opt_ void* 
     mutation->applied = true;
 }
 
+/**
+ * @brief Restore a global variable section size changed by _mutate_global_variable_size.
+ *
+ * @param[in, out] context Pointer to a global_variable_size_mutation_t.
+ */
 static void
 _restore_global_variable_size(_Inout_opt_ void* context)
 {
@@ -1308,6 +1322,9 @@ _restore_global_variable_size(_Inout_opt_ void* context)
     }
 }
 
+/**
+ * @brief State used to temporarily replace a static map initializer target.
+ */
 typedef struct _map_initial_value_target_mutation
 {
     const char** value = nullptr;
@@ -1315,6 +1332,12 @@ typedef struct _map_initial_value_target_mutation
     bool applied = false;
 } map_initial_value_target_mutation_t;
 
+/**
+ * @brief Replace the first outer_map initializer target with a nonexistent map name.
+ *
+ * @param[in, out] table Native module metadata table.
+ * @param[in, out] context Pointer to a map_initial_value_target_mutation_t.
+ */
 static void
 _mutate_map_initial_value_target(_Inout_ metadata_table_t* table, _Inout_opt_ void* context)
 {
@@ -1344,6 +1367,11 @@ _mutate_map_initial_value_target(_Inout_ metadata_table_t* table, _Inout_opt_ vo
     }
 }
 
+/**
+ * @brief Restore a static map initializer target changed by _mutate_map_initial_value_target.
+ *
+ * @param[in, out] context Pointer to a map_initial_value_target_mutation_t.
+ */
 static void
 _restore_map_initial_value_target(_Inout_opt_ void* context)
 {
@@ -1353,9 +1381,19 @@ _restore_map_initial_value_target(_Inout_opt_ void* context)
     }
 }
 
+/**
+ * @brief Scoped registration of a native module metadata hook and its corresponding restoration callback.
+ */
 class scoped_native_module_metadata_hook
 {
   public:
+    /**
+     * @brief Register a native module metadata hook for the lifetime of this object.
+     *
+     * @param[in] hook Metadata hook to register.
+     * @param[in, out] context Context passed to the metadata and restoration callbacks.
+     * @param[in] restore Callback that restores metadata changed by the hook.
+     */
     scoped_native_module_metadata_hook(
         native_module_metadata_hook_t hook, _Inout_ void* context, void (*restore)(_Inout_opt_ void*))
         : _context(context), _restore(restore)
@@ -1363,6 +1401,9 @@ class scoped_native_module_metadata_hook
         set_native_module_metadata_hook(hook, context);
     }
 
+    /**
+     * @brief Clear the metadata hook and restore the mutated metadata.
+     */
     ~scoped_native_module_metadata_hook()
     {
         set_native_module_metadata_hook(nullptr, nullptr);
@@ -1374,6 +1415,12 @@ class scoped_native_module_metadata_hook
     void (*_restore)(_Inout_opt_ void*);
 };
 
+/**
+ * @brief Load a sample native program and return the libbpf result without retaining the loaded object.
+ *
+ * @param[in] file_name Native program file name.
+ * @return Zero on success, or a negative errno-compatible error code.
+ */
 static int
 _load_native_program_for_negative_test(_In_z_ const char* file_name)
 {
@@ -1388,6 +1435,8 @@ _load_native_program_for_negative_test(_In_z_ const char* file_name)
     return result;
 }
 
+// Verify that native global variable initialization rejects both oversized and undersized section metadata, then
+// confirm that the unmodified module still loads successfully after each rejected load.
 TEST_CASE("native global variables reject section size mismatch", "[end_to_end][native][negative]")
 {
     if (cxplat_fault_injection_is_enabled()) {
@@ -1418,6 +1467,8 @@ TEST_CASE("native global variables reject section size mismatch", "[end_to_end][
     REQUIRE(_load_native_program_for_negative_test("global_vars_um.dll") == 0);
 }
 
+// Verify that a native map-in-map initializer referencing a nonexistent map is rejected, then confirm that the
+// unmodified initializer succeeds and stores the expected inner map in the outer map.
 TEST_CASE("native map initial values reject missing targets", "[end_to_end][native][negative]")
 {
     if (cxplat_fault_injection_is_enabled()) {
