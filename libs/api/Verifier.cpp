@@ -172,23 +172,24 @@ typedef struct _section_offset_to_map
     string map_name;
 } section_offset_to_map_t;
 
-static ebpf_pin_type_t
-_get_pin_type_for_btf_map(const libbtf::btf_type_data& btf_data, libbtf::btf_type_id id)
+static uint32_t
+_get_uint_value_for_btf_map(
+    const libbtf::btf_type_data& btf_data, libbtf::btf_type_id id, const char* member_name, uint32_t default_value)
 {
     auto map_struct = btf_data.get_kind_type<libbtf::btf_kind_struct>(id);
     for (const auto& member : map_struct.members) {
-        if (member.name == "pinning") {
+        if (member.name == member_name) {
             // This should use value_from_BTF__uint from btf_parser.cpp, but it's static.
-            auto pinning_type_id = member.type;
+            auto value_type_id = member.type;
             // Dereference the pointer type.
-            pinning_type_id = btf_data.dereference_pointer(pinning_type_id);
+            value_type_id = btf_data.dereference_pointer(value_type_id);
             // Get the array type.
-            auto pinning_type = btf_data.get_kind_type<libbtf::btf_kind_array>(pinning_type_id);
+            auto value_type = btf_data.get_kind_type<libbtf::btf_kind_array>(value_type_id);
             // Value is encoded as the number of elements in the array.
-            return static_cast<ebpf_pin_type_t>(pinning_type.count_of_elements);
+            return value_type.count_of_elements;
         }
     }
-    return LIBBPF_PIN_NONE;
+    return default_value;
 }
 
 /**
@@ -284,7 +285,9 @@ _parse_btf_map_info_and_populate_cache(const ELFIO::elfio& reader, const vector<
         int btf_type_id = btf_map_descriptor.original_fd;
         int btf_inner_type_id = btf_map_descriptor.inner_map_fd;
 
-        auto pin_type = _get_pin_type_for_btf_map(btf_data.value(), btf_type_id);
+        auto pin_type = static_cast<ebpf_pin_type_t>(
+            _get_uint_value_for_btf_map(btf_data.value(), btf_type_id, "pinning", LIBBPF_PIN_NONE));
+        auto map_flags = _get_uint_value_for_btf_map(btf_data.value(), btf_type_id, "map_flags", 0);
         cache_map_handle(
             ebpf_handle_invalid,
             map_idx_to_original_fd(idx),
@@ -293,6 +296,7 @@ _parse_btf_map_info_and_populate_cache(const ELFIO::elfio& reader, const vector<
             btf_map_descriptor.key_size,
             btf_map_descriptor.value_size,
             btf_map_descriptor.max_entries,
+            map_flags,
             (uint32_t)ebpf_fd_invalid,
             btf_inner_type_id,
             entry.section_offset,
@@ -308,7 +312,9 @@ _parse_btf_map_info_and_populate_cache(const ELFIO::elfio& reader, const vector<
             int btf_type_id = btf_map_descriptor.original_fd;
             int btf_inner_type_id = btf_map_descriptor.inner_map_fd;
 
-            auto pin_type = _get_pin_type_for_btf_map(btf_data.value(), btf_type_id);
+            auto pin_type = static_cast<ebpf_pin_type_t>(
+                _get_uint_value_for_btf_map(btf_data.value(), btf_type_id, "pinning", LIBBPF_PIN_NONE));
+            auto map_flags = _get_uint_value_for_btf_map(btf_data.value(), btf_type_id, "map_flags", 0);
             cache_map_handle(
                 ebpf_handle_invalid,
                 map_idx_to_original_fd(idx),
@@ -317,6 +323,7 @@ _parse_btf_map_info_and_populate_cache(const ELFIO::elfio& reader, const vector<
                 btf_map_descriptor.key_size,
                 btf_map_descriptor.value_size,
                 btf_map_descriptor.max_entries,
+                map_flags,
                 (uint32_t)ebpf_fd_invalid,
                 btf_inner_type_id,
                 MAXSIZE_T,

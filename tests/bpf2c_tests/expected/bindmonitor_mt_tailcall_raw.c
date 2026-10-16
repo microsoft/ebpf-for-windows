@@ -19,8 +19,8 @@ static map_entry_t _maps[] = {
      {0, 0},
      {
          1,                       // Current Version.
-         80,                      // Struct size up to the last field.
-         80,                      // Total struct size including padding.
+         84,                      // Struct size up to the last field.
+         88,                      // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_PROG_ARRAY, // Type of map.
@@ -32,7 +32,9 @@ static map_entry_t _maps[] = {
          0,                       // Identifier for a map template.
          0,                       // The id of the inner map template.
      },
-     "bind_tail_call_map"},
+     "bind_tail_call_map",    // Map name.
+     0,                       // Map creation flags.
+    },
 };
 #pragma data_seg(pop)
 

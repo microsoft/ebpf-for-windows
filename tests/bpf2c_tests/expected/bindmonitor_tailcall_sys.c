@@ -174,8 +174,8 @@ static map_entry_t _maps[] = {
      {0, 0},
      {
          1,                 // Current Version.
-         80,                // Struct size up to the last field.
-         80,                // Total struct size including padding.
+         84,                // Struct size up to the last field.
+         88,                // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_HASH, // Type of map.
@@ -187,13 +187,15 @@ static map_entry_t _maps[] = {
          0,                 // Identifier for a map template.
          0,                 // The id of the inner map template.
      },
-     "process_map"},
+     "process_map",     // Map name.
+     0,                 // Map creation flags.
+    },
     {
      {0, 0},
      {
          1,                  // Current Version.
-         80,                 // Struct size up to the last field.
-         80,                 // Total struct size including padding.
+         84,                 // Struct size up to the last field.
+         88,                 // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
@@ -205,13 +207,15 @@ static map_entry_t _maps[] = {
          0,                  // Identifier for a map template.
          0,                  // The id of the inner map template.
      },
-     "limits_map"},
+     "limits_map",       // Map name.
+     0,                  // Map creation flags.
+    },
     {
      {0, 0},
      {
          1,                       // Current Version.
-         80,                      // Struct size up to the last field.
-         80,                      // Total struct size including padding.
+         84,                      // Struct size up to the last field.
+         88,                      // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_PROG_ARRAY, // Type of map.
@@ -223,13 +227,15 @@ static map_entry_t _maps[] = {
          0,                       // Identifier for a map template.
          0,                       // The id of the inner map template.
      },
-     "prog_array_map"},
+     "prog_array_map",        // Map name.
+     0,                       // Map creation flags.
+    },
     {
      {0, 0},
      {
          1,                 // Current Version.
-         80,                // Struct size up to the last field.
-         80,                // Total struct size including padding.
+         84,                // Struct size up to the last field.
+         88,                // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_HASH, // Type of map.
@@ -241,13 +247,15 @@ static map_entry_t _maps[] = {
          0,                 // Identifier for a map template.
          0,                 // The id of the inner map template.
      },
-     "dummy_map"},
+     "dummy_map",       // Map name.
+     0,                 // Map creation flags.
+    },
     {
      {0, 0},
      {
          1,                          // Current Version.
-         80,                         // Struct size up to the last field.
-         80,                         // Total struct size including padding.
+         84,                         // Struct size up to the last field.
+         88,                         // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_ARRAY_OF_MAPS, // Type of map.
@@ -259,13 +267,15 @@ static map_entry_t _maps[] = {
          0,                          // Identifier for a map template.
          10,                         // The id of the inner map template.
      },
-     "dummy_outer_map"},
+     "dummy_outer_map",          // Map name.
+     0,                          // Map creation flags.
+    },
     {
      {0, 0},
      {
          1,                         // Current Version.
-         80,                        // Struct size up to the last field.
-         80,                        // Total struct size including padding.
+         84,                        // Struct size up to the last field.
+         88,                        // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_HASH_OF_MAPS, // Type of map.
@@ -277,25 +287,29 @@ static map_entry_t _maps[] = {
          0,                         // Identifier for a map template.
          0,                         // The id of the inner map template.
      },
-     "dummy_outer_idx_map"},
+     "dummy_outer_idx_map",     // Map name.
+     0,                         // Map creation flags.
+    },
     {
      {0, 0},
      {
-         1,                 // Current Version.
-         80,                // Struct size up to the last field.
-         80,                // Total struct size including padding.
+         1,                  // Current Version.
+         84,                 // Struct size up to the last field.
+         88,                 // Total struct size including padding.
      },
      {
-         BPF_MAP_TYPE_HASH, // Type of map.
-         4,                 // Size in bytes of a map key.
-         4,                 // Size in bytes of a map value.
-         1,                 // Maximum number of entries allowed in the map.
-         0,                 // Inner map index.
-         LIBBPF_PIN_NONE,   // Pinning type for the map.
-         10,                // Identifier for a map template.
-         0,                 // The id of the inner map template.
+         BPF_MAP_TYPE_HASH,  // Type of map.
+         4,                  // Size in bytes of a map key.
+         4,                  // Size in bytes of a map value.
+         1,                  // Maximum number of entries allowed in the map.
+         0,                  // Inner map index.
+         LIBBPF_PIN_NONE,    // Pinning type for the map.
+         10,                 // Identifier for a map template.
+         0,                  // The id of the inner map template.
      },
-     "dummy_inner_map"},
+     "dummy_inner_map",  // Map name.
+     0,                  // Map creation flags.
+    },
 };
 #pragma data_seg(pop)
 
