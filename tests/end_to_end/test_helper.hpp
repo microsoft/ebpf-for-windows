@@ -2,6 +2,10 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
+#include "bpf2c.h"
+
+typedef void (*native_module_metadata_hook_t)(_Inout_ metadata_table_t* table, _Inout_opt_ void* context);
+
 class _test_helper_end_to_end
 {
   public:
@@ -63,6 +67,9 @@ set_native_module_failures(bool expected);
 
 bool
 get_native_module_failures();
+
+void
+set_native_module_metadata_hook(_In_opt_ native_module_metadata_hook_t hook, _Inout_opt_ void* context);
 
 _Must_inspect_result_ ebpf_result_t
 get_service_details_for_file(

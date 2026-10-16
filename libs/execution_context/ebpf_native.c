@@ -445,6 +445,7 @@ _ebpf_validate_native_global_variable_section_info(
     return (
         (native_global_variable_section_info != NULL) &&
         ebpf_validate_object_header_native_global_variable_section_info(&native_global_variable_section_info->header) &&
+        (native_global_variable_section_info->name != NULL) &&
         (native_global_variable_section_info->initial_data != NULL));
 }
 
@@ -1502,7 +1503,7 @@ _ebpf_native_set_initial_map_values(_Inout_ ebpf_native_module_instance_t* insta
             if (_ebpf_native_is_map_in_map(native_map_to_update)) {
                 ebpf_native_map_t* native_map_to_insert =
                     _ebpf_native_find_map_by_name(instance, map_initial_values[i].values[j]);
-                if (native_map_to_update == NULL) {
+                if (native_map_to_insert == NULL) {
                     result = EBPF_INVALID_ARGUMENT;
                     break;
                 }
@@ -1550,6 +1551,10 @@ _ebpf_native_initialize_global_variables(
     // Get global variables info.
     instance->module->table.global_variable_sections(&global_variables, &global_variable_count);
 
+    if (!_ebpf_validate_global_variable_section_info_array(global_variables, global_variable_count)) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+
     if (global_variable_count == 0) {
         EBPF_RETURN_RESULT(EBPF_SUCCESS);
     }
@@ -1581,11 +1586,14 @@ _ebpf_native_initialize_global_variables(
         memcpy(
             &local_global_section_info,
             global_variable_section_info,
-            min(global_variable_section_info_size, sizeof(local_global_section_info)));
+            min(global_variable_section_info->header.size, sizeof(local_global_section_info)));
         global_variable_section_info = NULL;
 
         const ebpf_native_map_t* native_map = _ebpf_native_find_map_by_name(instance, local_global_section_info.name);
-        if (native_map == NULL) {
+        if (native_map == NULL || native_map->entry.definition.type != BPF_MAP_TYPE_ARRAY ||
+            native_map->entry.definition.key_size != sizeof(uint32_t) ||
+            native_map->entry.definition.max_entries != 1 || native_map->entry.definition.pinning != LIBBPF_PIN_NONE ||
+            local_global_section_info.size != native_map->entry.definition.value_size) {
             result = EBPF_INVALID_ARGUMENT;
             break;
         }
