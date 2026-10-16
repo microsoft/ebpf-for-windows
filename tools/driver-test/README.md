@@ -28,7 +28,8 @@ Building this target compiles the referenced projects plus their transitive depe
 | Performance tests | `tests\performance\performance.vcxproj` |
 | Restart test controller | `tests\stress\restart_test_controller\ebpf_restart_test_controller.vcxproj` |
 | Restart test helper | `tests\stress\restart_test_helper\ebpf_restart_test_helper.vcxproj` |
-| KM stress tests | `tests\stress\km\ebpf_stress_tests_km.vcxproj` |
+| KM stress tests (sample extension) | `tests\stress\km\ebpf_stress_tests_km.vcxproj` |
+| KM stress tests (netebpfext) | `tests\stress\km\net_ebpf_stress_tests_km.vcxproj` |
 | eBPF MSI installer | `installer\ebpf-for-windows.wixproj` |
 
 The MSI installer (`ebpf-for-windows.msi`) is required because the driver validation setup

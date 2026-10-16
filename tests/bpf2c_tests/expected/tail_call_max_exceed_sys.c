@@ -184,7 +184,7 @@ static map_entry_t _maps[] = {
          35,                      // Maximum number of entries allowed in the map.
          0,                       // Inner map index.
          LIBBPF_PIN_NONE,         // Pinning type for the map.
-         26,                      // Identifier for a map template.
+         21,                      // Identifier for a map template.
          0,                       // The id of the inner map template.
      },
      "bind_tail_call_map"},
@@ -226,14 +226,14 @@ static helper_function_entry_t bind_test_callee0_helpers[] = {
 };
 
 static GUID bind_test_callee0_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee0_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee0_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/0")
+#pragma code_seg(push, "sampl~36")
 static uint64_t
 bind_test_callee0(void* context, const program_runtime_context_t* runtime_context)
 #line 85 "sample/tail_call_max_exceed.c"
@@ -399,9 +399,9 @@ bind_test_callee0(void* context, const program_runtime_context_t* runtime_contex
 #line 85 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 85 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 85 "sample/tail_call_max_exceed.c"
     return r0;
@@ -429,14 +429,14 @@ static helper_function_entry_t bind_test_callee1_helpers[] = {
 };
 
 static GUID bind_test_callee1_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee1_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee1_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/1")
+#pragma code_seg(push, "sampl~35")
 static uint64_t
 bind_test_callee1(void* context, const program_runtime_context_t* runtime_context)
 #line 86 "sample/tail_call_max_exceed.c"
@@ -602,9 +602,9 @@ bind_test_callee1(void* context, const program_runtime_context_t* runtime_contex
 #line 86 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 86 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 86 "sample/tail_call_max_exceed.c"
     return r0;
@@ -632,14 +632,14 @@ static helper_function_entry_t bind_test_callee10_helpers[] = {
 };
 
 static GUID bind_test_callee10_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee10_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee10_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/10")
+#pragma code_seg(push, "sampl~26")
 static uint64_t
 bind_test_callee10(void* context, const program_runtime_context_t* runtime_context)
 #line 95 "sample/tail_call_max_exceed.c"
@@ -805,9 +805,9 @@ bind_test_callee10(void* context, const program_runtime_context_t* runtime_conte
 #line 95 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 95 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 95 "sample/tail_call_max_exceed.c"
     return r0;
@@ -835,14 +835,14 @@ static helper_function_entry_t bind_test_callee11_helpers[] = {
 };
 
 static GUID bind_test_callee11_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee11_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee11_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/11")
+#pragma code_seg(push, "sampl~25")
 static uint64_t
 bind_test_callee11(void* context, const program_runtime_context_t* runtime_context)
 #line 96 "sample/tail_call_max_exceed.c"
@@ -1008,9 +1008,9 @@ bind_test_callee11(void* context, const program_runtime_context_t* runtime_conte
 #line 96 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 96 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 96 "sample/tail_call_max_exceed.c"
     return r0;
@@ -1038,14 +1038,14 @@ static helper_function_entry_t bind_test_callee12_helpers[] = {
 };
 
 static GUID bind_test_callee12_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee12_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee12_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/12")
+#pragma code_seg(push, "sampl~24")
 static uint64_t
 bind_test_callee12(void* context, const program_runtime_context_t* runtime_context)
 #line 97 "sample/tail_call_max_exceed.c"
@@ -1211,9 +1211,9 @@ bind_test_callee12(void* context, const program_runtime_context_t* runtime_conte
 #line 97 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 97 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 97 "sample/tail_call_max_exceed.c"
     return r0;
@@ -1241,14 +1241,14 @@ static helper_function_entry_t bind_test_callee13_helpers[] = {
 };
 
 static GUID bind_test_callee13_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee13_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee13_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/13")
+#pragma code_seg(push, "sampl~23")
 static uint64_t
 bind_test_callee13(void* context, const program_runtime_context_t* runtime_context)
 #line 98 "sample/tail_call_max_exceed.c"
@@ -1414,9 +1414,9 @@ bind_test_callee13(void* context, const program_runtime_context_t* runtime_conte
 #line 98 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 98 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 98 "sample/tail_call_max_exceed.c"
     return r0;
@@ -1444,14 +1444,14 @@ static helper_function_entry_t bind_test_callee14_helpers[] = {
 };
 
 static GUID bind_test_callee14_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee14_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee14_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/14")
+#pragma code_seg(push, "sampl~22")
 static uint64_t
 bind_test_callee14(void* context, const program_runtime_context_t* runtime_context)
 #line 99 "sample/tail_call_max_exceed.c"
@@ -1617,9 +1617,9 @@ bind_test_callee14(void* context, const program_runtime_context_t* runtime_conte
 #line 99 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 99 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 99 "sample/tail_call_max_exceed.c"
     return r0;
@@ -1647,14 +1647,14 @@ static helper_function_entry_t bind_test_callee15_helpers[] = {
 };
 
 static GUID bind_test_callee15_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee15_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee15_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/15")
+#pragma code_seg(push, "sampl~21")
 static uint64_t
 bind_test_callee15(void* context, const program_runtime_context_t* runtime_context)
 #line 100 "sample/tail_call_max_exceed.c"
@@ -1820,9 +1820,9 @@ bind_test_callee15(void* context, const program_runtime_context_t* runtime_conte
 #line 100 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 100 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 100 "sample/tail_call_max_exceed.c"
     return r0;
@@ -1850,14 +1850,14 @@ static helper_function_entry_t bind_test_callee16_helpers[] = {
 };
 
 static GUID bind_test_callee16_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee16_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee16_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/16")
+#pragma code_seg(push, "sampl~20")
 static uint64_t
 bind_test_callee16(void* context, const program_runtime_context_t* runtime_context)
 #line 101 "sample/tail_call_max_exceed.c"
@@ -2023,9 +2023,9 @@ bind_test_callee16(void* context, const program_runtime_context_t* runtime_conte
 #line 101 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 101 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 101 "sample/tail_call_max_exceed.c"
     return r0;
@@ -2053,14 +2053,14 @@ static helper_function_entry_t bind_test_callee17_helpers[] = {
 };
 
 static GUID bind_test_callee17_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee17_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee17_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/17")
+#pragma code_seg(push, "sampl~19")
 static uint64_t
 bind_test_callee17(void* context, const program_runtime_context_t* runtime_context)
 #line 102 "sample/tail_call_max_exceed.c"
@@ -2226,9 +2226,9 @@ bind_test_callee17(void* context, const program_runtime_context_t* runtime_conte
 #line 102 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 102 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 102 "sample/tail_call_max_exceed.c"
     return r0;
@@ -2256,14 +2256,14 @@ static helper_function_entry_t bind_test_callee18_helpers[] = {
 };
 
 static GUID bind_test_callee18_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee18_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee18_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/18")
+#pragma code_seg(push, "sampl~18")
 static uint64_t
 bind_test_callee18(void* context, const program_runtime_context_t* runtime_context)
 #line 103 "sample/tail_call_max_exceed.c"
@@ -2429,9 +2429,9 @@ bind_test_callee18(void* context, const program_runtime_context_t* runtime_conte
 #line 103 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 103 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 103 "sample/tail_call_max_exceed.c"
     return r0;
@@ -2459,14 +2459,14 @@ static helper_function_entry_t bind_test_callee19_helpers[] = {
 };
 
 static GUID bind_test_callee19_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee19_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee19_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/19")
+#pragma code_seg(push, "sampl~17")
 static uint64_t
 bind_test_callee19(void* context, const program_runtime_context_t* runtime_context)
 #line 104 "sample/tail_call_max_exceed.c"
@@ -2632,9 +2632,9 @@ bind_test_callee19(void* context, const program_runtime_context_t* runtime_conte
 #line 104 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 104 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 104 "sample/tail_call_max_exceed.c"
     return r0;
@@ -2662,14 +2662,14 @@ static helper_function_entry_t bind_test_callee2_helpers[] = {
 };
 
 static GUID bind_test_callee2_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee2_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee2_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/2")
+#pragma code_seg(push, "sampl~34")
 static uint64_t
 bind_test_callee2(void* context, const program_runtime_context_t* runtime_context)
 #line 87 "sample/tail_call_max_exceed.c"
@@ -2835,9 +2835,9 @@ bind_test_callee2(void* context, const program_runtime_context_t* runtime_contex
 #line 87 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 87 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 87 "sample/tail_call_max_exceed.c"
     return r0;
@@ -2865,14 +2865,14 @@ static helper_function_entry_t bind_test_callee20_helpers[] = {
 };
 
 static GUID bind_test_callee20_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee20_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee20_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/20")
+#pragma code_seg(push, "sampl~16")
 static uint64_t
 bind_test_callee20(void* context, const program_runtime_context_t* runtime_context)
 #line 105 "sample/tail_call_max_exceed.c"
@@ -3038,9 +3038,9 @@ bind_test_callee20(void* context, const program_runtime_context_t* runtime_conte
 #line 105 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 105 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 105 "sample/tail_call_max_exceed.c"
     return r0;
@@ -3068,14 +3068,14 @@ static helper_function_entry_t bind_test_callee21_helpers[] = {
 };
 
 static GUID bind_test_callee21_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee21_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee21_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/21")
+#pragma code_seg(push, "sampl~15")
 static uint64_t
 bind_test_callee21(void* context, const program_runtime_context_t* runtime_context)
 #line 106 "sample/tail_call_max_exceed.c"
@@ -3241,9 +3241,9 @@ bind_test_callee21(void* context, const program_runtime_context_t* runtime_conte
 #line 106 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 106 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 106 "sample/tail_call_max_exceed.c"
     return r0;
@@ -3271,14 +3271,14 @@ static helper_function_entry_t bind_test_callee22_helpers[] = {
 };
 
 static GUID bind_test_callee22_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee22_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee22_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/22")
+#pragma code_seg(push, "sampl~14")
 static uint64_t
 bind_test_callee22(void* context, const program_runtime_context_t* runtime_context)
 #line 107 "sample/tail_call_max_exceed.c"
@@ -3444,9 +3444,9 @@ bind_test_callee22(void* context, const program_runtime_context_t* runtime_conte
 #line 107 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 107 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 107 "sample/tail_call_max_exceed.c"
     return r0;
@@ -3474,14 +3474,14 @@ static helper_function_entry_t bind_test_callee23_helpers[] = {
 };
 
 static GUID bind_test_callee23_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee23_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee23_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/23")
+#pragma code_seg(push, "sampl~13")
 static uint64_t
 bind_test_callee23(void* context, const program_runtime_context_t* runtime_context)
 #line 108 "sample/tail_call_max_exceed.c"
@@ -3647,9 +3647,9 @@ bind_test_callee23(void* context, const program_runtime_context_t* runtime_conte
 #line 108 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 108 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 108 "sample/tail_call_max_exceed.c"
     return r0;
@@ -3677,14 +3677,14 @@ static helper_function_entry_t bind_test_callee24_helpers[] = {
 };
 
 static GUID bind_test_callee24_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee24_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee24_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/24")
+#pragma code_seg(push, "sampl~12")
 static uint64_t
 bind_test_callee24(void* context, const program_runtime_context_t* runtime_context)
 #line 109 "sample/tail_call_max_exceed.c"
@@ -3850,9 +3850,9 @@ bind_test_callee24(void* context, const program_runtime_context_t* runtime_conte
 #line 109 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 109 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 109 "sample/tail_call_max_exceed.c"
     return r0;
@@ -3880,14 +3880,14 @@ static helper_function_entry_t bind_test_callee25_helpers[] = {
 };
 
 static GUID bind_test_callee25_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee25_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee25_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/25")
+#pragma code_seg(push, "sampl~11")
 static uint64_t
 bind_test_callee25(void* context, const program_runtime_context_t* runtime_context)
 #line 110 "sample/tail_call_max_exceed.c"
@@ -4053,9 +4053,9 @@ bind_test_callee25(void* context, const program_runtime_context_t* runtime_conte
 #line 110 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 110 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 110 "sample/tail_call_max_exceed.c"
     return r0;
@@ -4083,14 +4083,14 @@ static helper_function_entry_t bind_test_callee26_helpers[] = {
 };
 
 static GUID bind_test_callee26_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee26_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee26_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/26")
+#pragma code_seg(push, "sampl~10")
 static uint64_t
 bind_test_callee26(void* context, const program_runtime_context_t* runtime_context)
 #line 111 "sample/tail_call_max_exceed.c"
@@ -4256,9 +4256,9 @@ bind_test_callee26(void* context, const program_runtime_context_t* runtime_conte
 #line 111 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 111 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 111 "sample/tail_call_max_exceed.c"
     return r0;
@@ -4286,14 +4286,14 @@ static helper_function_entry_t bind_test_callee27_helpers[] = {
 };
 
 static GUID bind_test_callee27_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee27_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee27_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/27")
+#pragma code_seg(push, "sample~9")
 static uint64_t
 bind_test_callee27(void* context, const program_runtime_context_t* runtime_context)
 #line 112 "sample/tail_call_max_exceed.c"
@@ -4459,9 +4459,9 @@ bind_test_callee27(void* context, const program_runtime_context_t* runtime_conte
 #line 112 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 112 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 112 "sample/tail_call_max_exceed.c"
     return r0;
@@ -4489,14 +4489,14 @@ static helper_function_entry_t bind_test_callee28_helpers[] = {
 };
 
 static GUID bind_test_callee28_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee28_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee28_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/28")
+#pragma code_seg(push, "sample~8")
 static uint64_t
 bind_test_callee28(void* context, const program_runtime_context_t* runtime_context)
 #line 113 "sample/tail_call_max_exceed.c"
@@ -4662,9 +4662,9 @@ bind_test_callee28(void* context, const program_runtime_context_t* runtime_conte
 #line 113 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 113 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 113 "sample/tail_call_max_exceed.c"
     return r0;
@@ -4692,14 +4692,14 @@ static helper_function_entry_t bind_test_callee29_helpers[] = {
 };
 
 static GUID bind_test_callee29_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee29_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee29_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/29")
+#pragma code_seg(push, "sample~7")
 static uint64_t
 bind_test_callee29(void* context, const program_runtime_context_t* runtime_context)
 #line 114 "sample/tail_call_max_exceed.c"
@@ -4865,9 +4865,9 @@ bind_test_callee29(void* context, const program_runtime_context_t* runtime_conte
 #line 114 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 114 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 114 "sample/tail_call_max_exceed.c"
     return r0;
@@ -4895,14 +4895,14 @@ static helper_function_entry_t bind_test_callee3_helpers[] = {
 };
 
 static GUID bind_test_callee3_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee3_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee3_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/3")
+#pragma code_seg(push, "sampl~33")
 static uint64_t
 bind_test_callee3(void* context, const program_runtime_context_t* runtime_context)
 #line 88 "sample/tail_call_max_exceed.c"
@@ -5068,9 +5068,9 @@ bind_test_callee3(void* context, const program_runtime_context_t* runtime_contex
 #line 88 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 88 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 88 "sample/tail_call_max_exceed.c"
     return r0;
@@ -5098,14 +5098,14 @@ static helper_function_entry_t bind_test_callee30_helpers[] = {
 };
 
 static GUID bind_test_callee30_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee30_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee30_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/30")
+#pragma code_seg(push, "sample~6")
 static uint64_t
 bind_test_callee30(void* context, const program_runtime_context_t* runtime_context)
 #line 115 "sample/tail_call_max_exceed.c"
@@ -5271,9 +5271,9 @@ bind_test_callee30(void* context, const program_runtime_context_t* runtime_conte
 #line 115 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 115 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 115 "sample/tail_call_max_exceed.c"
     return r0;
@@ -5301,14 +5301,14 @@ static helper_function_entry_t bind_test_callee31_helpers[] = {
 };
 
 static GUID bind_test_callee31_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee31_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee31_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/31")
+#pragma code_seg(push, "sample~5")
 static uint64_t
 bind_test_callee31(void* context, const program_runtime_context_t* runtime_context)
 #line 116 "sample/tail_call_max_exceed.c"
@@ -5474,9 +5474,9 @@ bind_test_callee31(void* context, const program_runtime_context_t* runtime_conte
 #line 116 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 116 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 116 "sample/tail_call_max_exceed.c"
     return r0;
@@ -5504,14 +5504,14 @@ static helper_function_entry_t bind_test_callee32_helpers[] = {
 };
 
 static GUID bind_test_callee32_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee32_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee32_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/32")
+#pragma code_seg(push, "sample~4")
 static uint64_t
 bind_test_callee32(void* context, const program_runtime_context_t* runtime_context)
 #line 117 "sample/tail_call_max_exceed.c"
@@ -5677,9 +5677,9 @@ bind_test_callee32(void* context, const program_runtime_context_t* runtime_conte
 #line 117 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 117 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 117 "sample/tail_call_max_exceed.c"
     return r0;
@@ -5707,14 +5707,14 @@ static helper_function_entry_t bind_test_callee33_helpers[] = {
 };
 
 static GUID bind_test_callee33_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee33_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee33_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/33")
+#pragma code_seg(push, "sample~3")
 static uint64_t
 bind_test_callee33(void* context, const program_runtime_context_t* runtime_context)
 #line 118 "sample/tail_call_max_exceed.c"
@@ -5880,9 +5880,9 @@ bind_test_callee33(void* context, const program_runtime_context_t* runtime_conte
 #line 118 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 118 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 118 "sample/tail_call_max_exceed.c"
     return r0;
@@ -5900,10 +5900,10 @@ static helper_function_entry_t bind_test_callee34_helpers[] = {
 };
 
 static GUID bind_test_callee34_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee34_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
-#pragma code_seg(push, "bind/34")
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+#pragma code_seg(push, "sample~2")
 static uint64_t
 bind_test_callee34(void* context, const program_runtime_context_t* runtime_context)
 #line 136 "sample/tail_call_max_exceed.c"
@@ -5980,11 +5980,11 @@ bind_test_callee34(void* context, const program_runtime_context_t* runtime_conte
     // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=12
 #line 138 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-    // EBPF_OP_MOV64_IMM pc=21 dst=r0 src=r0 offset=0 imm=0
-#line 141 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(0);
+    // EBPF_OP_MOV64_IMM pc=21 dst=r0 src=r0 offset=0 imm=1
+#line 139 "sample/tail_call_max_exceed.c"
+    r0 = IMMEDIATE(1);
     // EBPF_OP_EXIT pc=22 dst=r0 src=r0 offset=0 imm=0
-#line 141 "sample/tail_call_max_exceed.c"
+#line 139 "sample/tail_call_max_exceed.c"
     return r0;
 #line 136 "sample/tail_call_max_exceed.c"
 }
@@ -6010,14 +6010,14 @@ static helper_function_entry_t bind_test_callee4_helpers[] = {
 };
 
 static GUID bind_test_callee4_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee4_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee4_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/4")
+#pragma code_seg(push, "sampl~32")
 static uint64_t
 bind_test_callee4(void* context, const program_runtime_context_t* runtime_context)
 #line 89 "sample/tail_call_max_exceed.c"
@@ -6183,9 +6183,9 @@ bind_test_callee4(void* context, const program_runtime_context_t* runtime_contex
 #line 89 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 89 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 89 "sample/tail_call_max_exceed.c"
     return r0;
@@ -6213,14 +6213,14 @@ static helper_function_entry_t bind_test_callee5_helpers[] = {
 };
 
 static GUID bind_test_callee5_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee5_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee5_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/5")
+#pragma code_seg(push, "sampl~31")
 static uint64_t
 bind_test_callee5(void* context, const program_runtime_context_t* runtime_context)
 #line 90 "sample/tail_call_max_exceed.c"
@@ -6386,9 +6386,9 @@ bind_test_callee5(void* context, const program_runtime_context_t* runtime_contex
 #line 90 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 90 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 90 "sample/tail_call_max_exceed.c"
     return r0;
@@ -6416,14 +6416,14 @@ static helper_function_entry_t bind_test_callee6_helpers[] = {
 };
 
 static GUID bind_test_callee6_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee6_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee6_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/6")
+#pragma code_seg(push, "sampl~30")
 static uint64_t
 bind_test_callee6(void* context, const program_runtime_context_t* runtime_context)
 #line 91 "sample/tail_call_max_exceed.c"
@@ -6589,9 +6589,9 @@ bind_test_callee6(void* context, const program_runtime_context_t* runtime_contex
 #line 91 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 91 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 91 "sample/tail_call_max_exceed.c"
     return r0;
@@ -6619,14 +6619,14 @@ static helper_function_entry_t bind_test_callee7_helpers[] = {
 };
 
 static GUID bind_test_callee7_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee7_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee7_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/7")
+#pragma code_seg(push, "sampl~29")
 static uint64_t
 bind_test_callee7(void* context, const program_runtime_context_t* runtime_context)
 #line 92 "sample/tail_call_max_exceed.c"
@@ -6792,9 +6792,9 @@ bind_test_callee7(void* context, const program_runtime_context_t* runtime_contex
 #line 92 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 92 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 92 "sample/tail_call_max_exceed.c"
     return r0;
@@ -6822,14 +6822,14 @@ static helper_function_entry_t bind_test_callee8_helpers[] = {
 };
 
 static GUID bind_test_callee8_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee8_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee8_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/8")
+#pragma code_seg(push, "sampl~28")
 static uint64_t
 bind_test_callee8(void* context, const program_runtime_context_t* runtime_context)
 #line 93 "sample/tail_call_max_exceed.c"
@@ -6995,9 +6995,9 @@ bind_test_callee8(void* context, const program_runtime_context_t* runtime_contex
 #line 93 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 93 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 93 "sample/tail_call_max_exceed.c"
     return r0;
@@ -7025,14 +7025,14 @@ static helper_function_entry_t bind_test_callee9_helpers[] = {
 };
 
 static GUID bind_test_callee9_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_callee9_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_callee9_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind/9")
+#pragma code_seg(push, "sampl~27")
 static uint64_t
 bind_test_callee9(void* context, const program_runtime_context_t* runtime_context)
 #line 94 "sample/tail_call_max_exceed.c"
@@ -7198,9 +7198,9 @@ bind_test_callee9(void* context, const program_runtime_context_t* runtime_contex
 #line 94 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=2
 #line 94 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 94 "sample/tail_call_max_exceed.c"
     return r0;
@@ -7228,14 +7228,14 @@ static helper_function_entry_t bind_test_caller_helpers[] = {
 };
 
 static GUID bind_test_caller_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID bind_test_caller_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t bind_test_caller_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind")
+#pragma code_seg(push, "sample~1")
 static uint64_t
 bind_test_caller(void* context, const program_runtime_context_t* runtime_context)
 #line 124 "sample/tail_call_max_exceed.c"
@@ -7392,9 +7392,9 @@ bind_test_caller(void* context, const program_runtime_context_t* runtime_context
 #line 128 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 label_1:
-    // EBPF_OP_MOV64_IMM pc=45 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=45 dst=r0 src=r0 offset=0 imm=2
 #line 131 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=46 dst=r0 src=r0 offset=0 imm=0
 #line 131 "sample/tail_call_max_exceed.c"
     return r0;
@@ -7409,8 +7409,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee0,
-        "bind/0",
-        "bind/0",
+        "sampl~36",
+        "sample_ext/0",
         "bind_test_callee0",
         bind_test_callee0_maps,
         1,
@@ -7424,8 +7424,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee1,
-        "bind/1",
-        "bind/1",
+        "sampl~35",
+        "sample_ext/1",
         "bind_test_callee1",
         bind_test_callee1_maps,
         1,
@@ -7439,8 +7439,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee10,
-        "bind/10",
-        "bind/10",
+        "sampl~26",
+        "sample_ext/10",
         "bind_test_callee10",
         bind_test_callee10_maps,
         1,
@@ -7454,8 +7454,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee11,
-        "bind/11",
-        "bind/11",
+        "sampl~25",
+        "sample_ext/11",
         "bind_test_callee11",
         bind_test_callee11_maps,
         1,
@@ -7469,8 +7469,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee12,
-        "bind/12",
-        "bind/12",
+        "sampl~24",
+        "sample_ext/12",
         "bind_test_callee12",
         bind_test_callee12_maps,
         1,
@@ -7484,8 +7484,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee13,
-        "bind/13",
-        "bind/13",
+        "sampl~23",
+        "sample_ext/13",
         "bind_test_callee13",
         bind_test_callee13_maps,
         1,
@@ -7499,8 +7499,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee14,
-        "bind/14",
-        "bind/14",
+        "sampl~22",
+        "sample_ext/14",
         "bind_test_callee14",
         bind_test_callee14_maps,
         1,
@@ -7514,8 +7514,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee15,
-        "bind/15",
-        "bind/15",
+        "sampl~21",
+        "sample_ext/15",
         "bind_test_callee15",
         bind_test_callee15_maps,
         1,
@@ -7529,8 +7529,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee16,
-        "bind/16",
-        "bind/16",
+        "sampl~20",
+        "sample_ext/16",
         "bind_test_callee16",
         bind_test_callee16_maps,
         1,
@@ -7544,8 +7544,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee17,
-        "bind/17",
-        "bind/17",
+        "sampl~19",
+        "sample_ext/17",
         "bind_test_callee17",
         bind_test_callee17_maps,
         1,
@@ -7559,8 +7559,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee18,
-        "bind/18",
-        "bind/18",
+        "sampl~18",
+        "sample_ext/18",
         "bind_test_callee18",
         bind_test_callee18_maps,
         1,
@@ -7574,8 +7574,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee19,
-        "bind/19",
-        "bind/19",
+        "sampl~17",
+        "sample_ext/19",
         "bind_test_callee19",
         bind_test_callee19_maps,
         1,
@@ -7589,8 +7589,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee2,
-        "bind/2",
-        "bind/2",
+        "sampl~34",
+        "sample_ext/2",
         "bind_test_callee2",
         bind_test_callee2_maps,
         1,
@@ -7604,8 +7604,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee20,
-        "bind/20",
-        "bind/20",
+        "sampl~16",
+        "sample_ext/20",
         "bind_test_callee20",
         bind_test_callee20_maps,
         1,
@@ -7619,8 +7619,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee21,
-        "bind/21",
-        "bind/21",
+        "sampl~15",
+        "sample_ext/21",
         "bind_test_callee21",
         bind_test_callee21_maps,
         1,
@@ -7634,8 +7634,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee22,
-        "bind/22",
-        "bind/22",
+        "sampl~14",
+        "sample_ext/22",
         "bind_test_callee22",
         bind_test_callee22_maps,
         1,
@@ -7649,8 +7649,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee23,
-        "bind/23",
-        "bind/23",
+        "sampl~13",
+        "sample_ext/23",
         "bind_test_callee23",
         bind_test_callee23_maps,
         1,
@@ -7664,8 +7664,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee24,
-        "bind/24",
-        "bind/24",
+        "sampl~12",
+        "sample_ext/24",
         "bind_test_callee24",
         bind_test_callee24_maps,
         1,
@@ -7679,8 +7679,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee25,
-        "bind/25",
-        "bind/25",
+        "sampl~11",
+        "sample_ext/25",
         "bind_test_callee25",
         bind_test_callee25_maps,
         1,
@@ -7694,8 +7694,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee26,
-        "bind/26",
-        "bind/26",
+        "sampl~10",
+        "sample_ext/26",
         "bind_test_callee26",
         bind_test_callee26_maps,
         1,
@@ -7709,8 +7709,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee27,
-        "bind/27",
-        "bind/27",
+        "sample~9",
+        "sample_ext/27",
         "bind_test_callee27",
         bind_test_callee27_maps,
         1,
@@ -7724,8 +7724,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee28,
-        "bind/28",
-        "bind/28",
+        "sample~8",
+        "sample_ext/28",
         "bind_test_callee28",
         bind_test_callee28_maps,
         1,
@@ -7739,8 +7739,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee29,
-        "bind/29",
-        "bind/29",
+        "sample~7",
+        "sample_ext/29",
         "bind_test_callee29",
         bind_test_callee29_maps,
         1,
@@ -7754,8 +7754,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee3,
-        "bind/3",
-        "bind/3",
+        "sampl~33",
+        "sample_ext/3",
         "bind_test_callee3",
         bind_test_callee3_maps,
         1,
@@ -7769,8 +7769,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee30,
-        "bind/30",
-        "bind/30",
+        "sample~6",
+        "sample_ext/30",
         "bind_test_callee30",
         bind_test_callee30_maps,
         1,
@@ -7784,8 +7784,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee31,
-        "bind/31",
-        "bind/31",
+        "sample~5",
+        "sample_ext/31",
         "bind_test_callee31",
         bind_test_callee31_maps,
         1,
@@ -7799,8 +7799,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee32,
-        "bind/32",
-        "bind/32",
+        "sample~4",
+        "sample_ext/32",
         "bind_test_callee32",
         bind_test_callee32_maps,
         1,
@@ -7814,8 +7814,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee33,
-        "bind/33",
-        "bind/33",
+        "sample~3",
+        "sample_ext/33",
         "bind_test_callee33",
         bind_test_callee33_maps,
         1,
@@ -7829,8 +7829,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee34,
-        "bind/34",
-        "bind/34",
+        "sample~2",
+        "sample_ext/34",
         "bind_test_callee34",
         NULL,
         0,
@@ -7844,8 +7844,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee4,
-        "bind/4",
-        "bind/4",
+        "sampl~32",
+        "sample_ext/4",
         "bind_test_callee4",
         bind_test_callee4_maps,
         1,
@@ -7859,8 +7859,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee5,
-        "bind/5",
-        "bind/5",
+        "sampl~31",
+        "sample_ext/5",
         "bind_test_callee5",
         bind_test_callee5_maps,
         1,
@@ -7874,8 +7874,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee6,
-        "bind/6",
-        "bind/6",
+        "sampl~30",
+        "sample_ext/6",
         "bind_test_callee6",
         bind_test_callee6_maps,
         1,
@@ -7889,8 +7889,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee7,
-        "bind/7",
-        "bind/7",
+        "sampl~29",
+        "sample_ext/7",
         "bind_test_callee7",
         bind_test_callee7_maps,
         1,
@@ -7904,8 +7904,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee8,
-        "bind/8",
-        "bind/8",
+        "sampl~28",
+        "sample_ext/8",
         "bind_test_callee8",
         bind_test_callee8_maps,
         1,
@@ -7919,8 +7919,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_callee9,
-        "bind/9",
-        "bind/9",
+        "sampl~27",
+        "sample_ext/9",
         "bind_test_callee9",
         bind_test_callee9_maps,
         1,
@@ -7934,8 +7934,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         bind_test_caller,
-        "bind",
-        "bind",
+        "sample~1",
+        "sample_ext",
         "bind_test_caller",
         bind_test_caller_maps,
         1,
