@@ -1286,12 +1286,16 @@ typedef struct _global_variable_size_mutation
  * @brief Adjust the first native global variable section size for a negative load test.
  *
  * @param[in, out] table Native module metadata table.
- * @param[in, out] context Pointer to a global_variable_size_mutation_t.
+ * @param[in, out] context Pointer to a global_variable_size_mutation_t, or NULL to make no change.
  */
 static void
 _mutate_global_variable_size(_Inout_ metadata_table_t* table, _Inout_opt_ void* context)
 {
     auto mutation = reinterpret_cast<global_variable_size_mutation_t*>(context);
+    if (mutation == nullptr) {
+        return;
+    }
+
     if (mutation->applied) {
         return;
     }
@@ -1312,12 +1316,16 @@ _mutate_global_variable_size(_Inout_ metadata_table_t* table, _Inout_opt_ void* 
 /**
  * @brief Restore a global variable section size changed by _mutate_global_variable_size.
  *
- * @param[in, out] context Pointer to a global_variable_size_mutation_t.
+ * @param[in, out] context Pointer to a global_variable_size_mutation_t, or NULL if no restoration is needed.
  */
 static void
 _restore_global_variable_size(_Inout_opt_ void* context)
 {
     auto mutation = reinterpret_cast<global_variable_size_mutation_t*>(context);
+    if (mutation == nullptr) {
+        return;
+    }
+
     if (mutation->applied) {
         mutation->section->size = mutation->original_size;
     }
@@ -1337,12 +1345,16 @@ typedef struct _map_initial_value_target_mutation
  * @brief Replace the first outer_map initializer target with a nonexistent map name.
  *
  * @param[in, out] table Native module metadata table.
- * @param[in, out] context Pointer to a map_initial_value_target_mutation_t.
+ * @param[in, out] context Pointer to a map_initial_value_target_mutation_t, or NULL to make no change.
  */
 static void
 _mutate_map_initial_value_target(_Inout_ metadata_table_t* table, _Inout_opt_ void* context)
 {
     auto mutation = reinterpret_cast<map_initial_value_target_mutation_t*>(context);
+    if (mutation == nullptr) {
+        return;
+    }
+
     if (mutation->applied) {
         return;
     }
@@ -1371,12 +1383,16 @@ _mutate_map_initial_value_target(_Inout_ metadata_table_t* table, _Inout_opt_ vo
 /**
  * @brief Restore a static map initializer target changed by _mutate_map_initial_value_target.
  *
- * @param[in, out] context Pointer to a map_initial_value_target_mutation_t.
+ * @param[in, out] context Pointer to a map_initial_value_target_mutation_t, or NULL if no restoration is needed.
  */
 static void
 _restore_map_initial_value_target(_Inout_opt_ void* context)
 {
     auto mutation = reinterpret_cast<map_initial_value_target_mutation_t*>(context);
+    if (mutation == nullptr) {
+        return;
+    }
+
     if (mutation->applied) {
         *mutation->value = mutation->original_value;
     }
