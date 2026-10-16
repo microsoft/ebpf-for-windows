@@ -37,6 +37,27 @@ An **command line install/uninstall** is also supported, through the direct use 
     ADDLOCAL=eBPF_Runtime_Components,eBPF_Runtime_Components_JIT
     ```
 
+* The installer stops if an `eBPFCore` service is already registered. To replace existing eBPF services, pass
+  `FORCE=1`. This stops `NetEbpfExt`, `eBPFSvc`, and `eBPFCore`, then replaces the six canonical eBPF binary names
+  under `System32` and `System32\drivers` with NTFS hard links to the binaries installed under `INSTALLFOLDER`.
+  The service registrations are updated to use the canonical Windows paths. The installation fails before changing
+  any canonical link if a service cannot be stopped, a canonical binary is missing, or the replacement hard links
+  cannot be staged (for example, because `INSTALLFOLDER` is on another volume). The installer temporarily grants
+  itself access to protected inbox binaries while changing their hard links and then restores their original ACLs.
+  The original hard links remain under `.ebpf-msi-backup` names until a final uninstall restores them. All six backup
+  links must be present; the installer fails safely if it detects a partial backup set. Link restoration is skipped
+  when removal is part of a major upgrade, and is rolled back if the uninstall fails.
+  It also saves the existing machine and installing-user eBPF registry stores under
+  `%ProgramData%\eBPF-for-Windows\MsiBackup`, replaces them with metadata for the installed version, and restores the
+  saved stores during a final uninstall. Store restoration is skipped when removal is part of a major upgrade.
+  Because `HKCU` is specific to a Windows account, uninstall must run as the same user that performed the forced
+  installation to restore that user's store; the installer fails rather than importing the backup into another
+  user's registry hive.
+
+    ```bash
+    C:\Windows\system32\msiexec.exe /i eBPF-for-Windows.x.x.x.msi FORCE=1
+    ```
+
 Below are some examples of CLI installations/uninstallation, using "`C:\Program Files\ebpf-for-windows`" as the installation folder:
 
 * Installation:
