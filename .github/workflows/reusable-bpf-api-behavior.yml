@@ -6,7 +6,7 @@ on:
 jobs:
   stable_linux:
     name: stable Linux
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 60
     steps:
       - name: Harden Runner
@@ -170,7 +170,7 @@ jobs:
     needs:
       - stable_linux
       - windows
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
       - name: Harden Runner
