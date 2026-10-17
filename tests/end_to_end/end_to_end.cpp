@@ -13,6 +13,7 @@
 #include "capture_helper.hpp"
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
+#include "cxplat_fault_injection.h"
 #include "ebpf_core.h"
 #include "ebpf_store_helper.h"
 #include "ebpf_tracelog.h"
@@ -1267,6 +1268,274 @@ global_variable_test(ebpf_execution_type_t execution_type)
     hook.detach_and_close_link(&link);
 
     bpf_object__close(unique_object.release());
+}
+
+/**
+ * @brief State used to temporarily adjust the size of a native global variable section.
+ */
+typedef struct _global_variable_size_mutation
+{
+    int64_t size_adjustment;
+    global_variable_section_info_t* section = nullptr;
+    size_t original_size = 0;
+    bool applied = false;
+} global_variable_size_mutation_t;
+
+/**
+ * @brief Adjust the first native global variable section size for a negative load test.
+ *
+ * @param[in, out] table Native module metadata table.
+ * @param[in, out] context Pointer to a global_variable_size_mutation_t, or NULL to make no change.
+ */
+static void
+_mutate_global_variable_size(_Inout_ metadata_table_t* table, _Inout_opt_ void* context)
+{
+    auto mutation = reinterpret_cast<global_variable_size_mutation_t*>(context);
+    if (mutation == nullptr) {
+        return;
+    }
+
+    if (mutation->applied) {
+        return;
+    }
+
+    global_variable_section_info_t* sections = nullptr;
+    size_t section_count = 0;
+    table->global_variable_sections(&sections, &section_count);
+    if (section_count == 0 || sections == nullptr) {
+        return;
+    }
+
+    mutation->section = sections;
+    mutation->original_size = sections[0].size;
+    sections[0].size = static_cast<size_t>(static_cast<int64_t>(sections[0].size) + mutation->size_adjustment);
+    mutation->applied = true;
+}
+
+/**
+ * @brief Restore a global variable section size changed by _mutate_global_variable_size.
+ *
+ * @param[in, out] context Pointer to a global_variable_size_mutation_t, or NULL if no restoration is needed.
+ */
+static void
+_restore_global_variable_size(_Inout_opt_ void* context)
+{
+    auto mutation = reinterpret_cast<global_variable_size_mutation_t*>(context);
+    if (mutation == nullptr) {
+        return;
+    }
+
+    if (mutation->applied) {
+        mutation->section->size = mutation->original_size;
+    }
+}
+
+/**
+ * @brief State used to temporarily replace a static map initializer target.
+ */
+typedef struct _map_initial_value_target_mutation
+{
+    const char** value = nullptr;
+    const char* original_value = nullptr;
+    bool applied = false;
+} map_initial_value_target_mutation_t;
+
+/**
+ * @brief Replace the first outer_map initializer target with a nonexistent map name.
+ *
+ * @param[in, out] table Native module metadata table.
+ * @param[in, out] context Pointer to a map_initial_value_target_mutation_t, or NULL to make no change.
+ */
+static void
+_mutate_map_initial_value_target(_Inout_ metadata_table_t* table, _Inout_opt_ void* context)
+{
+    auto mutation = reinterpret_cast<map_initial_value_target_mutation_t*>(context);
+    if (mutation == nullptr) {
+        return;
+    }
+
+    if (mutation->applied) {
+        return;
+    }
+
+    map_initial_values_t* initial_values = nullptr;
+    size_t initial_value_count = 0;
+    table->map_initial_values(&initial_values, &initial_value_count);
+    if (initial_value_count == 0 || initial_values == nullptr) {
+        return;
+    }
+
+    size_t map_initial_values_size = initial_values[0].header.total_size;
+    for (size_t index = 0; index < initial_value_count; index++) {
+        map_initial_values_t* current =
+            (map_initial_values_t*)ARRAY_ELEMENT_INDEX(initial_values, index, map_initial_values_size);
+        if (strcmp(current->name, "outer_map") == 0 && current->count > 0) {
+            mutation->value = &current->values[0];
+            mutation->original_value = *mutation->value;
+            *mutation->value = "missing_map";
+            mutation->applied = true;
+            return;
+        }
+    }
+}
+
+/**
+ * @brief Restore a static map initializer target changed by _mutate_map_initial_value_target.
+ *
+ * @param[in, out] context Pointer to a map_initial_value_target_mutation_t, or NULL if no restoration is needed.
+ */
+static void
+_restore_map_initial_value_target(_Inout_opt_ void* context)
+{
+    auto mutation = reinterpret_cast<map_initial_value_target_mutation_t*>(context);
+    if (mutation == nullptr) {
+        return;
+    }
+
+    if (mutation->applied) {
+        *mutation->value = mutation->original_value;
+    }
+}
+
+/**
+ * @brief Scoped registration of a native module metadata hook and its corresponding restoration callback.
+ */
+class scoped_native_module_metadata_hook
+{
+  public:
+    /**
+     * @brief Register a native module metadata hook for the lifetime of this object.
+     *
+     * @param[in] hook Metadata hook to register.
+     * @param[in, out] context Context passed to the metadata and restoration callbacks.
+     * @param[in] restore Callback that restores metadata changed by the hook.
+     */
+    scoped_native_module_metadata_hook(
+        native_module_metadata_hook_t hook, _Inout_ void* context, void (*restore)(_Inout_opt_ void*))
+        : _context(context), _restore(restore)
+    {
+        set_native_module_metadata_hook(hook, context);
+    }
+
+    /**
+     * @brief Clear the metadata hook and restore the mutated metadata.
+     */
+    ~scoped_native_module_metadata_hook()
+    {
+        set_native_module_metadata_hook(nullptr, nullptr);
+        _restore(_context);
+    }
+
+  private:
+    void* _context;
+    void (*_restore)(_Inout_opt_ void*);
+};
+
+/**
+ * @brief Load a sample native program and return the libbpf result without retaining the loaded object.
+ *
+ * @param[in] file_name Native program file name.
+ * @return Zero on success, or a negative errno-compatible error code.
+ */
+static int
+_load_native_program_for_negative_test(_In_z_ const char* file_name)
+{
+    const char* error_message = nullptr;
+    bpf_object_ptr object;
+    fd_t program_fd;
+    int result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_NATIVE, &object, &program_fd, &error_message);
+    if (error_message != nullptr) {
+        ebpf_free((void*)error_message);
+    }
+    return result;
+}
+
+// Verify that native global variable initialization rejects both oversized and undersized section metadata, then
+// confirm that the unmodified module still loads successfully after each rejected load.
+TEST_CASE("native global variables reject section size mismatch", "[end_to_end][native][negative]")
+{
+    if (cxplat_fault_injection_is_enabled()) {
+        return;
+    }
+
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    global_variable_size_mutation_t mutation = {};
+    SECTION("oversized section") { mutation.size_adjustment = 1; }
+    SECTION("undersized section") { mutation.size_adjustment = -1; }
+
+    {
+        scoped_native_module_metadata_hook metadata_hook(
+            _mutate_global_variable_size, &mutation, _restore_global_variable_size);
+        set_native_module_failures(true);
+        int result = _load_native_program_for_negative_test("global_vars_um.dll");
+        set_native_module_failures(false);
+
+        REQUIRE(mutation.applied);
+        REQUIRE(result == -EINVAL);
+    }
+    REQUIRE(_load_native_program_for_negative_test("global_vars_um.dll") == 0);
+}
+
+// Verify that a native map-in-map initializer referencing a nonexistent map is rejected, then confirm that the
+// unmodified initializer succeeds and stores the expected inner map in the outer map.
+TEST_CASE("native map initial values reject missing targets", "[end_to_end][native][negative]")
+{
+    if (cxplat_fault_injection_is_enabled()) {
+        return;
+    }
+
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    map_initial_value_target_mutation_t mutation = {};
+    {
+        scoped_native_module_metadata_hook metadata_hook(
+            _mutate_map_initial_value_target, &mutation, _restore_map_initial_value_target);
+        set_native_module_failures(true);
+        int result = _load_native_program_for_negative_test("map_in_map_initializer_um.dll");
+        set_native_module_failures(false);
+
+        REQUIRE(mutation.applied);
+        REQUIRE(result == -EINVAL);
+    }
+
+    const char* error_message = nullptr;
+    bpf_object_ptr object;
+    fd_t program_fd;
+    REQUIRE(
+        ebpf_program_load(
+            "map_in_map_initializer_um.dll",
+            BPF_PROG_TYPE_SAMPLE,
+            EBPF_EXECUTION_NATIVE,
+            &object,
+            &program_fd,
+            &error_message) == 0);
+    REQUIRE(error_message == nullptr);
+
+    bpf_map* outer_map = bpf_object__find_map_by_name(object.get(), "outer_map");
+    bpf_map* inner_map = bpf_object__find_map_by_name(object.get(), "inner_map");
+    REQUIRE(outer_map != nullptr);
+    REQUIRE(inner_map != nullptr);
+
+    uint32_t key = 0;
+    ebpf_id_t initialized_inner_map_id = 0;
+    REQUIRE(bpf_map_lookup_elem(bpf_map__fd(outer_map), &key, &initialized_inner_map_id) == 0);
+
+    bpf_map_info inner_map_info = {};
+    uint32_t inner_map_info_size = sizeof(inner_map_info);
+    REQUIRE(bpf_obj_get_info_by_fd(bpf_map__fd(inner_map), &inner_map_info, &inner_map_info_size) == 0);
+    REQUIRE(initialized_inner_map_id == inner_map_info.id);
 }
 
 void
