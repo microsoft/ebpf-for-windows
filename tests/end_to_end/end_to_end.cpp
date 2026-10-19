@@ -2885,6 +2885,57 @@ _map_reuse_custom_path_test(ebpf_execution_type_t execution_type)
 
 DECLARE_ALL_TEST_CASES("map_reuse_custom_path", "[end_to_end]", _map_reuse_custom_path_test);
 
+TEST_CASE("native custom-root pin rollback", "[end_to_end][native]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    struct bpf_object_open_opts opts = {};
+    opts.pin_root_path =
+        GENERATE("/custompath/native_rollback", "/custompath/native_rollback/", "/custompath/native_rollback\\");
+    const char* outer_path = "/custompath/native_rollback/outer_map";
+    const char* port_path = "/custompath/native_rollback/port_map";
+
+    bpf_object_ptr existing_object(bpf_object__open_file("map_reuse_um.dll", &opts));
+    REQUIRE(existing_object != nullptr);
+    REQUIRE(ebpf_object_set_execution_type(existing_object.get(), EBPF_EXECUTION_NATIVE) == EBPF_SUCCESS);
+    REQUIRE(bpf_object__load(existing_object.get()) == 0);
+
+    struct bpf_map* existing_outer = bpf_object__find_map_by_name(existing_object.get(), "outer_map");
+    struct bpf_map* existing_port = bpf_object__find_map_by_name(existing_object.get(), "port_map");
+    REQUIRE(existing_outer != nullptr);
+    REQUIRE(existing_port != nullptr);
+    struct bpf_map_info existing_info = {};
+    uint32_t info_size = sizeof(existing_info);
+    REQUIRE(bpf_obj_get_info_by_fd(bpf_map__fd(existing_port), &existing_info, &info_size) == 0);
+    REQUIRE(bpf_map__unpin(existing_outer, nullptr) == 0);
+
+    bpf_object_ptr object(bpf_object__open_file("map_reuse_um.dll", &opts));
+    REQUIRE(object != nullptr);
+    REQUIRE(ebpf_object_set_execution_type(object.get(), EBPF_EXECUTION_NATIVE) == EBPF_SUCCESS);
+    struct bpf_map* inner_map = bpf_object__find_map_by_name(object.get(), "inner_map");
+    REQUIRE(inner_map != nullptr);
+
+    // Kernel loading creates outer_map and reuses port_map; explicit inner-map pinning then collides.
+    REQUIRE(bpf_map__set_pin_path(inner_map, port_path) == 0);
+    REQUIRE(bpf_object__load(object.get()) == -EEXIST);
+    REQUIRE(bpf_obj_get(outer_path) < 0);
+    REQUIRE(errno == ENOENT);
+    REQUIRE(bpf_obj_get("/ebpf/global/outer_map") < 0);
+    REQUIRE(bpf_obj_get("/ebpf/global/port_map") < 0);
+
+    fd_t pinned_fd = bpf_obj_get(port_path);
+    REQUIRE(pinned_fd > 0);
+    struct bpf_map_info pinned_info = {};
+    info_size = sizeof(pinned_info);
+    REQUIRE(bpf_obj_get_info_by_fd(pinned_fd, &pinned_info, &info_size) == 0);
+    REQUIRE(pinned_info.id == existing_info.id);
+    Platform::_close(pinned_fd);
+    REQUIRE(bpf_map__unpin(existing_port, nullptr) == 0);
+}
+
 static void
 _auto_pinned_maps_path_length_limit_test(ebpf_execution_type_t execution_type)
 {

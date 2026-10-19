@@ -25,6 +25,8 @@
 #include <crtdbg.h>
 #include <cstdlib>
 #include <fstream>
+#include <functional>
+#include <memory>
 #include <mutex>
 #include <stop_token>
 #include <thread>
@@ -3935,6 +3937,8 @@ TEST_CASE("bpf_object__load with native automatic pin path rollback", "[libbpf]"
     REQUIRE(bpf_map__set_pin_path(inner, explicit_path) == 0);
 
     auto original_handler = device_io_control_handler;
+    auto restore_handler = std::unique_ptr<void, std::function<void(void*)>>(
+        &original_handler, [&](void*) { device_io_control_handler.swap(original_handler); });
     if (legacy_reply != 0) {
         device_io_control_handler = [original_handler, legacy_reply](
                                         HANDLE device,
@@ -3974,7 +3978,7 @@ TEST_CASE("bpf_object__load with native automatic pin path rollback", "[libbpf]"
         saved_programs.swap(object->programs);
         REQUIRE(result == -EINVAL);
     }
-    device_io_control_handler = original_handler;
+    restore_handler.reset();
 
     auto check_pin = [](const char* path, fd_t original_fd, bool expected, bool reused) {
         fd_t pinned_fd = bpf_obj_get(path);

@@ -4266,6 +4266,9 @@ Done:
  * @param[out] map_handles Array of size count_of_maps which contains the map handles.
  * @param[in] count_of_programs Count of programs present in the native module.
  * @param[out] program_handles Array of size count_of_programs which contains the program handles.
+ * @param[out] map_reused Optional vector receiving one byte per map (0 = created, 1 = reused).
+ *  If the driver does not provide the reuse-status marker, all entries are set to 1 so that
+ *  automatic pins are preserved on subsequent initialization failure.
  *
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_NO_MEMORY Unable to allocate resources for this
@@ -4274,6 +4277,8 @@ Done:
  * @retval EBPF_OBJECT_ALREADY_EXISTS Native module for this module ID is already
  *  loaded.
  * @retval EBPF_ARITHMETIC_OVERFLOW An arithmetic overflow has occurred.
+ * @retval EBPF_INVALID_ARGUMENT The pin root path is invalid or too long.
+ * @retval EBPF_FAILED The returned map or program count does not match the expected count.
  */
 static ebpf_result_t
 _load_native_programs(

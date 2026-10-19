@@ -2253,12 +2253,20 @@ TEST_CASE("EBPF_OPERATION_LOAD_NATIVE_PROGRAMS", "[execution_context][negative]"
         sizeof(pin_root_path) - 1);
     REQUIRE(invoke_protocol(EBPF_OPERATION_LOAD_NATIVE_PROGRAMS, request, reply) == EBPF_OBJECT_NOT_FOUND);
 
-    // A pin root path that does not fit in EBPF_MAX_PIN_PATH_LENGTH must be rejected.
-    request.resize(EBPF_OFFSET_OF(ebpf_operation_load_native_programs_request_t, pin_root_path) + 512);
-    load_native_programs_request = reinterpret_cast<ebpf_operation_load_native_programs_request_t*>(request.data());
-    load_native_programs_request->module_id = {};
-    memset(request.data() + EBPF_OFFSET_OF(ebpf_operation_load_native_programs_request_t, pin_root_path), 'a', 512);
-    REQUIRE(invoke_protocol(EBPF_OPERATION_LOAD_NATIVE_PROGRAMS, request, reply) == EBPF_INVALID_ARGUMENT);
+    // The wire path excludes the terminator, which must also fit in the kernel's path buffer.
+    for (size_t path_length : {size_t{EBPF_MAX_PIN_PATH_LENGTH - 1}, size_t{EBPF_MAX_PIN_PATH_LENGTH}, size_t{512}}) {
+        CAPTURE(path_length);
+        request.resize(EBPF_OFFSET_OF(ebpf_operation_load_native_programs_request_t, pin_root_path) + path_length);
+        load_native_programs_request = reinterpret_cast<ebpf_operation_load_native_programs_request_t*>(request.data());
+        load_native_programs_request->module_id = {};
+        memset(
+            request.data() + EBPF_OFFSET_OF(ebpf_operation_load_native_programs_request_t, pin_root_path),
+            'a',
+            path_length);
+        ebpf_result_t expected_result =
+            path_length < EBPF_MAX_PIN_PATH_LENGTH ? EBPF_OBJECT_NOT_FOUND : EBPF_INVALID_ARGUMENT;
+        REQUIRE(invoke_protocol(EBPF_OPERATION_LOAD_NATIVE_PROGRAMS, request, reply) == expected_result);
+    }
 
     // A pin root path containing an embedded null must be rejected.
     request.resize(EBPF_OFFSET_OF(ebpf_operation_load_native_programs_request_t, pin_root_path) + 8);
