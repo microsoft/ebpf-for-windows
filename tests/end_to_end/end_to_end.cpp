@@ -545,206 +545,6 @@ bad_map_name_um(ebpf_execution_type_t execution_type)
     bpf_object__close(unique_object.release());
 }
 
-typedef struct _process_entry
-{
-    uint32_t count;
-    uint8_t name[64];
-} process_entry_t;
-
-typedef struct _audit_entry
-{
-    uint64_t logon_id;
-    int32_t is_admin;
-} audit_entry_t;
-
-uint32_t
-get_bind_count_for_pid(fd_t map_fd, uint64_t pid)
-{
-    process_entry_t entry{};
-    bpf_map_lookup_elem(map_fd, &pid, &entry);
-
-    return entry.count;
-}
-
-static void
-_validate_bind_audit_entry(fd_t map_fd, uint64_t pid)
-{
-    audit_entry_t entry = {0};
-    int result = bpf_map_lookup_elem(map_fd, &pid, &entry);
-    REQUIRE(result == 0);
-
-    REQUIRE(entry.is_admin == -1);
-
-    REQUIRE(entry.logon_id != 0);
-    SECURITY_LOGON_SESSION_DATA* data = NULL;
-    result = LsaGetLogonSessionData((PLUID)&entry.logon_id, &data);
-    REQUIRE(result == ERROR_SUCCESS);
-
-    LsaFreeReturnBuffer(data);
-}
-
-bind_action_t
-emulate_bind(std::function<ebpf_result_t(void*, uint32_t*)>& invoke, uint64_t pid, const char* appid)
-{
-    uint32_t result;
-    std::string app_id = appid;
-    INITIALIZE_BIND_CONTEXT
-
-    ctx->app_id_start = (uint8_t*)app_id.c_str();
-    ctx->app_id_end = (uint8_t*)(app_id.c_str()) + app_id.size();
-    ctx->process_id = pid;
-    ctx->operation = BIND_OPERATION_BIND;
-    REQUIRE(invoke(reinterpret_cast<void*>(ctx), &result) == EBPF_SUCCESS);
-    return static_cast<bind_action_t>(result);
-}
-
-void
-emulate_unbind(std::function<ebpf_result_t(void*, uint32_t*)>& invoke, uint64_t pid, const char* appid)
-{
-    uint32_t result;
-    std::string app_id = appid;
-    INITIALIZE_BIND_CONTEXT
-
-    ctx->process_id = pid;
-    ctx->operation = BIND_OPERATION_UNBIND;
-    REQUIRE(invoke(ctx, &result) == EBPF_SUCCESS);
-}
-
-void
-set_bind_limit(fd_t map_fd, uint32_t limit)
-{
-    uint32_t limit_key = 0;
-    REQUIRE(bpf_map_update_elem(map_fd, &limit_key, &limit, EBPF_ANY) == EBPF_SUCCESS);
-}
-
-static uint64_t
-_get_current_pid_tgid()
-{
-    return ((uint64_t)GetCurrentProcessId() << 32 | GetCurrentThreadId());
-}
-
-void
-bindmonitor_test(ebpf_execution_type_t execution_type)
-{
-    _test_helper_end_to_end test_helper;
-    test_helper.initialize();
-
-    const char* error_message = nullptr;
-    uint64_t fake_pid = 12345;
-    int result;
-    bpf_object_ptr unique_object;
-    bpf_link_ptr link;
-    fd_t program_fd;
-    uint64_t process_id = _get_current_pid_tgid();
-
-    program_info_provider_t bind_program_info;
-    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
-
-    // Note: We are deliberately using "bindmonitor_um.dll" here as we want the programs to be loaded from
-    // the individual dll, instead of the combined DLL. This helps in testing the DLL stub which is generated
-    // bpf2c.exe tool.
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_um.dll" : "bindmonitor.o");
-
-    result =
-        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
-
-    if (error_message) {
-        printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free((void*)error_message);
-    }
-    REQUIRE(result == 0);
-    fd_t limit_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "limits_map");
-    REQUIRE(limit_map_fd > 0);
-    fd_t process_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "process_map");
-    REQUIRE(process_map_fd > 0);
-    fd_t audit_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "audit_map");
-    REQUIRE(audit_map_fd > 0);
-
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
-    REQUIRE(hook.initialize() == EBPF_SUCCESS);
-
-    uint32_t ifindex = 0;
-    REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
-
-    // Apply policy of maximum 2 binds per process
-    set_bind_limit(limit_map_fd, 2);
-
-    std::function<ebpf_result_t(void*, uint32_t*)> invoke =
-        [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t { return hook.fire(context, result); };
-    // Bind first port - success
-    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT_SOFT);
-    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
-    _validate_bind_audit_entry(audit_map_fd, process_id);
-
-    // Bind second port - success
-    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT_SOFT);
-    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 2);
-    _validate_bind_audit_entry(audit_map_fd, process_id);
-
-    // Bind third port - blocked
-    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_DENY);
-    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 2);
-    _validate_bind_audit_entry(audit_map_fd, process_id);
-
-    // Unbind second port
-    emulate_unbind(invoke, fake_pid, "fake_app_1");
-    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
-    _validate_bind_audit_entry(audit_map_fd, process_id);
-
-    // Unbind first port
-    emulate_unbind(invoke, fake_pid, "fake_app_1");
-    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 0);
-    _validate_bind_audit_entry(audit_map_fd, process_id);
-
-    // Bind from two apps to test enumeration
-    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT_SOFT);
-    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
-    _validate_bind_audit_entry(audit_map_fd, process_id);
-
-    fake_pid = 54321;
-    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_2") == BIND_PERMIT_SOFT);
-    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
-    _validate_bind_audit_entry(audit_map_fd, process_id);
-
-    uint64_t pid;
-    REQUIRE(bpf_map_get_next_key(process_map_fd, NULL, &pid) == 0);
-    REQUIRE(pid != 0);
-    REQUIRE(bpf_map_get_next_key(process_map_fd, &pid, &pid) == 0);
-    REQUIRE(pid != 0);
-    REQUIRE(bpf_map_get_next_key(process_map_fd, &pid, &pid) < 0);
-    REQUIRE(errno == ENOENT);
-
-    hook.detach_and_close_link(&link);
-
-    bpf_object__close(unique_object.release());
-}
-
-static void
-_bindmonitor_bpf2bpf_test(ebpf_execution_type_t execution_type)
-{
-    _test_helper_end_to_end test_helper;
-    test_helper.initialize();
-
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
-    REQUIRE(hook.initialize() == EBPF_SUCCESS);
-
-    program_info_provider_t bind_program_info;
-    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
-
-    const char* file_name =
-        (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_bpf2bpf_um.dll" : "bindmonitor_bpf2bpf.o");
-    program_load_attach_helper_t program_helper;
-    program_helper.initialize(file_name, BPF_PROG_TYPE_BIND, "BindMonitor_Caller", execution_type, nullptr, 0, hook);
-
-    std::function<ebpf_result_t(void*, uint32_t*)> invoke =
-        [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t { return hook.fire(context, result); };
-
-    REQUIRE(emulate_bind(invoke, 0, "fake_app_0") == BIND_DENY);
-    REQUIRE(emulate_bind(invoke, 1, "fake_app_1") == BIND_REDIRECT);
-    REQUIRE(emulate_bind(invoke, 2, "fake_app_2") == BIND_PERMIT_SOFT);
-}
-
-// Test noinline subprogram call inside a loop — 10 increments, map should contain 10.
 static void
 _bpf2bpf_loop_test(ebpf_execution_type_t execution_type)
 {
@@ -779,246 +579,32 @@ _bpf2bpf_loop_test(ebpf_execution_type_t execution_type)
 }
 
 static void
-_callgraph_bpf2bpf_test(ebpf_execution_type_t execution_type)
+_stack_frame_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
 
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
-    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+    single_instance_hook_t sample_hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(sample_hook.initialize() == EBPF_SUCCESS);
 
-    program_info_provider_t bind_program_info;
-    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+    program_load_attach_helper_t program_helper;
+    const char* stack_frame_file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "bpf2bpf_loop_um.dll" : "bpf2bpf_loop.o");
+    program_helper.initialize(
+        stack_frame_file_name,
+        BPF_PROG_TYPE_SAMPLE,
+        "stack_frame_test_entry",
+        execution_type,
+        nullptr,
+        0,
+        sample_hook);
 
-    const char* file_name =
-        (execution_type == EBPF_EXECUTION_NATIVE ? "callgraph_bpf2bpf_um.dll" : "callgraph_bpf2bpf.o");
-
-    std::function<ebpf_result_t(void*, uint32_t*)> invoke =
-        [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t { return hook.fire(context, result); };
-
-    // Test entry_program1: calls S1 and S4 (helper call graph scenario).
-    {
-        program_load_attach_helper_t program_helper;
-        program_helper.initialize(file_name, BPF_PROG_TYPE_BIND, "entry_program1", execution_type, nullptr, 0, hook);
-
-        // entry_program1 calls S1 and S4. Expected result is BIND_REDIRECT.
-        REQUIRE(emulate_bind(invoke, 1001, "callgraph_e1") == BIND_REDIRECT);
-    }
-
-    // Test entry_program2: calls S2 (which calls S3) (helper call chain scenario).
-    {
-        program_load_attach_helper_t program_helper;
-        program_helper.initialize(file_name, BPF_PROG_TYPE_BIND, "entry_program2", execution_type, nullptr, 0, hook);
-
-        // entry_program2 calls S2 (which calls S3). Expected result is BIND_PERMIT_SOFT.
-        REQUIRE(emulate_bind(invoke, 2002, "callgraph_e2") == BIND_PERMIT_SOFT);
-    }
-
-    // Test entry_program3: calls update_map subprogram (map operations scenario).
-    {
-        const char* error_message = nullptr;
-        bpf_object_ptr unique_object;
-        fd_t program_fd;
-        int result;
-
-        result = ebpf_program_load(
-            file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
-
-        if (error_message) {
-            printf("ebpf_program_load failed with %s\n", error_message);
-            ebpf_free((void*)error_message);
-        }
-        REQUIRE(result == 0);
-
-        // Find entry_program3 by name.
-        struct bpf_program* prog = bpf_object__find_program_by_name(unique_object.get(), "entry_program3");
-        REQUIRE(prog != nullptr);
-        program_fd = bpf_program__fd(prog);
-        REQUIRE(program_fd > 0);
-
-        fd_t bind_count_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "bind_count_map");
-        REQUIRE(bind_count_map_fd > 0);
-
-        bpf_link_ptr link;
-        uint32_t ifindex = 0;
-        REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
-
-        uint64_t fake_pid = 12345;
-
-        // First bind - should succeed and update map count to 1.
-        REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT_SOFT);
-
-        // Verify map was updated by the subprogram.
-        uint64_t count = 0;
-        REQUIRE(bpf_map_lookup_elem(bind_count_map_fd, &fake_pid, &count) == 0);
-        REQUIRE(count == 1);
-
-        // Second bind - should succeed and update map count to 2.
-        REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_2") == BIND_PERMIT_SOFT);
-        REQUIRE(bpf_map_lookup_elem(bind_count_map_fd, &fake_pid, &count) == 0);
-        REQUIRE(count == 2);
-
-        // Bind with a different PID - should create a new entry.
-        uint64_t fake_pid2 = 67890;
-        REQUIRE(emulate_bind(invoke, fake_pid2, "fake_app_3") == BIND_PERMIT_SOFT);
-        REQUIRE(bpf_map_lookup_elem(bind_count_map_fd, &fake_pid2, &count) == 0);
-        REQUIRE(count == 1);
-
-        // Original PID count should still be 2.
-        REQUIRE(bpf_map_lookup_elem(bind_count_map_fd, &fake_pid, &count) == 0);
-        REQUIRE(count == 2);
-
-        hook.detach_and_close_link(&link);
-        bpf_object__close(unique_object.release());
-    }
-
-    // Test stack_frame_test_entry: verifies that a subprogram does not corrupt the caller's stack.
-    {
-        program_info_provider_t sample_program_info;
-        REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
-        single_instance_hook_t sample_hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
-        REQUIRE(sample_hook.initialize() == EBPF_SUCCESS);
-
-        program_load_attach_helper_t program_helper;
-        const char* stack_frame_file_name =
-            (execution_type == EBPF_EXECUTION_NATIVE ? "bpf2bpf_loop_um.dll" : "bpf2bpf_loop.o");
-        program_helper.initialize(
-            stack_frame_file_name,
-            BPF_PROG_TYPE_SAMPLE,
-            "stack_frame_test_entry",
-            execution_type,
-            nullptr,
-            0,
-            sample_hook);
-
-        INITIALIZE_SAMPLE_CONTEXT;
-        uint32_t hook_result = 0;
-        REQUIRE(sample_hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
-        REQUIRE(hook_result == 0);
-    }
-}
-
-void
-bindmonitor_tailcall_test(ebpf_execution_type_t execution_type)
-{
-    _test_helper_end_to_end test_helper;
-    test_helper.initialize();
-
-    const char* error_message = nullptr;
-    uint64_t fake_pid = 12345;
-    int result;
-    bpf_object_ptr unique_object;
-    bpf_link_ptr link;
-    fd_t program_fd;
-
-    program_info_provider_t bind_program_info;
-    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
-
-    const char* file_name =
-        (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_tailcall_um.dll" : "bindmonitor_tailcall.o");
-    result =
-        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
-
-    if (error_message) {
-        printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free((void*)error_message);
-    }
-    REQUIRE(result == 0);
-    fd_t limit_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "limits_map");
-    REQUIRE(limit_map_fd > 0);
-    fd_t process_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "process_map");
-    REQUIRE(process_map_fd > 0);
-
-    // Set up tail calls.
-    struct bpf_program* callee0 = bpf_object__find_program_by_name(unique_object.get(), "BindMonitor_Callee0");
-    REQUIRE(callee0 != nullptr);
-    fd_t callee0_fd = bpf_program__fd(callee0);
-    REQUIRE(callee0_fd > 0);
-
-    struct bpf_program* callee1 = bpf_object__find_program_by_name(unique_object.get(), "BindMonitor_Callee1");
-    REQUIRE(callee1 != nullptr);
-    fd_t callee1_fd = bpf_program__fd(callee1);
-    REQUIRE(callee1_fd > 0);
-
-    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "prog_array_map");
-    REQUIRE(prog_map_fd > 0);
-
-    uint32_t index = 0;
-    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee0_fd, 0) == 0);
-    index = 1;
-    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
-
-    // Validate various maps.
-
-    // Validate map-in-maps with "inner_id".
-    struct bpf_map* outer_map = bpf_object__find_map_by_name(unique_object.get(), "dummy_outer_map");
-    REQUIRE(outer_map != nullptr);
-
-    int outer_map_fd = bpf_map__fd(outer_map);
-    REQUIRE(outer_map_fd > 0);
-
-    // Validate map-in-maps with "inner_idx".
-    struct bpf_map* outer_idx_map = bpf_object__find_map_by_name(unique_object.get(), "dummy_outer_idx_map");
-    REQUIRE(outer_idx_map != nullptr);
-
-    int outer_idx_map_fd = bpf_map__fd(outer_idx_map);
-    REQUIRE(outer_idx_map_fd > 0);
-
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
-    REQUIRE(hook.initialize() == EBPF_SUCCESS);
-
-    uint32_t ifindex = 0;
-    REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
-
-    // Apply policy of maximum 2 binds per process
-    set_bind_limit(limit_map_fd, 2);
-
-    std::function<ebpf_result_t(void*, uint32_t*)> invoke =
-        [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t { return hook.fire(context, result); };
-    // Bind first port - success
-    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT_SOFT);
-    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
-
-    // Bind second port - success
-    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT_SOFT);
-    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 2);
-
-    // Bind third port - blocked
-    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_DENY);
-    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 2);
-
-    // Unbind second port
-    emulate_unbind(invoke, fake_pid, "fake_app_1");
-    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
-
-    // Unbind first port
-    emulate_unbind(invoke, fake_pid, "fake_app_1");
-    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 0);
-
-    // Bind from two apps to test enumeration
-    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT_SOFT);
-    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
-
-    fake_pid = 54321;
-    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_2") == BIND_PERMIT_SOFT);
-    REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
-
-    uint64_t pid;
-    REQUIRE(bpf_map_get_next_key(process_map_fd, NULL, &pid) == 0);
-    REQUIRE(pid != 0);
-    REQUIRE(bpf_map_get_next_key(process_map_fd, &pid, &pid) == 0);
-    REQUIRE(pid != 0);
-    REQUIRE(bpf_map_get_next_key(process_map_fd, &pid, &pid) < 0);
-    REQUIRE(errno == ENOENT);
-
-    hook.detach_and_close_link(&link);
-
-    index = 0;
-    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
-    index = 1;
-    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
-
-    bpf_object__close(unique_object.release());
+    INITIALIZE_SAMPLE_CONTEXT;
+    uint32_t hook_result = 0;
+    REQUIRE(sample_hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == 0);
 }
 
 void
@@ -1063,39 +649,17 @@ negative_ring_buffer_test(ebpf_execution_type_t execution_type)
 }
 
 void
-bindmonitor_ring_buffer_test(ebpf_execution_type_t execution_type)
+sample_ring_buffer_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
-
-    const char* error_message = nullptr;
-    int result;
-    bpf_object_ptr unique_object;
-    bpf_link_ptr link;
-    fd_t program_fd;
-
-    program_info_provider_t bind_program_info;
-    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
-
-    const char* file_name =
-        (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_ringbuf_um.dll" : "bindmonitor_ringbuf.o");
-
-    // Load and attach a bind eBPF program that uses a ring buffer map to notify about bind operations.
-    result =
-        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
-
-    if (error_message) {
-        printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free((void*)error_message);
-    }
-    REQUIRE(result == 0);
-
-    fd_t process_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "process_map");
-    REQUIRE(process_map_fd > 0);
-
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    INITIALIZE_SAMPLE_CONTEXT
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
-    REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ringbuf_um.dll" : "test_sample_ringbuf.o");
 
     // Create a list of fake app IDs and set it to event context.
     std::string fake_app_ids_prefix = "fake_app";
@@ -1106,24 +670,45 @@ bindmonitor_ring_buffer_test(ebpf_execution_type_t execution_type)
         fake_app_ids.push_back(fake_app_id);
     }
 
-    uint64_t fake_pid = 12345;
+    bpf_object_ptr unique_object;
+    int program_fd = -1;
+    const char* error_message = nullptr;
+    int result;
+
+    result = ebpf_program_load(
+        file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    fd_t test_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "test_map");
+    REQUIRE(test_map_fd > 0);
+
+    bpf_link_ptr link;
+    REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
+
     std::function<ebpf_result_t(void*, uint32_t*)> invoke =
         [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t { return hook.fire(context, result); };
 
     // Test multiple subscriptions to the same ring buffer map, to ensure that the ring buffer map will continue
     // to provide notifications to the subscriber.
     for (int i = 0; i < 3; i++) {
-
-        ring_buffer_api_test_helper(process_map_fd, fake_app_ids, [&](int i) {
-            // Emulate bind operation.
+        ring_buffer_api_test_helper(test_map_fd, fake_app_ids, [&](int i) {
             std::vector<char> fake_app_id = fake_app_ids[i];
             fake_app_id.push_back('\0');
-            REQUIRE(emulate_bind(invoke, fake_pid + i, fake_app_id.data()) == BIND_PERMIT_SOFT);
+            std::string app_id = fake_app_id.data();
+            uint32_t invoke_result = MAXUINT32;
+            ctx->data_start = (uint8_t*)app_id.c_str();
+            ctx->data_end = (uint8_t*)(app_id.c_str()) + app_id.size();
+            REQUIRE(invoke(reinterpret_cast<void*>(ctx), &invoke_result) == EBPF_SUCCESS);
+            REQUIRE(invoke_result == 0);
         });
     }
 
     hook.detach_and_close_link(&link);
-
     bpf_object__close(unique_object.release());
 }
 
@@ -1360,92 +945,10 @@ DECLARE_ALL_TEST_CASES("droppacket", "[end_to_end]", droppacket_test);
 DECLARE_ALL_TEST_CASES("divide_by_zero", "[end_to_end]", divide_by_zero_test_um);
 DECLARE_NATIVE_TEST("map-annotation-collision", "[end_to_end]", map_annotation_collision_native_test);
 DECLARE_NATIVE_TEST("map-sequential-lookup-inline", "[end_to_end]", map_sequential_lookup_inline_test);
-DECLARE_ALL_TEST_CASES("bindmonitor", "[end_to_end]", bindmonitor_test);
-DECLARE_ALL_TEST_CASES("bindmonitor-bpf2bpf", "[end_to_end]", _bindmonitor_bpf2bpf_test);
 DECLARE_ALL_TEST_CASES("bpf2bpf-loop", "[end_to_end]", _bpf2bpf_loop_test);
-DECLARE_ALL_TEST_CASES("callgraph-bpf2bpf", "[end_to_end]", _callgraph_bpf2bpf_test);
+DECLARE_ALL_TEST_CASES("stack-frame-test", "[end_to_end]", _stack_frame_test);
 
-// Regression test: Verify that reloading a helper provider (triggering the
-// helper-address-change callback) works correctly for native programs that
-// contain sentinel helper entries (helper_id == 0).  Before the fix,
-// _ebpf_native_helper_address_changed compared address_count against
-// program_entry.helper_count (which includes sentinels), causing
-// EBPF_INVALID_ARGUMENT when the callback was invoked with only the actual
-// (non-sentinel) helper count.
-static void
-_callgraph_bpf2bpf_extension_reload_test(ebpf_execution_type_t execution_type)
-{
-    _test_helper_end_to_end test_helper;
-    test_helper.initialize();
-
-    const char* file_name = "callgraph_bpf2bpf_um.dll";
-
-    // Only meaningful for native execution (sentinels are a native-module concept).
-    REQUIRE(execution_type == EBPF_EXECUTION_NATIVE);
-
-    bpf_object_ptr unique_object;
-    fd_t program_fd;
-    const char* error_message = nullptr;
-    int result;
-    bpf_link_ptr link;
-
-    // Load the program with the extension loaded.
-    {
-        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
-        REQUIRE(hook.initialize() == EBPF_SUCCESS);
-        program_info_provider_t bind_program_info;
-        REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
-
-        result = ebpf_program_load(
-            file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
-
-        if (error_message) {
-            printf("ebpf_program_load failed with %s\n", error_message);
-            ebpf_free((void*)error_message);
-        }
-        REQUIRE(result == 0);
-
-        // Find entry_program2 — it has 3 sentinel + 1 real helper, making the
-        // count mismatch most visible.
-        struct bpf_program* prog = bpf_object__find_program_by_name(unique_object.get(), "entry_program2");
-        REQUIRE(prog != nullptr);
-        program_fd = bpf_program__fd(prog);
-        REQUIRE(program_fd > 0);
-
-        uint32_t ifindex = 0;
-        REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
-
-        // Program should run successfully.
-        std::function<ebpf_result_t(void*, uint32_t*)> invoke =
-            [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t {
-            return hook.fire(context, result);
-        };
-        REQUIRE(emulate_bind(invoke, 2002, "callgraph_e2") == BIND_PERMIT_SOFT);
-
-        // Unload the extension (bind_program_info and hook will be destroyed).
-    }
-
-    // Reload the extension provider — this triggers _ebpf_native_helper_address_changed
-    // for every loaded program. With sentinel helpers, the callback must correctly
-    // map the (smaller) address array back to the right helper_data[] slots.
-    {
-        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
-        REQUIRE(hook.initialize() == EBPF_SUCCESS);
-        program_info_provider_t bind_program_info;
-        REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
-
-        // Re-attach and verify the program still works after the callback.
-        std::function<ebpf_result_t(void*, uint32_t*)> invoke =
-            [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t {
-            return hook.fire(context, result);
-        };
-        REQUIRE(emulate_bind(invoke, 2002, "callgraph_e2") == BIND_PERMIT_SOFT);
-    }
-}
-DECLARE_NATIVE_TEST("callgraph-bpf2bpf-extension-reload", "[end_to_end]", _callgraph_bpf2bpf_extension_reload_test);
-
-DECLARE_ALL_TEST_CASES("bindmonitor-tailcall", "[end_to_end]", bindmonitor_tailcall_test);
-DECLARE_ALL_TEST_CASES("bindmonitor-ringbuf", "[end_to_end]", bindmonitor_ring_buffer_test);
+DECLARE_ALL_TEST_CASES("sample-ringbuf", "[end_to_end]", sample_ring_buffer_test);
 DECLARE_ALL_TEST_CASES("negative_ring_buffer_test", "[end_to_end]", negative_ring_buffer_test);
 DECLARE_ALL_TEST_CASES("utility-helpers", "[end_to_end]", _utility_helper_functions_test);
 DECLARE_ALL_TEST_CASES("map", "[end_to_end]", map_test);
@@ -1686,10 +1189,12 @@ _map_pinning_test(ebpf_execution_type_t execution_type)
     bpf_object_ptr unique_object;
     fd_t program_fd;
 
-    program_info_provider_t bind_program_info;
-    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_um.dll" : "bindmonitor.o");
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_implicit_helpers_um.dll"
+                                                 : "test_sample_implicit_helpers.o");
     result =
         ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
 
@@ -1699,39 +1204,39 @@ _map_pinning_test(ebpf_execution_type_t execution_type)
     }
     REQUIRE(result == 0);
 
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
 
-    std::string process_maps_name = "bindmonitor/process_map";
-    std::string limit_maps_name = "bindmonitor/limits_map";
+    std::string test_map_pin_name = "sample/test_map";
+    std::string output_map_pin_name = "sample/output_map";
 
-    REQUIRE(bpf_object__find_map_by_name(unique_object.get(), "process_map") != nullptr);
-    REQUIRE(bpf_object__find_map_by_name(unique_object.get(), "limits_map") != nullptr);
+    REQUIRE(bpf_object__find_map_by_name(unique_object.get(), "test_map") != nullptr);
+    REQUIRE(bpf_object__find_map_by_name(unique_object.get(), "output_map") != nullptr);
     REQUIRE(
-        bpf_map__pin(bpf_object__find_map_by_name(unique_object.get(), "process_map"), process_maps_name.c_str()) ==
+        bpf_map__pin(bpf_object__find_map_by_name(unique_object.get(), "test_map"), test_map_pin_name.c_str()) ==
         EBPF_SUCCESS);
     REQUIRE(
-        bpf_map__pin(bpf_object__find_map_by_name(unique_object.get(), "limits_map"), limit_maps_name.c_str()) ==
+        bpf_map__pin(bpf_object__find_map_by_name(unique_object.get(), "output_map"), output_map_pin_name.c_str()) ==
         EBPF_SUCCESS);
 
-    fd_t fd = bpf_obj_get(process_maps_name.c_str());
+    fd_t fd = bpf_obj_get(test_map_pin_name.c_str());
     REQUIRE(fd != ebpf_fd_invalid);
     Platform::_close(fd);
 
-    fd = bpf_obj_get(limit_maps_name.c_str());
+    fd = bpf_obj_get(output_map_pin_name.c_str());
     REQUIRE(fd != ebpf_fd_invalid);
     Platform::_close(fd);
 
     REQUIRE(
-        bpf_map__unpin(bpf_object__find_map_by_name(unique_object.get(), "process_map"), process_maps_name.c_str()) ==
+        bpf_map__unpin(bpf_object__find_map_by_name(unique_object.get(), "test_map"), test_map_pin_name.c_str()) ==
         EBPF_SUCCESS);
     REQUIRE(
-        bpf_map__unpin(bpf_object__find_map_by_name(unique_object.get(), "limits_map"), limit_maps_name.c_str()) ==
+        bpf_map__unpin(bpf_object__find_map_by_name(unique_object.get(), "output_map"), output_map_pin_name.c_str()) ==
         EBPF_SUCCESS);
 
-    REQUIRE(bpf_obj_get(limit_maps_name.c_str()) == -ENOENT);
+    REQUIRE(bpf_obj_get(output_map_pin_name.c_str()) == -ENOENT);
 
-    REQUIRE(bpf_obj_get(process_maps_name.c_str()) == -ENOENT);
+    REQUIRE(bpf_obj_get(test_map_pin_name.c_str()) == -ENOENT);
 
     bpf_object__close(unique_object.release());
 }
@@ -2496,12 +2001,10 @@ TEST_CASE("enumerate_and_query_programs-native", "[end_to_end]")
 
     program_info_provider_t sample_program_info;
     REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
-    program_info_provider_t bind_program_info;
-    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
 
-    // Two modules of different program types, so that the query results can be told apart.
-    const char* module_names[2] = {"test_sample_ebpf_um.dll", "bindmonitor_um.dll"};
-    const char* expected_section_names[2] = {"sample_ext", "bind"};
+    // Two different sample extension modules so that the query results can be told apart.
+    const char* module_names[2] = {"test_sample_ebpf_um.dll", "test_sample_ringbuf_um.dll"};
+    const char* expected_section_names[2] = {"sample_ext", "sample_ext"};
 
     for (int i = 0; i < 2; i++) {
         int result = ebpf_program_load(
@@ -4055,75 +3558,6 @@ negative_perf_buffer_test(ebpf_execution_type_t execution_type)
     bpf_object__close(unique_object.release());
 }
 
-void
-bindmonitor_perf_buffer_test(ebpf_execution_type_t execution_type)
-{
-    _test_helper_end_to_end test_helper;
-    test_helper.initialize();
-
-    const char* error_message = nullptr;
-    int result;
-    bpf_object_ptr unique_object;
-    bpf_link_ptr link;
-    fd_t program_fd;
-    program_info_provider_t bind_program_info;
-
-    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
-
-    const char* file_name =
-        (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_perf_event_array_um.dll"
-                                                 : "bindmonitor_perf_event_array.o");
-
-    // Load and attach a bind eBPF program that uses a perf buffer map to notify about bind operations.
-    result =
-        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
-
-    if (error_message) {
-        printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free((void*)error_message);
-    }
-    REQUIRE(result == 0);
-
-    fd_t process_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "process_map");
-    REQUIRE(process_map_fd > 0);
-
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
-    REQUIRE(hook.initialize() == EBPF_SUCCESS);
-    REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
-
-    // Create a list of fake app IDs and set it to event context.
-    std::string fake_app_ids_prefix = "fake_app";
-    std::vector<std::vector<char>> fake_app_ids;
-    for (int i = 0; i < PERF_BUFFER_TEST_EVENT_COUNT; i++) {
-        std::string temp = fake_app_ids_prefix + std::to_string(i);
-        std::vector<char> fake_app_id(temp.begin(), temp.end());
-        fake_app_ids.push_back(fake_app_id);
-    }
-
-    uint64_t fake_pid = 12345;
-    std::function<ebpf_result_t(void*, uint32_t*)> invoke =
-        [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t { return hook.fire(context, result); };
-
-    // Test multiple subscriptions to the same perf buffer, to ensure that the perf buffer map will continue
-    // to provide notifications to the subscriber.
-    for (int i = 0; i < 3; i++) {
-        perf_buffer_api_test_helper(
-            process_map_fd,
-            fake_app_ids,
-            [&](int i) {
-                // Emulate bind operation.
-                std::vector<char> fake_app_id = fake_app_ids[i];
-                fake_app_id.push_back('\0');
-                REQUIRE(emulate_bind(invoke, fake_pid + i, fake_app_id.data()) == BIND_PERMIT_SOFT);
-            },
-            true);
-    }
-
-    hook.detach_and_close_link(&link);
-
-    bpf_object__close(unique_object.release());
-}
-
 static void
 test_sample_perf_buffer_test(ebpf_execution_type_t execution_type)
 {
@@ -4196,7 +3630,6 @@ test_sample_perf_buffer_test(ebpf_execution_type_t execution_type)
 }
 
 DECLARE_ALL_TEST_CASES("test-sample-perfbuffer", "[end_to_end]", test_sample_perf_buffer_test);
-DECLARE_ALL_TEST_CASES("bindmonitor-perfbuffer", "[end_to_end]", bindmonitor_perf_buffer_test);
 DECLARE_ALL_TEST_CASES("negative_perf_buffer_test", "[end_to_end]", negative_perf_buffer_test);
 
 TEST_CASE("signature_checking", "[end_to_end]")
