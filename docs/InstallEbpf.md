@@ -47,6 +47,8 @@ An **command line install/uninstall** is also supported, through the direct use 
   The original hard links remain under `.ebpf-msi-backup` names until a final uninstall restores them. All six backup
   links must be present; the installer fails safely if it detects a partial backup set. Link restoration is skipped
   when removal is part of a major upgrade, and is rolled back if the uninstall fails.
+  The original `eBPFCore`, `NetEbpfExt`, and `eBPFSvc` service registry keys and running states are also retained.
+  Final uninstall restores services that existed before installation and removes only services created by the MSI.
   It also saves the existing machine and installing-user eBPF registry stores under
   `%ProgramData%\eBPF-for-Windows\MsiBackup`, replaces them with metadata for the installed version, and restores the
   saved stores during a final uninstall. Store restoration is skipped when removal is part of a major upgrade.
