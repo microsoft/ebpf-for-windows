@@ -270,14 +270,14 @@ DECLARE_LOAD_TEST_CASE("printk_unsafe.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_A
 TEST_CASE("test_ebpf_multiple_programs_load_jit")
 {
     struct _ebpf_program_load_test_parameters test_parameters[] = {
-        {"test_sample_ebpf.o", BPF_PROG_TYPE_SAMPLE}, {"bindmonitor.o", BPF_PROG_TYPE_BIND}};
+        {"test_sample_ebpf.o", BPF_PROG_TYPE_SAMPLE}, {"multiple_programs.o", BPF_PROG_TYPE_UNSPEC}};
     _test_multiple_programs_load(_countof(test_parameters), test_parameters, EBPF_EXECUTION_JIT, JIT_LOAD_RESULT);
 }
 
 TEST_CASE("test_ebpf_multiple_programs_load_interpret")
 {
     struct _ebpf_program_load_test_parameters test_parameters[] = {
-        {"test_sample_ebpf.o", BPF_PROG_TYPE_SAMPLE}, {"bindmonitor.o", BPF_PROG_TYPE_BIND}};
+        {"test_sample_ebpf.o", BPF_PROG_TYPE_SAMPLE}, {"multiple_programs.o", BPF_PROG_TYPE_UNSPEC}};
     _test_multiple_programs_load(
         _countof(test_parameters), test_parameters, EBPF_EXECUTION_INTERPRET, INTERPRET_LOAD_RESULT);
 }
@@ -304,31 +304,47 @@ void
 ring_buffer_api_test(ebpf_execution_type_t execution_type)
 {
     struct bpf_object* object = nullptr;
-    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    fd_t program_fd = ebpf_fd_invalid;
     native_module_helper_t module_helper;
-    module_helper.initialize("bindmonitor_ringbuf", execution_type);
-    program_load_attach_helper_t _helper;
-    _helper.initialize(
-        module_helper.get_file_name().c_str(), BPF_PROG_TYPE_BIND, "bind_monitor", execution_type, nullptr, 0, hook);
-    object = _helper.get_object();
+    module_helper.initialize("test_sample_ringbuf", execution_type);
 
-    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
-    REQUIRE(process_map_fd > 0);
+    REQUIRE(
+        program_load_helper(
+            module_helper.get_file_name().c_str(),
+            BPF_PROG_TYPE_SAMPLE,
+            execution_type,
+            &object,
+            &program_fd) == 0);
+    bpf_object_ptr object_ptr(object);
+
+    fd_t test_map_fd = bpf_object__find_map_fd_by_name(object, "test_map");
+    REQUIRE(test_map_fd > 0);
 
     // Create a list of fake app IDs and set it to event context.
-    std::wstring app_id = L"api_test.exe";
+    std::string app_id_str = "api_test.exe";
     std::vector<std::vector<char>> app_ids;
-    char* p = reinterpret_cast<char*>(&app_id[0]);
-    std::vector<char> temp(p, p + (app_id.size() + 1) * sizeof(wchar_t));
+    std::vector<char> temp(app_id_str.begin(), app_id_str.end());
 
     // ring_buffer_api_test_helper expects a list of app IDs of size RING_BUFFER_TEST_EVENT_COUNT.
     for (auto i = 0; i < RING_BUFFER_TEST_EVENT_COUNT; i++) {
         app_ids.push_back(temp);
     }
 
-    ring_buffer_api_test_helper(process_map_fd, app_ids, [](int i) {
-        const uint16_t _test_port = 12345 + static_cast<uint16_t>(i);
-        perform_socket_bind(_test_port, true);
+    ring_buffer_api_test_helper(test_map_fd, app_ids, [&](int i) {
+        UNREFERENCED_PARAMETER(i);
+        sample_program_context_t ctx{};
+        bpf_test_run_opts opts{};
+        opts.sz = sizeof(opts);
+        opts.ctx_in = &ctx;
+        opts.ctx_size_in = sizeof(ctx);
+        opts.ctx_out = &ctx;
+        opts.ctx_size_out = sizeof(ctx);
+        opts.data_in = app_id_str.data();
+        opts.data_size_in = static_cast<uint32_t>(app_id_str.size());
+        opts.data_out = app_id_str.data();
+        opts.data_size_out = static_cast<uint32_t>(app_id_str.size());
+        opts.repeat = 1;
+        REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
     });
 }
 
@@ -339,34 +355,31 @@ divide_by_zero_test_km(ebpf_execution_type_t execution_type)
     native_module_helper_t module_helper;
     module_helper.initialize("divide_by_zero", execution_type);
 
-    if (execution_type == EBPF_EXECUTION_NATIVE) {
-        bpf_object_ptr object(bpf_object__open(module_helper.get_file_name().c_str()));
-        REQUIRE(object != nullptr);
-        REQUIRE(ebpf_object_set_execution_type(object.get(), execution_type) == EBPF_SUCCESS);
-        REQUIRE(bpf_object__load(object.get()) == 0);
+    struct bpf_object* object = nullptr;
+    fd_t program_fd = ebpf_fd_invalid;
+    REQUIRE(
+        program_load_helper(
+            module_helper.get_file_name().c_str(),
+            BPF_PROG_TYPE_SAMPLE,
+            execution_type,
+            &object,
+            &program_fd) == 0);
+    bpf_object_ptr object_ptr(object);
 
-        bpf_program* program = bpf_object__find_program_by_name(object.get(), "divide_by_zero");
-        REQUIRE(program != nullptr);
-        fd_t program_fd = bpf_program__fd(program);
-        REQUIRE(program_fd > 0);
+    bpf_program* program = bpf_object__find_program_by_name(object, "divide_by_zero");
+    REQUIRE(program != nullptr);
+    program_fd = bpf_program__fd(program);
+    REQUIRE(program_fd > 0);
 
-        sample_program_context_t context{};
-        bpf_test_run_opts opts{};
-        opts.repeat = 1;
-        opts.ctx_in = &context;
-        opts.ctx_size_in = sizeof(context);
-        opts.ctx_out = &context;
-        opts.ctx_size_out = sizeof(context);
-        REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
-        return;
-    }
-
-    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
-    program_load_attach_helper_t _helper;
-    _helper.initialize(
-        module_helper.get_file_name().c_str(), BPF_PROG_TYPE_BIND, "divide_by_zero", execution_type, nullptr, 0, hook);
-
-    perform_socket_bind(0, true);
+    sample_program_context_t context{};
+    bpf_test_run_opts opts{};
+    opts.sz = sizeof(opts);
+    opts.repeat = 1;
+    opts.ctx_in = &context;
+    opts.ctx_size_in = sizeof(context);
+    opts.ctx_out = &context;
+    opts.ctx_size_out = sizeof(context);
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
 
     // If we don't bug-check, the test passed.
 }
@@ -378,16 +391,16 @@ TEST_CASE("divide_by_zero_native", "[divide_by_zero]") { divide_by_zero_test_km(
 TEMPLATE_TEST_CASE("ring_buffer_sync_api", "[ring_buffer]", ENABLED_EXECUTION_TYPES)
 {
     ebpf_execution_type_t execution_type = TestType::value;
-    std::string file_name = _get_program_file_name("bindmonitor_ringbuf", execution_type);
-    const uint16_t base_test_port = 12300;
+    std::string file_name = _get_program_file_name("test_sample_ringbuf", execution_type);
     struct bpf_object* object = nullptr;
-    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
-    program_load_attach_helper_t _helper;
-    _helper.initialize(file_name.c_str(), BPF_PROG_TYPE_BIND, "bind_monitor", execution_type, nullptr, 0, hook);
-    object = _helper.get_object();
+    fd_t program_fd = ebpf_fd_invalid;
 
-    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
-    REQUIRE(process_map_fd > 0);
+    REQUIRE(
+        program_load_helper(file_name.c_str(), BPF_PROG_TYPE_SAMPLE, execution_type, &object, &program_fd) == 0);
+    bpf_object_ptr object_ptr(object);
+
+    fd_t test_map_fd = bpf_object__find_map_fd_by_name(object, "test_map");
+    REQUIRE(test_map_fd > 0);
 
     // Create a synchronous ring buffer (default mode without auto-callback flag).
     ebpf_ring_buffer_opts ring_opts{.sz = sizeof(ring_opts), .flags = 0};
@@ -397,7 +410,7 @@ TEMPLATE_TEST_CASE("ring_buffer_sync_api", "[ring_buffer]", ENABLED_EXECUTION_TY
 
 #pragma warning(suppress : 4996) // deprecated
     auto ring = ebpf_ring_buffer__new(
-        process_map_fd,
+        test_map_fd,
         [](void* ctx, void* /*data*/, size_t /*size */) {
             uint32_t* count = reinterpret_cast<uint32_t*>(ctx);
             (*count)++;
@@ -411,8 +424,25 @@ TEMPLATE_TEST_CASE("ring_buffer_sync_api", "[ring_buffer]", ENABLED_EXECUTION_TY
     ebpf_handle_t wait_handle = ebpf_ring_buffer_get_wait_handle(ring);
     REQUIRE(wait_handle != ebpf_handle_invalid);
 
-    // Generate event to consume by triggering socket bind.
-    perform_socket_bind(base_test_port, true);
+    // Generate event by invoking the sample program via bpf_prog_test_run_opts.
+    std::string app_id = "api_test.exe";
+    auto invoke_program = [&]() {
+        sample_program_context_t ctx{};
+        bpf_test_run_opts opts{};
+        opts.sz = sizeof(opts);
+        opts.ctx_in = &ctx;
+        opts.ctx_size_in = sizeof(ctx);
+        opts.ctx_out = &ctx;
+        opts.ctx_size_out = sizeof(ctx);
+        opts.data_in = app_id.data();
+        opts.data_size_in = static_cast<uint32_t>(app_id.size());
+        opts.data_out = app_id.data();
+        opts.data_size_out = static_cast<uint32_t>(app_id.size());
+        opts.repeat = 1;
+        REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+    };
+
+    invoke_program();
 
     // Test 1: Use WaitForSingleObject and consume to verify we can consume after notify.
     DWORD wait_result = WaitForSingleObject(reinterpret_cast<HANDLE>(wait_handle), 5000); // 5 second timeout.
@@ -424,7 +454,7 @@ TEMPLATE_TEST_CASE("ring_buffer_sync_api", "[ring_buffer]", ENABLED_EXECUTION_TY
 
     // Generate some additional events.
     for (uint16_t i = 1; i < expected_events; i++) {
-        perform_socket_bind(base_test_port + i, true);
+        invoke_program();
     }
 
     // Test 2: Use poll API in a loop until we get all expected events.
@@ -1356,37 +1386,32 @@ TEST_CASE("native_module_handle_test", "[native_tests]")
     struct bpf_object* object = nullptr;
     struct bpf_object* object2 = nullptr;
     fd_t program_fd;
-    const char* file_name = "bindmonitor.sys";
+    const char* file_name = "test_sample_ebpf.sys";
 
-    result = program_load_helper(file_name, BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd, false);
+    result = program_load_helper(file_name, BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_NATIVE, &object, &program_fd, false);
     REQUIRE(result == 0);
     REQUIRE(program_fd != ebpf_fd_invalid);
 
     fd_t native_module_fd = object->native_module_fd;
     REQUIRE(native_module_fd != ebpf_fd_invalid);
 
-    // Bindmonitor has 2 maps and 1 program. Fetch and close all these fds.
-    bpf_map* map1 = bpf_object__find_map_by_name(object, "process_map");
+    // test_sample_ebpf has 1 map and 1 program. Fetch and close all these fds.
+    bpf_map* map1 = bpf_object__find_map_by_name(object, "test_map");
     REQUIRE(map1 != nullptr);
     REQUIRE(map1->map_fd != ebpf_fd_invalid);
-    bpf_map* map2 = bpf_object__find_map_by_name(object, "limits_map");
-    REQUIRE(map2 != nullptr);
-    REQUIRE(map2->map_fd != ebpf_fd_invalid);
-    bpf_program* program = bpf_object__find_program_by_name(object, "BindMonitor");
+    bpf_program* program = bpf_object__find_program_by_name(object, "test_program_entry");
     REQUIRE(program != nullptr);
     REQUIRE(program->fd != ebpf_fd_invalid);
 
     _close(map1->map_fd);
-    _close(map2->map_fd);
     _close(program->fd);
 
     // Set the above closed FDs to ebpf_fd_invalid to avoid double close of FDs.
     map1->map_fd = ebpf_fd_invalid;
-    map2->map_fd = ebpf_fd_invalid;
     program->fd = ebpf_fd_invalid;
 
     // Try to load the same native module again, which should fail.
-    result = program_load_helper(file_name, BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object2, &program_fd, false);
+    result = program_load_helper(file_name, BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_NATIVE, &object2, &program_fd, false);
     REQUIRE(result == -ENOENT);
 
     // Close the native module handle. That should result in the module to be unloaded.
@@ -1398,7 +1423,7 @@ TEST_CASE("native_module_handle_test", "[native_tests]")
 
     // Try to load the same native module again. It should succeed this time.
     object2 = nullptr;
-    result = program_load_helper(file_name, BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object2, &program_fd, false);
+    result = program_load_helper(file_name, BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_NATIVE, &object2, &program_fd, false);
     REQUIRE(result == 0);
 
     bpf_object__close(object);
@@ -1423,25 +1448,24 @@ TEST_CASE("bpf_user_helpers_test_native", "[api_test]") { bpf_user_helpers_test(
 
 TEST_CASE("ioctl_stress", "[stress]")
 {
-    // Load bindmonitor_ringbuf.sys
-
     struct bpf_object* object = nullptr;
     fd_t program_fd;
 
     REQUIRE(
         program_load_helper(
-            "bindmonitor_ringbuf.sys", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd) == 0);
+            "test_sample_ringbuf.sys", BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_NATIVE, &object, &program_fd) == 0);
 
     // Create a test array map to provide target for the ioctl stress test.
-    fd_t test_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "test_map", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    fd_t test_array_fd =
+        bpf_map_create(BPF_MAP_TYPE_ARRAY, "test_array", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
 
-    // Get fd of process_map map.
-    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
+    // Get fd of test_map ring buffer map.
+    fd_t test_map_fd = bpf_object__find_map_fd_by_name(object, "test_map");
 
     // Subscribe to the ring buffer with empty callback (using async mode for automatic callbacks).
     ebpf_ring_buffer_opts ring_opts{.sz = sizeof(ring_opts), .flags = EBPF_RINGBUF_FLAG_AUTO_CALLBACK};
 #pragma warning(suppress : 4996) // deprecated
-    auto ring = ebpf_ring_buffer__new(process_map_fd, [](void*, void*, size_t) { return 0; }, nullptr, &ring_opts);
+    auto ring = ebpf_ring_buffer__new(test_map_fd, [](void*, void*, size_t) { return 0; }, nullptr, &ring_opts);
 
     // Run 4 threads per cpu.
     // Get cpu count.
@@ -1459,17 +1483,12 @@ TEST_CASE("ioctl_stress", "[stress]")
                     uint32_t key = 0;
                     uint32_t value = 0;
                     bpf_test_run_opts opts = {};
-                    struct
-                    {
-                        EBPF_CONTEXT_HEADER;
-                        bind_md_t context;
-                    } ctx_header = {0};
-                    bind_md_t* ctx = &ctx_header.context;
+                    sample_program_context_t ctx = {};
                     int result;
                     switch (test_case) {
                     case 0:
                         // Test bpf_map_lookup_elem
-                        result = bpf_map_lookup_elem(test_map_fd, &key, &value);
+                        result = bpf_map_lookup_elem(test_array_fd, &key, &value);
                         if (result != 0) {
                             std::cout << "bpf_map_lookup_elem failed with " << result << std::endl;
                             failure_count++;
@@ -1477,7 +1496,7 @@ TEST_CASE("ioctl_stress", "[stress]")
                         break;
                     case 1:
                         // Test bpf_map_update_elem
-                        result = bpf_map_update_elem(test_map_fd, &key, &value, 0);
+                        result = bpf_map_update_elem(test_array_fd, &key, &value, 0);
                         if (result != 0) {
                             std::cout << "bpf_map_update_elem failed with " << result << std::endl;
                             failure_count++;
@@ -1485,7 +1504,7 @@ TEST_CASE("ioctl_stress", "[stress]")
                         break;
                     case 2:
                         // Test bpf_map_delete_elem
-                        result = bpf_map_delete_elem(test_map_fd, &key);
+                        result = bpf_map_delete_elem(test_array_fd, &key);
                         if (result != 0) {
                             std::cout << "bpf_map_delete_elem failed with " << result << std::endl;
                             failure_count++;
@@ -1495,10 +1514,11 @@ TEST_CASE("ioctl_stress", "[stress]")
                         // Run the program to trigger a ring buffer event
                         std::string app_id = "api_test.exe";
 
-                        opts.ctx_in = ctx;
-                        opts.ctx_size_in = sizeof(*ctx);
-                        opts.ctx_out = ctx;
-                        opts.ctx_size_out = sizeof(*ctx);
+                        opts.sz = sizeof(opts);
+                        opts.ctx_in = &ctx;
+                        opts.ctx_size_in = sizeof(ctx);
+                        opts.ctx_out = &ctx;
+                        opts.ctx_size_out = sizeof(ctx);
                         opts.data_in = app_id.data();
                         opts.data_size_in = static_cast<uint32_t>(app_id.size());
                         opts.data_out = app_id.data();
@@ -1531,7 +1551,7 @@ TEST_CASE("ioctl_stress", "[stress]")
 
     // Clean up
     bpf_object__close(object);
-    _close(test_map_fd);
+    _close(test_array_fd);
 }
 
 typedef struct _ring_buffer_test_context
@@ -1559,8 +1579,9 @@ trigger_ring_buffer_events(fd_t program_fd, uint32_t expected_event_count, _Inou
     for (DWORD i = 0; i < sysinfo.dwNumberOfProcessors; i++) {
         for (uint32_t j = 0; j < thread_count; j++) {
             threads.emplace_back([&, i]() {
-                bind_md_t ctx = {};
+                sample_program_context_t ctx = {};
                 bpf_test_run_opts opts = {};
+                opts.sz = sizeof(opts);
                 opts.ctx_in = &ctx;
                 opts.ctx_size_in = sizeof(ctx);
                 opts.ctx_out = &ctx;
@@ -1593,7 +1614,6 @@ trigger_ring_buffer_events(fd_t program_fd, uint32_t expected_event_count, _Inou
 
 TEST_CASE("test_ringbuffer_concurrent_wraparound", "[stress][ring_buffer]")
 {
-    // Load bindmonitor_ringbuf.sys.
     struct bpf_object* object = nullptr;
     fd_t program_fd = ebpf_fd_invalid;
     ring_buffer_test_context_t context;
@@ -1601,12 +1621,11 @@ TEST_CASE("test_ringbuffer_concurrent_wraparound", "[stress][ring_buffer]")
 
     REQUIRE(
         program_load_helper(
-            "bindmonitor_ringbuf.sys", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd) == 0);
+            "test_sample_ringbuf.sys", BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_NATIVE, &object, &program_fd) == 0);
 
-    // Get fd of process_map map.
-    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
+    fd_t test_map_fd = bpf_object__find_map_fd_by_name(object, "test_map");
 
-    uint32_t max_entries = bpf_map__max_entries(bpf_object__find_map_by_name(object, "process_map"));
+    uint32_t max_entries = bpf_map__max_entries(bpf_object__find_map_by_name(object, "test_map"));
     uint32_t max_iterations = static_cast<uint32_t>(10 * (max_entries / app_id.size()));
 
     // Initialize context.
@@ -1617,7 +1636,7 @@ TEST_CASE("test_ringbuffer_concurrent_wraparound", "[stress][ring_buffer]")
     ebpf_ring_buffer_opts ring_opts{.sz = sizeof(ring_opts), .flags = EBPF_RINGBUF_FLAG_AUTO_CALLBACK};
 #pragma warning(suppress : 4996) // deprecated
     auto ring = ebpf_ring_buffer__new(
-        process_map_fd,
+        test_map_fd,
         [](void* ctx, void*, size_t) {
             ring_buffer_test_context_t* context = reinterpret_cast<ring_buffer_test_context_t*>(ctx);
             if (++context->event_count == context->expected_event_count) {
@@ -1969,7 +1988,6 @@ class perf_buffer_test_helper
 // event generation across multiple CPUs without requiring manual polling.
 TEST_CASE("perf_buffer_async_consumer", "[stress][perf_buffer]")
 {
-    // Load bindmonitor_perf_event_array.sys.
     struct bpf_object* object = nullptr;
     fd_t program_fd = ebpf_fd_invalid;
     std::string app_id = "api_test.exe";
@@ -1977,20 +1995,23 @@ TEST_CASE("perf_buffer_async_consumer", "[stress][perf_buffer]")
     CAPTURE(cpu_count);
 
     native_module_helper_t native_helper;
-    native_helper.initialize("bindmonitor_perf_event_array", EBPF_EXECUTION_NATIVE);
+    native_helper.initialize("test_sample_perf_event_array", EBPF_EXECUTION_NATIVE);
 
     REQUIRE(
         program_load_helper(
-            "bindmonitor_perf_event_array.sys", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd) == 0);
+            native_helper.get_file_name().c_str(),
+            BPF_PROG_TYPE_SAMPLE,
+            EBPF_EXECUTION_NATIVE,
+            &object,
+            &program_fd) == 0);
 
     // RAII cleanup for program object. Declared before helper so bpf_object outlives the perf buffer
     // (perf_buffer__free uses map_fd for IOCTLs, and bpf_object__close closes the map fd).
     auto object_cleanup = std::unique_ptr<bpf_object, decltype(&bpf_object__close)>(object, bpf_object__close);
 
-    // Get fd of process_map map.
-    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
+    fd_t test_map_fd = bpf_object__find_map_fd_by_name(object, "test_map");
 
-    uint32_t max_entries = bpf_map__max_entries(bpf_object__find_map_by_name(object, "process_map"));
+    uint32_t max_entries = bpf_map__max_entries(bpf_object__find_map_by_name(object, "test_map"));
     uint32_t max_iterations = static_cast<uint32_t>(10 * (max_entries / app_id.size()));
     CAPTURE(max_entries, max_iterations);
 
@@ -1999,7 +2020,7 @@ TEST_CASE("perf_buffer_async_consumer", "[stress][perf_buffer]")
     auto completion_future = helper.enable_async_completion(max_iterations);
 
     // Create perf buffer in async mode (EBPF_PERFBUF_FLAG_AUTO_CALLBACK).
-    auto* pb = helper.create_perf_buffer(process_map_fd, EBPF_PERFBUF_FLAG_AUTO_CALLBACK);
+    auto* pb = helper.create_perf_buffer(test_map_fd, EBPF_PERFBUF_FLAG_AUTO_CALLBACK);
     REQUIRE(pb != nullptr);
 
     // Trigger perf buffer events from multiple threads across all CPUs.
@@ -2332,21 +2353,21 @@ TEST_CASE("ring_buffer_sync_reopen", "[ring_buffer]")
 TEMPLATE_TEST_CASE("perf_buffer_sync_api", "[perf_buffer]", ENABLED_EXECUTION_TYPES)
 {
     ebpf_execution_type_t execution_type = TestType::value;
-    std::string file_name = _get_program_file_name("bindmonitor_perf_event_array", execution_type);
-    const uint16_t base_test_port = 12400;
+    std::string file_name = _get_program_file_name("test_sample_perf_event_array", execution_type);
     struct bpf_object* object = nullptr;
-    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
-    program_load_attach_helper_t _helper;
-    _helper.initialize(file_name.c_str(), BPF_PROG_TYPE_BIND, "bind_monitor", execution_type, nullptr, 0, hook);
-    object = _helper.get_object();
+    fd_t program_fd = ebpf_fd_invalid;
 
-    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
-    REQUIRE(process_map_fd > 0);
+    REQUIRE(
+        program_load_helper(file_name.c_str(), BPF_PROG_TYPE_SAMPLE, execution_type, &object, &program_fd) == 0);
+    bpf_object_ptr object_ptr(object);
+
+    fd_t test_map_fd = bpf_object__find_map_fd_by_name(object, "test_map");
+    REQUIRE(test_map_fd > 0);
 
     perf_buffer_test_helper helper(false); // Don't keep records for this test
 
     // Create a synchronous perf buffer.
-    auto pb = helper.create_perf_buffer(process_map_fd);
+    auto pb = helper.create_perf_buffer(test_map_fd);
     REQUIRE(pb != nullptr);
 
     // Test ebpf_perf_buffer_get_wait_handle.
@@ -2359,14 +2380,30 @@ TEMPLATE_TEST_CASE("perf_buffer_sync_api", "[perf_buffer]", ENABLED_EXECUTION_TY
     REQUIRE(cpu_count > 0);
     REQUIRE(buffer_cnt == static_cast<size_t>(cpu_count));
 
-    // Generate event to consume by triggering socket bind.
-    perform_socket_bind(base_test_port, true);
+    // Generate event by invoking the sample program via bpf_prog_test_run_opts.
+    std::string app_id = "api_test.exe";
+    auto invoke_program = [&]() {
+        sample_program_context_t ctx{};
+        bpf_test_run_opts opts{};
+        opts.sz = sizeof(opts);
+        opts.ctx_in = &ctx;
+        opts.ctx_size_in = sizeof(ctx);
+        opts.ctx_out = &ctx;
+        opts.ctx_size_out = sizeof(ctx);
+        opts.data_in = app_id.data();
+        opts.data_size_in = static_cast<uint32_t>(app_id.size());
+        opts.data_out = app_id.data();
+        opts.data_size_out = static_cast<uint32_t>(app_id.size());
+        opts.repeat = 1;
+        REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+    };
+
+    invoke_program();
 
     // Test 1: Use WaitForSingleObject and consume to verify we can consume after notify.
     DWORD wait_result = WaitForSingleObject(reinterpret_cast<HANDLE>(wait_handle), 5000);
     REQUIRE(wait_result == WAIT_OBJECT_0);
 
-    // The BPF bind monitor may emit multiple perf events per socket bind (e.g. bind + unbind).
     int consume_result = perf_buffer__consume(pb);
     REQUIRE(consume_result > 0);
     REQUIRE(helper.context.event_count > 0);
@@ -2374,7 +2411,7 @@ TEMPLATE_TEST_CASE("perf_buffer_sync_api", "[perf_buffer]", ENABLED_EXECUTION_TY
     // Generate some additional events.
     const uint32_t expected_events = 10;
     for (uint16_t i = 1; i < expected_events; i++) {
-        perform_socket_bind(base_test_port + i, true);
+        invoke_program();
     }
 
     // Test 2: Use poll API until we get all expected events.
@@ -3042,12 +3079,12 @@ _test_prog_array_map_user_reference(ebpf_execution_type_t execution_type)
     uint32_t program_ids[program_count] = {0};
 
     const char* file_name =
-        (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_tailcall.sys" : "bindmonitor_tailcall.o");
+        (execution_type == EBPF_EXECUTION_NATIVE ? "tail_call_multiple.sys" : "tail_call_multiple.o");
 
     result = program_load_helper(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &object, &program_fd);
     REQUIRE(result == 0);
 
-    const char* program_names[program_count] = {"BindMonitor", "BindMonitor_Callee0", "BindMonitor_Callee1"};
+    const char* program_names[program_count] = {"caller", "callee0", "callee1"};
 
     // Create a new prog_array_map with 3 entries.
     fd_t prog_array_map_fd =
@@ -3237,7 +3274,7 @@ TEST_CASE("ebpf_enumerate_programs", "[ebpf_api]")
 TEST_CASE("ebpf_verification_apis", "[ebpf_api]")
 {
     // Test file verification APIs with known test files.
-    const char* test_files[] = {"test_sample_ebpf.o", "bindmonitor.o"};
+    const char* test_files[] = {"test_sample_ebpf.o", "multiple_programs.o"};
 
     for (const char* file : test_files) {
         const char* report = nullptr;
@@ -3467,7 +3504,7 @@ TEST_CASE("lru_map_user_vs_kernel_access", "[lru]")
     _native_helper.initialize("lru_map_test", EBPF_EXECUTION_NATIVE);
     REQUIRE(
         program_load_helper(
-            _native_helper.get_file_name().c_str(), BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd) ==
+            _native_helper.get_file_name().c_str(), BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_NATIVE, &object, &program_fd) ==
         0);
 
     // Get the LRU map from the loaded program.
