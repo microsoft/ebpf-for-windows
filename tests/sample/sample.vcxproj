@@ -241,7 +241,7 @@
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -I../../undocked/tests/sample/ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
-      <AdditionalInputs>$(BpfHeaderDeps)</AdditionalInputs>
+      <AdditionalInputs>$(BpfUndockedHeaderDeps)</AdditionalInputs>
       <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
       <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
     </CustomBuild>
@@ -267,7 +267,7 @@
         popd
       </Command>
       <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
-      <AdditionalInputs>$(BpfHeaderDeps);$(BpfNativeDeps)</AdditionalInputs>
+      <AdditionalInputs>$(BpfUndockedHeaderDeps);$(BpfNativeDeps)</AdditionalInputs>
       <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
       <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
     </CustomBuild>
@@ -295,7 +295,7 @@
         popd
       </Command>
       <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
-      <AdditionalInputs>$(BpfHeaderDeps);$(BpfNativeDeps)</AdditionalInputs>
+      <AdditionalInputs>$(BpfUndockedHeaderDeps);$(BpfNativeDeps)</AdditionalInputs>
       <BuildInParallel>false</BuildInParallel>
     </CustomBuild>
     <!-- Copy explicit unsafe object files (i.e., not to be verified) among the other generated .o files -->
