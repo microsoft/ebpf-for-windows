@@ -87,6 +87,24 @@ function Invoke-MSBuild {
     }
 }
 
+function Invoke-ProgramInfoExporter {
+    param([string]$ExecutablePath)
+
+    Write-Host ">> Running command: $ExecutablePath --clear"
+    & $ExecutablePath --clear
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Command failed. Exit code: $LASTEXITCODE"
+        Exit $LASTEXITCODE
+    }
+
+    Write-Host ">> Running command: $ExecutablePath"
+    & $ExecutablePath
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Command failed. Exit code: $LASTEXITCODE"
+        Exit $LASTEXITCODE
+    }
+}
+
 $architectureSpecificBuildDirectories = @(
     "external\ebpf-verifier\build",
     "external\catch2\build",
@@ -114,6 +132,24 @@ if (!$SkipHostToolBootstrap -and $Architecture -ieq "ARM64" -and $hostArchitectu
     foreach ($configuration in @("Debug", "Release", "NativeOnlyDebug", "NativeOnlyRelease")) {
         Invoke-MSBuild -Arguments "/m", "ebpf-for-windows.sln", "/t:tools\bpf2c", "/p:Configuration=$configuration", "/p:Platform=x64", "/p:HostPlatform=x64"
     }
+
+    # Native conversion reads program metadata from the host store. Run the exporters explicitly because a cached
+    # build can skip their custom build steps even though registry state is not preserved.
+    $hostExporterConfiguration = "NativeOnlyRelease"
+    $hostProgramInfoExporters = @(
+        @{Target = "tools\export_program_info"; Executable = "export_program_info.exe"},
+        @{Target = "tests\export_program_info_test"; Executable = "export_program_info_test.exe"},
+        @{Target = "undocked\tools\export_program_info_sample"; Executable = "export_program_info_sample.exe"})
+
+    foreach ($exporter in $hostProgramInfoExporters) {
+        Invoke-MSBuild -Arguments "/m", "ebpf-for-windows.sln", "/t:$($exporter.Target)", "/p:Configuration=$hostExporterConfiguration", "/p:Platform=x64", "/p:HostPlatform=x64"
+    }
+
+    foreach ($exporter in $hostProgramInfoExporters) {
+        $executablePath = Join-Path (Get-Location) "x64\$hostExporterConfiguration\$($exporter.Executable)"
+        Invoke-ProgramInfoExporter -ExecutablePath $executablePath
+    }
+
     Remove-ArchitectureSpecificBuildDirectories
 }
 
