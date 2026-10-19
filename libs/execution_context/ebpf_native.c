@@ -2847,6 +2847,17 @@ ebpf_native_authorize_module(_In_ const GUID* module_id, _In_ const uint8_t* mod
     EBPF_RETURN_RESULT(result);
 }
 
+bool
+ebpf_native_authorization_entry_exists(_In_ const GUID* module_id)
+{
+    uint8_t* value = NULL;
+    ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_native_authorized_module_table_lock);
+    bool exists =
+        ebpf_hash_table_find(_ebpf_native_authorized_module_table, (const uint8_t*)module_id, &value) == EBPF_SUCCESS;
+    ebpf_lock_unlock(&_ebpf_native_authorized_module_table_lock, state);
+    return exists;
+}
+
 /**
  * @brief Callback function for the authorized module cleanup work item.
  * Authorized modules that have not been used for more than EBPF_NATIVE_AUTHORIZE_MODULE_ENTRY_TIMEOUT_NANOSECONDS

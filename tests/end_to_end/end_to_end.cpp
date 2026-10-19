@@ -3191,8 +3191,26 @@ TEST_CASE("load_native_program_negative6", "[end-to-end]")
             &count_of_programs) == ERROR_OBJECT_ALREADY_EXISTS);
 }
 
-// Verify that a module authorization is consumed by the first load: a second
-// load with the same module id and no fresh authorization must be rejected.
+// From ebpf_native.h, which cannot be included here alongside the libbpf headers.
+extern "C" bool
+ebpf_native_authorization_entry_exists(_In_ const GUID* module_id);
+
+// Poll until the cleanup timer removes the authorization entry for module_id.
+// Returns false if the entry is still present after the timeout.
+static bool
+_wait_for_authorization_entry_removed(_In_ const GUID* module_id, std::chrono::seconds timeout)
+{
+    auto deadline = std::chrono::steady_clock::now() + timeout;
+    while (ebpf_native_authorization_entry_exists(module_id)) {
+        if (std::chrono::steady_clock::now() >= deadline) {
+            return false;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    return true;
+}
+
+// Verify that a module authorization is consumed by a successful load.
 // Regression test: the delete-on-attach used to key on a not-yet-assigned
 // field (always GUID_NULL), leaving the entry behind forever - which both
 // leaked pool and let a later same-id load ride a stale authorization.
@@ -3203,9 +3221,8 @@ TEST_CASE("load_native_program_authorization_consumed", "[end-to-end]")
 
     GUID provider_module_id;
     SC_HANDLE service_handle = nullptr;
-    SC_HANDLE service_handle2 = nullptr;
     std::wstring service_path(SERVICE_PATH_PREFIX);
-    std::wstring service_path2(SERVICE_PATH_PREFIX);
+    _test_handle_helper module_handle;
     size_t count_of_maps = 0;
     size_t count_of_programs = 0;
     set_native_module_failures(true);
@@ -3216,43 +3233,19 @@ TEST_CASE("load_native_program_authorization_consumed", "[end-to-end]")
         L"test_sample_ebpf_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
 
     REQUIRE(ebpf_authorize_native_module_wrapper(&provider_module_id, "test_sample_ebpf_um.dll") == EBPF_SUCCESS);
+    REQUIRE(ebpf_native_authorization_entry_exists(&provider_module_id));
 
-    // First load consumes the authorization. Scoped so the handle closes and
-    // the module unloads before the second attempt (a loaded module would hit
-    // the duplicate-id check before authorization is ever consulted).
     service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
-    {
-        _test_handle_helper module_handle;
-        REQUIRE(
-            test_ioctl_load_native_module(
-                service_path,
-                &provider_module_id,
-                module_handle.get_handle_pointer(),
-                &count_of_maps,
-                &count_of_programs) == ERROR_SUCCESS);
-    }
-
-    // Second load with the same module id and NO fresh authorization must be
-    // rejected. Unload is asynchronous: poll past ERROR_OBJECT_ALREADY_EXISTS
-    // until the first module is gone, then judge the real verdict.
-    _create_service_helper(
-        L"test_sample_ebpf_um.dll", NATIVE_DRIVER_SERVICE_NAME_2, &provider_module_id, &service_handle2);
-    service_path2 = service_path2 + NATIVE_DRIVER_SERVICE_NAME_2;
-    uint32_t load_result = ERROR_OBJECT_ALREADY_EXISTS;
-    for (int retry = 0; retry < 50 && load_result == ERROR_OBJECT_ALREADY_EXISTS; retry++) {
-        _test_handle_helper module_handle2;
-        load_result = test_ioctl_load_native_module(
-            service_path2,
+    REQUIRE(
+        test_ioctl_load_native_module(
+            service_path,
             &provider_module_id,
-            module_handle2.get_handle_pointer(),
+            module_handle.get_handle_pointer(),
             &count_of_maps,
-            &count_of_programs);
-        if (load_result == ERROR_OBJECT_ALREADY_EXISTS) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
-    }
-    REQUIRE(load_result != ERROR_SUCCESS);
-    REQUIRE(load_result != ERROR_OBJECT_ALREADY_EXISTS);
+            &count_of_programs) == ERROR_SUCCESS);
+
+    // The attach must have deleted the entry keyed on this module id.
+    REQUIRE(!ebpf_native_authorization_entry_exists(&provider_module_id));
 }
 
 // Verify that authorization entries added AFTER the cleanup timer has drained
@@ -3278,15 +3271,20 @@ TEST_CASE("load_native_program_authorization_expires_after_drain", "[end-to-end]
     _create_service_helper(
         L"test_sample_ebpf_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
 
-    // First authorization: expires and drains the table (arming happened here).
+    // First authorization arms the timer. Wait until a cleanup pass has actually
+    // removed it: that pass ran with the table lock held and left the table
+    // empty, so with no further rescheduling the timer is now idle.
     REQUIRE(ebpf_authorize_native_module_wrapper(&provider_module_id, "test_sample_ebpf_um.dll") == EBPF_SUCCESS);
-    std::this_thread::sleep_for(std::chrono::seconds(20));
+    REQUIRE(ebpf_native_authorization_entry_exists(&provider_module_id));
+    REQUIRE(_wait_for_authorization_entry_removed(&provider_module_id, std::chrono::seconds(30)));
 
-    // Second authorization lands in a drained table; the timer must re-arm.
+    // Second authorization lands in a drained table with no timer pending; it
+    // only expires if the authorize path re-arms the timer.
     REQUIRE(ebpf_authorize_native_module_wrapper(&provider_module_id, "test_sample_ebpf_um.dll") == EBPF_SUCCESS);
-    std::this_thread::sleep_for(std::chrono::seconds(20));
+    REQUIRE(ebpf_native_authorization_entry_exists(&provider_module_id));
+    REQUIRE(_wait_for_authorization_entry_removed(&provider_module_id, std::chrono::seconds(30)));
 
-    // The second authorization must have expired as well.
+    // The expired authorization must no longer permit a load.
     service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
     REQUIRE(
         test_ioctl_load_native_module(
