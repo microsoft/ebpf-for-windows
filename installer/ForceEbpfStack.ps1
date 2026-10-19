@@ -9,6 +9,14 @@ param(
         "Rollback",
         "Commit",
         "RestoreService",
+        "InstallEbpfSvc",
+        "BackupServices",
+        "RollbackServices",
+        "CommitServices",
+        "PrepareRestoreServices",
+        "RemoveServices",
+        "RestoreServices",
+        "RollbackRestoreServices",
         "BackupStore",
         "RollbackStore",
         "CommitStore",
@@ -34,7 +42,9 @@ param(
 
     [string]$OwnerProductCode,
 
-    [string]$OwnerUpgradeCode
+    [string]$OwnerUpgradeCode,
+
+    [string[]]$ServiceNames = @("eBPFCore", "NetEbpfExt", "eBPFSvc")
 )
 
 Set-StrictMode -Version Latest
@@ -425,6 +435,11 @@ function Restore-OriginalLinks
 
 function Restore-MsiLinks
 {
+    if ((Get-BackupCount) -eq 0 -and
+        -not (Test-Path -LiteralPath (Join-Path $StateRoot "ebpf-services.json") -PathType Leaf)) {
+        return
+    }
+
     $mappingsToRestore = @()
     foreach ($mapping in $mappings) {
         $backup = $mapping.Link + ".ebpf-msi-backup"
@@ -508,6 +523,532 @@ function Remove-RegistryTreeIfPresent
     if (Test-Path -LiteralPath $providerPath) {
         Remove-Item -LiteralPath $providerPath -Recurse -Force
     }
+}
+
+function Get-ServicePaths
+{
+    return @{
+        StateFile = Join-Path $StateRoot "ebpf-services.json"
+        PendingFile = Join-Path $StateRoot "ebpf-services.pending.json"
+        UninstallRollbackFile = Join-Path $StateRoot "ebpf-services.uninstall-rollback.json"
+    }
+}
+
+function Get-ServiceRegistryPath
+{
+    param([Parameter(Mandatory = $true)][string]$Name)
+
+    return "HKLM\SYSTEM\CurrentControlSet\Services\$Name"
+}
+
+function Get-ServiceState
+{
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Name,
+
+        [Parameter(Mandatory = $true)]
+        [string]$RegistryFile)
+
+    $providerPath = Get-RegistryProviderPath -RegistryPath (Get-ServiceRegistryPath -Name $Name)
+    if (-not (Test-Path -LiteralPath $providerPath)) {
+        return [PSCustomObject]@{
+            Name = $Name
+            Existed = $false
+            WasRunning = $false
+            RegistryFile = $null
+        }
+    }
+
+    $service = Get-Service -Name $Name -ErrorAction SilentlyContinue
+    $values = Get-ItemProperty -LiteralPath $providerPath
+    $securityDescriptor = & (Join-Path $env:SystemRoot "System32\sc.exe") sdshow $Name
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to read the $Name service security descriptor."
+    }
+    Invoke-NativeCommand `
+        -FilePath (Join-Path $env:SystemRoot "System32\reg.exe") `
+        -ArgumentList @("export", (Get-ServiceRegistryPath -Name $Name), $RegistryFile, "/y") `
+        -FailureMessage "Failed to save the $Name service registry key"
+
+    return [PSCustomObject]@{
+        Name = $Name
+        Existed = $true
+        WasRunning =
+            $null -ne $service -and
+            $service.Status -eq [System.ServiceProcess.ServiceControllerStatus]::Running
+        RegistryFile = [System.IO.Path]::GetFileName($RegistryFile)
+        ImagePath = [string]$values.ImagePath
+        Start = [int]$values.Start
+        Type = [int]$values.Type
+        ErrorControl = [int]$values.ErrorControl
+        DisplayName =
+            if ($null -ne $values.PSObject.Properties["DisplayName"]) {
+                [string]$values.DisplayName
+            } else {
+                $null
+            }
+        ObjectName =
+            if ($null -ne $values.PSObject.Properties["ObjectName"]) {
+                [string]$values.ObjectName
+            } else {
+                $null
+            }
+        DependOnService =
+            if ($null -ne $values.PSObject.Properties["DependOnService"]) {
+                @($values.DependOnService)
+            } else {
+                @()
+            }
+        Description =
+            if ($null -ne $values.PSObject.Properties["Description"]) {
+                [string]$values.Description
+            } else {
+                $null
+            }
+        HasDescription = $null -ne $values.PSObject.Properties["Description"]
+        DelayedAutoStart =
+            if ($null -ne $values.PSObject.Properties["DelayedAutoStart"]) {
+                [int]$values.DelayedAutoStart
+            } else {
+                $null
+            }
+        HasDelayedAutoStart = $null -ne $values.PSObject.Properties["DelayedAutoStart"]
+        HasServiceSidType = $null -ne $values.PSObject.Properties["ServiceSidType"]
+        ServiceSidType =
+            if ($null -ne $values.PSObject.Properties["ServiceSidType"]) {
+                [int]$values.ServiceSidType
+            } else {
+                $null
+            }
+        SecurityDescriptor = ($securityDescriptor | Where-Object { $_ -match "^D:" } | Select-Object -First 1)
+    }
+}
+
+function Get-ScStartName
+{
+    param(
+        [Parameter(Mandatory = $true)][int]$Start,
+        [AllowNull()][object]$DelayedAutoStart)
+
+    if ($Start -eq 2 -and $null -ne $DelayedAutoStart -and [int]$DelayedAutoStart -ne 0) {
+        return "delayed-auto"
+    }
+    switch ($Start) {
+        0 { return "boot" }
+        1 { return "system" }
+        2 { return "auto" }
+        3 { return "demand" }
+        4 { return "disabled" }
+        default { throw "Unsupported service start value '$Start'." }
+    }
+}
+
+function Get-ScTypeName
+{
+    param([Parameter(Mandatory = $true)][int]$Type)
+
+    switch ($Type) {
+        1 { return "kernel" }
+        2 { return "filesys" }
+        16 { return "own" }
+        32 { return "share" }
+        default { throw "Unsupported service type value '$Type'." }
+    }
+}
+
+function Get-ScErrorName
+{
+    param([Parameter(Mandatory = $true)][int]$ErrorControl)
+
+    switch ($ErrorControl) {
+        0 { return "ignore" }
+        1 { return "normal" }
+        2 { return "severe" }
+        3 { return "critical" }
+        default { throw "Unsupported service error-control value '$ErrorControl'." }
+    }
+}
+
+function Stop-ServiceIfPresent
+{
+    param([Parameter(Mandatory = $true)][string]$Name)
+
+    $service = Get-Service -Name $Name -ErrorAction SilentlyContinue
+    if ($null -ne $service -and
+        $service.Status -ne [System.ServiceProcess.ServiceControllerStatus]::Stopped) {
+        Stop-Service -Name $Name -Force
+        $service.WaitForStatus(
+            [System.ServiceProcess.ServiceControllerStatus]::Stopped,
+            [TimeSpan]::FromSeconds(60))
+    }
+}
+
+function Remove-ServiceIfPresent
+{
+    param([Parameter(Mandatory = $true)][string]$Name)
+
+    Stop-ServiceIfPresent -Name $Name
+    if ($null -ne (Get-Service -Name $Name -ErrorAction SilentlyContinue)) {
+        Invoke-NativeCommand `
+            -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
+            -ArgumentList @("delete", $Name) `
+            -FailureMessage "Failed to delete the $Name service"
+        for ($attempt = 0; $attempt -lt 30; $attempt++) {
+            if ($null -eq (Get-Service -Name $Name -ErrorAction SilentlyContinue)) {
+                return
+            }
+            Start-Sleep -Seconds 1
+        }
+        throw "The $Name service remained pending deletion."
+    }
+}
+
+function Set-ServiceFromState
+{
+    param(
+        [Parameter(Mandatory = $true)][object]$ServiceState,
+        [Parameter(Mandatory = $true)][bool]$StartIfPreviouslyRunning)
+
+    $name = [string]$ServiceState.Name
+    if (-not [bool]$ServiceState.Existed) {
+        Remove-ServiceIfPresent -Name $name
+        return
+    }
+
+    if ($null -eq (Get-Service -Name $name -ErrorAction SilentlyContinue)) {
+        $createArguments = @(
+            "create",
+            $name,
+            "type=",
+            (Get-ScTypeName -Type ([int]$ServiceState.Type)),
+            "start=",
+            (Get-ScStartName -Start ([int]$ServiceState.Start) -DelayedAutoStart $null),
+            "error=",
+            (Get-ScErrorName -ErrorControl ([int]$ServiceState.ErrorControl)),
+            "binPath=",
+            [string]$ServiceState.ImagePath)
+        if (-not [string]::IsNullOrWhiteSpace([string]$ServiceState.DisplayName)) {
+            $createArguments += @("DisplayName=", [string]$ServiceState.DisplayName)
+        }
+        if (-not [string]::IsNullOrWhiteSpace([string]$ServiceState.ObjectName)) {
+            $createArguments += @("obj=", [string]$ServiceState.ObjectName)
+        }
+        Invoke-NativeCommand `
+            -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
+            -ArgumentList $createArguments `
+            -FailureMessage "Failed to recreate the $name service"
+    }
+
+    Stop-ServiceIfPresent -Name $name
+    $registryFile = Join-Path $StateRoot ([string]$ServiceState.RegistryFile)
+    if (-not (Test-Path -LiteralPath $registryFile -PathType Leaf)) {
+        throw "The saved $name service registry file is missing: $registryFile"
+    }
+    Invoke-NativeCommand `
+        -FilePath (Join-Path $env:SystemRoot "System32\reg.exe") `
+        -ArgumentList @("import", $registryFile) `
+        -FailureMessage "Failed to restore the $name service registry key"
+
+    $arguments = @(
+        "config",
+        $name,
+        "type=",
+        (Get-ScTypeName -Type ([int]$ServiceState.Type)),
+        "start=",
+        (Get-ScStartName -Start ([int]$ServiceState.Start) -DelayedAutoStart $ServiceState.DelayedAutoStart),
+        "error=",
+        (Get-ScErrorName -ErrorControl ([int]$ServiceState.ErrorControl)),
+        "binPath=",
+        [string]$ServiceState.ImagePath)
+    if (-not [string]::IsNullOrWhiteSpace([string]$ServiceState.DisplayName)) {
+        $arguments += @("DisplayName=", [string]$ServiceState.DisplayName)
+    }
+    if (@($ServiceState.DependOnService).Count -ne 0) {
+        $arguments += @("depend=", (@($ServiceState.DependOnService) -join "/"))
+    } else {
+        $arguments += @("depend=", "/")
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$ServiceState.ObjectName)) {
+        $arguments += @("obj=", [string]$ServiceState.ObjectName)
+    }
+    Invoke-NativeCommand `
+        -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
+        -ArgumentList $arguments `
+        -FailureMessage "Failed to restore the $name service configuration"
+
+    if ([bool]$ServiceState.HasDescription) {
+        Invoke-NativeCommand `
+            -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
+            -ArgumentList @("description", $name, [string]$ServiceState.Description) `
+            -FailureMessage "Failed to restore the $name service description"
+    } else {
+        Invoke-NativeCommand `
+            -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
+            -ArgumentList @("description", $name, "") `
+            -FailureMessage "Failed to clear the $name service description"
+    }
+    if (-not [bool]$ServiceState.HasDelayedAutoStart) {
+        Remove-ItemProperty `
+            -LiteralPath (Get-RegistryProviderPath -RegistryPath (Get-ServiceRegistryPath -Name $name)) `
+            -Name "DelayedAutoStart" `
+            -ErrorAction SilentlyContinue
+    }
+    if ([int]$ServiceState.Type -in @(16, 32) -and [bool]$ServiceState.HasServiceSidType) {
+        $sidType =
+            switch ([int]$ServiceState.ServiceSidType) {
+                0 { "none" }
+                1 { "unrestricted" }
+                3 { "restricted" }
+                default { throw "Unsupported service SID type '$($ServiceState.ServiceSidType)' for $name." }
+            }
+        Invoke-NativeCommand `
+            -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
+            -ArgumentList @("sidtype", $name, $sidType) `
+            -FailureMessage "Failed to restore the $name service SID type"
+    } elseif ([int]$ServiceState.Type -in @(16, 32)) {
+        Invoke-NativeCommand `
+            -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
+            -ArgumentList @("sidtype", $name, "unrestricted") `
+            -FailureMessage "Failed to restore the $name service SID type"
+        Remove-ItemProperty `
+            -LiteralPath (Get-RegistryProviderPath -RegistryPath (Get-ServiceRegistryPath -Name $name)) `
+            -Name "ServiceSidType" `
+            -ErrorAction SilentlyContinue
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$ServiceState.SecurityDescriptor)) {
+        Invoke-NativeCommand `
+            -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
+            -ArgumentList @("sdset", $name, [string]$ServiceState.SecurityDescriptor) `
+            -FailureMessage "Failed to restore the $name service security descriptor"
+    }
+    if ($StartIfPreviouslyRunning -and [bool]$ServiceState.WasRunning) {
+        Start-Service -Name $name
+        (Get-Service -Name $name).WaitForStatus(
+            [System.ServiceProcess.ServiceControllerStatus]::Running,
+            [TimeSpan]::FromSeconds(60))
+    }
+}
+
+function Install-MsiEbpfService
+{
+    $name = "eBPFSvc"
+    $imagePath = '"' + (Join-Path $InstallRoot "JIT\ebpfsvc.exe") + '"'
+    if ($null -eq (Get-Service -Name $name -ErrorAction SilentlyContinue)) {
+        Invoke-NativeCommand `
+            -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
+            -ArgumentList @(
+                "create",
+                $name,
+                "type=",
+                "own",
+                "start=",
+                "auto",
+                "error=",
+                "normal",
+                "binPath=",
+                $imagePath,
+                "DisplayName=",
+                "eBPF Service") `
+            -FailureMessage "Failed to create the eBPFSvc service"
+    }
+
+    Invoke-NativeCommand `
+        -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
+        -ArgumentList @(
+            "config",
+            $name,
+            "type=",
+            "own",
+            "start=",
+            "auto",
+            "error=",
+            "normal",
+            "binPath=",
+            $imagePath,
+            "obj=",
+            "NT AUTHORITY\LocalService",
+            "DisplayName=",
+            "eBPF Service") `
+        -FailureMessage "Failed to configure the eBPFSvc service"
+    Invoke-NativeCommand `
+        -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
+        -ArgumentList @("description", $name, "eBPF Service") `
+        -FailureMessage "Failed to configure the eBPFSvc service description"
+    Invoke-NativeCommand `
+        -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
+        -ArgumentList @("sidtype", $name, "restricted") `
+        -FailureMessage "Failed to configure the eBPFSvc service SID type"
+}
+
+function Read-ServiceState
+{
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        return $null
+    }
+    $state = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
+    if ([int]$state.SchemaVersion -ne 1) {
+        throw "Unsupported eBPF service backup schema version '$($state.SchemaVersion)'."
+    }
+    $savedNames = @($state.Services | ForEach-Object { [string]$_.Name })
+    if ($savedNames.Count -ne $ServiceNames.Count -or
+        @($ServiceNames | Where-Object { $_ -notin $savedNames }).Count -ne 0) {
+        throw "The eBPF service backup does not contain the expected service set."
+    }
+    foreach ($serviceState in @($state.Services)) {
+        if ([bool]$serviceState.Existed) {
+            $registryFileName = [string]$serviceState.RegistryFile
+            if ([System.IO.Path]::GetFileName($registryFileName) -ne $registryFileName -or
+                -not (Test-Path -LiteralPath (Join-Path $StateRoot $registryFileName) -PathType Leaf)) {
+                throw "The saved $($serviceState.Name) service registry file is missing or invalid."
+            }
+        }
+    }
+    return $state
+}
+
+function Save-CurrentServices
+{
+    param(
+        [Parameter(Mandatory = $true)][string]$StateFile,
+        [Parameter(Mandatory = $true)][string]$FileSuffix)
+
+    $services = @()
+    foreach ($name in $ServiceNames) {
+        $services += Get-ServiceState `
+            -Name $name `
+            -RegistryFile (Join-Path $StateRoot "$name.$FileSuffix.reg")
+    }
+    [PSCustomObject]@{
+        SchemaVersion = 1
+        Services = $services
+        OwnerProductCode = $OwnerProductCode
+        OwnerUpgradeCode = $OwnerUpgradeCode
+        Created = (Get-Date).ToUniversalTime().ToString("o")
+    } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $StateFile -Encoding UTF8
+}
+
+function Apply-ServiceState
+{
+    param(
+        [Parameter(Mandatory = $true)][object]$State,
+        [Parameter(Mandatory = $true)][bool]$StartIfPreviouslyRunning)
+
+    foreach ($serviceState in @($State.Services)) {
+        Set-ServiceFromState `
+            -ServiceState $serviceState `
+            -StartIfPreviouslyRunning $StartIfPreviouslyRunning
+    }
+}
+
+function Remove-ServiceStateFiles
+{
+    param([Parameter(Mandatory = $true)][string]$FileSuffix)
+
+    foreach ($name in $ServiceNames) {
+        Remove-Item -LiteralPath (Join-Path $StateRoot "$name.$FileSuffix.reg") -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Backup-Services
+{
+    $paths = Get-ServicePaths
+    New-Item -ItemType Directory -Path $StateRoot -Force | Out-Null
+    if ((Test-Path -LiteralPath $paths.PendingFile) -or
+        (Test-Path -LiteralPath $paths.UninstallRollbackFile)) {
+        throw "Incomplete eBPF service transaction exists in '$StateRoot'."
+    }
+
+    $createdDurableBackup = -not (Test-Path -LiteralPath $paths.StateFile -PathType Leaf)
+    if ($createdDurableBackup) {
+        $existingOriginalFiles =
+            @($ServiceNames | Where-Object {
+                Test-Path -LiteralPath (Join-Path $StateRoot "$_.original.reg") -PathType Leaf
+            })
+        if ($existingOriginalFiles.Count -ne 0) {
+            throw "Incomplete eBPF service backup exists in '$StateRoot'."
+        }
+    }
+    Save-CurrentServices -StateFile $paths.PendingFile -FileSuffix "rollback"
+    Save-CurrentServices -StateFile $paths.PendingFile -FileSuffix "rollback"
+    $pending = Read-ServiceState -Path $paths.PendingFile
+    $pending | Add-Member -NotePropertyName CreatedDurableBackup -NotePropertyValue $createdDurableBackup
+    $pending | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $paths.PendingFile -Encoding UTF8
+    if ($createdDurableBackup) {
+        Save-CurrentServices -StateFile $paths.StateFile -FileSuffix "original"
+    } else {
+        Read-ServiceState -Path $paths.StateFile | Out-Null
+    }
+}
+
+function Rollback-ServiceTransaction
+{
+    $paths = Get-ServicePaths
+    $pending = Read-ServiceState -Path $paths.PendingFile
+    if ($null -eq $pending) {
+        return
+    }
+
+    Apply-ServiceState -State $pending -StartIfPreviouslyRunning $true
+    Remove-ServiceStateFiles -FileSuffix "rollback"
+    Remove-Item -LiteralPath $paths.PendingFile -Force
+    if ([bool]$pending.CreatedDurableBackup) {
+        Remove-ServiceStateFiles -FileSuffix "original"
+        Remove-Item -LiteralPath $paths.StateFile -Force
+    }
+}
+
+function Remove-MsiServices
+{
+    $paths = Get-ServicePaths
+    $state = Read-ServiceState -Path $paths.StateFile
+    if ($null -eq $state) {
+        foreach ($name in $ServiceNames) {
+            Remove-ServiceIfPresent -Name $name
+        }
+        return
+    }
+
+    foreach ($serviceState in @($state.Services)) {
+        if (-not [bool]$serviceState.Existed) {
+            Remove-ServiceIfPresent -Name ([string]$serviceState.Name)
+        }
+    }
+}
+
+function Prepare-ServiceRestore
+{
+    $paths = Get-ServicePaths
+    if (Test-Path -LiteralPath $paths.UninstallRollbackFile) {
+        throw "Incomplete eBPF service restoration exists in '$StateRoot'."
+    }
+
+    Save-CurrentServices -StateFile $paths.UninstallRollbackFile -FileSuffix "uninstall-rollback"
+}
+
+function Restore-Services
+{
+    $paths = Get-ServicePaths
+    $state = Read-ServiceState -Path $paths.StateFile
+    if ($null -eq $state) {
+        return
+    }
+    Apply-ServiceState -State $state -StartIfPreviouslyRunning $true
+}
+
+function Rollback-ServiceRestore
+{
+    $paths = Get-ServicePaths
+    $state = Read-ServiceState -Path $paths.UninstallRollbackFile
+    if ($null -eq $state) {
+        return
+    }
+
+    Apply-ServiceState -State $state -StartIfPreviouslyRunning $true
+    Remove-ServiceStateFiles -FileSuffix "uninstall-rollback"
+    Remove-Item -LiteralPath $paths.UninstallRollbackFile -Force
 }
 
 function Get-CurrentUserSid
@@ -759,6 +1300,40 @@ switch ($Action) {
         if ($LASTEXITCODE -ne 0) {
             throw "Failed to restore the $ServiceName service ImagePath."
         }
+    }
+
+    "InstallEbpfSvc" {
+        Install-MsiEbpfService
+    }
+
+    "BackupServices" {
+        Backup-Services
+    }
+
+    "RollbackServices" {
+        Rollback-ServiceTransaction
+    }
+
+    "CommitServices" {
+        $paths = Get-ServicePaths
+        Remove-ServiceStateFiles -FileSuffix "rollback"
+        Remove-Item -LiteralPath $paths.PendingFile -Force -ErrorAction SilentlyContinue
+    }
+
+    "PrepareRestoreServices" {
+        Prepare-ServiceRestore
+    }
+
+    "RemoveServices" {
+        Remove-MsiServices
+    }
+
+    "RestoreServices" {
+        Restore-Services
+    }
+
+    "RollbackRestoreServices" {
+        Rollback-ServiceRestore
     }
 
     "BackupStore" {
