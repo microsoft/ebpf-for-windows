@@ -333,6 +333,8 @@ ring_buffer_api_test(ebpf_execution_type_t execution_type)
     ring_buffer_api_test_helper(test_map_fd, app_ids, [&](int i) {
         UNREFERENCED_PARAMETER(i);
         sample_program_context_t ctx{};
+        ctx.data_start = reinterpret_cast<uint8_t*>(app_id_str.data());
+        ctx.data_end = reinterpret_cast<uint8_t*>(app_id_str.data()) + app_id_str.size();
         bpf_test_run_opts opts{};
         opts.sz = sizeof(opts);
         opts.ctx_in = &ctx;

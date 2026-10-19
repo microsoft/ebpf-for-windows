@@ -58,6 +58,10 @@ $BinariesToCopy = @(
     "socket_tests.pdb",
     "connect_redirect_tests.exe",
     "connect_redirect_tests.pdb",
+    "ebpf_stress_tests_km.exe",
+    "ebpf_stress_tests_km.pdb",
+    "net_ebpf_stress_tests_km.exe",
+    "net_ebpf_stress_tests_km.pdb",
     "tcp_udp_listener.exe",
     "tcp_udp_listener.pdb",
     # VC debug runtime DLLs (present only for NativeOnlyDebug builds; copied
