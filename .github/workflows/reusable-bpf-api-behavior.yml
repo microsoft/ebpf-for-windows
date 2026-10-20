@@ -131,6 +131,8 @@ jobs:
           init_script="$virtme_root/virtme/guest/virtme-init"
 
           # Ubuntu 26.04's uutils env fails before guest procfs is mounted.
+          # Workaround this until https://bugs.launchpad.net/ubuntu/+source/rust-coreutils/+bug/2137745
+          # is fixed.
           case "$(head -n 1 "$init_script")" in
             '#!/usr/bin/env bash')
               sed -i '1s|^#!/usr/bin/env bash$|#!/bin/bash|' "$init_script"
