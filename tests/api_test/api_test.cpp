@@ -305,16 +305,10 @@ ring_buffer_api_test(ebpf_execution_type_t execution_type)
 {
     struct bpf_object* object = nullptr;
     fd_t program_fd = ebpf_fd_invalid;
-    native_module_helper_t module_helper;
-    module_helper.initialize("test_sample_ringbuf", execution_type);
+    std::string file_name = _get_program_file_name("test_sample_ringbuf", execution_type);
 
     REQUIRE(
-        program_load_helper(
-            module_helper.get_file_name().c_str(),
-            BPF_PROG_TYPE_SAMPLE,
-            execution_type,
-            &object,
-            &program_fd) == 0);
+        program_load_helper(file_name.c_str(), BPF_PROG_TYPE_SAMPLE, execution_type, &object, &program_fd) == 0);
     bpf_object_ptr object_ptr(object);
 
     fd_t test_map_fd = bpf_object__find_map_fd_by_name(object, "test_map");
@@ -333,8 +327,6 @@ ring_buffer_api_test(ebpf_execution_type_t execution_type)
     ring_buffer_api_test_helper(test_map_fd, app_ids, [&](int i) {
         UNREFERENCED_PARAMETER(i);
         sample_program_context_t ctx{};
-        ctx.data_start = reinterpret_cast<uint8_t*>(app_id_str.data());
-        ctx.data_end = reinterpret_cast<uint8_t*>(app_id_str.data()) + app_id_str.size();
         bpf_test_run_opts opts{};
         opts.sz = sizeof(opts);
         opts.ctx_in = &ctx;
@@ -1525,6 +1517,7 @@ TEST_CASE("ioctl_stress", "[stress]")
                         opts.data_size_in = static_cast<uint32_t>(app_id.size());
                         opts.data_out = app_id.data();
                         opts.data_size_out = static_cast<uint32_t>(app_id.size());
+                        opts.repeat = 1;
 
                         result = bpf_prog_test_run_opts(program_fd, &opts);
                         if (result != 0) {
@@ -1593,6 +1586,7 @@ trigger_ring_buffer_events(fd_t program_fd, uint32_t expected_event_count, _Inou
                 opts.data_size_in = data_size;
                 opts.data_out = data;
                 opts.data_size_out = data_size;
+                opts.repeat = 1;
 
                 for (uint32_t k = 0; k < iterations_per_thread; k++) {
                     int result = bpf_prog_test_run_opts(program_fd, &opts);
