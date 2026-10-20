@@ -314,18 +314,31 @@ ring_buffer_api_test(ebpf_execution_type_t execution_type)
     fd_t test_map_fd = bpf_object__find_map_fd_by_name(object, "test_map");
     REQUIRE(test_map_fd > 0);
 
-    // Create a list of fake app IDs and set it to event context.
-    std::string app_id_str = "api_test.exe";
-    std::vector<std::vector<char>> app_ids;
-    std::vector<char> temp(app_id_str.begin(), app_id_str.end());
+    // Create a synchronous ring buffer (same pattern as perf_buffer_sync_api).
+    ebpf_ring_buffer_opts ring_opts{.sz = sizeof(ring_opts), .flags = 0};
 
-    // ring_buffer_api_test_helper expects a list of app IDs of size RING_BUFFER_TEST_EVENT_COUNT.
-    for (auto i = 0; i < RING_BUFFER_TEST_EVENT_COUNT; i++) {
-        app_ids.push_back(temp);
-    }
+    uint32_t event_count = 0;
+    const uint32_t expected_events = 10;
 
-    ring_buffer_api_test_helper(test_map_fd, app_ids, [&](int i) {
-        UNREFERENCED_PARAMETER(i);
+#pragma warning(suppress : 4996) // deprecated
+    auto ring = ebpf_ring_buffer__new(
+        test_map_fd,
+        [](void* ctx, void* /*data*/, size_t /*size*/) {
+            uint32_t* count = reinterpret_cast<uint32_t*>(ctx);
+            (*count)++;
+            return 0;
+        },
+        &event_count,
+        &ring_opts);
+    REQUIRE(ring != nullptr);
+
+    // Test ebpf_ring_buffer_get_wait_handle.
+    ebpf_handle_t wait_handle = ebpf_ring_buffer_get_wait_handle(ring);
+    REQUIRE(wait_handle != ebpf_handle_invalid);
+
+    // Generate event by invoking the sample program via bpf_prog_test_run_opts.
+    std::string app_id = "api_test.exe";
+    auto invoke_program = [&]() {
         sample_program_context_t ctx{};
         bpf_test_run_opts opts{};
         opts.sz = sizeof(opts);
@@ -333,13 +346,52 @@ ring_buffer_api_test(ebpf_execution_type_t execution_type)
         opts.ctx_size_in = sizeof(ctx);
         opts.ctx_out = &ctx;
         opts.ctx_size_out = sizeof(ctx);
-        opts.data_in = app_id_str.data();
-        opts.data_size_in = static_cast<uint32_t>(app_id_str.size());
-        opts.data_out = app_id_str.data();
-        opts.data_size_out = static_cast<uint32_t>(app_id_str.size());
+        opts.data_in = app_id.data();
+        opts.data_size_in = static_cast<uint32_t>(app_id.size());
+        opts.data_out = app_id.data();
+        opts.data_size_out = static_cast<uint32_t>(app_id.size());
         opts.repeat = 1;
         REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
-    });
+    };
+
+    invoke_program();
+
+    // Test 1: Use WaitForSingleObject and consume to verify we can consume after notify.
+    DWORD wait_result = WaitForSingleObject(reinterpret_cast<HANDLE>(wait_handle), 5000); // 5 second timeout.
+    REQUIRE(wait_result == WAIT_OBJECT_0);
+
+    int consume_result = ring_buffer__consume(ring);
+    REQUIRE(consume_result > 0);
+    REQUIRE(event_count > 0);
+
+    // Generate some additional events.
+    for (uint16_t i = 1; i < expected_events; i++) {
+        invoke_program();
+    }
+
+    // Test 2: Use poll API in a loop until we get all expected events.
+    int total_events_polled = 0;
+    int max_iterations = 20;
+    int iteration = 0;
+
+    while (event_count < expected_events && iteration < max_iterations) {
+        int poll_result = ring_buffer__poll(ring, 200); // 200ms timeout.
+        REQUIRE(poll_result >= 0);
+
+        if (poll_result == 0) {
+            iteration++;
+            continue;
+        }
+
+        total_events_polled += poll_result;
+        iteration++;
+    }
+
+    REQUIRE(total_events_polled > 0);
+    REQUIRE(event_count >= expected_events);
+
+    // Clean up.
+    ring_buffer__free(ring);
 }
 
 // See also divide_by_zero_test_um in end_to_end.cpp for the user-mode equivalent.
