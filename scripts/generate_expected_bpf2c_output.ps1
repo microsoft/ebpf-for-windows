@@ -105,8 +105,10 @@ function Update-ExpectedOutput
 
     $stagingPath = Join-Path ([System.IO.Path]::GetTempPath()) ("ebpf-bpf2c-expected-{0}" -f [guid]::NewGuid().ToString("N"))
     New-Item -ItemType Directory -Path $stagingPath | Out-Null
+    $currentLocation = Get-Location
     try
     {
+        Set-Location $BuildPath
         foreach ($file in $SampleFiles)
         {
             $additionalOptions = @()
@@ -123,7 +125,8 @@ function Update-ExpectedOutput
             }
 
             $FileName = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
-            $ObjectFileWithPath = Join-Path $BuildPath ($FileName + ".o")
+            $ObjectFileName = $FileName + ".o"
+            $ObjectFileWithPath = Join-Path $BuildPath $ObjectFileName
             if (-not (Test-Path $ObjectFileWithPath))
             {
                 throw "The required BPF object was not generated: $ObjectFileWithPath"
@@ -134,15 +137,16 @@ function Update-ExpectedOutput
             $StagedDllFile = Join-Path $stagingPath ($FileName + "_dll.c")
             $StagedRawFile = Join-Path $stagingPath ($FileName + "_raw.c")
 
-            Invoke-Bpf2c -ExecutablePath $Bpf2cCommand -Arguments (@("--bpf", $ObjectFileWithPath, "--sys", "--hash", "none") + $additionalOptions) -OutputFile $StagedSysFile
-            Invoke-Bpf2c -ExecutablePath $Bpf2cCommand -Arguments (@("--bpf", $ObjectFileWithPath, "--dll", "--hash", "none") + $additionalOptions) -OutputFile $StagedDllFile
-            Invoke-Bpf2c -ExecutablePath $Bpf2cCommand -Arguments (@("--bpf", $ObjectFileWithPath, "--hash", "none") + $additionalOptions) -OutputFile $StagedRawFile
+            Invoke-Bpf2c -ExecutablePath $Bpf2cCommand -Arguments (@("--bpf", $ObjectFileName, "--sys", "--hash", "none") + $additionalOptions) -OutputFile $StagedSysFile
+            Invoke-Bpf2c -ExecutablePath $Bpf2cCommand -Arguments (@("--bpf", $ObjectFileName, "--dll", "--hash", "none") + $additionalOptions) -OutputFile $StagedDllFile
+            Invoke-Bpf2c -ExecutablePath $Bpf2cCommand -Arguments (@("--bpf", $ObjectFileName, "--hash", "none") + $additionalOptions) -OutputFile $StagedRawFile
         }
 
         Get-ChildItem -Path $stagingPath -File | Copy-Item -Destination $ExpectedOutputPath -Force
     }
     finally
     {
+        Set-Location $currentLocation
         Remove-Item -LiteralPath $stagingPath -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
