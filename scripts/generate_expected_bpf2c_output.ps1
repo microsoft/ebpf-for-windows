@@ -10,6 +10,8 @@
 # Example:
 # .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
 
+$ErrorActionPreference = "Stop"
+
 <#
 TrimAndExport-Output does the following:
 1. Parses the buffer and converts the absolute file path present in "#line" pragma statements
@@ -45,6 +47,37 @@ function TrimAndExport-Output
     (Get-Content -Path $OutputFile) | Set-Content -Encoding Ascii -Path $OutputFile
 }
 
+function Invoke-Bpf2c
+{
+    param(
+        [string] $ExecutablePath,
+        [string[]] $Arguments,
+        [string] $OutputFile
+    )
+
+    $errorFile = Join-Path ([System.IO.Path]::GetTempPath()) ("bpf2c-{0}.err" -f [guid]::NewGuid().ToString("N"))
+    try
+    {
+        $output = @(& $ExecutablePath @Arguments 2> $errorFile)
+        $exitCode = $LASTEXITCODE
+        $errorOutput = if (Test-Path $errorFile) { @(Get-Content $errorFile) } else { @() }
+        if ($exitCode -ne 0)
+        {
+            throw "bpf2c failed with exit code $exitCode for arguments '$($Arguments -join ' ')'. Output: $($errorOutput -join ' ')"
+        }
+        if ($output.Count -eq 0)
+        {
+            throw "bpf2c produced no output for arguments '$($Arguments -join ' ')'."
+        }
+
+        TrimAndExport-Output -InputBuffer $output -OutputFile $OutputFile
+    }
+    finally
+    {
+        Remove-Item -LiteralPath $errorFile -Force -ErrorAction SilentlyContinue
+    }
+}
+
 <#
 Update-ExpectedOutput updates the expected result files (raw, sys, dll) for all the
 sample programs present in test\samples.
@@ -56,54 +89,62 @@ function Update-ExpectedOutput
     $PSRoot = $PSScriptRoot
     $SamplePath = $PSRoot + "\..\tests\sample"
     $ExpectedOutputPath = $PSRoot + "\..\tests\bpf2c_tests\expected"
-    $Bpf2cCommand = ".\bpf2c.exe"
-
-    $CurrentLocation = Get-Location
+    $Bpf2cCommand = Join-Path $BuildPath "bpf2c.exe"
+    if (-not (Test-Path $Bpf2cCommand))
+    {
+        throw "bpf2c was not found at '$Bpf2cCommand'."
+    }
 
     ## Get all files in the sample path
-    $SampleFiles = Get-ChildItem -Path $SamplePath | Where-Object {$_.PSIsContainer -eq $false} | Select-Object -Property Name
-    $CustomSampleFiles = Get-ChildItem -Path $SamplePath\custom_program_type | Where-Object {$_.PSIsContainer -eq $false} | Select-Object -Property Name
-    $UndockedSampleFiles = Get-ChildItem -Path $SamplePath\undocked | Where-Object {$_.PSIsContainer -eq $false} | Select-Object -Property Name
+    $SampleFiles = @(Get-ChildItem -Path $SamplePath | Where-Object {$_.PSIsContainer -eq $false} | Select-Object -Property Name)
+    $CustomSampleFiles = @(Get-ChildItem -Path $SamplePath\custom_program_type | Where-Object {$_.PSIsContainer -eq $false} | Select-Object -Property Name)
+    $UndockedSampleFiles = @(Get-ChildItem -Path $SamplePath\undocked | Where-Object {$_.PSIsContainer -eq $false} | Select-Object -Property Name)
 
     $SampleFiles += $CustomSampleFiles
     $SampleFiles += $UndockedSampleFiles
 
-    Set-Location $BuildPath
-    foreach ($file in $SampleFiles)
+    $stagingPath = Join-Path ([System.IO.Path]::GetTempPath()) ("ebpf-bpf2c-expected-{0}" -f [guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Path $stagingPath | Out-Null
+    try
     {
-        $additional_options = ""
-        # If file is in the set $CustomSampleFiles, then add the --type bind option.
-        if ($CustomSampleFiles -contains $file)
+        foreach ($file in $SampleFiles)
         {
-            $additional_options = "--type bind"
+            $additionalOptions = @()
+            # If file is in the set $CustomSampleFiles, add the --type bind option.
+            if ($CustomSampleFiles -contains $file)
+            {
+                $additionalOptions = @("--type", "bind")
+            }
+
+            $ext = [System.IO.Path]::GetExtension($file.Name)
+            if (($ext -ne ".c") -and ($ext -ne ".C") -and ($ext -ne ".o") -and ($ext -ne ".O"))
+            {
+                continue
+            }
+
+            $FileName = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
+            $ObjectFileWithPath = Join-Path $BuildPath ($FileName + ".o")
+            if (-not (Test-Path $ObjectFileWithPath))
+            {
+                throw "The required BPF object was not generated: $ObjectFileWithPath"
+            }
+
+            Write-Host "Generating output for $ObjectFileWithPath"
+            $StagedSysFile = Join-Path $stagingPath ($FileName + "_sys.c")
+            $StagedDllFile = Join-Path $stagingPath ($FileName + "_dll.c")
+            $StagedRawFile = Join-Path $stagingPath ($FileName + "_raw.c")
+
+            Invoke-Bpf2c -ExecutablePath $Bpf2cCommand -Arguments (@("--bpf", $ObjectFileWithPath, "--sys", "--hash", "none") + $additionalOptions) -OutputFile $StagedSysFile
+            Invoke-Bpf2c -ExecutablePath $Bpf2cCommand -Arguments (@("--bpf", $ObjectFileWithPath, "--dll", "--hash", "none") + $additionalOptions) -OutputFile $StagedDllFile
+            Invoke-Bpf2c -ExecutablePath $Bpf2cCommand -Arguments (@("--bpf", $ObjectFileWithPath, "--hash", "none") + $additionalOptions) -OutputFile $StagedRawFile
         }
 
-        $ext = [System.IO.Path]::GetExtension($file.Name)
-        if (($ext -ne ".c") -and ($ext -ne ".C") -and ($ext -ne ".o") -and ($ext -ne ".O"))
-        {
-            continue
-        }
-
-        $FileName = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
-        $ObjectFileWithPath = $FileName + ".o"
-        Write-Host "Generating output for $ObjectFileWithPath"
-        $ExpectedSysFileWithPath = $ExpectedOutputPath + "\" + $FileName + "_sys.c"
-        $ExpectedDllFileWithPath = $ExpectedOutputPath + "\" + $FileName + "_dll.c"
-        $ExpectedRawFileWithPath = $ExpectedOutputPath + "\" + $FileName + "_raw.c"
-
-        $SysCommand = $Bpf2cCommand + " --bpf " + $ObjectFileWithPath + " --sys" + " --hash none" + " " + $additional_options
-        $Output = Invoke-Expression $SysCommand
-        TrimAndExport-Output -InputBuffer $Output -OutputFile $ExpectedSysFileWithPath
-
-        $DllCommand = $Bpf2cCommand + " --bpf " + $ObjectFileWithPath + " --dll" + " --hash none" + " " + $additional_options
-        $Output = Invoke-Expression $DllCommand
-        TrimAndExport-Output -InputBuffer $Output -OutputFile $ExpectedDllFileWithPath
-
-        $RawCommand = $Bpf2cCommand + " --bpf " + $ObjectFileWithPath + " --hash none" + " " + $additional_options
-        $Output = Invoke-Expression $RawCommand
-        TrimAndExport-Output -InputBuffer $Output -OutputFile $ExpectedRawFileWithPath
+        Get-ChildItem -Path $stagingPath -File | Copy-Item -Destination $ExpectedOutputPath -Force
     }
-    Set-Location $CurrentLocation
+    finally
+    {
+        Remove-Item -LiteralPath $stagingPath -Recurse -Force -ErrorAction SilentlyContinue
+    }
 }
 
 if ($args.Count -ne 1) {
@@ -111,6 +152,28 @@ if ($args.Count -ne 1) {
 }
 
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
+$resolvedBuildPath = (Get-Item $args[0]).FullName
+$configuration = Split-Path $resolvedBuildPath -Leaf
+$platform = Split-Path (Split-Path $resolvedBuildPath -Parent) -Leaf
+if ($configuration -eq "FuzzerDebug") {
+    throw "FuzzerDebug does not build the complete sample set required for expected bpf2c output generation."
+}
+$supportedConfigurations = @("Debug", "Release", "NativeOnlyDebug", "NativeOnlyRelease")
+if ($configuration -notin $supportedConfigurations -or $platform -notin @("x64", "ARM64")) {
+    throw "The build output path must end in a supported <platform>\<configuration> pair."
+}
+
+$expectedBuildPath = [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot "$platform\$configuration"))
+if (Test-Path $expectedBuildPath) {
+    $expectedBuildPath = (Get-Item $expectedBuildPath).FullName
+}
+if (-not [System.String]::Equals(
+        $resolvedBuildPath.TrimEnd("\"),
+        $expectedBuildPath.TrimEnd("\"),
+        [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw "The build output path must be the repository output directory '$expectedBuildPath'."
+}
+
 $toolchainPropertiesPath = Join-Path $repositoryRoot "build\ebpf-clang-toolchain.props"
 if (-not (Test-Path $toolchainPropertiesPath)) {
     throw "The BPF Clang toolchain is not configured. Run .\scripts\initialize_ebpf_repo.ps1 before regenerating expected output."
@@ -144,17 +207,6 @@ if (-not (Test-Path (Join-Path $resourceDirectory "include\stdint.h"))) {
     throw "The configured Public Clang resource headers are missing. Run repository initialization again."
 }
 
-$resolvedBuildPath = (Resolve-Path $args[0]).Path
-$configuration = Split-Path $resolvedBuildPath -Leaf
-$platform = Split-Path (Split-Path $resolvedBuildPath -Parent) -Leaf
-$supportedConfigurations = @("Debug", "Release", "NativeOnlyDebug", "NativeOnlyRelease", "FuzzerDebug")
-if ($configuration -notin $supportedConfigurations -or $platform -notin @("x64", "ARM64")) {
-    throw "The build output path must end in a supported <platform>\<configuration> pair."
-}
-
-# The generated state is an incremental input, but remove all BPF objects here to guarantee that
-# expected output is regenerated from objects produced by the configured Public compiler.
-Get-ChildItem -Path $resolvedBuildPath -Filter *.o -File -ErrorAction SilentlyContinue | Remove-Item -Force
 $hostPlatform = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
 $currentLocation = Get-Location
 try {

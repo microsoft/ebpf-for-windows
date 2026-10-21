@@ -123,16 +123,20 @@ function Get-InternalClangPackagePaths {
     $msbuild = Get-MSBuildExecutable
     $msbuildDirectory = Split-Path -Parent $msbuild
     $restoreArguments = @("restore", $projectPath, "-NonInteractive")
-    $rootNuGetConfig = Join-Path $repositoryRoot "nuget.config"
-    if (Test-Path $rootNuGetConfig) {
-        $restoreArguments += @("-ConfigFile", $rootNuGetConfig)
-    }
     $restoreArguments += @("-MSBuildPath", $msbuildDirectory)
 
     Write-Host "Restoring Internal Clang $PackageVersion through PackageReference."
-    $restoreOutput = & $nuget.Source @restoreArguments 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        throw "Internal Clang PackageReference restore failed with exit code $LASTEXITCODE. NuGet output: $($restoreOutput -join "`n")"
+    $currentLocation = Get-Location
+    try {
+        Set-Location $repositoryRoot
+        $restoreOutput = & $nuget.Source @restoreArguments 2>&1
+        $restoreExitCode = $LASTEXITCODE
+    }
+    finally {
+        Set-Location $currentLocation
+    }
+    if ($restoreExitCode -ne 0) {
+        throw "Internal Clang PackageReference restore failed with exit code $restoreExitCode. NuGet output: $($restoreOutput -join "`n")"
     }
 
     $assetsPath = Join-Path $extensionsDirectory "project.assets.json"
