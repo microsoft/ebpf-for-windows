@@ -106,4 +106,66 @@ function Update-ExpectedOutput
     Set-Location $CurrentLocation
 }
 
-Update-ExpectedOutput $args[0]
+if ($args.Count -ne 1) {
+    throw "Usage: .\scripts\generate_expected_bpf2c_output.ps1 <build_output_path>"
+}
+
+$repositoryRoot = Split-Path -Parent $PSScriptRoot
+$toolchainPropertiesPath = Join-Path $repositoryRoot "build\ebpf-clang-toolchain.props"
+if (-not (Test-Path $toolchainPropertiesPath)) {
+    throw "The BPF Clang toolchain is not configured. Run .\scripts\initialize_ebpf_repo.ps1 before regenerating expected output."
+}
+
+function Get-XmlProperty {
+    param(
+        [xml] $Document,
+        [string] $Name
+    )
+
+    $namespaceManager = New-Object System.Xml.XmlNamespaceManager($Document.NameTable)
+    $namespaceManager.AddNamespace("m", "http://schemas.microsoft.com/developer/msbuild/2003")
+    $node = $Document.SelectSingleNode("/m:Project/m:PropertyGroup/m:$Name", $namespaceManager)
+    if (-not $node) {
+        throw "The property '$Name' is missing."
+    }
+    return $node.InnerText
+}
+
+[xml]$toolchainProperties = Get-Content -Path $toolchainPropertiesPath -Raw
+[xml]$manifest = Get-Content -Path (Join-Path $PSScriptRoot "clang-toolchain.props") -Raw
+$channel = Get-XmlProperty -Document $toolchainProperties -Name "EbpfConfiguredClangChannel"
+$version = Get-XmlProperty -Document $toolchainProperties -Name "EbpfConfiguredClangVersion"
+$resourceDirectory = Get-XmlProperty -Document $toolchainProperties -Name "EbpfConfiguredClangResourceDir"
+$publicVersion = Get-XmlProperty -Document $manifest -Name "EbpfPublicClangVersion"
+if ($channel -ne "Public" -or $version -ne $publicVersion) {
+    throw "Expected bpf2c outputs must be generated with Public Clang $publicVersion; the configured toolchain is $channel Clang $version."
+}
+if (-not (Test-Path (Join-Path $resourceDirectory "include\stdint.h"))) {
+    throw "The configured Public Clang resource headers are missing. Run repository initialization again."
+}
+
+$resolvedBuildPath = (Resolve-Path $args[0]).Path
+$configuration = Split-Path $resolvedBuildPath -Leaf
+$platform = Split-Path (Split-Path $resolvedBuildPath -Parent) -Leaf
+$supportedConfigurations = @("Debug", "Release", "NativeOnlyDebug", "NativeOnlyRelease", "FuzzerDebug")
+if ($configuration -notin $supportedConfigurations -or $platform -notin @("x64", "ARM64")) {
+    throw "The build output path must end in a supported <platform>\<configuration> pair."
+}
+
+# The generated state is an incremental input, but remove all BPF objects here to guarantee that
+# expected output is regenerated from objects produced by the configured Public compiler.
+Get-ChildItem -Path $resolvedBuildPath -Filter *.o -File -ErrorAction SilentlyContinue | Remove-Item -Force
+$hostPlatform = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
+$currentLocation = Get-Location
+try {
+    Set-Location $repositoryRoot
+    & msbuild ebpf-for-windows.sln /m /t:tests\sample "/p:Configuration=$configuration" "/p:Platform=$platform" "/p:HostPlatform=$hostPlatform"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to rebuild BPF sample objects with Public Clang $publicVersion."
+    }
+}
+finally {
+    Set-Location $currentLocation
+}
+
+Update-ExpectedOutput $resolvedBuildPath

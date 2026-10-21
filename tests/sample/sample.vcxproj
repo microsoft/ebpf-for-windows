@@ -39,13 +39,16 @@
       <ReadOnlyProject>true</ReadOnlyProject>
   </PropertyGroup>
   <Import Project="$(SolutionDir)wdk.props" />
+  <Import Project="$(SolutionDir)scripts\clang-toolchain.props" />
+  <Import Project="$(SolutionDir)build\ebpf-clang-toolchain.props"
+          Condition="Exists('$(SolutionDir)build\ebpf-clang-toolchain.props')" />
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{b4ad72e3-754e-40ca-9cea-d3f2c9170e51}</ProjectGuid>
     <RootNamespace>sample</RootNamespace>
     <!-- BPF header dependencies for incremental build correctness. Update if new headers are added. -->
-    <BpfHeaderDeps>$(SolutionDir)include\bpf_helpers.h;$(SolutionDir)include\bpf_helpers_platform.h;$(SolutionDir)include\bpf_helper_defs.h;$(SolutionDir)include\bpf_endian.h;$(SolutionDir)include\ebpf_structs.h;$(SolutionDir)include\ebpf_windows.h;$(SolutionDir)include\ebpf_nethooks.h;$(SolutionDir)include\net\ip.h;$(SolutionDir)include\net\if_ether.h;$(SolutionDir)include\net\udp.h;$(SolutionDir)tests\socket\socket_tests_common.h;$(SolutionDir)tests\include\xdp_hooks.h;$(SolutionDir)tests\sample\sample_common_routines.h;$(SolutionDir)tests\sample\sample_test_common.h</BpfHeaderDeps>
+    <BpfHeaderDeps>$(SolutionDir)include\bpf_helpers.h;$(SolutionDir)include\bpf_helpers_platform.h;$(SolutionDir)include\bpf_helper_defs.h;$(SolutionDir)include\bpf_endian.h;$(SolutionDir)include\ebpf_structs.h;$(SolutionDir)include\ebpf_windows.h;$(SolutionDir)include\ebpf_nethooks.h;$(SolutionDir)include\net\ip.h;$(SolutionDir)include\net\if_ether.h;$(SolutionDir)include\net\udp.h;$(SolutionDir)tests\socket\socket_tests_common.h;$(SolutionDir)tests\include\xdp_hooks.h;$(SolutionDir)tests\sample\sample_common_routines.h;$(SolutionDir)tests\sample\sample_test_common.h;$(EbpfConfiguredClangPath);$(EbpfConfiguredClangResourceDir)\include\stdint.h;$(SolutionDir)scripts\clang-toolchain.props;$(SolutionDir)build\ebpf-clang-toolchain.props</BpfHeaderDeps>
     <BpfUndockedHeaderDeps>$(BpfHeaderDeps);$(SolutionDir)undocked\tests\sample\ext\inc\sample_ext_helpers.h</BpfUndockedHeaderDeps>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -100,7 +103,9 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <PropertyGroup>
-    <ClangFlags>-g -target bpf -O2 -Werror -I../../packages/clang.headers/include -I../../include -I../../external/bpftool -I$(WindowsSdkDir)\Include\$(WindowsTargetPlatformVersion)\shared</ClangFlags>
+    <ClangExec>&quot;$(EbpfConfiguredClangPath)&quot;</ClangExec>
+    <ClangResourceOption>-resource-dir &quot;$(EbpfConfiguredClangResourceDir)&quot;</ClangResourceOption>
+    <ClangFlags>-g -target bpf -O2 -Werror $(ClangResourceOption) -I../../include -I../../external/bpftool -I$(WindowsSdkDir)\Include\$(WindowsTargetPlatformVersion)\shared</ClangFlags>
   </PropertyGroup>
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
@@ -503,6 +508,41 @@
       <Project>{8b2f1f1a-3c4d-4e5f-9a6b-1c2d3e4f5a6b}</Project>
     </ProjectReference>
   </ItemGroup>
+  <Target Name="ValidateBpfClangToolchain" BeforeTargets="PrepareForBuild">
+    <Error Condition="'$(EbpfConfiguredClangChannel)' == ''"
+           Text="The BPF Clang toolchain is not configured. Run .\scripts\initialize_ebpf_repo.ps1 before building." />
+    <Error Condition="'$(EbpfConfiguredClangStateSchemaVersion)' != '$(EbpfClangToolchainStateSchemaVersion)'"
+           Text="The BPF Clang toolchain state is missing or stale. Run repository initialization again." />
+    <Error Condition="'$(EbpfConfiguredClangChannel)' != 'Public' and '$(EbpfConfiguredClangChannel)' != 'Internal'"
+           Text="Unknown configured BPF Clang channel '$(EbpfConfiguredClangChannel)'. Run repository initialization again." />
+    <Error Condition="!Exists('$(EbpfConfiguredClangPath)')"
+           Text="The configured BPF Clang executable is missing: $(EbpfConfiguredClangPath). Run repository initialization again." />
+    <Error Condition="!Exists('$(EbpfConfiguredClangResourceDir)\include\stdint.h')"
+           Text="The configured BPF Clang resource headers are missing: $(EbpfConfiguredClangResourceDir)\include. Run repository initialization again." />
+    <Error Condition="'$(EbpfConfiguredClangChannel)' == 'Public' and '$(EbpfConfiguredClangVersion)' != '$(EbpfPublicClangVersion)'"
+           Text="The configured Public Clang version is stale. Expected $(EbpfPublicClangVersion); run repository initialization again." />
+    <Error Condition="'$(EbpfConfiguredClangChannel)' == 'Internal' and ('$(EbpfConfiguredClangVersion)' != '$(EbpfInternalClangVersion)' or '$(EbpfConfiguredClangPackageVersion)' != '$(EbpfInternalClangPackageVersion)')"
+           Text="The configured Internal Clang version is stale. Expected package $(EbpfInternalClangPackageVersion); run repository initialization again." />
+    <PropertyGroup>
+      <_EbpfExpectedClangVersion Condition="'$(EbpfConfiguredClangChannel)' == 'Public'">$(EbpfPublicClangVersion)</_EbpfExpectedClangVersion>
+      <_EbpfExpectedClangVersion Condition="'$(EbpfConfiguredClangChannel)' == 'Internal'">$(EbpfInternalClangVersion)</_EbpfExpectedClangVersion>
+      <_EbpfClangVersionPattern>(?m)^clang version $([System.Text.RegularExpressions.Regex]::Escape('$(_EbpfExpectedClangVersion)'))(?:\s|$)</_EbpfClangVersionPattern>
+    </PropertyGroup>
+    <Exec Command="&quot;$(EbpfConfiguredClangPath)&quot; --version"
+          ConsoleToMSBuild="true"
+          IgnoreExitCode="true">
+      <Output TaskParameter="ExitCode" PropertyName="_EbpfClangVersionExitCode" />
+      <Output TaskParameter="ConsoleOutput" ItemName="_EbpfClangVersionLines" />
+    </Exec>
+    <PropertyGroup>
+      <_EbpfClangVersionOutput>@(_EbpfClangVersionLines, '&#x0A;')</_EbpfClangVersionOutput>
+      <_EbpfClangVersionMatches>$([System.Text.RegularExpressions.Regex]::IsMatch('$(_EbpfClangVersionOutput)', '$(_EbpfClangVersionPattern)'))</_EbpfClangVersionMatches>
+    </PropertyGroup>
+    <Error Condition="'$(_EbpfClangVersionExitCode)' != '0' or '$(_EbpfClangVersionMatches)' != 'True'"
+           Text="The configured Clang executable no longer reports version $(_EbpfExpectedClangVersion). Run repository initialization again." />
+    <Message Importance="high"
+             Text="Using $(EbpfConfiguredClangChannel) Clang $(EbpfConfiguredClangVersion): $(EbpfConfiguredClangPath) (resource directory: $(EbpfConfiguredClangResourceDir))" />
+  </Target>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
