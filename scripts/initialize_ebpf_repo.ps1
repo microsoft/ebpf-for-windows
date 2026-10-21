@@ -9,9 +9,9 @@ param (
     # specific toolset, so the CMake generator, platform toolset, and NuGet/MSBuild restore all match
     # the Visual Studio version you intend to build with.
     [parameter(Mandatory = $false)][string] $VisualStudioVersion = "",
-    # Public uses a validated local installation of the pinned LLVM version. Internal restores the
-    # matching compiler and resource headers from the configured NuGet feed.
-    [parameter(Mandatory = $false)][ValidateSet("Public", "Internal")][string] $LlvmChannel = "Public",
+    # Auto reuses this worktree's persisted selection, otherwise selects Internal only when the exact
+    # Internal feed is enabled, and defaults to Public. Explicit Public or Internal always wins.
+    [parameter(Mandatory = $false)][ValidateSet("Auto", "Public", "Internal")][string] $LlvmChannel = "Auto",
     [parameter(Mandatory = $false)][switch] $SkipHostToolBootstrap
 )
 
@@ -67,7 +67,7 @@ if (-not $msbuildPath -or -not (Test-Path $msbuildPath)) {
 $msbuildDir = if ($msbuildPath -and (Test-Path $msbuildPath)) { Split-Path -Parent $msbuildPath } else { $null }
 Write-Host "Using MSBuild: $msbuildPath"
 Write-Host "Using CMake generator: $cmakeGenerator"
-Write-Host "Using LLVM channel: $LlvmChannel"
+Write-Host "Requested LLVM channel: $LlvmChannel"
 
 # Helper to run a command, check exit code, and abort on failure.
 function Invoke-NativeCommand {
@@ -126,12 +126,23 @@ function Remove-ArchitectureSpecificBuildDirectories {
 }
 
 & (Join-Path $scriptPath "configure-clang-toolchain.ps1") -Channel $LlvmChannel -MSBuildPath $msbuildDir
+$clangToolchainStatePath = Join-Path (Split-Path -Parent $scriptPath) "build\ebpf-clang-toolchain.props"
+$clangToolchainState = [xml](Get-Content -Path $clangToolchainStatePath -Raw)
+$clangToolchainStateNamespaceManager = New-Object System.Xml.XmlNamespaceManager($clangToolchainState.NameTable)
+$clangToolchainStateNamespaceManager.AddNamespace("m", "http://schemas.microsoft.com/developer/msbuild/2003")
+$resolvedLlvmChannelNode = $clangToolchainState.SelectSingleNode(
+    "/m:Project/m:PropertyGroup/m:EbpfConfiguredClangChannel", $clangToolchainStateNamespaceManager)
+if (-not $resolvedLlvmChannelNode -or $resolvedLlvmChannelNode.InnerText -notin @("Public", "Internal")) {
+    throw "The Clang toolchain configuration did not persist a resolved channel."
+}
+$resolvedLlvmChannel = $resolvedLlvmChannelNode.InnerText
+Write-Host "Using LLVM channel: $resolvedLlvmChannel"
 
 $hostArchitecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
 if (!$SkipHostToolBootstrap -and $Architecture -ieq "ARM64" -and $hostArchitecture -ieq "x64") {
     Write-Host "Bootstrapping x64 bpf2c host tools before configuring the ARM64 target."
     Remove-ArchitectureSpecificBuildDirectories
-    & $PSCommandPath -Architecture x64 -VisualStudioVersion $VisualStudioVersion -LlvmChannel $LlvmChannel -SkipHostToolBootstrap
+    & $PSCommandPath -Architecture x64 -VisualStudioVersion $VisualStudioVersion -LlvmChannel $resolvedLlvmChannel -SkipHostToolBootstrap
     if (!$?) {
         throw "Failed to initialize x64 host dependencies."
     }

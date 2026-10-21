@@ -3,13 +3,14 @@
 
 [CmdletBinding()]
 param (
-    [parameter(Mandatory = $true)][ValidateSet("Public", "Internal")][string] $Channel,
+    [parameter(Mandatory = $true)][ValidateSet("Auto", "Public", "Internal")][string] $Channel,
     [parameter(Mandatory = $false)][string] $MSBuildPath
 )
 
 $ErrorActionPreference = "Stop"
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $manifestPath = Join-Path $PSScriptRoot "clang-toolchain.props"
+$generatedPropertiesPath = Join-Path $repositoryRoot "build\ebpf-clang-toolchain.props"
 $manifest = [xml](Get-Content -Path $manifestPath -Raw)
 $namespaceManager = New-Object System.Xml.XmlNamespaceManager($manifest.NameTable)
 $namespaceManager.AddNamespace("m", "http://schemas.microsoft.com/developer/msbuild/2003")
@@ -23,6 +24,126 @@ function Get-ManifestValue {
     }
 
     return $node.InnerText
+}
+
+function Get-PersistedClangChannel {
+    if (-not (Test-Path $generatedPropertiesPath)) {
+        return $null
+    }
+
+    try {
+        $state = [xml](Get-Content -Path $generatedPropertiesPath -Raw)
+        $stateNamespaceManager = New-Object System.Xml.XmlNamespaceManager($state.NameTable)
+        $stateNamespaceManager.AddNamespace("m", "http://schemas.microsoft.com/developer/msbuild/2003")
+        $schemaNode = $state.SelectSingleNode(
+            "/m:Project/m:PropertyGroup/m:EbpfConfiguredClangStateSchemaVersion", $stateNamespaceManager)
+        $channelNode =
+            $state.SelectSingleNode("/m:Project/m:PropertyGroup/m:EbpfConfiguredClangChannel", $stateNamespaceManager)
+        if ($schemaNode -and
+            $schemaNode.InnerText -eq (Get-ManifestValue "EbpfClangToolchainStateSchemaVersion") -and
+            $channelNode -and
+            $channelNode.InnerText -in @("Public", "Internal")) {
+            return $channelNode.InnerText
+        }
+
+        Write-Warning "Ignoring stale or unrecognized persisted Clang toolchain state at '$generatedPropertiesPath'."
+    }
+    catch {
+        Write-Warning "Ignoring unreadable persisted Clang toolchain state at '$generatedPropertiesPath': $_"
+    }
+
+    return $null
+}
+
+function Get-InternalNuGetSource {
+    $configPath = Join-Path $PSScriptRoot "onebranch\Nuget.config"
+    $config = [xml](Get-Content -Path $configPath -Raw)
+    $sourceNode =
+        @($config.configuration.packageSources.add) |
+            Where-Object { $_.key -eq "undock_PublicPackages" } |
+            Select-Object -First 1
+    if (-not $sourceNode -or [string]::IsNullOrWhiteSpace($sourceNode.value)) {
+        throw "The Internal Clang package source is missing from '$configPath'."
+    }
+
+    return $sourceNode.value
+}
+
+function Normalize-NuGetSource {
+    param([string] $Source)
+
+    $sourceValue = $Source.Trim().TrimEnd([char[]]"/\")
+    $sourceUri = $null
+    if ([System.Uri]::TryCreate($sourceValue, [System.UriKind]::Absolute, [ref]$sourceUri) -and
+        ($sourceUri.Scheme -eq "http" -or $sourceUri.Scheme -eq "https")) {
+        return $sourceUri.AbsoluteUri.TrimEnd("/").ToLowerInvariant()
+    }
+
+    return $sourceValue.ToLowerInvariant()
+}
+
+function Get-EnabledNuGetSources {
+    $nuget = Get-Command nuget -ErrorAction Stop
+    $currentLocation = Get-Location
+    try {
+        Set-Location $repositoryRoot
+        $sourceOutput = @(& $nuget.Source sources list -Format Short -NonInteractive 2>&1)
+        $sourceExitCode = $LASTEXITCODE
+    }
+    finally {
+        Set-Location $currentLocation
+    }
+    if ($sourceExitCode -ne 0) {
+        throw "NuGet could not list the effective package sources. Output: $($sourceOutput -join ' ')"
+    }
+
+    $enabledSources = [System.Collections.Generic.List[string]]::new()
+    foreach ($line in $sourceOutput) {
+        $match = [regex]::Match([string]$line, '^\s*E\S*\s+(?<source>.+?)\s*$')
+        if ($match.Success) {
+            $enabledSources.Add((Normalize-NuGetSource $match.Groups["source"].Value))
+        }
+    }
+
+    return $enabledSources
+}
+
+function Resolve-ClangChannel {
+    param([string] $RequestedChannel)
+
+    if ($RequestedChannel -ne "Auto") {
+        return [pscustomobject]@{
+            Channel = $RequestedChannel
+            Reason = "explicitly requested"
+        }
+    }
+
+    $persistedChannel = Get-PersistedClangChannel
+    if ($persistedChannel) {
+        return [pscustomobject]@{
+            Channel = $persistedChannel
+            Reason = "reusing the persisted $persistedChannel selection for this worktree"
+        }
+    }
+
+    try {
+        $internalSource = Normalize-NuGetSource (Get-InternalNuGetSource)
+        $enabledSources = @(Get-EnabledNuGetSources)
+        if ($enabledSources -contains $internalSource) {
+            return [pscustomobject]@{
+                Channel = "Internal"
+                Reason = "the configured Internal package source is enabled"
+            }
+        }
+    }
+    catch {
+        Write-Warning "Unable to inspect effective NuGet package sources while resolving the Clang channel: $_"
+    }
+
+    return [pscustomobject]@{
+        Channel = "Public"
+        Reason = "no persisted selection or enabled Internal package source was found"
+    }
 }
 
 function Get-ClangVersion {
@@ -180,6 +301,11 @@ $publicVersion = Get-ManifestValue "EbpfPublicClangVersion"
 $internalVersion = Get-ManifestValue "EbpfInternalClangVersion"
 $internalPackageRevision = Get-ManifestValue "EbpfInternalClangPackageRevision"
 $internalPackageVersion = "$internalVersion-$internalPackageRevision"
+$requestedChannel = $Channel
+$channelResolution = Resolve-ClangChannel -RequestedChannel $requestedChannel
+$Channel = $channelResolution.Channel
+Write-Host "Requested Clang channel: $requestedChannel"
+Write-Host "Resolved Clang channel: $Channel ($($channelResolution.Reason))."
 $compilerPath = ""
 $resourceDirectory = ""
 $packageVersion = ""
@@ -246,7 +372,6 @@ if ($Channel -eq "Internal") {
 
 Test-ClangToolchain -CompilerPath $compilerPath -ResourceDirectory $resourceDirectory -ExpectedVersion $expectedVersion
 
-$generatedPropertiesPath = Join-Path $repositoryRoot "build\ebpf-clang-toolchain.props"
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $generatedPropertiesPath) | Out-Null
 $generatedProperties = [ordered]@{
     EbpfConfiguredClangStateSchemaVersion = $stateSchemaVersion

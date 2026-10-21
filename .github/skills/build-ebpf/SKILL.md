@@ -290,6 +290,9 @@ After cloning, changing submodule pointers, or resetting submodules, run the ini
 # From solution root — initializes submodules, generates cmake projects, restores NuGet
 .\scripts\initialize_ebpf_repo.ps1
 
+# Force the pinned Public Clang toolchain instead of the default Auto selection
+.\scripts\initialize_ebpf_repo.ps1 -LlvmChannel Public
+
 # Or with ARM64
 .\scripts\initialize_ebpf_repo.ps1 -Architecture ARM64
 
