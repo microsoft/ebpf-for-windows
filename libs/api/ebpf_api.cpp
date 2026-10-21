@@ -4276,7 +4276,7 @@ Done:
  * @retval EBPF_OBJECT_NOT_FOUND No native module exists with that module ID.
  * @retval EBPF_OBJECT_ALREADY_EXISTS Native module for this module ID is already
  *  loaded.
- * @retval EBPF_ARITHMETIC_OVERFLOW An arithmetic overflow has occurred.
+ * @retval EBPF_ARITHMETIC_OVERFLOW A size calculation overflowed or the reply exceeds the protocol's 16-bit limit.
  * @retval EBPF_INVALID_ARGUMENT The pin root path is invalid or too long.
  * @retval EBPF_FAILED The returned map or program count does not match the expected count.
  */
@@ -4309,6 +4309,7 @@ _load_native_programs(
     uint32_t reuse_status_marker = 0;
     size_t pin_root_path_size = pin_root_path ? strlen(pin_root_path) : 0;
     size_t request_size = 0;
+    uint16_t reply_size = 0;
 
     if (pin_root_path_size >= EBPF_MAX_PIN_PATH_LENGTH) {
         result = EBPF_INVALID_ARGUMENT;
@@ -4349,6 +4350,10 @@ _load_native_programs(
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
+    result = ebpf_safe_size_t_to_uint16(buffer_size, &reply_size);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
 
     if (count_of_maps > 0) {
         *map_handles = (ebpf_handle_t*)ebpf_allocate_with_tag(map_handles_size, EBPF_POOL_TAG_DEFAULT);
@@ -4375,7 +4380,7 @@ _load_native_programs(
     }
 
     request_buffer.resize(request_size);
-    reply_buffer.resize(buffer_size);
+    reply_buffer.resize(reply_size);
     if (map_reused != nullptr) {
         map_reused->resize(count_of_maps);
     }
