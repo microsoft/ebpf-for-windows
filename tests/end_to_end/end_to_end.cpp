@@ -2921,8 +2921,9 @@ TEST_CASE("native custom-root pin rollback", "[end_to_end][native]")
     // Kernel loading creates outer_map and reuses port_map; explicit inner-map pinning then collides.
     REQUIRE(bpf_map__set_pin_path(inner_map, port_path) == 0);
     REQUIRE(bpf_object__load(object.get()) == -EEXIST);
-    REQUIRE(bpf_obj_get(outer_path) < 0);
-    REQUIRE(errno == ENOENT);
+    fd_t outer_fd = bpf_obj_get(outer_path);
+    REQUIRE(outer_fd > 0);
+    Platform::_close(outer_fd);
     REQUIRE(bpf_obj_get("/ebpf/global/outer_map") < 0);
     REQUIRE(bpf_obj_get("/ebpf/global/port_map") < 0);
 
@@ -2933,6 +2934,7 @@ TEST_CASE("native custom-root pin rollback", "[end_to_end][native]")
     REQUIRE(bpf_obj_get_info_by_fd(pinned_fd, &pinned_info, &info_size) == 0);
     REQUIRE(pinned_info.id == existing_info.id);
     Platform::_close(pinned_fd);
+    REQUIRE(ebpf_object_unpin(outer_path) == EBPF_SUCCESS);
     REQUIRE(bpf_map__unpin(existing_port, nullptr) == 0);
 }
 

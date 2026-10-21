@@ -4002,18 +4002,18 @@ TEST_CASE("bpf_object__load with native automatic pin path rollback", "[libbpf]"
         Platform::_close(pinned_fd);
     };
 
-    check_pin(existing_outer->pin_path, bpf_map__fd(existing_outer), reuse_outer || legacy_reply != 0, reuse_outer);
-    check_pin(existing_port->pin_path, bpf_map__fd(existing_port), reuse_port || legacy_reply != 0, reuse_port);
+    check_pin(existing_outer->pin_path, bpf_map__fd(existing_outer), true, reuse_outer);
+    check_pin(existing_port->pin_path, bpf_map__fd(existing_port), true, reuse_port);
     check_pin(explicit_path, collision_fd, true, true);
 
     if (reuse_outer) {
         REQUIRE(bpf_map__unpin(existing_outer, nullptr) == 0);
-    } else if (legacy_reply != 0) {
+    } else {
         REQUIRE(ebpf_object_unpin(existing_outer->pin_path) == EBPF_SUCCESS);
     }
     if (reuse_port) {
         REQUIRE(bpf_map__unpin(existing_port, nullptr) == 0);
-    } else if (legacy_reply != 0) {
+    } else {
         REQUIRE(ebpf_object_unpin(existing_port->pin_path) == EBPF_SUCCESS);
     }
     REQUIRE(ebpf_object_unpin(explicit_path) == EBPF_SUCCESS);

@@ -178,14 +178,18 @@ For maps without `LIBBPF_PIN_BY_NAME`, a per-map path set before loading is
 supported in all execution modes. Native maps are pinned at that path by
 `ebpfapi.dll` after kernel map creation, just as JIT and interpreted maps are
 pinned in user mode. Setting the path after loading does not itself pin the
-map; call `bpf_map__pin()` to pin it explicitly. If native loading fails,
-any pins newly created by that load, including automatic pins created in
-the kernel, are removed. Pre-existing pins reused by the load are preserved.
+map; call `bpf_map__pin()` to pin it explicitly. If user-mode initialization
+fails after kernel native loading succeeds, newly created explicit per-map
+pins are removed, but automatic pins are preserved. Another load may have
+reused an automatic pin after the kernel published it, so the API cannot
+safely remove it based on which load originally created it. This can leave
+new automatic pins after a failed load; remove them explicitly when no
+longer needed. Pre-existing pins reused by the load are preserved.
 
 Native-load IOCTL replies retain the handle-only layout for older clients.
 Clients that allocate space for the optional reuse-status tail receive one
-byte per map identifying which maps were reused, enabling rollback without
-removing pre-existing pins.
+byte per map identifying which maps were reused. This is a snapshot of reuse
+during kernel loading, not exclusive ownership of the published pins.
 An explicit marker following these bytes confirms that the driver provided
 reuse status. With older drivers that omit the marker, the API preserves
 automatic pins on load failure because it cannot safely determine ownership.

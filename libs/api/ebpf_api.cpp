@@ -2838,7 +2838,8 @@ _initialize_ebpf_object_native(
 Exit:
     if (result != EBPF_SUCCESS) {
         for (auto* map : object.maps) {
-            if (map->pinned && (map->map_definition.pinning != LIBBPF_PIN_BY_NAME || !map->reused)) {
+            // Another load may have reused automatic pins after the kernel published them.
+            if (map->pinned && map->map_definition.pinning != LIBBPF_PIN_BY_NAME) {
                 // Initialization can fail before this map has a user-mode fd.
                 ebpf_assert_success(ebpf_object_unpin(map->pin_path));
             }
