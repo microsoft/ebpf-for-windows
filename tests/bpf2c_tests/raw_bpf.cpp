@@ -429,6 +429,19 @@ DECLARE_TEST("subnet")
 // Test doesn't support unload directive.
 // DECLARE_TEST("unload_reload")
 
+TEST_CASE("SDK version macros", "[raw_bpf_code_gen]")
+{
+    bpf_code_generator code("test", {{EBPF_OP_MOV64_IMM, 0, 0, 0, 0}, {EBPF_OP_EXIT, 0, 0, 0, 0}});
+    std::ostringstream output;
+    code.emit_c_code(output);
+    const auto generated_code = output.str();
+
+    REQUIRE(generated_code.find("#include \"ebpf_version.h\"") != std::string::npos);
+    REQUIRE(generated_code.find("version->major = EBPF_VERSION_MAJOR;") != std::string::npos);
+    REQUIRE(generated_code.find("version->minor = EBPF_VERSION_MINOR;") != std::string::npos);
+    REQUIRE(generated_code.find("version->revision = EBPF_VERSION_REVISION;") != std::string::npos);
+}
+
 void
 verify_invalid_opcode_sequence(const std::vector<ebpf_inst>& instructions, const std::string& error)
 {

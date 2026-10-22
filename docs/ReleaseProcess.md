@@ -101,8 +101,12 @@ version.
 
 ## Updating the Product Version
 
-1. Run `.\scripts\update-product-version.ps1` from the root directory of the repository, from a "*Developer Powershell for VS"* terminal.
+1. Run `.\scripts\update-product-version.ps1` from the root directory of the repository in PowerShell.
    The script takes as input parameters the major, minor, patch versions and *optionally* the version modifier.
+   It updates [version.json](../version.json), [Directory.Build.props](../Directory.Build.props), and the public SDK header
+   [include/ebpf_version.h](../include/ebpf_version.h).
+   Generated bpf2c sources use the version macros from this header when compiled, so version-only updates do not
+   require rebuilding the solution or regenerating the expected bpf2c output.
 
    Examples:
     ```ps
@@ -123,12 +127,8 @@ version.
     PS D:\work\ebpf-for-windows> .\scripts\update-product-version.ps1 0 12 0
     Updating the version number in the 'E:\ebpf-for-windows\scripts\..\Directory.Build.props' file...
     Version number updated to '0.12.0' in E:\ebpf-for-windows\scripts\..\Directory.Build.props
-    Rebuilding the solution, please wait...
-    Regenerating the expected 'bpf2c' output...
-    ...
-    ...
-    Expected 'bpf2c' output regenerated.
-    Please verify all the changes then submit the pull-request into the 'release/0.12' branch.
+    Updating the version number in the 'E:\ebpf-for-windows\scripts\..\include\ebpf_version.h' file...
+    Version number updated to '0.12.0' in E:\ebpf-for-windows\scripts\..\include\ebpf_version.h
     ```
 
 1. Verify all the changes then commit all in the working branch.
