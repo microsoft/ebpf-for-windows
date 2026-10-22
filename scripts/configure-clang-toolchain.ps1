@@ -55,6 +55,41 @@ function Get-PersistedClangChannel {
     return $null
 }
 
+function Get-PersistedPublicClangPath {
+    if (-not (Test-Path $generatedPropertiesPath)) {
+        return $null
+    }
+
+    try {
+        $state = [xml](Get-Content -Path $generatedPropertiesPath -Raw)
+        $stateNamespaceManager = New-Object System.Xml.XmlNamespaceManager($state.NameTable)
+        $stateNamespaceManager.AddNamespace("m", "http://schemas.microsoft.com/developer/msbuild/2003")
+        $schemaNode = $state.SelectSingleNode(
+            "/m:Project/m:PropertyGroup/m:EbpfConfiguredClangStateSchemaVersion", $stateNamespaceManager)
+        $channelNode =
+            $state.SelectSingleNode("/m:Project/m:PropertyGroup/m:EbpfConfiguredClangChannel", $stateNamespaceManager)
+        $versionNode =
+            $state.SelectSingleNode("/m:Project/m:PropertyGroup/m:EbpfConfiguredClangVersion", $stateNamespaceManager)
+        $pathNode =
+            $state.SelectSingleNode("/m:Project/m:PropertyGroup/m:EbpfConfiguredClangPath", $stateNamespaceManager)
+        if ($schemaNode -and
+            $schemaNode.InnerText -eq (Get-ManifestValue "EbpfClangToolchainStateSchemaVersion") -and
+            $channelNode -and
+            $channelNode.InnerText -eq "Public" -and
+            $versionNode -and
+            $versionNode.InnerText -eq (Get-ManifestValue "EbpfPublicClangVersion") -and
+            $pathNode -and
+            (Test-Path $pathNode.InnerText)) {
+            return $pathNode.InnerText
+        }
+    }
+    catch {
+        Write-Warning "Unable to reuse the persisted Public Clang path from '$generatedPropertiesPath': $_"
+    }
+
+    return $null
+}
+
 function Get-InternalNuGetSource {
     $configPath = Join-Path $PSScriptRoot "onebranch\Nuget.config"
     $config = [xml](Get-Content -Path $configPath -Raw)
@@ -319,6 +354,10 @@ if ($Channel -eq "Internal") {
     $expectedVersion = $internalVersion
 } else {
     $candidatePaths = [System.Collections.Generic.List[string]]::new()
+    $persistedPublicCompiler = Get-PersistedPublicClangPath
+    if ($persistedPublicCompiler) {
+        $candidatePaths.Add($persistedPublicCompiler)
+    }
     $programFilesCompiler = Join-Path $env:ProgramFiles "LLVM\bin\clang.exe"
     if (Test-Path $programFilesCompiler) {
         $candidatePaths.Add($programFilesCompiler)

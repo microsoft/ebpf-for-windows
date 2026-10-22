@@ -249,6 +249,10 @@ If bpf2c output changes and `tests\bpf2c_tests` expected files must be updated:
 .\scripts\generate_expected_bpf2c_output.ps1 x64\Debug
 ```
 
+The regeneration script always uses the pinned Public Clang toolchain. It automatically provisions
+the official portable compiler and resource headers in the shared user tool cache when necessary,
+then restores the worktree's previous Clang channel.
+
 ## Dependency Chain
 
 When building specific components, be aware of the dependency order:

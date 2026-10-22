@@ -9,6 +9,10 @@
 # .\scripts\generate_expected_bpf2c_output.ps1 <build_output_path>
 # Example:
 # .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
+#
+# Expected output is always generated with the pinned Public Clang toolchain. If an exact local
+# installation is unavailable, the compiler and resource headers are provisioned once in the
+# user-level eBPF for Windows tool cache. The worktree's previous Clang channel is restored afterward.
 
 $ErrorActionPreference = "Stop"
 
@@ -179,8 +183,10 @@ if (-not [System.String]::Equals(
 }
 
 $toolchainPropertiesPath = Join-Path $repositoryRoot "build\ebpf-clang-toolchain.props"
-if (-not (Test-Path $toolchainPropertiesPath)) {
-    throw "The BPF Clang toolchain is not configured. Run .\scripts\initialize_ebpf_repo.ps1 before regenerating expected output."
+$previousToolchainState = if (Test-Path $toolchainPropertiesPath) {
+    Get-Content -Path $toolchainPropertiesPath -Raw
+} else {
+    $null
 }
 
 function Get-XmlProperty {
@@ -198,30 +204,57 @@ function Get-XmlProperty {
     return $node.InnerText
 }
 
-[xml]$toolchainProperties = Get-Content -Path $toolchainPropertiesPath -Raw
 [xml]$manifest = Get-Content -Path (Join-Path $PSScriptRoot "clang-toolchain.props") -Raw
-$channel = Get-XmlProperty -Document $toolchainProperties -Name "EbpfConfiguredClangChannel"
-$version = Get-XmlProperty -Document $toolchainProperties -Name "EbpfConfiguredClangVersion"
-$resourceDirectory = Get-XmlProperty -Document $toolchainProperties -Name "EbpfConfiguredClangResourceDir"
 $publicVersion = Get-XmlProperty -Document $manifest -Name "EbpfPublicClangVersion"
-if ($channel -ne "Public" -or $version -ne $publicVersion) {
-    throw "Expected bpf2c outputs must be generated with Public Clang $publicVersion; the configured toolchain is $channel Clang $version."
-}
-if (-not (Test-Path (Join-Path $resourceDirectory "include\stdint.h"))) {
-    throw "The configured Public Clang resource headers are missing. Run repository initialization again."
-}
 
-$hostPlatform = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
+$hostPlatform = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant()
 $currentLocation = Get-Location
+$previousPath = $env:Path
 try {
+    try {
+        & (Join-Path $PSScriptRoot "configure-clang-toolchain.ps1") -Channel Public
+    }
+    catch {
+        Write-Host "No existing Public Clang $publicVersion installation was usable; provisioning the repository-managed portable toolchain."
+        $publicClang = & (Join-Path $PSScriptRoot "get-public-clang.ps1")
+        $env:Path = "$(Split-Path -Parent $publicClang.CompilerPath);$previousPath"
+        & (Join-Path $PSScriptRoot "configure-clang-toolchain.ps1") -Channel Public
+    }
+
+    [xml]$toolchainProperties = Get-Content -Path $toolchainPropertiesPath -Raw
+    $channel = Get-XmlProperty -Document $toolchainProperties -Name "EbpfConfiguredClangChannel"
+    $version = Get-XmlProperty -Document $toolchainProperties -Name "EbpfConfiguredClangVersion"
+    $resourceDirectory = Get-XmlProperty -Document $toolchainProperties -Name "EbpfConfiguredClangResourceDir"
+    if ($channel -ne "Public" -or $version -ne $publicVersion) {
+        throw "Expected bpf2c outputs must be generated with Public Clang $publicVersion; the configured toolchain is $channel Clang $version."
+    }
+    if (-not (Test-Path (Join-Path $resourceDirectory "include\stdint.h"))) {
+        throw "The configured Public Clang resource headers are missing."
+    }
+
     Set-Location $repositoryRoot
     & msbuild ebpf-for-windows.sln /m /t:tests\sample "/p:Configuration=$configuration" "/p:Platform=$platform" "/p:HostPlatform=$hostPlatform"
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to rebuild BPF sample objects with Public Clang $publicVersion."
     }
+
+    Update-ExpectedOutput $resolvedBuildPath
 }
 finally {
+    $env:Path = $previousPath
     Set-Location $currentLocation
+    if ($null -ne $previousToolchainState) {
+        $currentToolchainState = Get-Content -Path $toolchainPropertiesPath -Raw
+        if ($currentToolchainState -ne $previousToolchainState) {
+            $temporaryToolchainStatePath =
+                "{0}.{1}.tmp" -f $toolchainPropertiesPath, [guid]::NewGuid().ToString("N")
+            try {
+                Set-Content -Path $temporaryToolchainStatePath -Value $previousToolchainState -NoNewline -Encoding utf8
+                Move-Item -LiteralPath $temporaryToolchainStatePath -Destination $toolchainPropertiesPath -Force
+            }
+            finally {
+                Remove-Item -LiteralPath $temporaryToolchainStatePath -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
 }
-
-Update-ExpectedOutput $resolvedBuildPath

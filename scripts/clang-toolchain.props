@@ -8,6 +8,10 @@
     <EbpfClangToolchainStateSchemaVersion>1</EbpfClangToolchainStateSchemaVersion>
     <EbpfPublicClangVersion>18.1.8</EbpfPublicClangVersion>
     <EbpfPublicClangInstallerSha256>94af030060d88cc17e9f00ef1663ebdc1126b35e16bebdfa1e807984b70abd8f</EbpfPublicClangInstallerSha256>
+    <EbpfPublicClangPortableArchiveName>clang+llvm-{version}-x86_64-pc-windows-msvc.tar.xz</EbpfPublicClangPortableArchiveName>
+    <EbpfPublicClangPortableArchiveRoot>clang+llvm-{version}-x86_64-pc-windows-msvc</EbpfPublicClangPortableArchiveRoot>
+    <EbpfPublicClangPortableArchiveUrl>https://github.com/llvm/llvm-project/releases/download/llvmorg-{version}/clang%2Bllvm-{version}-x86_64-pc-windows-msvc.tar.xz</EbpfPublicClangPortableArchiveUrl>
+    <EbpfPublicClangPortableArchiveSha256>22c5907db053026cc2a8ff96d21c0f642a90d24d66c23c6d28ee7b1d572b82e8</EbpfPublicClangPortableArchiveSha256>
     <EbpfInternalClangVersion>19.1.4</EbpfInternalClangVersion>
     <EbpfInternalClangPackageRevision>34</EbpfInternalClangPackageRevision>
     <EbpfInternalClangPackageVersion>$(EbpfInternalClangVersion)-$(EbpfInternalClangPackageRevision)</EbpfInternalClangPackageVersion>
