@@ -3668,6 +3668,7 @@ _test_load_with_default_pin_root_path(ebpf_execution_type_t execution_type)
     const char* file_name = execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_um.dll" : "map_reuse.o";
     struct bpf_object_open_opts opts = {};
     opts.pin_root_path = GENERATE(static_cast<const char*>(nullptr), "");
+    const bool null_options = GENERATE(false, true);
     bpf_object_ptr object;
     const bool from_memory = execution_type != EBPF_EXECUTION_NATIVE && GENERATE(false, true);
     if (from_memory) {
@@ -3679,9 +3680,9 @@ _test_load_with_default_pin_root_path(ebpf_execution_type_t execution_type)
         file.seekg(0, std::ios::beg);
         file.read(reinterpret_cast<char*>(data.data()), static_cast<std::streamsize>(data.size()));
         REQUIRE(file.good());
-        object.reset(bpf_object__open_mem(data.data(), data.size(), &opts));
+        object.reset(bpf_object__open_mem(data.data(), data.size(), null_options ? nullptr : &opts));
     } else {
-        object.reset(bpf_object__open_file(file_name, &opts));
+        object.reset(bpf_object__open_file(file_name, null_options ? nullptr : &opts));
     }
     REQUIRE(object != nullptr);
     REQUIRE(object->pin_root_path == nullptr);
