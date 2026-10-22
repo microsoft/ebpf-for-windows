@@ -3907,7 +3907,6 @@ TEST_CASE("bpf_object__load with native automatic pin path rollback", "[libbpf]"
 
     const bool reuse_outer = GENERATE(false, true);
     const bool reuse_port = GENERATE(false, true);
-    const size_t legacy_reply = GENERATE(size_t{0}, size_t{1}, size_t{2});
     struct bpf_object_open_opts opts = {};
     opts.pin_root_path = "/custompath/native_rollback";
     bpf_object_ptr existing_object(bpf_object__open_file("map_reuse_um.dll", &opts));
@@ -3936,38 +3935,6 @@ TEST_CASE("bpf_object__load with native automatic pin path rollback", "[libbpf]"
     REQUIRE(inner != nullptr);
     REQUIRE(bpf_map__set_pin_path(inner, explicit_path) == 0);
 
-    auto original_handler = device_io_control_handler;
-    auto restore_handler = std::unique_ptr<void, std::function<void(void*)>>(
-        &original_handler, [&](void*) { device_io_control_handler.swap(original_handler); });
-    if (legacy_reply != 0) {
-        device_io_control_handler = [original_handler, legacy_reply](
-                                        HANDLE device,
-                                        DWORD code,
-                                        void* input,
-                                        DWORD input_size,
-                                        void* output,
-                                        DWORD output_size,
-                                        DWORD* bytes_returned,
-                                        OVERLAPPED* overlapped) -> BOOL {
-            auto* request = static_cast<ebpf_operation_header_t*>(input);
-            const bool native_load = input_size >= sizeof(ebpf_operation_header_t) && request != nullptr &&
-                                     request->id == EBPF_OPERATION_LOAD_NATIVE_PROGRAMS;
-            BOOL success =
-                original_handler(device, code, input, input_size, output, output_size, bytes_returned, overlapped);
-            if (success && native_load) {
-                auto* reply = static_cast<ebpf_operation_load_native_programs_reply_t*>(output);
-                size_t legacy_size = offsetof(ebpf_operation_load_native_programs_reply_t, data) +
-                                     (reply->map_handle_count + reply->program_handle_count) * sizeof(ebpf_handle_t);
-                if (legacy_reply == 2) {
-                    legacy_size += reply->map_handle_count;
-                }
-                memset(static_cast<uint8_t*>(output) + legacy_size, 0, output_size - legacy_size);
-                *bytes_returned = static_cast<DWORD>(legacy_size);
-            }
-            return success;
-        };
-    }
-
     SECTION("per-map pinning fails") { REQUIRE(bpf_object__load(object.get()) == -EEXIST); }
 
     SECTION("program initialization fails before map initialization")
@@ -3978,7 +3945,6 @@ TEST_CASE("bpf_object__load with native automatic pin path rollback", "[libbpf]"
         saved_programs.swap(object->programs);
         REQUIRE(result == -EINVAL);
     }
-    restore_handler.reset();
 
     auto check_pin = [](const char* path, fd_t original_fd, bool expected, bool reused) {
         fd_t pinned_fd = bpf_obj_get(path);
@@ -4018,6 +3984,57 @@ TEST_CASE("bpf_object__load with native automatic pin path rollback", "[libbpf]"
     }
     REQUIRE(ebpf_object_unpin(explicit_path) == EBPF_SUCCESS);
     Platform::_close(collision_fd);
+}
+
+TEST_CASE("native handle-only reply size limit", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    const size_t map_count = GENERATE(size_t{4}, size_t{5});
+    const size_t program_count = 8184;
+    const size_t reply_size = offsetof(ebpf_operation_load_native_programs_reply_t, data) +
+                              (map_count + program_count) * sizeof(ebpf_handle_t);
+    REQUIRE(reply_size + map_count + sizeof(uint32_t) > UINT16_MAX);
+
+    bool programs_requested = false;
+    auto original_handler = device_io_control_handler;
+    auto restore_handler = std::unique_ptr<void, std::function<void(void*)>>(
+        &original_handler, [&](void*) { device_io_control_handler.swap(original_handler); });
+    device_io_control_handler = [&](HANDLE device,
+                                    DWORD code,
+                                    void* input,
+                                    DWORD input_size,
+                                    void* output,
+                                    DWORD output_size,
+                                    DWORD* bytes_returned,
+                                    OVERLAPPED* overlapped) -> BOOL {
+        auto* request = static_cast<ebpf_operation_header_t*>(input);
+        if (input != nullptr && input_size >= sizeof(*request) && request->id == EBPF_OPERATION_LOAD_NATIVE_PROGRAMS) {
+            programs_requested = true;
+            REQUIRE(output_size == reply_size);
+            SetLastError(ERROR_ACCESS_DENIED);
+            return FALSE;
+        }
+        BOOL success =
+            original_handler(device, code, input, input_size, output, output_size, bytes_returned, overlapped);
+        if (success && input != nullptr && input_size >= sizeof(*request) &&
+            request->id == EBPF_OPERATION_LOAD_NATIVE_MODULE) {
+            auto* reply = static_cast<ebpf_operation_load_native_module_reply_t*>(output);
+            reply->count_of_maps = map_count;
+            reply->count_of_programs = program_count;
+        }
+        return success;
+    };
+
+    size_t maps = map_count;
+    size_t programs = program_count;
+    std::vector<fd_t> map_fds(maps);
+    std::vector<fd_t> program_fds(programs);
+    REQUIRE(
+        ebpf_object_load_native_by_fds("droppacket_um.dll", &maps, map_fds.data(), &programs, program_fds.data()) ==
+        (reply_size <= UINT16_MAX ? EBPF_ACCESS_DENIED : EBPF_ARITHMETIC_OVERFLOW));
+    REQUIRE(programs_requested == (reply_size <= UINT16_MAX));
 }
 
 // Test bpf() with the following command ids:

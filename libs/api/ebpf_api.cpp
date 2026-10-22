@@ -2763,7 +2763,6 @@ _initialize_ebpf_object_native(
     ebpf_handle_t native_module_handle,
     size_t count_of_maps,
     _In_reads_opt_(count_of_maps) ebpf_handle_t* map_handles,
-    _In_ const std::vector<uint8_t>& map_reused,
     size_t count_of_programs,
     _In_reads_opt_(count_of_programs) ebpf_handle_t* program_handles,
     _Inout_ ebpf_object_t& object) NO_EXCEPT_TRY
@@ -2775,9 +2774,7 @@ _initialize_ebpf_object_native(
     ebpf_assert(count_of_programs == 0 || program_handles);
 
     ebpf_assert(count_of_maps == object.maps.size());
-    ebpf_assert(count_of_maps == map_reused.size());
     for (size_t i = 0; i < count_of_maps; i++) {
-        object.maps[i]->reused = map_reused[i] != 0;
         object.maps[i]->pinned = object.maps[i]->map_definition.pinning == LIBBPF_PIN_BY_NAME;
     }
 
@@ -4267,9 +4264,6 @@ Done:
  * @param[out] map_handles Array of size count_of_maps which contains the map handles.
  * @param[in] count_of_programs Count of programs present in the native module.
  * @param[out] program_handles Array of size count_of_programs which contains the program handles.
- * @param[out] map_reused Optional vector receiving one byte per map (0 = created, 1 = reused).
- *  If the driver does not provide the reuse-status marker, all entries are set to 1 so that
- *  automatic pins are preserved on subsequent initialization failure.
  *
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_NO_MEMORY Unable to allocate resources for this
@@ -4288,8 +4282,7 @@ _load_native_programs(
     size_t count_of_maps,
     _Outptr_result_buffer_maybenull_(count_of_maps) ebpf_handle_t** map_handles,
     size_t count_of_programs,
-    _Outptr_result_buffer_maybenull_(count_of_programs) ebpf_handle_t** program_handles,
-    _Out_opt_ std::vector<uint8_t>* map_reused) noexcept(false)
+    _Outptr_result_buffer_maybenull_(count_of_programs) ebpf_handle_t** program_handles) noexcept(false)
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(module_id);
@@ -4307,7 +4300,6 @@ _load_native_programs(
     size_t program_handles_size = 0;
     size_t handles_size = 0;
     size_t buffer_size = 0;
-    uint32_t reuse_status_marker = 0;
     size_t pin_root_path_size = pin_root_path ? strlen(pin_root_path) : 0;
     size_t request_size = 0;
     uint16_t reply_size = 0;
@@ -4343,14 +4335,6 @@ _load_native_programs(
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
-    result = ebpf_safe_size_t_add(buffer_size, count_of_maps, &buffer_size);
-    if (result != EBPF_SUCCESS) {
-        goto Done;
-    }
-    result = ebpf_safe_size_t_add(buffer_size, sizeof(reuse_status_marker), &buffer_size);
-    if (result != EBPF_SUCCESS) {
-        goto Done;
-    }
     result = ebpf_safe_size_t_to_uint16(buffer_size, &reply_size);
     if (result != EBPF_SUCCESS) {
         goto Done;
@@ -4382,9 +4366,6 @@ _load_native_programs(
 
     request_buffer.resize(request_size);
     reply_buffer.resize(reply_size);
-    if (map_reused != nullptr) {
-        map_reused->resize(count_of_maps);
-    }
 
     request = reinterpret_cast<ebpf_operation_load_native_programs_request_t*>(request_buffer.data());
     reply = reinterpret_cast<ebpf_operation_load_native_programs_reply_t*>(reply_buffer.data());
@@ -4424,21 +4405,6 @@ _load_native_programs(
     if (*program_handles != nullptr) {
         memcpy(*program_handles, reply->data + map_handles_size, program_handles_size);
     }
-    if (map_reused != nullptr && count_of_maps > 0) {
-        memcpy(
-            &reuse_status_marker,
-            reply_buffer.data() + buffer_size - sizeof(reuse_status_marker),
-            sizeof(reuse_status_marker));
-        if (reuse_status_marker == EBPF_NATIVE_MAP_REUSE_STATUS_PRESENT) {
-            memcpy(map_reused->data(), reply->data + handles_size, count_of_maps);
-        } else {
-            EBPF_LOG_MESSAGE(
-                EBPF_TRACELOG_LEVEL_WARNING,
-                EBPF_TRACELOG_KEYWORD_API,
-                "Native map reuse status unavailable; automatic pins will be preserved on load failure");
-            std::fill(map_reused->begin(), map_reused->end(), uint8_t{1});
-        }
-    }
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 
 Done:
@@ -4474,8 +4440,7 @@ _ebpf_object_load_native(
     _Inout_ size_t* count_of_maps,
     _Outptr_result_buffer_all_maybenull_(*count_of_maps) ebpf_handle_t** map_handles,
     _Inout_ size_t* count_of_programs,
-    _Outptr_result_buffer_all_maybenull_(*count_of_programs) ebpf_handle_t** program_handles,
-    _Out_opt_ std::vector<uint8_t>* map_reused = nullptr) NO_EXCEPT_TRY
+    _Outptr_result_buffer_all_maybenull_(*count_of_programs) ebpf_handle_t** program_handles) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
 
@@ -4596,8 +4561,7 @@ _ebpf_object_load_native(
             real_count_of_maps,
             map_handles,
             real_count_of_programs,
-            program_handles,
-            map_reused);
+            program_handles);
         if (result != EBPF_SUCCESS) {
             EBPF_LOG_MESSAGE_STRING(
                 EBPF_TRACELOG_LEVEL_ERROR,
@@ -4732,7 +4696,6 @@ _ebpf_program_load_native(
     ebpf_handle_t* program_handles = nullptr;
     size_t count_of_maps = SIZE_MAX;
     size_t count_of_programs = SIZE_MAX;
-    std::vector<uint8_t> map_reused;
 
     try {
         result = _validate_native_map_pin_paths(*object);
@@ -4747,14 +4710,13 @@ _ebpf_program_load_native(
             &count_of_maps,
             &map_handles,
             &count_of_programs,
-            &program_handles,
-            &map_reused);
+            &program_handles);
         if (result != EBPF_SUCCESS) {
             EBPF_RETURN_RESULT(result);
         }
 
         result = _initialize_ebpf_object_native(
-            native_module_handle, count_of_maps, map_handles, map_reused, count_of_programs, program_handles, *object);
+            native_module_handle, count_of_maps, map_handles, count_of_programs, program_handles, *object);
         if (result != EBPF_SUCCESS) {
             EBPF_LOG_MESSAGE_STRING(
                 EBPF_TRACELOG_LEVEL_ERROR,

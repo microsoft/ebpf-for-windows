@@ -191,5 +191,6 @@ Clients that allocate space for the optional reuse-status tail receive one
 byte per map identifying which maps were reused. This is a snapshot of reuse
 during kernel loading, not exclusive ownership of the published pins.
 An explicit marker following these bytes confirms that the driver provided
-reuse status. With older drivers that omit the marker, the API preserves
-automatic pins on load failure because it cannot safely determine ownership.
+reuse status. The API requests only the required header and handle arrays;
+it does not request or parse reuse status, since automatic pins are preserved
+on user-mode initialization failure regardless of their original reuse status.
