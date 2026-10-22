@@ -249,9 +249,9 @@ If bpf2c output changes and `tests\bpf2c_tests` expected files must be updated:
 .\scripts\generate_expected_bpf2c_output.ps1 x64\Debug
 ```
 
-The regeneration script always uses the pinned Public Clang toolchain. It automatically provisions
-the official portable compiler and resource headers in the shared user tool cache when necessary,
-then restores the worktree's previous Clang channel.
+The regeneration script always uses the pinned Public Clang toolchain. It prefers an exact installed
+compiler and provisions the official compiler and resource headers in the shared user tool cache only
+when necessary, then restores the worktree's previous Clang toolchain state.
 
 ## Dependency Chain
 
@@ -294,8 +294,14 @@ After cloning, changing submodule pointers, or resetting submodules, run the ini
 # From solution root — initializes submodules, generates cmake projects, restores NuGet
 .\scripts\initialize_ebpf_repo.ps1
 
-# Force the pinned Public Clang toolchain instead of the default Auto selection
+# Select the Public channel and require the exact installed compiler without downloading
 .\scripts\initialize_ebpf_repo.ps1 -LlvmChannel Public
+
+# Prefer the exact installed compiler and otherwise use the shared portable cache
+.\scripts\initialize_ebpf_repo.ps1 -LlvmChannel Public -PublicClangSource Auto
+
+# Force the repository-managed portable Public compiler
+.\scripts\initialize_ebpf_repo.ps1 -LlvmChannel Public -PublicClangSource Portable
 
 # Or with ARM64
 .\scripts\initialize_ebpf_repo.ps1 -Architecture ARM64
@@ -308,6 +314,7 @@ This script:
 1. Runs `git submodule update --init --recursive`
 2. Generates cmake projects for ebpf-verifier, Catch2, and ubpf in their respective `build/` dirs
 3. Restores NuGet packages for the solution
+4. Configures the selected Clang channel and acquisition source in `build\ebpf-clang-toolchain.props`
 
 **IMPORTANT:** If cmake-generated project files are missing (e.g., `external/ebpf-verifier/build/prevail.vcxproj`), MSBuild will error with MSB3202. Run `initialize_ebpf_repo.ps1` to regenerate them.
 

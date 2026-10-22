@@ -397,7 +397,8 @@ running the following command from the ```ebpf-for-windows``` project root direc
 .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
 ```
 
-Expected output is always generated with the pinned Public Clang version. If that version is not installed, the first
-invocation downloads the official LLVM portable archive and selectively extracts the compiler and resource headers to
-the user-level eBPF for Windows tool cache. Later invocations and other worktrees reuse that cache. No administrator
-access or PATH changes are required, and an Internal Clang selection is restored after regeneration.
+Expected output is always generated with the pinned Public Clang version. A compatible installed compiler is preferred;
+otherwise, the first invocation downloads the official LLVM portable archive and selectively extracts the compiler and
+resource headers to the user-level eBPF for Windows tool cache. Later invocations and other worktrees reuse that cache.
+No administrator access or PATH changes are required, and the worktree's previous toolchain state is restored after
+regeneration.

@@ -355,7 +355,7 @@ jobs:
           CXXFLAGS: /ZH:SHA_256 ${{env.CXX_FLAGS}}
           LDFLAGS: ${{env.LD_FLAGS}}
         run: |
-          .\scripts\initialize_ebpf_repo.ps1 -Architecture ${{env.BUILD_PLATFORM}} -VisualStudioVersion ${{env.VS_VERSION}} -LlvmChannel Public
+          .\scripts\initialize_ebpf_repo.ps1 -Architecture ${{env.BUILD_PLATFORM}} -VisualStudioVersion ${{env.VS_VERSION}} -LlvmChannel Public -PublicClangSource Installed
 
       - name: Build
         if: steps.skip_check.outputs.should_skip != 'true'

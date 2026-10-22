@@ -515,6 +515,13 @@
            Text="The BPF Clang toolchain state is missing or stale. Run repository initialization again." />
     <Error Condition="'$(EbpfConfiguredClangChannel)' != 'Public' and '$(EbpfConfiguredClangChannel)' != 'Internal'"
            Text="Unknown configured BPF Clang channel '$(EbpfConfiguredClangChannel)'. Run repository initialization again." />
+    <Error Condition="'$(EbpfConfiguredClangChannel)' == 'Public' and
+                      '$(EbpfConfiguredClangSource)' != 'Installed' and
+                      '$(EbpfConfiguredClangSource)' != 'Portable'"
+           Text="The configured Public Clang source is missing or stale. Run repository initialization again." />
+    <Error Condition="'$(EbpfConfiguredClangChannel)' == 'Internal' and
+                      '$(EbpfConfiguredClangSource)' != 'InternalNuGet'"
+           Text="The configured Internal Clang source is missing or stale. Run repository initialization again." />
     <Error Condition="!Exists('$(EbpfConfiguredClangPath)')"
            Text="The configured BPF Clang executable is missing: $(EbpfConfiguredClangPath). Run repository initialization again." />
     <Error Condition="!Exists('$(EbpfConfiguredClangResourceDir)\include\stdint.h')"
@@ -540,8 +547,13 @@
     </PropertyGroup>
     <Error Condition="'$(_EbpfClangVersionExitCode)' != '0' or '$(_EbpfClangVersionMatches)' != 'True'"
            Text="The configured Clang executable no longer reports version $(_EbpfExpectedClangVersion). Run repository initialization again." />
+    <Message
+      Importance="high"
+      Text="Using $(EbpfConfiguredClangChannel)/$(EbpfConfiguredClangSource) Clang $(EbpfConfiguredClangVersion)." />
     <Message Importance="high"
-             Text="Using $(EbpfConfiguredClangChannel) Clang $(EbpfConfiguredClangVersion): $(EbpfConfiguredClangPath) (resource directory: $(EbpfConfiguredClangResourceDir))" />
+             Text="Clang executable: $(EbpfConfiguredClangPath)" />
+    <Message Importance="high"
+             Text="Clang resource directory: $(EbpfConfiguredClangResourceDir)" />
   </Target>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

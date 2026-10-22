@@ -5,7 +5,7 @@
 -->
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
-    <EbpfClangToolchainStateSchemaVersion>1</EbpfClangToolchainStateSchemaVersion>
+    <EbpfClangToolchainStateSchemaVersion>2</EbpfClangToolchainStateSchemaVersion>
     <EbpfPublicClangVersion>18.1.8</EbpfPublicClangVersion>
     <EbpfPublicClangInstallerSha256>94af030060d88cc17e9f00ef1663ebdc1126b35e16bebdfa1e807984b70abd8f</EbpfPublicClangInstallerSha256>
     <EbpfPublicClangPortableArchiveName>clang+llvm-{version}-x86_64-pc-windows-msvc.tar.xz</EbpfPublicClangPortableArchiveName>

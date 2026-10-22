@@ -4,10 +4,14 @@
 [CmdletBinding()]
 param (
     [parameter(Mandatory = $true)][ValidateSet("Auto", "Public", "Internal")][string] $Channel,
+    [parameter(Mandatory = $false)]
+    [ValidateSet("Auto", "Installed", "Portable")]
+    [string] $PublicClangSource = "Installed",
     [parameter(Mandatory = $false)][string] $MSBuildPath
 )
 
 $ErrorActionPreference = "Stop"
+$publicClangSourceSpecified = $PSBoundParameters.ContainsKey("PublicClangSource")
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $manifestPath = Join-Path $PSScriptRoot "clang-toolchain.props"
 $generatedPropertiesPath = Join-Path $repositoryRoot "build\ebpf-clang-toolchain.props"
@@ -39,10 +43,16 @@ function Get-PersistedClangChannel {
             "/m:Project/m:PropertyGroup/m:EbpfConfiguredClangStateSchemaVersion", $stateNamespaceManager)
         $channelNode =
             $state.SelectSingleNode("/m:Project/m:PropertyGroup/m:EbpfConfiguredClangChannel", $stateNamespaceManager)
+        $currentSchemaVersion = Get-ManifestValue "EbpfClangToolchainStateSchemaVersion"
         if ($schemaNode -and
-            $schemaNode.InnerText -eq (Get-ManifestValue "EbpfClangToolchainStateSchemaVersion") -and
+            $schemaNode.InnerText -in @("1", $currentSchemaVersion) -and
             $channelNode -and
             $channelNode.InnerText -in @("Public", "Internal")) {
+            if ($schemaNode.InnerText -ne $currentSchemaVersion) {
+                Write-Warning (
+                    "Reusing the persisted $($channelNode.InnerText) channel from stale toolchain state; " +
+                    "the state will be refreshed.")
+            }
             return $channelNode.InnerText
         }
 
@@ -55,7 +65,7 @@ function Get-PersistedClangChannel {
     return $null
 }
 
-function Get-PersistedPublicClangPath {
+function Get-PersistedPublicClangSelection {
     if (-not (Test-Path $generatedPropertiesPath)) {
         return $null
     }
@@ -72,6 +82,8 @@ function Get-PersistedPublicClangPath {
             $state.SelectSingleNode("/m:Project/m:PropertyGroup/m:EbpfConfiguredClangVersion", $stateNamespaceManager)
         $pathNode =
             $state.SelectSingleNode("/m:Project/m:PropertyGroup/m:EbpfConfiguredClangPath", $stateNamespaceManager)
+        $sourceNode =
+            $state.SelectSingleNode("/m:Project/m:PropertyGroup/m:EbpfConfiguredClangSource", $stateNamespaceManager)
         if ($schemaNode -and
             $schemaNode.InnerText -eq (Get-ManifestValue "EbpfClangToolchainStateSchemaVersion") -and
             $channelNode -and
@@ -79,8 +91,13 @@ function Get-PersistedPublicClangPath {
             $versionNode -and
             $versionNode.InnerText -eq (Get-ManifestValue "EbpfPublicClangVersion") -and
             $pathNode -and
-            (Test-Path $pathNode.InnerText)) {
-            return $pathNode.InnerText
+            (Test-Path $pathNode.InnerText) -and
+            $sourceNode -and
+            $sourceNode.InnerText -in @("Installed", "Portable")) {
+            return [pscustomobject]@{
+                CompilerPath = $pathNode.InnerText
+                Source = $sourceNode.InnerText
+            }
         }
     }
     catch {
@@ -341,10 +358,33 @@ $channelResolution = Resolve-ClangChannel -RequestedChannel $requestedChannel
 $Channel = $channelResolution.Channel
 Write-Host "Requested Clang channel: $requestedChannel"
 Write-Host "Resolved Clang channel: $Channel ($($channelResolution.Reason))."
+$requestedPublicClangSource = if ($publicClangSourceSpecified) { $PublicClangSource } else { "<not specified>" }
+Write-Host "Requested Public Clang source: $requestedPublicClangSource"
+$persistedPublicSelection = if ($Channel -eq "Public") { Get-PersistedPublicClangSelection } else { $null }
+$effectivePublicClangSource = $null
+$reusePersistedPublicSelection = $false
+if ($Channel -eq "Internal") {
+    if ($publicClangSourceSpecified) {
+        throw (
+            "PublicClangSource applies only to the Public Clang channel, but the resolved channel is Internal. " +
+            "Specify -Channel Public to select a Public Clang source.")
+    }
+} elseif (-not $publicClangSourceSpecified -and
+    $requestedChannel -eq "Auto" -and
+    $persistedPublicSelection) {
+    $effectivePublicClangSource = $persistedPublicSelection.Source
+    $reusePersistedPublicSelection = $true
+    Write-Host "Resolved Public Clang source: $effectivePublicClangSource (reusing the persisted selection)."
+} else {
+    $effectivePublicClangSource = $PublicClangSource
+    $sourceReason = if ($publicClangSourceSpecified) { "explicitly requested" } else { "default selection" }
+    Write-Host "Resolved Public Clang source: $effectivePublicClangSource ($sourceReason)."
+}
 $compilerPath = ""
 $resourceDirectory = ""
 $packageVersion = ""
 $expectedVersion = ""
+$selectedSource = ""
 
 if ($Channel -eq "Internal") {
     $packagePaths = Get-InternalClangPackagePaths -PackageVersion $internalPackageVersion
@@ -352,26 +392,41 @@ if ($Channel -eq "Internal") {
     $resourceDirectory = $packagePaths.ResourceDirectory
     $packageVersion = $internalPackageVersion
     $expectedVersion = $internalVersion
+    $selectedSource = "InternalNuGet"
 } else {
-    $candidatePaths = [System.Collections.Generic.List[string]]::new()
-    $persistedPublicCompiler = Get-PersistedPublicClangPath
-    if ($persistedPublicCompiler) {
-        $candidatePaths.Add($persistedPublicCompiler)
+    $candidatePaths = [System.Collections.Generic.List[object]]::new()
+    if ($effectivePublicClangSource -ne "Portable" -and
+        $persistedPublicSelection -and
+        $persistedPublicSelection.Source -eq "Installed") {
+        $candidatePaths.Add($persistedPublicSelection)
     }
-    $programFilesCompiler = Join-Path $env:ProgramFiles "LLVM\bin\clang.exe"
-    if (Test-Path $programFilesCompiler) {
-        $candidatePaths.Add($programFilesCompiler)
-    }
-    foreach ($command in (Get-Command clang.exe -All -ErrorAction SilentlyContinue)) {
-        if ($command.Source -and (Test-Path $command.Source)) {
-            $candidatePaths.Add($command.Source)
+    if ($effectivePublicClangSource -ne "Portable") {
+        $programFilesCompiler = Join-Path $env:ProgramFiles "LLVM\bin\clang.exe"
+        if (Test-Path $programFilesCompiler) {
+            $candidatePaths.Add([pscustomobject]@{
+                CompilerPath = $programFilesCompiler
+                Source = "Installed"
+            })
         }
+        foreach ($command in (Get-Command clang.exe -All -ErrorAction SilentlyContinue)) {
+            if ($command.Source -and (Test-Path $command.Source)) {
+                $candidatePaths.Add([pscustomobject]@{
+                    CompilerPath = $command.Source
+                    Source = "Installed"
+                })
+            }
+        }
+    }
+    if ($persistedPublicSelection -and
+        $persistedPublicSelection.Source -eq "Portable" -and
+        ($effectivePublicClangSource -eq "Auto" -or $reusePersistedPublicSelection)) {
+        $candidatePaths.Add($persistedPublicSelection)
     }
 
     $seenPaths = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
     $rejections = [System.Collections.Generic.List[string]]::new()
-    foreach ($candidatePath in $candidatePaths) {
-        $candidatePath = [System.IO.Path]::GetFullPath($candidatePath)
+    foreach ($candidate in $candidatePaths) {
+        $candidatePath = [System.IO.Path]::GetFullPath($candidate.CompilerPath)
         if (-not $seenPaths.Add($candidatePath)) {
             continue
         }
@@ -387,9 +442,13 @@ if ($Channel -eq "Internal") {
                 continue
             }
             $candidateResourceDirectory = Get-ClangResourceDirectory $candidatePath
-            Test-ClangToolchain -CompilerPath $candidatePath -ResourceDirectory $candidateResourceDirectory -ExpectedVersion $publicVersion
+            Test-ClangToolchain `
+                -CompilerPath $candidatePath `
+                -ResourceDirectory $candidateResourceDirectory `
+                -ExpectedVersion $publicVersion
             $compilerPath = $candidatePath
             $resourceDirectory = $candidateResourceDirectory
+            $selectedSource = $candidate.Source
             break
         }
         catch {
@@ -397,15 +456,23 @@ if ($Channel -eq "Internal") {
         }
     }
 
-    if (-not $compilerPath) {
+    if (-not $compilerPath -and $effectivePublicClangSource -eq "Installed") {
         $details = if ($rejections.Count) {
             "`nChecked candidates:`n - " + ($rejections -join "`n - ")
         } else {
             "`nNo Clang executables were found on PATH or in '$env:ProgramFiles\LLVM\bin'."
         }
-        throw "No usable Public Clang $publicVersion installation was found. Install the pinned LLVM version or, with access to the configured internal feed, rerun initialization with -LlvmChannel Internal.$details"
+        throw (
+            "No usable installed Public Clang $publicVersion installation was found. " +
+            "Install that version or explicitly select -PublicClangSource Auto or Portable.$details")
     }
 
+    if (-not $compilerPath) {
+        $publicClang = & (Join-Path $PSScriptRoot "get-public-clang.ps1")
+        $compilerPath = $publicClang.CompilerPath
+        $resourceDirectory = $publicClang.ResourceDirectory
+        $selectedSource = "Portable"
+    }
     $expectedVersion = $publicVersion
 }
 
@@ -415,6 +482,7 @@ New-Item -ItemType Directory -Force -Path (Split-Path -Parent $generatedProperti
 $generatedProperties = [ordered]@{
     EbpfConfiguredClangStateSchemaVersion = $stateSchemaVersion
     EbpfConfiguredClangChannel = $Channel
+    EbpfConfiguredClangSource = $selectedSource
     EbpfConfiguredClangPath = $compilerPath
     EbpfConfiguredClangVersion = $expectedVersion
     EbpfConfiguredClangPackageVersion = $packageVersion
@@ -456,5 +524,5 @@ if ($existingContent -ne $newContent) {
     Remove-Item -LiteralPath $temporaryPropertiesPath -Force
 }
 
-Write-Host "Configured $Channel Clang $expectedVersion at '$compilerPath'."
+Write-Host "Configured $Channel Clang $expectedVersion from $selectedSource at '$compilerPath'."
 Write-Host "Using Clang resource directory '$resourceDirectory'."

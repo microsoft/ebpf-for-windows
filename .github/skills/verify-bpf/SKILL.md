@@ -30,7 +30,9 @@ native code) with bpf2c. On verification failure, diagnose using the PREVAIL ref
   Do not independently select Clang from `PATH`, Visual Studio, or a repository-local `packages`
   directory. The Internal compiler package requires its separately restored resource headers; with
   access to the authenticated internal feed, select it using
-  `.\scripts\initialize_ebpf_repo.ps1 -LlvmChannel Internal`.
+  `.\scripts\initialize_ebpf_repo.ps1 -LlvmChannel Internal`. The Public channel requires the pinned
+  installed compiler by default. To use it without installing it or changing PATH, run
+  `.\scripts\initialize_ebpf_repo.ps1 -LlvmChannel Public -PublicClangSource Portable`.
 - **bpf2c.exe** — if `x64\Debug\bpf2c.exe` is missing, build it:
   `msbuild ebpf-for-windows.sln /m /p:Configuration=Debug /p:Platform=x64 /t:tools\bpf2c`
 

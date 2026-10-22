@@ -10,9 +10,9 @@
 # Example:
 # .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
 #
-# Expected output is always generated with the pinned Public Clang toolchain. If an exact local
-# installation is unavailable, the compiler and resource headers are provisioned once in the
-# user-level eBPF for Windows tool cache. The worktree's previous Clang channel is restored afterward.
+# Expected output is always generated with the pinned Public Clang toolchain. An exact installed
+# compiler is preferred; otherwise, the compiler and resource headers are provisioned once in the
+# user-level eBPF for Windows tool cache. The worktree's previous toolchain state is restored afterward.
 
 $ErrorActionPreference = "Stop"
 
@@ -209,24 +209,20 @@ $publicVersion = Get-XmlProperty -Document $manifest -Name "EbpfPublicClangVersi
 
 $hostPlatform = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant()
 $currentLocation = Get-Location
-$previousPath = $env:Path
 try {
-    try {
-        & (Join-Path $PSScriptRoot "configure-clang-toolchain.ps1") -Channel Public
-    }
-    catch {
-        Write-Host "No existing Public Clang $publicVersion installation was usable; provisioning the repository-managed portable toolchain."
-        $publicClang = & (Join-Path $PSScriptRoot "get-public-clang.ps1")
-        $env:Path = "$(Split-Path -Parent $publicClang.CompilerPath);$previousPath"
-        & (Join-Path $PSScriptRoot "configure-clang-toolchain.ps1") -Channel Public
-    }
+    & (Join-Path $PSScriptRoot "configure-clang-toolchain.ps1") `
+        -Channel Public `
+        -PublicClangSource Auto
 
     [xml]$toolchainProperties = Get-Content -Path $toolchainPropertiesPath -Raw
     $channel = Get-XmlProperty -Document $toolchainProperties -Name "EbpfConfiguredClangChannel"
+    $source = Get-XmlProperty -Document $toolchainProperties -Name "EbpfConfiguredClangSource"
     $version = Get-XmlProperty -Document $toolchainProperties -Name "EbpfConfiguredClangVersion"
     $resourceDirectory = Get-XmlProperty -Document $toolchainProperties -Name "EbpfConfiguredClangResourceDir"
-    if ($channel -ne "Public" -or $version -ne $publicVersion) {
-        throw "Expected bpf2c outputs must be generated with Public Clang $publicVersion; the configured toolchain is $channel Clang $version."
+    if ($channel -ne "Public" -or $source -notin @("Installed", "Portable") -or $version -ne $publicVersion) {
+        throw (
+            "Expected bpf2c outputs must be generated with Public Clang $publicVersion; " +
+            "the configured toolchain is $channel/$source Clang $version.")
     }
     if (-not (Test-Path (Join-Path $resourceDirectory "include\stdint.h"))) {
         throw "The configured Public Clang resource headers are missing."
@@ -241,7 +237,6 @@ try {
     Update-ExpectedOutput $resolvedBuildPath
 }
 finally {
-    $env:Path = $previousPath
     Set-Location $currentLocation
     if ($null -ne $previousToolchainState) {
         $currentToolchainState = Get-Content -Path $toolchainPropertiesPath -Raw
