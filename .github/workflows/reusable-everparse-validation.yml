@@ -36,7 +36,7 @@ jobs:
           fetch-depth: 0
 
       - name: Add MSBuild to PATH
-        uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce
+        uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce  # v2.0.0
         with:
           msbuild-architecture: x64
           # Pin to Visual Studio 2026 to match the default build toolset.
@@ -65,7 +65,7 @@ jobs:
 
       - name: Cache legacy NuGet packages
         continue-on-error: true
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
         with:
           path: packages
           key: ${{ runner.os }}-nuget-v2-${{ hashFiles('installer/packages.config') }}
