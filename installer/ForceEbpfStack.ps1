@@ -20,7 +20,10 @@ param(
         "BackupStore",
         "RollbackStore",
         "CommitStore",
+        "PrepareRestoreStore",
         "RestoreStore",
+        "RollbackRestoreStore",
+        "CommitRestoreStore",
         "RestoreLinks",
         "RollbackRestoreLinks")]
     [string]$Action,
@@ -55,6 +58,7 @@ if (-not ("EbpfMsi.NativeSecurity" -as [type])) {
 using System;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using System.Security.AccessControl;
 
 namespace EbpfMsi
 {
@@ -67,6 +71,8 @@ namespace EbpfMsi
         private const uint OWNER_SECURITY_INFORMATION = 0x00000001;
         private const uint GROUP_SECURITY_INFORMATION = 0x00000002;
         private const uint DACL_SECURITY_INFORMATION = 0x00000004;
+        private const uint UNPROTECTED_DACL_SECURITY_INFORMATION = 0x20000000;
+        private const uint PROTECTED_DACL_SECURITY_INFORMATION = 0x80000000;
         private const uint GENERIC_READ = 0x80000000;
         private const uint FILE_SHARE_READ = 0x00000001;
         private const uint FILE_SHARE_WRITE = 0x00000002;
@@ -175,8 +181,13 @@ namespace EbpfMsi
 
         public static void RestoreFileAcl(string path, byte[] descriptor)
         {
+            RawSecurityDescriptor securityDescriptor = new RawSecurityDescriptor(descriptor, 0);
             uint securityInformation =
                 OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION;
+            securityInformation |=
+                (securityDescriptor.ControlFlags & ControlFlags.DiscretionaryAclProtected) != 0
+                    ? PROTECTED_DACL_SECURITY_INFORMATION
+                    : UNPROTECTED_DACL_SECURITY_INFORMATION;
             if (!SetFileSecurity(path, securityInformation, descriptor)) {
                 throw new Win32Exception(Marshal.GetLastWin32Error());
             }
@@ -311,6 +322,10 @@ function Get-RestorableFileAcl
     $currentAcl = Get-Acl -LiteralPath $Path
     return @{
         Descriptor = $currentAcl.GetSecurityDescriptorBinaryForm()
+        Object = $currentAcl
+        AutoInherited =
+            ($currentAcl.AreAccessRulesCanonical -and
+            $currentAcl.Sddl -match "D:.*AI")
     }
 }
 
@@ -324,7 +339,11 @@ function Restore-FileAcl
         [hashtable]$Acl)
 
     [EbpfMsi.NativeSecurity]::TryEnablePrivilege("SeRestorePrivilege") | Out-Null
-    [EbpfMsi.NativeSecurity]::RestoreFileAcl($Path, $Acl.Descriptor)
+    if ($Acl.AutoInherited) {
+        Set-Acl -LiteralPath $Path -AclObject $Acl.Object
+    } else {
+        [EbpfMsi.NativeSecurity]::RestoreFileAcl($Path, $Acl.Descriptor)
+    }
 }
 
 function Test-SameFile
@@ -368,6 +387,42 @@ function Rollback-InstalledLinks
         if (Test-Path -LiteralPath $replacement) {
             Remove-Item -LiteralPath $replacement -Force
         }
+    }
+}
+
+function Restore-OriginalFileAcls
+{
+    param(
+        [Parameter(Mandatory = $true)][hashtable]$OriginalAcls,
+        [Parameter(Mandatory = $true)][bool]$CreatedDurableBackups)
+
+    $failures = @()
+    foreach ($mapping in $mappings) {
+        if (-not $OriginalAcls.ContainsKey($mapping.Link)) {
+            continue
+        }
+
+        $candidates = @($mapping.Link + ".ebpf-msi-rollback")
+        if ($CreatedDurableBackups) {
+            $candidates += @(($mapping.Link + ".ebpf-msi-backup"), $mapping.Link)
+        } else {
+            $candidates += $mapping.Link
+        }
+        $aclPath = $candidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
+        if ($null -eq $aclPath) {
+            $failures += "$($mapping.Link): original file path is unavailable"
+            continue
+        }
+
+        try {
+            Restore-FileAcl -Path $aclPath -Acl $OriginalAcls[$mapping.Link]
+        } catch {
+            $failures += "$($mapping.Link): $($_.Exception.Message)"
+        }
+    }
+
+    if ($failures.Count -ne 0) {
+        throw ($failures -join [Environment]::NewLine)
     }
 }
 
@@ -499,6 +554,8 @@ function Get-StorePaths
         StateFile = Join-Path $StateRoot "ebpf-store-$scopeName.json"
         PendingFile = Join-Path $StateRoot "ebpf-store-$scopeName.pending"
         RollbackRegistryFile = Join-Path $StateRoot "ebpf-store-$scopeName.rollback.reg"
+        UninstallStateFile = Join-Path $StateRoot "ebpf-store-$scopeName.uninstall.json"
+        UninstallRegistryFile = Join-Path $StateRoot "ebpf-store-$scopeName.uninstall.reg"
     }
 }
 
@@ -972,7 +1029,6 @@ function Backup-Services
         }
     }
     Save-CurrentServices -StateFile $paths.PendingFile -FileSuffix "rollback"
-    Save-CurrentServices -StateFile $paths.PendingFile -FileSuffix "rollback"
     $pending = Read-ServiceState -Path $paths.PendingFile
     $pending | Add-Member -NotePropertyName CreatedDurableBackup -NotePropertyValue $createdDurableBackup
     $pending | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $paths.PendingFile -Encoding UTF8
@@ -1021,6 +1077,7 @@ function Remove-MsiServices
 function Prepare-ServiceRestore
 {
     $paths = Get-ServicePaths
+    New-Item -ItemType Directory -Path $StateRoot -Force | Out-Null
     if (Test-Path -LiteralPath $paths.UninstallRollbackFile) {
         throw "Incomplete eBPF service restoration exists in '$StateRoot'."
     }
@@ -1201,13 +1258,86 @@ function Restore-Store
             -FailureMessage "Failed to restore the $Scope eBPF store"
     }
 
-    Remove-Item -LiteralPath $paths.RegistryFile -Force -ErrorAction SilentlyContinue
-    Remove-Item -LiteralPath $paths.StateFile -Force
-    Remove-Item -LiteralPath $paths.PendingFile -Force -ErrorAction SilentlyContinue
-    if ((Test-Path -LiteralPath $StateRoot -PathType Container) -and
-        -not (Get-ChildItem -LiteralPath $StateRoot -Force)) {
-        Remove-Item -LiteralPath $StateRoot -Force
+}
+
+function Prepare-StoreRestore
+{
+    if ([string]::IsNullOrWhiteSpace($Scope)) {
+        throw "Scope is required for store restoration preparation."
     }
+
+    $paths = Get-StorePaths -StoreScope $Scope
+    New-Item -ItemType Directory -Path $StateRoot -Force | Out-Null
+    if ((Test-Path -LiteralPath $paths.UninstallStateFile) -or
+        (Test-Path -LiteralPath $paths.UninstallRegistryFile)) {
+        throw "Incomplete $Scope eBPF store uninstall transaction exists in '$StateRoot'."
+    }
+
+    $providerPath = Get-RegistryProviderPath -RegistryPath $paths.RegistryPath
+    $storeExisted = Test-Path -LiteralPath $providerPath
+    if ($storeExisted) {
+        Invoke-NativeCommand `
+            -FilePath (Join-Path $env:SystemRoot "System32\reg.exe") `
+            -ArgumentList @("export", $paths.RegistryPath, $paths.UninstallRegistryFile, "/y") `
+            -FailureMessage "Failed to save the current $Scope eBPF store for uninstall rollback"
+    }
+
+    [PSCustomObject]@{
+        SchemaVersion = 1
+        Scope = $Scope
+        RegistryPath = $paths.RegistryPath
+        StoreExisted = $storeExisted
+        UserSid = if ($Scope -eq "HKCU") { Get-CurrentUserSid } else { $null }
+    } | ConvertTo-Json | Set-Content -LiteralPath $paths.UninstallStateFile -Encoding UTF8
+}
+
+function Rollback-StoreRestore
+{
+    if ([string]::IsNullOrWhiteSpace($Scope)) {
+        throw "Scope is required for store restoration rollback."
+    }
+
+    $paths = Get-StorePaths -StoreScope $Scope
+    if (-not (Test-Path -LiteralPath $paths.UninstallStateFile -PathType Leaf)) {
+        return
+    }
+
+    $state = Get-Content -LiteralPath $paths.UninstallStateFile -Raw | ConvertFrom-Json
+    if ([int]$state.SchemaVersion -ne 1 -or [string]$state.Scope -ne $Scope) {
+        throw "Invalid pending $Scope eBPF store uninstall transaction."
+    }
+    if ($Scope -eq "HKCU" -and [string]$state.UserSid -ne (Get-CurrentUserSid)) {
+        throw "The pending HKCU eBPF store uninstall transaction belongs to a different user."
+    }
+
+    Remove-RegistryTreeIfPresent -RegistryPath ([string]$state.RegistryPath)
+    if ([bool]$state.StoreExisted) {
+        if (-not (Test-Path -LiteralPath $paths.UninstallRegistryFile -PathType Leaf)) {
+            throw "The $Scope eBPF uninstall rollback store file is missing: $($paths.UninstallRegistryFile)"
+        }
+        Invoke-NativeCommand `
+            -FilePath (Join-Path $env:SystemRoot "System32\reg.exe") `
+            -ArgumentList @("import", $paths.UninstallRegistryFile) `
+            -FailureMessage "Failed to roll back the $Scope eBPF store restoration"
+    }
+
+    Remove-Item -LiteralPath $paths.UninstallRegistryFile -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $paths.UninstallStateFile -Force
+}
+
+function Commit-StoreRestore
+{
+    if ([string]::IsNullOrWhiteSpace($Scope)) {
+        throw "Scope is required for store restoration commit."
+    }
+
+    $paths = Get-StorePaths -StoreScope $Scope
+    Remove-Item -LiteralPath $paths.RegistryFile -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $paths.StateFile -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $paths.PendingFile -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $paths.RollbackRegistryFile -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $paths.UninstallRegistryFile -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $paths.UninstallStateFile -Force -ErrorAction SilentlyContinue
 }
 
 switch ($Action) {
@@ -1231,9 +1361,8 @@ switch ($Action) {
             if ((Test-Path -LiteralPath $replacement) -or (Test-Path -LiteralPath $rollback)) {
                 throw "Stale eBPF hard-link staging file exists for: $($mapping.Link)"
             }
-            if ($createDurableBackups) {
-                $originalAcls[$mapping.Link] = Get-RestorableFileAcl -Path $mapping.Link
-            } elseif (Test-SameFile -FirstPath $backup -SecondPath $mapping.Link) {
+            $originalAcls[$mapping.Link] = Get-RestorableFileAcl -Path $mapping.Link
+            if (-not $createDurableBackups -and (Test-SameFile -FirstPath $backup -SecondPath $mapping.Link)) {
                 throw "The backup and canonical eBPF paths unexpectedly point to the same file: $($mapping.Link)"
             }
         }
@@ -1262,16 +1391,34 @@ switch ($Action) {
                     Restore-FileAcl `
                         -Path ($mapping.Link + ".ebpf-msi-backup") `
                         -Acl $originalAcls[$mapping.Link]
+                } else {
+                    Restore-FileAcl -Path $mapping.Source -Acl $originalAcls[$mapping.Link]
                 }
             }
         } catch {
             $installError = $_
+            $rollbackError = $null
+            $aclError = $null
             try {
                 Rollback-InstalledLinks
             } catch {
-                throw "$($installError.Exception.Message)$([Environment]::NewLine)Restoration failure: $($_.Exception.Message)"
+                $rollbackError = $_
             }
-            throw $installError
+            try {
+                Restore-OriginalFileAcls `
+                    -OriginalAcls $originalAcls `
+                    -CreatedDurableBackups $createDurableBackups
+            } catch {
+                $aclError = $_
+            }
+            $failureMessages = @($installError.Exception.Message)
+            if ($null -ne $rollbackError) {
+                $failureMessages += "Link restoration failure: $($rollbackError.Exception.Message)"
+            }
+            if ($null -ne $aclError) {
+                $failureMessages += "ACL restoration failure: $($aclError.Exception.Message)"
+            }
+            throw ($failureMessages -join [Environment]::NewLine)
         }
     }
 
@@ -1354,6 +1501,18 @@ switch ($Action) {
 
     "RestoreStore" {
         Restore-Store
+    }
+
+    "PrepareRestoreStore" {
+        Prepare-StoreRestore
+    }
+
+    "RollbackRestoreStore" {
+        Rollback-StoreRestore
+    }
+
+    "CommitRestoreStore" {
+        Commit-StoreRestore
     }
 
     "RestoreLinks" {

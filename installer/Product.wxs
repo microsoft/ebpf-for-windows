@@ -56,23 +56,25 @@ SPDX-License-Identifier: MIT
 			<Custom Action="NetEbpfExt_Driver_stop_rollback" Before="NetEbpfExt_Driver_install">NOT Installed AND (NOT EXISTING_NETEBPFEXT OR FORCE = "1")</Custom>
 			<Custom Action="NetEbpfExt_Driver_uninstall_rollback" Before="NetEbpfExt_Driver_install">NOT Installed AND NOT EXISTING_NETEBPFEXT</Custom>
 			<Custom Action="Force_NetEbpfExt_Driver_restore" Before="Force_NetEbpfExt_Driver_configure">NOT Installed AND EXISTING_NETEBPFEXT AND FORCE = "1"</Custom>
-			<Custom Action="Force_eBPF_binaries_restore" Before="Force_eBPF_binaries_hardlink">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
 			<Custom Action="Force_eBPFSvc_stop_rollback" Before="Force_eBPFSvc_configure">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
 			<Custom Action="eBPFSvc_uninstall_rollback" Before="Force_eBPFSvc_configure">NOT Installed AND NOT EXISTING_EBPFSVC</Custom>
-			<Custom Action="Force_eBPF_store_rollback_HKLM" Before="Force_eBPF_store_backup_HKLM">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
-			<Custom Action="Force_eBPF_store_rollback_HKCU" Before="Force_eBPF_store_backup_HKCU">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
-			<Custom Action="Force_eBPF_services_rollback" Before="Force_eBPF_services_backup">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
 			<Custom Action="Force_eBPF_binaries_uninstall_rollback" Before="Force_eBPF_binaries_uninstall_restore">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
+			<Custom Action="Force_eBPF_store_uninstall_rollback_HKCU" After="Force_eBPF_store_uninstall_prepare_HKCU">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
+			<Custom Action="Force_eBPF_store_uninstall_rollback_HKLM" After="Force_eBPF_store_uninstall_prepare_HKLM">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
 
 			<!--Install sequence-->
-			<Custom Action="Force_eBPF_services_backup" After="InstallInitialize">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
+			<Custom Action="Force_eBPF_services_rollback" After="InstallFiles">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
+			<Custom Action="Force_eBPF_services_backup" After="Force_eBPF_services_rollback">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
 			<Custom Action="Force_NetEbpfExt_Driver_stop" After="Force_eBPF_services_backup">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
 			<Custom Action="Force_eBPFSvc_stop" After="Force_NetEbpfExt_Driver_stop">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
 			<Custom Action="Force_eBPFCore_Driver_stop" After="Force_eBPFSvc_stop">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
-			<Custom Action="Force_eBPF_binaries_hardlink" After="InstallFiles">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
+			<Custom Action="Force_eBPF_binaries_restore" After="Force_eBPFCore_Driver_stop">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
+			<Custom Action="Force_eBPF_binaries_hardlink" After="Force_eBPF_binaries_restore">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
 			<Custom Action="Force_eBPF_binaries_cleanup" After="Force_eBPF_binaries_hardlink">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
-			<Custom Action="Force_eBPF_store_backup_HKLM" After="Force_eBPF_binaries_cleanup">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
-			<Custom Action="Force_eBPF_store_backup_HKCU" After="Force_eBPF_store_backup_HKLM">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
+			<Custom Action="Force_eBPF_store_rollback_HKLM" After="Force_eBPF_binaries_cleanup">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
+			<Custom Action="Force_eBPF_store_backup_HKLM" After="Force_eBPF_store_rollback_HKLM">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
+			<Custom Action="Force_eBPF_store_rollback_HKCU" After="Force_eBPF_store_backup_HKLM">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
+			<Custom Action="Force_eBPF_store_backup_HKCU" After="Force_eBPF_store_rollback_HKCU">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
 			<Custom Action="Force_eBPF_store_commit" After="Setup_eBPF_store_HKCU">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
 			<Custom Action="Force_eBPF_services_commit" After="Force_eBPF_store_commit">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
 
@@ -96,7 +98,9 @@ SPDX-License-Identifier: MIT
 			<!--Uninstall sequence-->
 			<Custom Action="Force_eBPF_services_uninstall_prepare" After="InstallInitialize">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
 			<Custom Action="Force_eBPF_services_uninstall_rollback" After="Force_eBPF_services_uninstall_prepare">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
-			<Custom Action="eBPF_netsh_helper_uninstall" After="Force_eBPF_services_uninstall_rollback">REMOVE="ALL"</Custom>
+			<Custom Action="Force_eBPF_store_uninstall_prepare_HKLM" After="Force_eBPF_services_uninstall_rollback">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
+			<Custom Action="Force_eBPF_store_uninstall_prepare_HKCU" After="Force_eBPF_store_uninstall_rollback_HKLM">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
+			<Custom Action="eBPF_netsh_helper_uninstall" After="Force_eBPF_store_uninstall_rollback_HKCU">REMOVE="ALL"</Custom>
 
 			<Custom Action="eBPFCore_Driver_stop" After="eBPF_netsh_helper_uninstall">REMOVE="ALL"</Custom>
 			<Custom Action="NetEbpfExt_Driver_stop" After="eBPFCore_Driver_stop">REMOVE="ALL"</Custom>
@@ -106,6 +110,8 @@ SPDX-License-Identifier: MIT
 			<Custom Action="Force_eBPF_store_restore_HKCU" Before="Force_eBPF_binaries_uninstall_restore">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
 			<Custom Action="Force_eBPF_binaries_uninstall_restore" Before="Force_eBPF_services_uninstall_restore">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
 			<Custom Action="Force_eBPF_services_uninstall_restore" Before="RemoveFiles">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
+			<Custom Action="Force_eBPF_store_uninstall_commit_HKLM" Before="Force_eBPF_store_uninstall_commit_HKCU">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
+			<Custom Action="Force_eBPF_store_uninstall_commit_HKCU" Before="Force_eBPF_services_uninstall_commit">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
 			<Custom Action="Force_eBPF_services_uninstall_commit" Before="InstallFinalize">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
 			<Custom Action="eBPFCore_Driver_uninstall_flush" After="InstallFinalize">REMOVE="ALL"</Custom>
 		</InstallExecuteSequence>
@@ -210,6 +216,18 @@ SPDX-License-Identifier: MIT
 		<CustomAction Id="Force_eBPF_store_restore_HKLM" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
 		<SetProperty Id="Force_eBPF_store_restore_HKCU" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action RestoreStore -Scope HKCU" Before="Force_eBPF_store_restore_HKCU" Sequence="execute"/>
 		<CustomAction Id="Force_eBPF_store_restore_HKCU" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="yes"/>
+		<SetProperty Id="Force_eBPF_store_uninstall_prepare_HKLM" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action PrepareRestoreStore -Scope HKLM" Before="Force_eBPF_store_uninstall_prepare_HKLM" Sequence="execute"/>
+		<CustomAction Id="Force_eBPF_store_uninstall_prepare_HKLM" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
+		<SetProperty Id="Force_eBPF_store_uninstall_prepare_HKCU" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action PrepareRestoreStore -Scope HKCU" Before="Force_eBPF_store_uninstall_prepare_HKCU" Sequence="execute"/>
+		<CustomAction Id="Force_eBPF_store_uninstall_prepare_HKCU" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="yes"/>
+		<SetProperty Id="Force_eBPF_store_uninstall_rollback_HKLM" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action RollbackRestoreStore -Scope HKLM" Before="Force_eBPF_store_uninstall_rollback_HKLM" Sequence="execute"/>
+		<CustomAction Id="Force_eBPF_store_uninstall_rollback_HKLM" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="check" Impersonate="no"/>
+		<SetProperty Id="Force_eBPF_store_uninstall_rollback_HKCU" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action RollbackRestoreStore -Scope HKCU" Before="Force_eBPF_store_uninstall_rollback_HKCU" Sequence="execute"/>
+		<CustomAction Id="Force_eBPF_store_uninstall_rollback_HKCU" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="check" Impersonate="yes"/>
+		<SetProperty Id="Force_eBPF_store_uninstall_commit_HKLM" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;&amp; { Remove-Item -LiteralPath '[CommonAppDataFolder]eBPF-for-Windows\MsiBackup\ebpf-store-hklm.reg','[CommonAppDataFolder]eBPF-for-Windows\MsiBackup\ebpf-store-hklm.json','[CommonAppDataFolder]eBPF-for-Windows\MsiBackup\ebpf-store-hklm.pending','[CommonAppDataFolder]eBPF-for-Windows\MsiBackup\ebpf-store-hklm.rollback.reg','[CommonAppDataFolder]eBPF-for-Windows\MsiBackup\ebpf-store-hklm.uninstall.reg','[CommonAppDataFolder]eBPF-for-Windows\MsiBackup\ebpf-store-hklm.uninstall.json' -Force -ErrorAction SilentlyContinue }&quot;" Before="Force_eBPF_store_uninstall_commit_HKLM" Sequence="execute"/>
+		<CustomAction Id="Force_eBPF_store_uninstall_commit_HKLM" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="commit" Return="check" Impersonate="no"/>
+		<SetProperty Id="Force_eBPF_store_uninstall_commit_HKCU" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;&amp; { Remove-Item -LiteralPath '[CommonAppDataFolder]eBPF-for-Windows\MsiBackup\ebpf-store-hkcu.reg','[CommonAppDataFolder]eBPF-for-Windows\MsiBackup\ebpf-store-hkcu.json','[CommonAppDataFolder]eBPF-for-Windows\MsiBackup\ebpf-store-hkcu.pending','[CommonAppDataFolder]eBPF-for-Windows\MsiBackup\ebpf-store-hkcu.rollback.reg','[CommonAppDataFolder]eBPF-for-Windows\MsiBackup\ebpf-store-hkcu.uninstall.reg','[CommonAppDataFolder]eBPF-for-Windows\MsiBackup\ebpf-store-hkcu.uninstall.json' -Force -ErrorAction SilentlyContinue }&quot;" Before="Force_eBPF_store_uninstall_commit_HKCU" Sequence="execute"/>
+		<CustomAction Id="Force_eBPF_store_uninstall_commit_HKCU" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="commit" Return="check" Impersonate="yes"/>
 
 		<!--Install/Uninstall the netsh helper-->
 		<!--qtexec does not currently support a working directory (ref. https://github.com/wixtoolset/issues/issues/1265)-->
