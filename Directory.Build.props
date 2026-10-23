@@ -97,6 +97,9 @@
   <PropertyGroup>
     <DriverCatalog_Enable>true</DriverCatalog_Enable>
   </PropertyGroup>
+  <PropertyGroup>
+    <ClangResourceInclude>$(SolutionDir)packages\clang.headers\include</ClangResourceInclude>
+  </PropertyGroup>
   <!-- Select the best version of clang available. -->
   <!-- If $(VsInstallRoot)\VC\Tools\Llvm\bin\clang.exe exists, set ClangExe to that value -->
   <PropertyGroup Condition="Exists('$(VsInstallRoot)\VC\Tools\Llvm\bin\clang.exe')">
@@ -109,6 +112,12 @@
   <!-- If $(SolutionDir)packages\llvm.tools\clang.exe exists, set ClangExe to that value -->
   <PropertyGroup Condition="Exists('$(SolutionDir)packages\llvm.tools\clang.exe')">
     <ClangExec>"$(SolutionDir)packages\llvm.tools\clang.exe"</ClangExec>
+  </PropertyGroup>
+  <!-- Prefer a complete repo-local Public Clang installation when present. -->
+  <PropertyGroup
+    Condition="Exists('$(SolutionDir)llvm\bin\clang.exe') And Exists('$(SolutionDir)llvm\lib\clang\18\include\stdint.h')">
+    <ClangExec>"$(SolutionDir)llvm\bin\clang.exe"</ClangExec>
+    <ClangResourceInclude>$(SolutionDir)llvm\lib\clang\18\include</ClangResourceInclude>
   </PropertyGroup>
   <!-- Set /allpdata only for the x64 platform. -->
   <PropertyGroup Condition="'$(Platform)'=='x64'">

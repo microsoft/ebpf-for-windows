@@ -98,7 +98,7 @@ OPTIONS:
     -w, --whatif            Run the script without actually modifying the files
                             and display the diff of expected changes, if any.
     --exclude-dirs          Subdirectories to exclude. If unspecified, then
-                            ./external, ./packages and ./x64 are excluded.
+                            ./external, ./llvm, ./packages and ./x64 are excluded.
                             All subdirectories are relative to the current path.
     --include-exts          File extensions to include for formatting. If
                             unspecified, then *.h, *.hpp, *.c, *.cpp, *idl, and
@@ -159,13 +159,77 @@ check_version()
 ##==============================================================================
 check_clang-format()
 {
-    # First check explicitly for the clang-format-7 executable.
-    cf=$(command -v clang-format-7 2> /dev/null)
+    cf=""
 
-    if [[ -x ${cf} ]]; then
-        cf="clang-format-7"
-        return
-    else
+    case "$(uname -s)" in
+        MINGW* | MSYS* | CYGWIN*)
+            local script_dir
+            local repo_root
+            local candidate
+            local program_files="${ProgramFiles:-${PROGRAMFILES:-}}"
+            local program_files_x86
+            local vs_install_dir="${VSINSTALLDIR:-}"
+            local vswhere
+            local vs_clang_format
+            local -a candidates
+
+            script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+            repo_root=$(cd -- "${script_dir}/.." && pwd)
+            candidates=(
+                "${repo_root}/llvm/bin/clang-format.exe"
+                "${repo_root}/packages/llvm.tools/clang-format.exe"
+            )
+
+            if [[ -n ${program_files} ]]; then
+                if command -v cygpath > /dev/null 2>&1; then
+                    program_files=$(cygpath -u "${program_files}")
+                fi
+                candidates+=("${program_files}/LLVM/bin/clang-format.exe")
+            fi
+
+            if [[ -n ${vs_install_dir} ]]; then
+                if command -v cygpath > /dev/null 2>&1; then
+                    vs_install_dir=$(cygpath -u "${vs_install_dir}")
+                fi
+                candidates+=("${vs_install_dir}/VC/Tools/Llvm/bin/clang-format.exe")
+            fi
+
+            program_files_x86=$(printenv 'ProgramFiles(x86)' 2> /dev/null || true)
+            if [[ -n ${program_files_x86} ]]; then
+                if command -v cygpath > /dev/null 2>&1; then
+                    program_files_x86=$(cygpath -u "${program_files_x86}")
+                fi
+                vswhere="${program_files_x86}/Microsoft Visual Studio/Installer/vswhere.exe"
+                if [[ -x ${vswhere} ]]; then
+                    vs_clang_format=$(MSYS_NO_PATHCONV=1 "${vswhere}" -latest -products '*' \
+                        -find 'VC\Tools\Llvm\bin\clang-format.exe' 2> /dev/null | head -1 | tr -d '\r')
+                    if [[ -n ${vs_clang_format} ]]; then
+                        if command -v cygpath > /dev/null 2>&1; then
+                            vs_clang_format=$(cygpath -u "${vs_clang_format}")
+                        fi
+                        candidates+=("${vs_clang_format}")
+                    fi
+                fi
+            fi
+
+            for candidate in "${candidates[@]}"; do
+                if [[ -x ${candidate} ]]; then
+                    cf="${candidate}"
+                    break
+                fi
+            done
+            ;;
+    esac
+
+    if [[ -z ${cf} ]]; then
+        # First check explicitly for the clang-format-7 executable.
+        cf=$(command -v clang-format-7 2> /dev/null)
+        if [[ -x ${cf} ]]; then
+            cf="clang-format-7"
+            log_verbose "Using clang-format: ${cf}"
+            return
+        fi
+
         cf=$(command -v clang-format 2> /dev/null)
         if [[ ! -x ${cf} ]]; then
             echo "clang-format is not installed"
@@ -174,9 +238,10 @@ check_clang-format()
         cf="clang-format"
     fi
 
+    log_verbose "Using clang-format: ${cf}"
     local required_cfver='18.1.8'
     # shellcheck disable=SC2155
-    local cfver=$(${cf} --version | grep -o -E '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    local cfver=$("${cf}" --version | grep -o -E '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
     check_version "${required_cfver}" "${cfver}"
 }
 
@@ -192,7 +257,7 @@ findargs='find .'
 
 get_find_args()
 {
-    local defaultExcludeDirs='./.git ./external ./packages ./x64'
+    local defaultExcludeDirs='./.git ./external ./llvm ./packages ./x64'
     local defaultIncludeExts='h hpp c cpp idl acf'
 
     if [[ -z ${userExcludeDirs} ]]; then
@@ -241,9 +306,9 @@ log_verbose ""
 filecount=0
 changecount=0
 
-cfargs="${cf} -style=file"
+cfargs=("${cf}" "-style=file")
 if [[ ${whatif} -ne 1 ]]; then
-    cfargs="${cfargs} -i"
+    cfargs+=("-i")
 fi
 
 get_file_list()
@@ -274,17 +339,17 @@ get_file_list
 for file in "${file_list[@]}"
 do
     ((filecount+=1))
-    cf="${cfargs} $file"
+    format_command=("${cfargs[@]}" "${file}")
 
     log_whatif "Formatting $file ..."
 
     if [[ ${whatif} -eq 1 ]]; then
-        ${cf} | diff -u "$file" -
+        "${format_command[@]}" | diff -u "$file" -
     else
         if [[ ${verbose} -eq 1 ]]; then
-            ${cf}
+            "${format_command[@]}"
         else
-            ${cf} > /dev/null
+            "${format_command[@]}" > /dev/null
         fi
     fi
 

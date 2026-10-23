@@ -9,6 +9,7 @@ param (
     # specific toolset, so the CMake generator, platform toolset, and NuGet/MSBuild restore all match
     # the Visual Studio version you intend to build with.
     [parameter(Mandatory = $false)][string] $VisualStudioVersion = "",
+    [parameter(Mandatory = $false)][switch] $InstallPublicClang,
     [parameter(Mandatory = $false)][switch] $SkipHostToolBootstrap
 )
 
@@ -23,6 +24,10 @@ $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Definition
 
 # Change the parent directory for the script directory
 Set-Location $scriptPath\..
+
+if ($InstallPublicClang) {
+    & (Join-Path $scriptPath "install-public-clang.ps1")
+}
 
 # Resolve the Visual Studio instance to use for MSBuild, the CMake generator, and NuGet/MSBuild restore.
 # By default the latest installed instance is used; -VisualStudioVersion selects a specific one so a
