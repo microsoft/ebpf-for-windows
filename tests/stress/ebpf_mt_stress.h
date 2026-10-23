@@ -83,11 +83,6 @@ struct test_control_info
     // Delay between detach/attach operations in the race thread (in milliseconds).
     uint32_t attach_detach_delay_ms{0};
 
-    // Programs to load.
-    std::vector<std::string> programs;
-
-    // Use unique 'native' programs (used internally by specific tests).
-    bool use_unique_native_programs{false};
 };
 
 test_control_info
@@ -106,22 +101,13 @@ struct stress_test_thread_context
     std::atomic<size_t>* failure_count;
 };
 
-using test_thread_function_t = void (*)(const stress_test_thread_context& test_params);
-struct test_program_attributes
-{
-    std::string jit_file_name{};
-    std::string native_file_name{};
-    std::string extension_name{};
-    test_thread_function_t test_thread_function{nullptr};
-    bpf_prog_type program_type{BPF_PROG_TYPE_UNSPEC};
-};
-
-inline std::variant<bool, test_program_attributes>
-get_jit_program_attributes(const std::string& program_name);
-
 // The test_process_cleanup() call is 'exported' by both the user and kernel mode test suites.
 void
 test_process_cleanup();
+
+// Restart a kernel extension service and wait for it to return to the running state.
+bool
+restart_extension(const std::string& extension_name, uint32_t timeout_seconds);
 
 // Common 2-thread race pattern used by UM and KM stress tests.
 // Invoke worker thread(s) continuously invoke the program while one thread repeatedly detaches and reattaches it.
