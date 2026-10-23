@@ -2,6 +2,17 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
+#include "bpf2c.h"
+
+/**
+ * @brief Callback invoked after a native module exposes its metadata table and before the test helper registers the
+ * NMR client.
+ *
+ * @param[in, out] table Native module metadata table.
+ * @param[in, out] context Optional caller-provided context.
+ */
+typedef void (*native_module_metadata_hook_t)(_Inout_ metadata_table_t* table, _Inout_opt_ void* context);
+
 class _test_helper_end_to_end
 {
   public:
@@ -63,6 +74,15 @@ set_native_module_failures(bool expected);
 
 bool
 get_native_module_failures();
+
+/**
+ * @brief Set a test hook that can inspect or mutate native module metadata before NMR registration.
+ *
+ * @param[in] hook Metadata hook to invoke, or NULL to clear the hook.
+ * @param[in, out] context Optional context passed to the hook.
+ */
+void
+set_native_module_metadata_hook(_In_opt_ native_module_metadata_hook_t hook, _Inout_opt_ void* context);
 
 _Must_inspect_result_ ebpf_result_t
 get_service_details_for_file(

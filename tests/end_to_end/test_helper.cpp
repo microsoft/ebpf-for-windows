@@ -40,6 +40,8 @@ extern "C" metadata_table_t*
 get_metadata_table();
 
 static bool _expect_native_module_load_failures = false;
+static native_module_metadata_hook_t _native_module_metadata_hook = nullptr;
+static void* _native_module_metadata_hook_context = nullptr;
 
 // clang-format off
 #define SERVICE_PATH_PREFIX L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\"
@@ -410,6 +412,9 @@ _preprocess_load_native_module(_Inout_ service_context_t* context)
 
     context->table = get_function();
     assert(context->table != nullptr);
+    if (_native_module_metadata_hook != nullptr) {
+        _native_module_metadata_hook(context->table, _native_module_metadata_hook_context);
+    }
 
     NTSTATUS status = NmrRegisterClient(&context->nmr_client_characteristics, context, &context->nmr_client_handle);
     if (!NT_SUCCESS(status)) {
@@ -808,6 +813,8 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
         duplicate_handle_handler = nullptr;
 
         _expect_native_module_load_failures = false;
+        _native_module_metadata_hook = nullptr;
+        _native_module_metadata_hook_context = nullptr;
     } catch (...) {
     }
 }
@@ -872,6 +879,13 @@ bool
 get_native_module_failures()
 {
     return _expect_native_module_load_failures || cxplat_fault_injection_is_enabled();
+}
+
+void
+set_native_module_metadata_hook(_In_opt_ native_module_metadata_hook_t hook, _Inout_opt_ void* context)
+{
+    _native_module_metadata_hook = hook;
+    _native_module_metadata_hook_context = context;
 }
 
 _Must_inspect_result_ ebpf_result_t
