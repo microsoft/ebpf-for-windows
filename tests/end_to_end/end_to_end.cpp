@@ -569,7 +569,7 @@ _bpf2bpf_loop_test(ebpf_execution_type_t execution_type)
     // The program returns the counter value (should be 10).
     REQUIRE(hook_result == 10);
 
-    // Verify the map also contains 10 — proves the loop body ran 10 times.
+    // Verify the map also contains 10 - proves the loop body ran 10 times.
     fd_t map_fd = bpf_object__find_map_fd_by_name(program_helper.get_object(), "bpf2bpf_loop_map");
     REQUIRE(map_fd > 0);
     uint32_t key = 0;
@@ -579,32 +579,134 @@ _bpf2bpf_loop_test(ebpf_execution_type_t execution_type)
 }
 
 static void
-_stack_frame_test(ebpf_execution_type_t execution_type)
+_callgraph_bpf2bpf_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
 
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+
     program_info_provider_t sample_program_info;
     REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
-    single_instance_hook_t sample_hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
-    REQUIRE(sample_hook.initialize() == EBPF_SUCCESS);
 
-    program_load_attach_helper_t program_helper;
-    const char* stack_frame_file_name =
-        (execution_type == EBPF_EXECUTION_NATIVE ? "bpf2bpf_loop_um.dll" : "bpf2bpf_loop.o");
-    program_helper.initialize(
-        stack_frame_file_name,
-        BPF_PROG_TYPE_SAMPLE,
-        "stack_frame_test_entry",
-        execution_type,
-        nullptr,
-        0,
-        sample_hook);
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "callgraph_bpf2bpf_um.dll" : "callgraph_bpf2bpf.o");
 
-    INITIALIZE_SAMPLE_CONTEXT;
-    uint32_t hook_result = 0;
-    REQUIRE(sample_hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
-    REQUIRE(hook_result == 0);
+    // Test entry_program1: calls S1 and S4 (helper call graph scenario).
+    // Expected return: RESULT_REDIRECT (2).
+    {
+        program_load_attach_helper_t program_helper;
+        program_helper.initialize(
+            file_name, BPF_PROG_TYPE_SAMPLE, "entry_program1", execution_type, nullptr, 0, hook);
+
+        INITIALIZE_SAMPLE_CONTEXT;
+        uint32_t hook_result = 0;
+        REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+        REQUIRE(hook_result == 2);
+    }
+
+    // Test entry_program2: calls S2 (which calls S3) (helper call chain scenario).
+    // Expected return: RESULT_PERMIT (1).
+    {
+        program_load_attach_helper_t program_helper;
+        program_helper.initialize(
+            file_name, BPF_PROG_TYPE_SAMPLE, "entry_program2", execution_type, nullptr, 0, hook);
+
+        INITIALIZE_SAMPLE_CONTEXT;
+        uint32_t hook_result = 0;
+        REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+        REQUIRE(hook_result == 1);
+    }
+
+    // Test entry_program3: calls update_map subprogram (map operations scenario).
+    {
+        bpf_object_ptr unique_object;
+        fd_t program_fd;
+
+        struct bpf_object* object = bpf_object__open(file_name);
+        REQUIRE(object != nullptr);
+        REQUIRE(bpf_object__load(object) == 0);
+        unique_object.reset(object);
+
+        struct bpf_program* prog = bpf_object__find_program_by_name(unique_object.get(), "entry_program3");
+        REQUIRE(prog != nullptr);
+        program_fd = bpf_program__fd(prog);
+        REQUIRE(program_fd > 0);
+
+        fd_t call_count_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "call_count_map");
+        REQUIRE(call_count_map_fd > 0);
+
+        bpf_link_ptr link;
+        REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
+
+        uint64_t fake_pid = 12345;
+
+        // First invocation - should succeed and update map count to 1.
+        {
+            sample_program_context_header_t h{0};
+            h.context.uint32_data = (uint32_t)fake_pid;
+            uint32_t hook_result = 0;
+            REQUIRE(hook.fire(&h.context, &hook_result) == EBPF_SUCCESS);
+            REQUIRE(hook_result == 1);
+        }
+
+        uint64_t count = 0;
+        REQUIRE(bpf_map_lookup_elem(call_count_map_fd, &fake_pid, &count) == 0);
+        REQUIRE(count == 1);
+
+        // Second invocation - should update map count to 2.
+        {
+            sample_program_context_header_t h{0};
+            h.context.uint32_data = (uint32_t)fake_pid;
+            uint32_t hook_result = 0;
+            REQUIRE(hook.fire(&h.context, &hook_result) == EBPF_SUCCESS);
+            REQUIRE(hook_result == 1);
+        }
+
+        REQUIRE(bpf_map_lookup_elem(call_count_map_fd, &fake_pid, &count) == 0);
+        REQUIRE(count == 2);
+
+        // Invocation with a different PID - should create a new entry.
+        uint64_t fake_pid2 = 67890;
+        {
+            sample_program_context_header_t h{0};
+            h.context.uint32_data = (uint32_t)fake_pid2;
+            uint32_t hook_result = 0;
+            REQUIRE(hook.fire(&h.context, &hook_result) == EBPF_SUCCESS);
+            REQUIRE(hook_result == 1);
+        }
+
+        REQUIRE(bpf_map_lookup_elem(call_count_map_fd, &fake_pid2, &count) == 0);
+        REQUIRE(count == 1);
+
+        // Original PID count should still be 2.
+        REQUIRE(bpf_map_lookup_elem(call_count_map_fd, &fake_pid, &count) == 0);
+        REQUIRE(count == 2);
+
+        hook.detach_and_close_link(&link);
+        bpf_object__close(unique_object.release());
+    }
+
+    // Test stack_frame_test_entry: verifies that a subprogram does not corrupt the caller's stack.
+    {
+        const char* stack_frame_file_name =
+            (execution_type == EBPF_EXECUTION_NATIVE ? "bpf2bpf_loop_um.dll" : "bpf2bpf_loop.o");
+        program_load_attach_helper_t program_helper;
+        program_helper.initialize(
+            stack_frame_file_name,
+            BPF_PROG_TYPE_SAMPLE,
+            "stack_frame_test_entry",
+            execution_type,
+            nullptr,
+            0,
+            hook);
+
+        INITIALIZE_SAMPLE_CONTEXT;
+        uint32_t hook_result = 0;
+        REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+        REQUIRE(hook_result == 0);
+    }
 }
 
 void
@@ -941,12 +1043,173 @@ global_variable_and_map_test(ebpf_execution_type_t execution_type)
     bpf_object__close(unique_object.release());
 }
 
+static void
+_sample_tailcall_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "tail_call_multiple_um.dll" : "tail_call_multiple.o");
+    struct bpf_object* object = bpf_object__open(file_name);
+    REQUIRE(object != nullptr);
+    REQUIRE(bpf_object__load(object) == 0);
+
+    // Find all three programs in the tail call chain: caller -> callee0 -> callee1.
+    struct bpf_program* caller = bpf_object__find_program_by_name(object, "caller");
+    REQUIRE(caller != nullptr);
+    fd_t caller_fd = bpf_program__fd(caller);
+    REQUIRE(caller_fd > 0);
+
+    struct bpf_program* callee0 = bpf_object__find_program_by_name(object, "callee0");
+    REQUIRE(callee0 != nullptr);
+    fd_t callee0_fd = bpf_program__fd(callee0);
+    REQUIRE(callee0_fd > 0);
+
+    struct bpf_program* callee1 = bpf_object__find_program_by_name(object, "callee1");
+    REQUIRE(callee1 != nullptr);
+    fd_t callee1_fd = bpf_program__fd(callee1);
+    REQUIRE(callee1_fd > 0);
+
+    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "map");
+    REQUIRE(prog_map_fd > 0);
+
+    // Wire the tail call chain: caller tail-calls index 0 (callee0), callee0 tail-calls index 9 (callee1).
+    uint32_t index = 0;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee0_fd, 0) == 0);
+    index = 9;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
+
+    // Verify stored program IDs can be retrieved and are valid.
+    ebpf_id_t prog_id;
+    REQUIRE(bpf_map_lookup_elem(prog_map_fd, &index, &prog_id) == 0);
+    fd_t retrieved_fd = bpf_prog_get_fd_by_id(prog_id);
+    REQUIRE(retrieved_fd > 0);
+    Platform::_close(retrieved_fd);
+
+    index = 0;
+    REQUIRE(bpf_map_lookup_elem(prog_map_fd, &index, &prog_id) == 0);
+    retrieved_fd = bpf_prog_get_fd_by_id(prog_id);
+    REQUIRE(retrieved_fd > 0);
+    Platform::_close(retrieved_fd);
+
+    // Attach the caller and fire the hook.
+    bpf_link_ptr link;
+    REQUIRE(hook.attach_link(caller_fd, nullptr, 0, &link) == EBPF_SUCCESS);
+
+    INITIALIZE_SAMPLE_CONTEXT
+    uint32_t hook_result = 0;
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+    // callee1 (end of chain) returns 3.
+    REQUIRE(hook_result == 3);
+
+    // Fire again to verify the tail call chain is stable across invocations.
+    hook_result = 0;
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == 3);
+
+    // Remove callee1 from the prog array. Now callee0's tail call to index 9 will fail,
+    // so callee0 should return its fall-through value (2).
+    index = 9;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+    hook_result = 0;
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == 2);
+
+    // Remove callee0 from the prog array. Now caller's tail call to index 0 will fail,
+    // so caller should return its fall-through value (1).
+    index = 0;
+    REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+    hook_result = 0;
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == 1);
+
+    hook.detach_and_close_link(&link);
+
+    bpf_object__close(object);
+}
+
 DECLARE_ALL_TEST_CASES("droppacket", "[end_to_end]", droppacket_test);
 DECLARE_ALL_TEST_CASES("divide_by_zero", "[end_to_end]", divide_by_zero_test_um);
 DECLARE_NATIVE_TEST("map-annotation-collision", "[end_to_end]", map_annotation_collision_native_test);
 DECLARE_NATIVE_TEST("map-sequential-lookup-inline", "[end_to_end]", map_sequential_lookup_inline_test);
 DECLARE_ALL_TEST_CASES("bpf2bpf-loop", "[end_to_end]", _bpf2bpf_loop_test);
-DECLARE_ALL_TEST_CASES("stack-frame-test", "[end_to_end]", _stack_frame_test);
+DECLARE_ALL_TEST_CASES("callgraph-bpf2bpf", "[end_to_end]", _callgraph_bpf2bpf_test);
+
+static void
+_callgraph_bpf2bpf_extension_reload_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    const char* file_name = "callgraph_bpf2bpf_um.dll";
+
+    REQUIRE(execution_type == EBPF_EXECUTION_NATIVE);
+
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+    const char* error_message = nullptr;
+    int result;
+    bpf_link_ptr link;
+
+    // Load the program with the extension loaded.
+    {
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+        REQUIRE(hook.initialize() == EBPF_SUCCESS);
+        program_info_provider_t sample_program_info;
+        REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+        result = ebpf_program_load(
+            file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+        if (error_message) {
+            printf("ebpf_program_load failed with %s\n", error_message);
+            ebpf_free((void*)error_message);
+        }
+        REQUIRE(result == 0);
+
+        // Find entry_program2 - it has sentinel + real helpers, making the
+        // count mismatch most visible after reload.
+        struct bpf_program* prog = bpf_object__find_program_by_name(unique_object.get(), "entry_program2");
+        REQUIRE(prog != nullptr);
+        program_fd = bpf_program__fd(prog);
+        REQUIRE(program_fd > 0);
+
+        REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
+
+        // Program should run successfully. entry_program2 returns RESULT_PERMIT (1).
+        INITIALIZE_SAMPLE_CONTEXT
+        uint32_t hook_result = 0;
+        REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+        REQUIRE(hook_result == 1);
+
+        // Unload the extension (sample_program_info and hook will be destroyed).
+    }
+
+    // Reload the extension provider - this triggers _ebpf_native_helper_address_changed
+    // for every loaded program. With sentinel helpers, the callback must correctly
+    // map the address array back to the right helper_data[] slots.
+    {
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+        REQUIRE(hook.initialize() == EBPF_SUCCESS);
+        program_info_provider_t sample_program_info;
+        REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+        // Re-fire and verify the program still works after the callback.
+        INITIALIZE_SAMPLE_CONTEXT
+        uint32_t hook_result = 0;
+        REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+        REQUIRE(hook_result == 1);
+    }
+}
+DECLARE_NATIVE_TEST("callgraph-bpf2bpf-extension-reload", "[end_to_end]", _callgraph_bpf2bpf_extension_reload_test);
+
+DECLARE_ALL_TEST_CASES("sample-tailcall", "[end_to_end]", _sample_tailcall_test);
 
 DECLARE_ALL_TEST_CASES("sample-ringbuf", "[end_to_end]", sample_ring_buffer_test);
 DECLARE_ALL_TEST_CASES("negative_ring_buffer_test", "[end_to_end]", negative_ring_buffer_test);
