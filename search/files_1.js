@@ -13,7 +13,8 @@ var searchData=
   ['ebpf_5fstore_5fhelper_2eh_10',['ebpf_store_helper.h',['../ebpf__store__helper_8h.html',1,'']]],
   ['ebpf_5fstructs_2eh_11',['ebpf_structs.h',['../ebpf__structs_8h.html',1,'']]],
   ['ebpf_5futilities_2eh_12',['ebpf_utilities.h',['../ebpf__utilities_8h.html',1,'']]],
-  ['ebpf_5fwindows_2eh_13',['ebpf_windows.h',['../ebpf__windows_8h.html',1,'']]],
-  ['elfio_5fwrapper_2ehpp_14',['elfio_wrapper.hpp',['../elfio__wrapper_8hpp.html',1,'']]],
-  ['errno_2eh_15',['errno.h',['../errno_8h.html',1,'']]]
+  ['ebpf_5fversion_2eh_13',['ebpf_version.h',['../ebpf__version_8h.html',1,'']]],
+  ['ebpf_5fwindows_2eh_14',['ebpf_windows.h',['../ebpf__windows_8h.html',1,'']]],
+  ['elfio_5fwrapper_2ehpp_15',['elfio_wrapper.hpp',['../elfio__wrapper_8hpp.html',1,'']]],
+  ['errno_2eh_16',['errno.h',['../errno_8h.html',1,'']]]
 ];
