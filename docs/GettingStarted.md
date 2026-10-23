@@ -27,7 +27,7 @@ The following must be installed in order to build this project:
 
 Visual Studio will [prompt you to install](https://learn.microsoft.com/en-us/visualstudio/install/import-export-installation-configurations?view=vs-2019#use-a-configuration-file-to-automatically-install-missing-components) the necessary dependencies when opening the main solution file for the
 first time.
-1. Install [Clang for Windows 64-bit](https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/LLVM-18.1.8-win64.exe) (version **18.1.8**). The latest version of clang that ships with the Visual Studio installer does not support `bpf` as a target.
+1. Install [Clang for Windows 64-bit](https://github.com/llvm/llvm-project/releases) at the Public LLVM version pinned in [`scripts/clang-toolchain.props`](../scripts/clang-toolchain.props). The latest Clang bundled with Visual Studio may not support `bpf` as a target.
 1. CMake **4.2 or later** is required when building with Visual Studio 2026, as earlier versions do not support the `Visual Studio 18 2026` generator.
 
 You should add the paths to `git.exe`, `cmake.exe` and `nuget.exe` to the Windows PATH environment variable after the software packages
@@ -46,7 +46,7 @@ You should add the paths to `git.exe`, `cmake.exe` and `nuget.exe` to the Window
 
    ```ps
    Invoke-WebRequest 'https://raw.githubusercontent.com/microsoft/ebpf-for-windows/main/scripts/Setup-DevEnv.ps1' -OutFile $env:TEMP\Setup-DeveEnv.ps1
-   if ((get-filehash -Algorithm SHA256 $env:TEMP\Setup-DeveEnv.ps1).Hash -eq '6384A8BA507B8C1FB48AAE8BA298C7A79E3927BC92B3BFAB47552371208D8AEB') { &"$env:TEMP\Setup-DeveEnv.ps1" }
+   if ((get-filehash -Algorithm SHA256 $env:TEMP\Setup-DeveEnv.ps1).Hash -eq 'D113C57B98C9BC8758AA3284C61737A8C8A4A642EF48125F162E6D64204A375C') { &"$env:TEMP\Setup-DeveEnv.ps1" }
    ```
 
    This installs Visual Studio 2026 by default. To set up a Visual Studio 2022 environment instead, pass
@@ -99,7 +99,9 @@ The following steps need to be executed *once* before the first build on a new c
 
       >**Note**: On a machine with multiple Visual Studio versions installed (e.g. VS 2022 and VS 2026), pass `-VisualStudioVersion 2022` (or `2026`) so the CMake generator, platform toolset, and NuGet restore all match the Visual Studio version you build with. Without it, the latest installed Visual Studio is used.
 
-      >**Note**: PackageReference dependencies, including the WDK and EverParse, are restored to NuGet's configured global packages folder (the user-level cache by default) and can be shared by clones and worktrees. The legacy WiX `packages.config` dependency is an exception and is restored to this clone's repository-local `packages` directory. Re-run initialization with the matching `-Architecture` and `-VisualStudioVersion` when switching target architecture or Visual Studio version. Older worktrees may retain unused `packages\Microsoft.Windows.*` or `packages\EverParse.*` directories from previous initialization runs; those specific directories can be removed when no build is running.
+      >**Note**: Initialization selects the Clang channel automatically by default. It first reuses this worktree's previously selected channel, then selects Internal if the exact Internal package feed is enabled in the effective NuGet configuration, and otherwise selects Public. Use `-LlvmChannel Public` or `-LlvmChannel Internal` to override the selection. The two channels use different compiler versions and are never selected as silent fallbacks for each other.
+
+      >**Note**: PackageReference dependencies, including the WDK, EverParse, and the optional Internal Clang toolchain, are restored to NuGet's configured global packages folder (the user-level cache by default) and can be shared by clones and worktrees. The legacy WiX `packages.config` dependency is an exception and is restored to this clone's repository-local `packages` directory. Re-run initialization after switching LLVM channel, target architecture, Visual Studio version, or NuGet package-cache root. Older worktrees may retain unused `packages\Microsoft.Windows.*`, `packages\EverParse.*`, `packages\llvm.tools`, or `packages\clang.headers` directories from previous initialization runs; those specific directories can be removed when no build is running.
 
 > TIP: In case you need to "reset" the repo, without re-cloning it, you can just delete all the folders under the `\external` directory (but keep the files), and then re-run the above script.
 
@@ -232,7 +234,7 @@ On a defender machine with [eBPF installed](#installing-ebpf-for-windows), do th
 1. Install and set up a DNS server.
 1. Make sure that either test signing was enabled as discussed in
    [Installing eBPF for Windows](#installing-ebpf-for-windows), or the kernel debugger (KD) is attached and running.
-1. Install [clang](https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/LLVM-18.1.8-win64.exe)
+1. Install the Public Clang version pinned in [`scripts/clang-toolchain.props`](../scripts/clang-toolchain.props) from the [LLVM releases](https://github.com/llvm/llvm-project/releases)
    if not already installed on the defender machine.
 1. Copy `droppacket.c` and `ebpf.h` to a folder (such as `c:\test`).
 
