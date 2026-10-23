@@ -152,6 +152,12 @@ typedef class _netebpf_ext_helper
         usersim_fwp_sock_ops_v4_remove_flow_context(flow_id);
     }
 
+    void
+    test_sock_ops_v6_remove_flow_context(uint64_t flow_id)
+    {
+        usersim_fwp_sock_ops_v6_remove_flow_context(flow_id);
+    }
+
     FWP_ACTION_TYPE
     test_cgroup_inet4_listen(_In_ const fwp_classify_parameters_t* parameters)
     {
