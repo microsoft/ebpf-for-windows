@@ -1,0 +1,1525 @@
+# Copyright (c) eBPF for Windows contributors
+# SPDX-License-Identifier: MIT
+
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory = $true)]
+    [ValidateSet(
+        "Install",
+        "Rollback",
+        "Commit",
+        "RestoreService",
+        "InstallEbpfSvc",
+        "BackupServices",
+        "RollbackServices",
+        "CommitServices",
+        "PrepareRestoreServices",
+        "RemoveServices",
+        "RestoreServices",
+        "RollbackRestoreServices",
+        "BackupStore",
+        "RollbackStore",
+        "CommitStore",
+        "PrepareRestoreStore",
+        "RestoreStore",
+        "RollbackRestoreStore",
+        "CommitRestoreStore",
+        "RestoreLinks",
+        "RollbackRestoreLinks")]
+    [string]$Action,
+
+    [string]$InstallRoot,
+
+    [string]$SystemRootPath = $env:SystemRoot,
+
+    [string]$ServiceName,
+
+    [string]$ImagePath,
+
+    [ValidateSet("HKLM", "HKCU")]
+    [string]$Scope,
+
+    [string]$StateRoot = (Join-Path $env:ProgramData "eBPF-for-Windows\MsiBackup"),
+
+    [string]$StoreRegistryPath,
+
+    [string]$OwnerProductCode,
+
+    [string]$OwnerUpgradeCode,
+
+    [string[]]$ServiceNames = @("eBPFCore", "NetEbpfExt", "eBPFSvc")
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
+if (-not ("EbpfMsi.NativeSecurity" -as [type])) {
+    Add-Type -TypeDefinition @"
+using System;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
+using System.Security.AccessControl;
+
+namespace EbpfMsi
+{
+    public static class NativeSecurity
+    {
+        private const uint TOKEN_ADJUST_PRIVILEGES = 0x0020;
+        private const uint TOKEN_QUERY = 0x0008;
+        private const uint SE_PRIVILEGE_ENABLED = 0x00000002;
+        private const int ERROR_NOT_ALL_ASSIGNED = 1300;
+        private const uint OWNER_SECURITY_INFORMATION = 0x00000001;
+        private const uint GROUP_SECURITY_INFORMATION = 0x00000002;
+        private const uint DACL_SECURITY_INFORMATION = 0x00000004;
+        private const uint UNPROTECTED_DACL_SECURITY_INFORMATION = 0x20000000;
+        private const uint PROTECTED_DACL_SECURITY_INFORMATION = 0x80000000;
+        private const uint GENERIC_READ = 0x80000000;
+        private const uint FILE_SHARE_READ = 0x00000001;
+        private const uint FILE_SHARE_WRITE = 0x00000002;
+        private const uint FILE_SHARE_DELETE = 0x00000004;
+        private const uint OPEN_EXISTING = 3;
+        private const uint FILE_FLAG_BACKUP_SEMANTICS = 0x02000000;
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct Luid
+        {
+            public uint LowPart;
+            public int HighPart;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct TokenPrivileges
+        {
+            public uint PrivilegeCount;
+            public Luid Luid;
+            public uint Attributes;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct ByHandleFileInformation
+        {
+            public uint FileAttributes;
+            public System.Runtime.InteropServices.ComTypes.FILETIME CreationTime;
+            public System.Runtime.InteropServices.ComTypes.FILETIME LastAccessTime;
+            public System.Runtime.InteropServices.ComTypes.FILETIME LastWriteTime;
+            public uint VolumeSerialNumber;
+            public uint FileSizeHigh;
+            public uint FileSizeLow;
+            public uint NumberOfLinks;
+            public uint FileIndexHigh;
+            public uint FileIndexLow;
+        }
+
+        [DllImport("kernel32.dll")]
+        private static extern IntPtr GetCurrentProcess();
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern IntPtr CreateFile(
+            string fileName,
+            uint desiredAccess,
+            uint shareMode,
+            IntPtr securityAttributes,
+            uint creationDisposition,
+            uint flagsAndAttributes,
+            IntPtr templateFile);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool GetFileInformationByHandle(
+            IntPtr fileHandle, out ByHandleFileInformation fileInformation);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool CloseHandle(IntPtr handle);
+
+        [DllImport("advapi32.dll", SetLastError = true)]
+        private static extern bool OpenProcessToken(
+            IntPtr processHandle, uint desiredAccess, out IntPtr tokenHandle);
+
+        [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern bool LookupPrivilegeValue(string systemName, string name, out Luid luid);
+
+        [DllImport("advapi32.dll", SetLastError = true)]
+        private static extern bool AdjustTokenPrivileges(
+            IntPtr tokenHandle,
+            bool disableAllPrivileges,
+            ref TokenPrivileges newState,
+            uint bufferLength,
+            IntPtr previousState,
+            IntPtr returnLength);
+
+        [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern bool SetFileSecurity(
+            string fileName, uint securityInformation, byte[] securityDescriptor);
+
+        public static bool TryEnablePrivilege(string privilegeName)
+        {
+            IntPtr tokenHandle;
+            if (!OpenProcessToken(
+                    GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, out tokenHandle)) {
+                throw new Win32Exception(Marshal.GetLastWin32Error());
+            }
+
+            try {
+                Luid luid;
+                if (!LookupPrivilegeValue(null, privilegeName, out luid)) {
+                    throw new Win32Exception(Marshal.GetLastWin32Error());
+                }
+
+                TokenPrivileges privileges = new TokenPrivileges {
+                    PrivilegeCount = 1,
+                    Luid = luid,
+                    Attributes = SE_PRIVILEGE_ENABLED
+                };
+                if (!AdjustTokenPrivileges(
+                        tokenHandle, false, ref privileges, 0, IntPtr.Zero, IntPtr.Zero)) {
+                    throw new Win32Exception(Marshal.GetLastWin32Error());
+                }
+                return Marshal.GetLastWin32Error() != ERROR_NOT_ALL_ASSIGNED;
+            } finally {
+                CloseHandle(tokenHandle);
+            }
+        }
+
+        public static void RestoreFileAcl(string path, byte[] descriptor)
+        {
+            RawSecurityDescriptor securityDescriptor = new RawSecurityDescriptor(descriptor, 0);
+            uint securityInformation =
+                OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION;
+            securityInformation |=
+                (securityDescriptor.ControlFlags & ControlFlags.DiscretionaryAclProtected) != 0
+                    ? PROTECTED_DACL_SECURITY_INFORMATION
+                    : UNPROTECTED_DACL_SECURITY_INFORMATION;
+            if (!SetFileSecurity(path, securityInformation, descriptor)) {
+                throw new Win32Exception(Marshal.GetLastWin32Error());
+            }
+        }
+
+        public static bool AreSameFile(string firstPath, string secondPath)
+        {
+            ByHandleFileInformation first = GetFileInformation(firstPath);
+            ByHandleFileInformation second = GetFileInformation(secondPath);
+            return first.VolumeSerialNumber == second.VolumeSerialNumber &&
+                first.FileIndexHigh == second.FileIndexHigh &&
+                first.FileIndexLow == second.FileIndexLow;
+        }
+
+        private static ByHandleFileInformation GetFileInformation(string path)
+        {
+            IntPtr handle = CreateFile(
+                path,
+                GENERIC_READ,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                IntPtr.Zero,
+                OPEN_EXISTING,
+                FILE_FLAG_BACKUP_SEMANTICS,
+                IntPtr.Zero);
+            if (handle == new IntPtr(-1)) {
+                throw new Win32Exception(Marshal.GetLastWin32Error());
+            }
+
+            try {
+                ByHandleFileInformation information;
+                if (!GetFileInformationByHandle(handle, out information)) {
+                    throw new Win32Exception(Marshal.GetLastWin32Error());
+                }
+                return information;
+            } finally {
+                CloseHandle(handle);
+            }
+        }
+    }
+}
+"@
+}
+
+if ([string]::IsNullOrWhiteSpace($InstallRoot)) {
+    $InstallRoot = $PSScriptRoot
+}
+
+$system32 = Join-Path $SystemRootPath "System32"
+$mappings = @(
+    [PSCustomObject]@{
+        Source = Join-Path $InstallRoot "bpftool.exe"
+        Link = Join-Path $system32 "bpftool.exe"
+    },
+    [PSCustomObject]@{
+        Source = Join-Path $InstallRoot "EbpfApi.dll"
+        Link = Join-Path $system32 "ebpfapi.dll"
+    },
+    [PSCustomObject]@{
+        Source = Join-Path $InstallRoot "ebpfnetsh.dll"
+        Link = Join-Path $system32 "ebpfnetsh.dll"
+    },
+    [PSCustomObject]@{
+        Source = Join-Path $InstallRoot "JIT\ebpfsvc.exe"
+        Link = Join-Path $system32 "ebpfsvc.exe"
+    },
+    [PSCustomObject]@{
+        Source = Join-Path $InstallRoot "drivers\eBPFCore.sys"
+        Link = Join-Path $system32 "drivers\eBPFCore.sys"
+    },
+    [PSCustomObject]@{
+        Source = Join-Path $InstallRoot "drivers\NetEbpfExt.sys"
+        Link = Join-Path $system32 "drivers\NetEbpfExt.sys"
+    }
+)
+
+function Invoke-ForAllMappings
+{
+    param(
+        [Parameter(Mandatory = $true)]
+        [scriptblock]$Operation)
+
+    $failures = @()
+    foreach ($mapping in $mappings) {
+        try {
+            & $Operation $mapping
+        } catch {
+            $failures += "$($mapping.Link): $($_.Exception.Message)"
+        }
+    }
+
+    if ($failures.Count -ne 0) {
+        throw ($failures -join [Environment]::NewLine)
+    }
+}
+
+function Invoke-NativeCommand
+{
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$FilePath,
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$ArgumentList,
+
+        [Parameter(Mandatory = $true)]
+        [string]$FailureMessage)
+
+    & $FilePath @ArgumentList | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "$FailureMessage (exit code $LASTEXITCODE)"
+    }
+}
+
+function Enable-SystemFileAccess
+{
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    Invoke-NativeCommand `
+        -FilePath (Join-Path $env:SystemRoot "System32\takeown.exe") `
+        -ArgumentList @("/F", $Path) `
+        -FailureMessage "Failed to take ownership of $Path"
+    Invoke-NativeCommand `
+        -FilePath (Join-Path $env:SystemRoot "System32\icacls.exe") `
+        -ArgumentList @($Path, "/grant", "*S-1-5-18:(F)") `
+        -FailureMessage "Failed to grant SYSTEM access to $Path"
+}
+
+function Get-RestorableFileAcl
+{
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $currentAcl = Get-Acl -LiteralPath $Path
+    return @{
+        Descriptor = $currentAcl.GetSecurityDescriptorBinaryForm()
+        Object = $currentAcl
+        AutoInherited =
+            ($currentAcl.AreAccessRulesCanonical -and
+            $currentAcl.Sddl -match "D:.*AI")
+    }
+}
+
+function Restore-FileAcl
+{
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+
+        [Parameter(Mandatory = $true)]
+        [hashtable]$Acl)
+
+    [EbpfMsi.NativeSecurity]::TryEnablePrivilege("SeRestorePrivilege") | Out-Null
+    if ($Acl.AutoInherited) {
+        Set-Acl -LiteralPath $Path -AclObject $Acl.Object
+    } else {
+        [EbpfMsi.NativeSecurity]::RestoreFileAcl($Path, $Acl.Descriptor)
+    }
+}
+
+function Test-SameFile
+{
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$FirstPath,
+
+        [Parameter(Mandatory = $true)]
+        [string]$SecondPath)
+
+    return [EbpfMsi.NativeSecurity]::AreSameFile($FirstPath, $SecondPath)
+}
+
+function Get-BackupCount
+{
+    return @(
+        $mappings |
+            Where-Object { Test-Path -LiteralPath ($_.Link + ".ebpf-msi-backup") -PathType Leaf }
+    ).Count
+}
+
+function Rollback-InstalledLinks
+{
+    Invoke-ForAllMappings {
+        param($mapping)
+
+        $backup = $mapping.Link + ".ebpf-msi-backup"
+        $replacement = $mapping.Link + ".ebpf-msi-new"
+        $rollback = $mapping.Link + ".ebpf-msi-rollback"
+        if (Test-Path -LiteralPath $rollback -PathType Leaf) {
+            if (Test-Path -LiteralPath $mapping.Link) {
+                Remove-Item -LiteralPath $mapping.Link -Force
+            }
+            Move-Item -LiteralPath $rollback -Destination $mapping.Link
+            if ((Test-Path -LiteralPath $backup -PathType Leaf) -and
+                (Test-SameFile -FirstPath $backup -SecondPath $mapping.Link)) {
+                Remove-Item -LiteralPath $backup -Force
+            }
+        }
+        if (Test-Path -LiteralPath $replacement) {
+            Remove-Item -LiteralPath $replacement -Force
+        }
+    }
+}
+
+function Restore-OriginalFileAcls
+{
+    param(
+        [Parameter(Mandatory = $true)][hashtable]$OriginalAcls,
+        [Parameter(Mandatory = $true)][bool]$CreatedDurableBackups)
+
+    $failures = @()
+    foreach ($mapping in $mappings) {
+        if (-not $OriginalAcls.ContainsKey($mapping.Link)) {
+            continue
+        }
+
+        $candidates = @($mapping.Link + ".ebpf-msi-rollback")
+        if ($CreatedDurableBackups) {
+            $candidates += @(($mapping.Link + ".ebpf-msi-backup"), $mapping.Link)
+        } else {
+            $candidates += $mapping.Link
+        }
+        $aclPath = $candidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
+        if ($null -eq $aclPath) {
+            $failures += "$($mapping.Link): original file path is unavailable"
+            continue
+        }
+
+        try {
+            Restore-FileAcl -Path $aclPath -Acl $OriginalAcls[$mapping.Link]
+        } catch {
+            $failures += "$($mapping.Link): $($_.Exception.Message)"
+        }
+    }
+
+    if ($failures.Count -ne 0) {
+        throw ($failures -join [Environment]::NewLine)
+    }
+}
+
+function Restore-OriginalLinks
+{
+    $backupCount = Get-BackupCount
+    if ($backupCount -eq 0) {
+        Write-Output "No forced-install eBPF hard-link backups were found."
+        return
+    }
+    if ($backupCount -ne $mappings.Count) {
+        throw "Only $backupCount of $($mappings.Count) eBPF hard-link backups exist."
+    }
+
+    $originalAcls = @{}
+    $msiAcls = @{}
+    foreach ($mapping in $mappings) {
+        $backup = $mapping.Link + ".ebpf-msi-backup"
+        if (-not (Test-Path -LiteralPath $mapping.Source -PathType Leaf)) {
+            throw "Installed eBPF binary is missing: $($mapping.Source)"
+        }
+        if (-not (Test-Path -LiteralPath $mapping.Link -PathType Leaf)) {
+            throw "Canonical eBPF binary is missing: $($mapping.Link)"
+        }
+        if (-not (Test-SameFile -FirstPath $mapping.Link -SecondPath $mapping.Source)) {
+            throw "Canonical eBPF binary no longer points to the MSI file: $($mapping.Link)"
+        }
+        if (Test-SameFile -FirstPath $backup -SecondPath $mapping.Link) {
+            throw "The backup and canonical eBPF paths unexpectedly point to the same file: $($mapping.Link)"
+        }
+        $originalAcls[$mapping.Link] = Get-RestorableFileAcl -Path $backup
+        $msiAcls[$mapping.Link] = Get-RestorableFileAcl -Path $mapping.Link
+    }
+
+    try {
+        foreach ($mapping in $mappings) {
+            Enable-SystemFileAccess -Path $mapping.Link
+            Enable-SystemFileAccess -Path ($mapping.Link + ".ebpf-msi-backup")
+        }
+        foreach ($mapping in $mappings) {
+            Remove-Item -LiteralPath $mapping.Link -Force
+            Move-Item -LiteralPath ($mapping.Link + ".ebpf-msi-backup") -Destination $mapping.Link
+            Restore-FileAcl -Path $mapping.Link -Acl $originalAcls[$mapping.Link]
+            Restore-FileAcl -Path $mapping.Source -Acl $msiAcls[$mapping.Link]
+        }
+    } catch {
+        $restoreError = $_
+        try {
+            Restore-MsiLinks
+            foreach ($mapping in $mappings) {
+                $backup = $mapping.Link + ".ebpf-msi-backup"
+                if (Test-Path -LiteralPath $backup -PathType Leaf) {
+                    Restore-FileAcl -Path $backup -Acl $originalAcls[$mapping.Link]
+                }
+                if (Test-Path -LiteralPath $mapping.Source -PathType Leaf) {
+                    Restore-FileAcl -Path $mapping.Source -Acl $msiAcls[$mapping.Link]
+                }
+            }
+        } catch {
+            throw "$($restoreError.Exception.Message)$([Environment]::NewLine)Failed to roll back link restoration: $($_.Exception.Message)"
+        }
+        throw $restoreError
+    }
+}
+
+function Restore-MsiLinks
+{
+    if ((Get-BackupCount) -eq 0 -and
+        -not (Test-Path -LiteralPath (Join-Path $StateRoot "ebpf-services.json") -PathType Leaf)) {
+        return
+    }
+
+    $mappingsToRestore = @()
+    foreach ($mapping in $mappings) {
+        $backup = $mapping.Link + ".ebpf-msi-backup"
+        if (-not (Test-Path -LiteralPath $mapping.Source -PathType Leaf)) {
+            throw "Installed eBPF binary is missing during uninstall rollback: $($mapping.Source)"
+        }
+        if (-not (Test-Path -LiteralPath $mapping.Link -PathType Leaf)) {
+            throw "Restored canonical eBPF binary is missing: $($mapping.Link)"
+        }
+        if (Test-Path -LiteralPath $backup -PathType Leaf) {
+            if (Test-SameFile -FirstPath $mapping.Link -SecondPath $mapping.Source) {
+                continue
+            }
+            if (-not (Test-SameFile -FirstPath $mapping.Link -SecondPath $backup)) {
+                throw "The canonical eBPF binary points to neither the backup nor the MSI file: $($mapping.Link)"
+            }
+        } elseif (Test-SameFile -FirstPath $mapping.Link -SecondPath $mapping.Source) {
+            throw "The canonical eBPF binary points to the MSI file but its backup is missing: $($mapping.Link)"
+        }
+        $mappingsToRestore += @{
+            Mapping = $mapping
+            OriginalAcl = Get-RestorableFileAcl -Path $mapping.Link
+        }
+    }
+
+    foreach ($mappingState in $mappingsToRestore) {
+        $mapping = $mappingState.Mapping
+        $backup = $mapping.Link + ".ebpf-msi-backup"
+        Enable-SystemFileAccess -Path $mapping.Link
+        $replacement = $mapping.Link + ".ebpf-msi-new"
+        Remove-Item -LiteralPath $replacement -Force -ErrorAction SilentlyContinue
+        New-Item -ItemType HardLink -Path $replacement -Target $mapping.Source |
+            Out-Null
+        if (-not (Test-Path -LiteralPath $backup -PathType Leaf)) {
+            New-Item -ItemType HardLink -Path $backup -Target $mapping.Link |
+                Out-Null
+        }
+        Remove-Item -LiteralPath $mapping.Link -Force
+        Move-Item -LiteralPath $replacement -Destination $mapping.Link
+        Restore-FileAcl -Path $backup -Acl $mappingState.OriginalAcl
+    }
+}
+
+function Get-StorePaths
+{
+    param([Parameter(Mandatory = $true)][string]$StoreScope)
+
+    $scopeName = $StoreScope.ToLowerInvariant()
+    return @{
+        RegistryPath =
+            if ([string]::IsNullOrWhiteSpace($StoreRegistryPath)) {
+                "$StoreScope\Software\eBPF"
+            } else {
+                $StoreRegistryPath
+            }
+        RegistryFile = Join-Path $StateRoot "ebpf-store-$scopeName.reg"
+        StateFile = Join-Path $StateRoot "ebpf-store-$scopeName.json"
+        PendingFile = Join-Path $StateRoot "ebpf-store-$scopeName.pending"
+        RollbackRegistryFile = Join-Path $StateRoot "ebpf-store-$scopeName.rollback.reg"
+        UninstallStateFile = Join-Path $StateRoot "ebpf-store-$scopeName.uninstall.json"
+        UninstallRegistryFile = Join-Path $StateRoot "ebpf-store-$scopeName.uninstall.reg"
+    }
+}
+
+function Get-RegistryProviderPath
+{
+    param([Parameter(Mandatory = $true)][string]$RegistryPath)
+
+    if ($RegistryPath.StartsWith("HKLM\", [System.StringComparison]::OrdinalIgnoreCase)) {
+        return "Registry::HKEY_LOCAL_MACHINE\" + $RegistryPath.Substring(5)
+    }
+    if ($RegistryPath.StartsWith("HKCU\", [System.StringComparison]::OrdinalIgnoreCase)) {
+        return "Registry::HKEY_CURRENT_USER\" + $RegistryPath.Substring(5)
+    }
+    throw "Unsupported registry path '$RegistryPath'."
+}
+
+function Remove-RegistryTreeIfPresent
+{
+    param([Parameter(Mandatory = $true)][string]$RegistryPath)
+
+    $providerPath = Get-RegistryProviderPath -RegistryPath $RegistryPath
+    if (Test-Path -LiteralPath $providerPath) {
+        Remove-Item -LiteralPath $providerPath -Recurse -Force
+    }
+}
+
+function Get-ServicePaths
+{
+    return @{
+        StateFile = Join-Path $StateRoot "ebpf-services.json"
+        PendingFile = Join-Path $StateRoot "ebpf-services.pending.json"
+        UninstallRollbackFile = Join-Path $StateRoot "ebpf-services.uninstall-rollback.json"
+    }
+}
+
+function Get-ServiceRegistryPath
+{
+    param([Parameter(Mandatory = $true)][string]$Name)
+
+    return "HKLM\SYSTEM\CurrentControlSet\Services\$Name"
+}
+
+function Get-ServiceState
+{
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Name,
+
+        [Parameter(Mandatory = $true)]
+        [string]$RegistryFile)
+
+    $providerPath = Get-RegistryProviderPath -RegistryPath (Get-ServiceRegistryPath -Name $Name)
+    if (-not (Test-Path -LiteralPath $providerPath)) {
+        return [PSCustomObject]@{
+            Name = $Name
+            Existed = $false
+            WasRunning = $false
+            RegistryFile = $null
+        }
+    }
+
+    $service = Get-Service -Name $Name -ErrorAction SilentlyContinue
+    $values = Get-ItemProperty -LiteralPath $providerPath
+    $securityDescriptor = & (Join-Path $env:SystemRoot "System32\sc.exe") sdshow $Name
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to read the $Name service security descriptor."
+    }
+    Invoke-NativeCommand `
+        -FilePath (Join-Path $env:SystemRoot "System32\reg.exe") `
+        -ArgumentList @("export", (Get-ServiceRegistryPath -Name $Name), $RegistryFile, "/y") `
+        -FailureMessage "Failed to save the $Name service registry key"
+
+    return [PSCustomObject]@{
+        Name = $Name
+        Existed = $true
+        WasRunning =
+            $null -ne $service -and
+            $service.Status -eq [System.ServiceProcess.ServiceControllerStatus]::Running
+        RegistryFile = [System.IO.Path]::GetFileName($RegistryFile)
+        ImagePath = [string]$values.ImagePath
+        Start = [int]$values.Start
+        Type = [int]$values.Type
+        ErrorControl = [int]$values.ErrorControl
+        DisplayName =
+            if ($null -ne $values.PSObject.Properties["DisplayName"]) {
+                [string]$values.DisplayName
+            } else {
+                $null
+            }
+        ObjectName =
+            if ($null -ne $values.PSObject.Properties["ObjectName"]) {
+                [string]$values.ObjectName
+            } else {
+                $null
+            }
+        DependOnService =
+            if ($null -ne $values.PSObject.Properties["DependOnService"]) {
+                @($values.DependOnService)
+            } else {
+                @()
+            }
+        Description =
+            if ($null -ne $values.PSObject.Properties["Description"]) {
+                [string]$values.Description
+            } else {
+                $null
+            }
+        HasDescription = $null -ne $values.PSObject.Properties["Description"]
+        DelayedAutoStart =
+            if ($null -ne $values.PSObject.Properties["DelayedAutoStart"]) {
+                [int]$values.DelayedAutoStart
+            } else {
+                $null
+            }
+        HasDelayedAutoStart = $null -ne $values.PSObject.Properties["DelayedAutoStart"]
+        HasServiceSidType = $null -ne $values.PSObject.Properties["ServiceSidType"]
+        ServiceSidType =
+            if ($null -ne $values.PSObject.Properties["ServiceSidType"]) {
+                [int]$values.ServiceSidType
+            } else {
+                $null
+            }
+        SecurityDescriptor = ($securityDescriptor | Where-Object { $_ -match "^D:" } | Select-Object -First 1)
+    }
+}
+
+function Get-ScStartName
+{
+    param(
+        [Parameter(Mandatory = $true)][int]$Start,
+        [AllowNull()][object]$DelayedAutoStart)
+
+    if ($Start -eq 2 -and $null -ne $DelayedAutoStart -and [int]$DelayedAutoStart -ne 0) {
+        return "delayed-auto"
+    }
+    switch ($Start) {
+        0 { return "boot" }
+        1 { return "system" }
+        2 { return "auto" }
+        3 { return "demand" }
+        4 { return "disabled" }
+        default { throw "Unsupported service start value '$Start'." }
+    }
+}
+
+function Get-ScTypeName
+{
+    param([Parameter(Mandatory = $true)][int]$Type)
+
+    switch ($Type) {
+        1 { return "kernel" }
+        2 { return "filesys" }
+        16 { return "own" }
+        32 { return "share" }
+        default { throw "Unsupported service type value '$Type'." }
+    }
+}
+
+function Get-ScErrorName
+{
+    param([Parameter(Mandatory = $true)][int]$ErrorControl)
+
+    switch ($ErrorControl) {
+        0 { return "ignore" }
+        1 { return "normal" }
+        2 { return "severe" }
+        3 { return "critical" }
+        default { throw "Unsupported service error-control value '$ErrorControl'." }
+    }
+}
+
+function Stop-ServiceIfPresent
+{
+    param([Parameter(Mandatory = $true)][string]$Name)
+
+    $service = Get-Service -Name $Name -ErrorAction SilentlyContinue
+    if ($null -ne $service -and
+        $service.Status -ne [System.ServiceProcess.ServiceControllerStatus]::Stopped) {
+        Stop-Service -Name $Name -Force
+        $service.WaitForStatus(
+            [System.ServiceProcess.ServiceControllerStatus]::Stopped,
+            [TimeSpan]::FromSeconds(60))
+    }
+}
+
+function Remove-ServiceIfPresent
+{
+    param([Parameter(Mandatory = $true)][string]$Name)
+
+    Stop-ServiceIfPresent -Name $Name
+    if ($null -ne (Get-Service -Name $Name -ErrorAction SilentlyContinue)) {
+        Invoke-NativeCommand `
+            -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
+            -ArgumentList @("delete", $Name) `
+            -FailureMessage "Failed to delete the $Name service"
+        for ($attempt = 0; $attempt -lt 30; $attempt++) {
+            if ($null -eq (Get-Service -Name $Name -ErrorAction SilentlyContinue)) {
+                return
+            }
+            Start-Sleep -Seconds 1
+        }
+        throw "The $Name service remained pending deletion."
+    }
+}
+
+function Set-ServiceFromState
+{
+    param(
+        [Parameter(Mandatory = $true)][object]$ServiceState,
+        [Parameter(Mandatory = $true)][bool]$StartIfPreviouslyRunning)
+
+    $name = [string]$ServiceState.Name
+    if (-not [bool]$ServiceState.Existed) {
+        Remove-ServiceIfPresent -Name $name
+        return
+    }
+
+    if ($null -eq (Get-Service -Name $name -ErrorAction SilentlyContinue)) {
+        $createArguments = @(
+            "create",
+            $name,
+            "type=",
+            (Get-ScTypeName -Type ([int]$ServiceState.Type)),
+            "start=",
+            (Get-ScStartName -Start ([int]$ServiceState.Start) -DelayedAutoStart $null),
+            "error=",
+            (Get-ScErrorName -ErrorControl ([int]$ServiceState.ErrorControl)),
+            "binPath=",
+            [string]$ServiceState.ImagePath)
+        if (-not [string]::IsNullOrWhiteSpace([string]$ServiceState.DisplayName)) {
+            $createArguments += @("DisplayName=", [string]$ServiceState.DisplayName)
+        }
+        if (-not [string]::IsNullOrWhiteSpace([string]$ServiceState.ObjectName)) {
+            $createArguments += @("obj=", [string]$ServiceState.ObjectName)
+        }
+        Invoke-NativeCommand `
+            -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
+            -ArgumentList $createArguments `
+            -FailureMessage "Failed to recreate the $name service"
+    }
+
+    Stop-ServiceIfPresent -Name $name
+    $registryFile = Join-Path $StateRoot ([string]$ServiceState.RegistryFile)
+    if (-not (Test-Path -LiteralPath $registryFile -PathType Leaf)) {
+        throw "The saved $name service registry file is missing: $registryFile"
+    }
+    Invoke-NativeCommand `
+        -FilePath (Join-Path $env:SystemRoot "System32\reg.exe") `
+        -ArgumentList @("import", $registryFile) `
+        -FailureMessage "Failed to restore the $name service registry key"
+
+    $arguments = @(
+        "config",
+        $name,
+        "type=",
+        (Get-ScTypeName -Type ([int]$ServiceState.Type)),
+        "start=",
+        (Get-ScStartName -Start ([int]$ServiceState.Start) -DelayedAutoStart $ServiceState.DelayedAutoStart),
+        "error=",
+        (Get-ScErrorName -ErrorControl ([int]$ServiceState.ErrorControl)),
+        "binPath=",
+        [string]$ServiceState.ImagePath)
+    if (-not [string]::IsNullOrWhiteSpace([string]$ServiceState.DisplayName)) {
+        $arguments += @("DisplayName=", [string]$ServiceState.DisplayName)
+    }
+    if (@($ServiceState.DependOnService).Count -ne 0) {
+        $arguments += @("depend=", (@($ServiceState.DependOnService) -join "/"))
+    } else {
+        $arguments += @("depend=", "/")
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$ServiceState.ObjectName)) {
+        $arguments += @("obj=", [string]$ServiceState.ObjectName)
+    }
+    Invoke-NativeCommand `
+        -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
+        -ArgumentList $arguments `
+        -FailureMessage "Failed to restore the $name service configuration"
+
+    if ([bool]$ServiceState.HasDescription) {
+        Invoke-NativeCommand `
+            -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
+            -ArgumentList @("description", $name, [string]$ServiceState.Description) `
+            -FailureMessage "Failed to restore the $name service description"
+    } else {
+        Invoke-NativeCommand `
+            -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
+            -ArgumentList @("description", $name, "") `
+            -FailureMessage "Failed to clear the $name service description"
+    }
+    if (-not [bool]$ServiceState.HasDelayedAutoStart) {
+        Remove-ItemProperty `
+            -LiteralPath (Get-RegistryProviderPath -RegistryPath (Get-ServiceRegistryPath -Name $name)) `
+            -Name "DelayedAutoStart" `
+            -ErrorAction SilentlyContinue
+    }
+    if ([int]$ServiceState.Type -in @(16, 32) -and [bool]$ServiceState.HasServiceSidType) {
+        $sidType =
+            switch ([int]$ServiceState.ServiceSidType) {
+                0 { "none" }
+                1 { "unrestricted" }
+                3 { "restricted" }
+                default { throw "Unsupported service SID type '$($ServiceState.ServiceSidType)' for $name." }
+            }
+        Invoke-NativeCommand `
+            -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
+            -ArgumentList @("sidtype", $name, $sidType) `
+            -FailureMessage "Failed to restore the $name service SID type"
+    } elseif ([int]$ServiceState.Type -in @(16, 32)) {
+        Invoke-NativeCommand `
+            -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
+            -ArgumentList @("sidtype", $name, "unrestricted") `
+            -FailureMessage "Failed to restore the $name service SID type"
+        Remove-ItemProperty `
+            -LiteralPath (Get-RegistryProviderPath -RegistryPath (Get-ServiceRegistryPath -Name $name)) `
+            -Name "ServiceSidType" `
+            -ErrorAction SilentlyContinue
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$ServiceState.SecurityDescriptor)) {
+        Invoke-NativeCommand `
+            -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
+            -ArgumentList @("sdset", $name, [string]$ServiceState.SecurityDescriptor) `
+            -FailureMessage "Failed to restore the $name service security descriptor"
+    }
+    if ($StartIfPreviouslyRunning -and [bool]$ServiceState.WasRunning) {
+        Start-Service -Name $name
+        (Get-Service -Name $name).WaitForStatus(
+            [System.ServiceProcess.ServiceControllerStatus]::Running,
+            [TimeSpan]::FromSeconds(60))
+    }
+}
+
+function Install-MsiEbpfService
+{
+    $name = "eBPFSvc"
+    $imagePath = '"' + (Join-Path $InstallRoot "JIT\ebpfsvc.exe") + '"'
+    if ($null -eq (Get-Service -Name $name -ErrorAction SilentlyContinue)) {
+        Invoke-NativeCommand `
+            -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
+            -ArgumentList @(
+                "create",
+                $name,
+                "type=",
+                "own",
+                "start=",
+                "auto",
+                "error=",
+                "normal",
+                "binPath=",
+                $imagePath,
+                "DisplayName=",
+                "eBPF Service") `
+            -FailureMessage "Failed to create the eBPFSvc service"
+    }
+
+    Invoke-NativeCommand `
+        -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
+        -ArgumentList @(
+            "config",
+            $name,
+            "type=",
+            "own",
+            "start=",
+            "auto",
+            "error=",
+            "normal",
+            "binPath=",
+            $imagePath,
+            "obj=",
+            "NT AUTHORITY\LocalService",
+            "DisplayName=",
+            "eBPF Service") `
+        -FailureMessage "Failed to configure the eBPFSvc service"
+    Invoke-NativeCommand `
+        -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
+        -ArgumentList @("description", $name, "eBPF Service") `
+        -FailureMessage "Failed to configure the eBPFSvc service description"
+    Invoke-NativeCommand `
+        -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
+        -ArgumentList @("sidtype", $name, "restricted") `
+        -FailureMessage "Failed to configure the eBPFSvc service SID type"
+}
+
+function Read-ServiceState
+{
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        return $null
+    }
+    $state = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
+    if ([int]$state.SchemaVersion -ne 1) {
+        throw "Unsupported eBPF service backup schema version '$($state.SchemaVersion)'."
+    }
+    $savedNames = @($state.Services | ForEach-Object { [string]$_.Name })
+    if ($savedNames.Count -ne $ServiceNames.Count -or
+        @($ServiceNames | Where-Object { $_ -notin $savedNames }).Count -ne 0) {
+        throw "The eBPF service backup does not contain the expected service set."
+    }
+    foreach ($serviceState in @($state.Services)) {
+        if ([bool]$serviceState.Existed) {
+            $registryFileName = [string]$serviceState.RegistryFile
+            if ([System.IO.Path]::GetFileName($registryFileName) -ne $registryFileName -or
+                -not (Test-Path -LiteralPath (Join-Path $StateRoot $registryFileName) -PathType Leaf)) {
+                throw "The saved $($serviceState.Name) service registry file is missing or invalid."
+            }
+        }
+    }
+    return $state
+}
+
+function Save-CurrentServices
+{
+    param(
+        [Parameter(Mandatory = $true)][string]$StateFile,
+        [Parameter(Mandatory = $true)][string]$FileSuffix)
+
+    $services = @()
+    foreach ($name in $ServiceNames) {
+        $services += Get-ServiceState `
+            -Name $name `
+            -RegistryFile (Join-Path $StateRoot "$name.$FileSuffix.reg")
+    }
+    [PSCustomObject]@{
+        SchemaVersion = 1
+        Services = $services
+        OwnerProductCode = $OwnerProductCode
+        OwnerUpgradeCode = $OwnerUpgradeCode
+        Created = (Get-Date).ToUniversalTime().ToString("o")
+    } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $StateFile -Encoding UTF8
+}
+
+function Apply-ServiceState
+{
+    param(
+        [Parameter(Mandatory = $true)][object]$State,
+        [Parameter(Mandatory = $true)][bool]$StartIfPreviouslyRunning)
+
+    foreach ($serviceState in @($State.Services)) {
+        Set-ServiceFromState `
+            -ServiceState $serviceState `
+            -StartIfPreviouslyRunning $StartIfPreviouslyRunning
+    }
+}
+
+function Remove-ServiceStateFiles
+{
+    param([Parameter(Mandatory = $true)][string]$FileSuffix)
+
+    foreach ($name in $ServiceNames) {
+        Remove-Item -LiteralPath (Join-Path $StateRoot "$name.$FileSuffix.reg") -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Backup-Services
+{
+    $paths = Get-ServicePaths
+    New-Item -ItemType Directory -Path $StateRoot -Force | Out-Null
+    if ((Test-Path -LiteralPath $paths.PendingFile) -or
+        (Test-Path -LiteralPath $paths.UninstallRollbackFile)) {
+        throw "Incomplete eBPF service transaction exists in '$StateRoot'."
+    }
+
+    $createdDurableBackup = -not (Test-Path -LiteralPath $paths.StateFile -PathType Leaf)
+    if ($createdDurableBackup) {
+        $existingOriginalFiles =
+            @($ServiceNames | Where-Object {
+                Test-Path -LiteralPath (Join-Path $StateRoot "$_.original.reg") -PathType Leaf
+            })
+        if ($existingOriginalFiles.Count -ne 0) {
+            throw "Incomplete eBPF service backup exists in '$StateRoot'."
+        }
+    }
+    Save-CurrentServices -StateFile $paths.PendingFile -FileSuffix "rollback"
+    $pending = Read-ServiceState -Path $paths.PendingFile
+    $pending | Add-Member -NotePropertyName CreatedDurableBackup -NotePropertyValue $createdDurableBackup
+    $pending | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $paths.PendingFile -Encoding UTF8
+    if ($createdDurableBackup) {
+        Save-CurrentServices -StateFile $paths.StateFile -FileSuffix "original"
+    } else {
+        Read-ServiceState -Path $paths.StateFile | Out-Null
+    }
+}
+
+function Rollback-ServiceTransaction
+{
+    $paths = Get-ServicePaths
+    $pending = Read-ServiceState -Path $paths.PendingFile
+    if ($null -eq $pending) {
+        return
+    }
+
+    Apply-ServiceState -State $pending -StartIfPreviouslyRunning $true
+    Remove-ServiceStateFiles -FileSuffix "rollback"
+    Remove-Item -LiteralPath $paths.PendingFile -Force
+    if ([bool]$pending.CreatedDurableBackup) {
+        Remove-ServiceStateFiles -FileSuffix "original"
+        Remove-Item -LiteralPath $paths.StateFile -Force
+    }
+}
+
+function Remove-MsiServices
+{
+    $paths = Get-ServicePaths
+    $state = Read-ServiceState -Path $paths.StateFile
+    if ($null -eq $state) {
+        foreach ($name in $ServiceNames) {
+            Remove-ServiceIfPresent -Name $name
+        }
+        return
+    }
+
+    foreach ($serviceState in @($state.Services)) {
+        if (-not [bool]$serviceState.Existed) {
+            Remove-ServiceIfPresent -Name ([string]$serviceState.Name)
+        }
+    }
+}
+
+function Prepare-ServiceRestore
+{
+    $paths = Get-ServicePaths
+    New-Item -ItemType Directory -Path $StateRoot -Force | Out-Null
+    if (Test-Path -LiteralPath $paths.UninstallRollbackFile) {
+        throw "Incomplete eBPF service restoration exists in '$StateRoot'."
+    }
+
+    Save-CurrentServices -StateFile $paths.UninstallRollbackFile -FileSuffix "uninstall-rollback"
+}
+
+function Restore-Services
+{
+    $paths = Get-ServicePaths
+    $state = Read-ServiceState -Path $paths.StateFile
+    if ($null -eq $state) {
+        return
+    }
+    Apply-ServiceState -State $state -StartIfPreviouslyRunning $true
+}
+
+function Rollback-ServiceRestore
+{
+    $paths = Get-ServicePaths
+    $state = Read-ServiceState -Path $paths.UninstallRollbackFile
+    if ($null -eq $state) {
+        return
+    }
+
+    Apply-ServiceState -State $state -StartIfPreviouslyRunning $true
+    Remove-ServiceStateFiles -FileSuffix "uninstall-rollback"
+    Remove-Item -LiteralPath $paths.UninstallRollbackFile -Force
+}
+
+function Get-CurrentUserSid
+{
+    return [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+}
+
+function Backup-Store
+{
+    if ([string]::IsNullOrWhiteSpace($Scope)) {
+        throw "Scope is required for BackupStore."
+    }
+
+    $paths = Get-StorePaths -StoreScope $Scope
+    New-Item -ItemType Directory -Path $StateRoot -Force | Out-Null
+    if ((Test-Path -LiteralPath $paths.PendingFile) -or
+        (Test-Path -LiteralPath $paths.RollbackRegistryFile)) {
+        throw "Incomplete $Scope eBPF store transaction exists in '$StateRoot'."
+    }
+
+    $providerPath = Get-RegistryProviderPath -RegistryPath $paths.RegistryPath
+    $storeExisted = Test-Path -LiteralPath $providerPath
+    if ($storeExisted) {
+        Invoke-NativeCommand `
+            -FilePath (Join-Path $env:SystemRoot "System32\reg.exe") `
+            -ArgumentList @("export", $paths.RegistryPath, $paths.RollbackRegistryFile, "/y") `
+            -FailureMessage "Failed to save the current $Scope eBPF store for rollback"
+    }
+
+    $createdDurableBackup = -not (Test-Path -LiteralPath $paths.StateFile -PathType Leaf)
+    if ($createdDurableBackup) {
+        if (Test-Path -LiteralPath $paths.RegistryFile) {
+            throw "Incomplete $Scope eBPF store backup exists in '$StateRoot'."
+        }
+        if ($storeExisted) {
+            Copy-Item -LiteralPath $paths.RollbackRegistryFile -Destination $paths.RegistryFile
+        }
+
+        $state = [PSCustomObject]@{
+            SchemaVersion = 1
+            Scope = $Scope
+            RegistryPath = $paths.RegistryPath
+            StoreExisted = $storeExisted
+            UserSid = if ($Scope -eq "HKCU") { Get-CurrentUserSid } else { $null }
+            OwnerProductCode = $OwnerProductCode
+            OwnerUpgradeCode = $OwnerUpgradeCode
+            Created = (Get-Date).ToUniversalTime().ToString("o")
+        }
+        $temporaryStateFile = $paths.StateFile + ".new"
+        $state | ConvertTo-Json | Set-Content -LiteralPath $temporaryStateFile -Encoding UTF8
+        Move-Item -LiteralPath $temporaryStateFile -Destination $paths.StateFile
+    } else {
+        Read-StoreState -Paths $paths | Out-Null
+    }
+
+    $pendingState = [PSCustomObject]@{
+        SchemaVersion = 1
+        Scope = $Scope
+        RegistryPath = $paths.RegistryPath
+        StoreExisted = $storeExisted
+        UserSid = if ($Scope -eq "HKCU") { Get-CurrentUserSid } else { $null }
+        CreatedDurableBackup = $createdDurableBackup
+    }
+    $pendingState | ConvertTo-Json | Set-Content -LiteralPath $paths.PendingFile -Encoding UTF8
+}
+
+function Read-StoreState
+{
+    param([Parameter(Mandatory = $true)][hashtable]$Paths)
+
+    if (-not (Test-Path -LiteralPath $Paths.StateFile -PathType Leaf)) {
+        return $null
+    }
+    $state = Get-Content -LiteralPath $Paths.StateFile -Raw | ConvertFrom-Json
+    if ([int]$state.SchemaVersion -ne 1) {
+        throw "Unsupported eBPF store backup schema version '$($state.SchemaVersion)'."
+    }
+    if ([string]$state.Scope -ne $Scope) {
+        throw "The eBPF store backup scope does not match '$Scope'."
+    }
+    if ($Scope -eq "HKCU" -and [string]$state.UserSid -ne (Get-CurrentUserSid)) {
+        throw "The HKCU eBPF store belongs to user SID '$($state.UserSid)', not the current user."
+    }
+    return $state
+}
+
+function Rollback-StoreTransaction
+{
+    if ([string]::IsNullOrWhiteSpace($Scope)) {
+        throw "Scope is required for store rollback."
+    }
+
+    $paths = Get-StorePaths -StoreScope $Scope
+    if (-not (Test-Path -LiteralPath $paths.PendingFile -PathType Leaf)) {
+        return
+    }
+
+    $pendingState = Get-Content -LiteralPath $paths.PendingFile -Raw | ConvertFrom-Json
+    if ([int]$pendingState.SchemaVersion -ne 1 -or [string]$pendingState.Scope -ne $Scope) {
+        throw "Invalid pending $Scope eBPF store transaction."
+    }
+    if ($Scope -eq "HKCU" -and [string]$pendingState.UserSid -ne (Get-CurrentUserSid)) {
+        throw "The pending HKCU eBPF store transaction belongs to a different user."
+    }
+
+    Remove-RegistryTreeIfPresent -RegistryPath ([string]$pendingState.RegistryPath)
+    if ([bool]$pendingState.StoreExisted) {
+        if (-not (Test-Path -LiteralPath $paths.RollbackRegistryFile -PathType Leaf)) {
+            throw "The $Scope eBPF rollback store file is missing: $($paths.RollbackRegistryFile)"
+        }
+        Invoke-NativeCommand `
+            -FilePath (Join-Path $env:SystemRoot "System32\reg.exe") `
+            -ArgumentList @("import", $paths.RollbackRegistryFile) `
+            -FailureMessage "Failed to roll back the $Scope eBPF store"
+    }
+
+    Remove-Item -LiteralPath $paths.RollbackRegistryFile -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $paths.PendingFile -Force
+    if ([bool]$pendingState.CreatedDurableBackup) {
+        Remove-Item -LiteralPath $paths.RegistryFile -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $paths.StateFile -Force
+    }
+    if ((Test-Path -LiteralPath $StateRoot -PathType Container) -and
+        -not (Get-ChildItem -LiteralPath $StateRoot -Force)) {
+        Remove-Item -LiteralPath $StateRoot -Force
+    }
+}
+
+function Restore-Store
+{
+    if ([string]::IsNullOrWhiteSpace($Scope)) {
+        throw "Scope is required for store restoration."
+    }
+
+    $paths = Get-StorePaths -StoreScope $Scope
+    $state = Read-StoreState -Paths $paths
+    if ($null -eq $state) {
+        Remove-RegistryTreeIfPresent -RegistryPath $paths.RegistryPath
+        return
+    }
+
+    Remove-RegistryTreeIfPresent -RegistryPath ([string]$state.RegistryPath)
+    if ([bool]$state.StoreExisted) {
+        if (-not (Test-Path -LiteralPath $paths.RegistryFile -PathType Leaf)) {
+            throw "The saved $Scope eBPF store file is missing: $($paths.RegistryFile)"
+        }
+        Invoke-NativeCommand `
+            -FilePath (Join-Path $env:SystemRoot "System32\reg.exe") `
+            -ArgumentList @("import", $paths.RegistryFile) `
+            -FailureMessage "Failed to restore the $Scope eBPF store"
+    }
+
+}
+
+function Prepare-StoreRestore
+{
+    if ([string]::IsNullOrWhiteSpace($Scope)) {
+        throw "Scope is required for store restoration preparation."
+    }
+
+    $paths = Get-StorePaths -StoreScope $Scope
+    New-Item -ItemType Directory -Path $StateRoot -Force | Out-Null
+    if ((Test-Path -LiteralPath $paths.UninstallStateFile) -or
+        (Test-Path -LiteralPath $paths.UninstallRegistryFile)) {
+        throw "Incomplete $Scope eBPF store uninstall transaction exists in '$StateRoot'."
+    }
+
+    $providerPath = Get-RegistryProviderPath -RegistryPath $paths.RegistryPath
+    $storeExisted = Test-Path -LiteralPath $providerPath
+    if ($storeExisted) {
+        Invoke-NativeCommand `
+            -FilePath (Join-Path $env:SystemRoot "System32\reg.exe") `
+            -ArgumentList @("export", $paths.RegistryPath, $paths.UninstallRegistryFile, "/y") `
+            -FailureMessage "Failed to save the current $Scope eBPF store for uninstall rollback"
+    }
+
+    [PSCustomObject]@{
+        SchemaVersion = 1
+        Scope = $Scope
+        RegistryPath = $paths.RegistryPath
+        StoreExisted = $storeExisted
+        UserSid = if ($Scope -eq "HKCU") { Get-CurrentUserSid } else { $null }
+    } | ConvertTo-Json | Set-Content -LiteralPath $paths.UninstallStateFile -Encoding UTF8
+}
+
+function Rollback-StoreRestore
+{
+    if ([string]::IsNullOrWhiteSpace($Scope)) {
+        throw "Scope is required for store restoration rollback."
+    }
+
+    $paths = Get-StorePaths -StoreScope $Scope
+    if (-not (Test-Path -LiteralPath $paths.UninstallStateFile -PathType Leaf)) {
+        return
+    }
+
+    $state = Get-Content -LiteralPath $paths.UninstallStateFile -Raw | ConvertFrom-Json
+    if ([int]$state.SchemaVersion -ne 1 -or [string]$state.Scope -ne $Scope) {
+        throw "Invalid pending $Scope eBPF store uninstall transaction."
+    }
+    if ($Scope -eq "HKCU" -and [string]$state.UserSid -ne (Get-CurrentUserSid)) {
+        throw "The pending HKCU eBPF store uninstall transaction belongs to a different user."
+    }
+
+    Remove-RegistryTreeIfPresent -RegistryPath ([string]$state.RegistryPath)
+    if ([bool]$state.StoreExisted) {
+        if (-not (Test-Path -LiteralPath $paths.UninstallRegistryFile -PathType Leaf)) {
+            throw "The $Scope eBPF uninstall rollback store file is missing: $($paths.UninstallRegistryFile)"
+        }
+        Invoke-NativeCommand `
+            -FilePath (Join-Path $env:SystemRoot "System32\reg.exe") `
+            -ArgumentList @("import", $paths.UninstallRegistryFile) `
+            -FailureMessage "Failed to roll back the $Scope eBPF store restoration"
+    }
+
+    Remove-Item -LiteralPath $paths.UninstallRegistryFile -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $paths.UninstallStateFile -Force
+}
+
+function Commit-StoreRestore
+{
+    if ([string]::IsNullOrWhiteSpace($Scope)) {
+        throw "Scope is required for store restoration commit."
+    }
+
+    $paths = Get-StorePaths -StoreScope $Scope
+    Remove-Item -LiteralPath $paths.RegistryFile -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $paths.StateFile -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $paths.PendingFile -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $paths.RollbackRegistryFile -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $paths.UninstallRegistryFile -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $paths.UninstallStateFile -Force -ErrorAction SilentlyContinue
+}
+
+switch ($Action) {
+    "Install" {
+        $originalAcls = @{}
+        $backupCount = Get-BackupCount
+        if ($backupCount -ne 0 -and $backupCount -ne $mappings.Count) {
+            throw "Only $backupCount of $($mappings.Count) eBPF hard-link backups exist."
+        }
+        $createDurableBackups = $backupCount -eq 0
+        foreach ($mapping in $mappings) {
+            $backup = $mapping.Link + ".ebpf-msi-backup"
+            $replacement = $mapping.Link + ".ebpf-msi-new"
+            $rollback = $mapping.Link + ".ebpf-msi-rollback"
+            if (-not (Test-Path -LiteralPath $mapping.Source -PathType Leaf)) {
+                throw "Installed eBPF binary is missing: $($mapping.Source)"
+            }
+            if (-not (Test-Path -LiteralPath $mapping.Link -PathType Leaf)) {
+                throw "Canonical eBPF binary is missing: $($mapping.Link)"
+            }
+            if ((Test-Path -LiteralPath $replacement) -or (Test-Path -LiteralPath $rollback)) {
+                throw "Stale eBPF hard-link staging file exists for: $($mapping.Link)"
+            }
+            $originalAcls[$mapping.Link] = Get-RestorableFileAcl -Path $mapping.Link
+            if (-not $createDurableBackups -and (Test-SameFile -FirstPath $backup -SecondPath $mapping.Link)) {
+                throw "The backup and canonical eBPF paths unexpectedly point to the same file: $($mapping.Link)"
+            }
+        }
+
+        try {
+            foreach ($mapping in $mappings) {
+                Enable-SystemFileAccess -Path $mapping.Link
+            }
+
+            foreach ($mapping in $mappings) {
+                Write-Output "Staging hard links for $($mapping.Link)"
+                New-Item -ItemType HardLink -Path ($mapping.Link + ".ebpf-msi-rollback") -Target $mapping.Link |
+                    Out-Null
+                if ($createDurableBackups) {
+                    New-Item -ItemType HardLink -Path ($mapping.Link + ".ebpf-msi-backup") -Target $mapping.Link |
+                        Out-Null
+                }
+                New-Item -ItemType HardLink -Path ($mapping.Link + ".ebpf-msi-new") -Target $mapping.Source |
+                    Out-Null
+            }
+
+            foreach ($mapping in $mappings) {
+                Remove-Item -LiteralPath $mapping.Link -Force
+                Move-Item -LiteralPath ($mapping.Link + ".ebpf-msi-new") -Destination $mapping.Link
+                if ($createDurableBackups) {
+                    Restore-FileAcl `
+                        -Path ($mapping.Link + ".ebpf-msi-backup") `
+                        -Acl $originalAcls[$mapping.Link]
+                } else {
+                    Restore-FileAcl -Path $mapping.Source -Acl $originalAcls[$mapping.Link]
+                }
+            }
+        } catch {
+            $installError = $_
+            $rollbackError = $null
+            $aclError = $null
+            try {
+                Rollback-InstalledLinks
+            } catch {
+                $rollbackError = $_
+            }
+            try {
+                Restore-OriginalFileAcls `
+                    -OriginalAcls $originalAcls `
+                    -CreatedDurableBackups $createDurableBackups
+            } catch {
+                $aclError = $_
+            }
+            $failureMessages = @($installError.Exception.Message)
+            if ($null -ne $rollbackError) {
+                $failureMessages += "Link restoration failure: $($rollbackError.Exception.Message)"
+            }
+            if ($null -ne $aclError) {
+                $failureMessages += "ACL restoration failure: $($aclError.Exception.Message)"
+            }
+            throw ($failureMessages -join [Environment]::NewLine)
+        }
+    }
+
+    "Rollback" {
+        Rollback-InstalledLinks
+    }
+
+    "Commit" {
+        Invoke-ForAllMappings {
+            param($mapping)
+
+            Remove-Item -LiteralPath ($mapping.Link + ".ebpf-msi-new") -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath ($mapping.Link + ".ebpf-msi-rollback") -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    "RestoreService" {
+        if ([string]::IsNullOrWhiteSpace($ServiceName) -or [string]::IsNullOrWhiteSpace($ImagePath)) {
+            throw "ServiceName and ImagePath are required for RestoreService."
+        }
+        if ($ImagePath.StartsWith("#%")) {
+            $ImagePath = $ImagePath.Substring(2)
+        }
+
+        & "$env:SystemRoot\System32\sc.exe" config $ServiceName binpath= $ImagePath
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to restore the $ServiceName service ImagePath."
+        }
+    }
+
+    "InstallEbpfSvc" {
+        Install-MsiEbpfService
+    }
+
+    "BackupServices" {
+        Backup-Services
+    }
+
+    "RollbackServices" {
+        Rollback-ServiceTransaction
+    }
+
+    "CommitServices" {
+        $paths = Get-ServicePaths
+        Remove-ServiceStateFiles -FileSuffix "rollback"
+        Remove-Item -LiteralPath $paths.PendingFile -Force -ErrorAction SilentlyContinue
+    }
+
+    "PrepareRestoreServices" {
+        Prepare-ServiceRestore
+    }
+
+    "RemoveServices" {
+        Remove-MsiServices
+    }
+
+    "RestoreServices" {
+        Restore-Services
+    }
+
+    "RollbackRestoreServices" {
+        Rollback-ServiceRestore
+    }
+
+    "BackupStore" {
+        Backup-Store
+    }
+
+    "RollbackStore" {
+        Rollback-StoreTransaction
+    }
+
+    "CommitStore" {
+        foreach ($storeScope in @("HKLM", "HKCU")) {
+            $paths = Get-StorePaths -StoreScope $storeScope
+            Remove-Item -LiteralPath $paths.PendingFile -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $paths.RollbackRegistryFile -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    "RestoreStore" {
+        Restore-Store
+    }
+
+    "PrepareRestoreStore" {
+        Prepare-StoreRestore
+    }
+
+    "RollbackRestoreStore" {
+        Rollback-StoreRestore
+    }
+
+    "CommitRestoreStore" {
+        Commit-StoreRestore
+    }
+
+    "RestoreLinks" {
+        Restore-OriginalLinks
+    }
+
+    "RollbackRestoreLinks" {
+        Restore-MsiLinks
+    }
+}
