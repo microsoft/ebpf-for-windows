@@ -46,6 +46,9 @@ SPDX-License-Identifier: MIT
 		</Feature>
 
 		<InstallExecuteSequence>
+			<!-- Forced installs back up running state before stopping services in the custom chain. -->
+			<StopServices>VersionNT AND NOT (NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1")</StopServices>
+
 			<!--Rollback sequence-->
 			<Custom Action="eBPF_netsh_helper_uninstall_rollback" Before="eBPF_netsh_helper_install">NOT Installed</Custom>
 

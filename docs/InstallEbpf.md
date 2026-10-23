@@ -38,7 +38,10 @@ An **command line install/uninstall** is also supported, through the direct use 
     ```
 
 * The installer stops if an `eBPFCore` service is already registered. To replace existing eBPF services, pass
-  `FORCE=1`. This stops `NetEbpfExt`, `eBPFSvc`, and `eBPFCore`, then replaces the six canonical eBPF binary names
+  `FORCE=1`. On a first-time forced installation over an existing `eBPFCore`, the standard MSI service-stop
+  action is skipped so the custom chain can back up the original service configuration and running states
+  before stopping any services. Normal installations, maintenance, and uninstalls retain the standard service-stop
+  behavior. The custom chain stops `NetEbpfExt`, `eBPFSvc`, and `eBPFCore`, then replaces the six canonical eBPF binary names
   under `System32` and `System32\drivers` with NTFS hard links to the binaries installed under `INSTALLFOLDER`.
   The service registrations are updated to use the canonical Windows paths. The installation fails before changing
   any canonical link if a service cannot be stopped, a canonical binary is missing, or the replacement hard links
