@@ -92,6 +92,10 @@ See [docs/DevelopmentGuide.md](../docs/DevelopmentGuide.md) for full details. Ke
 
 eBPF extensions are kernel drivers providing hooks/helpers via NMR. See [docs/eBpfExtensions.md](../docs/eBpfExtensions.md).
 
+For detailed agent context on `netebpfext` WFP registration, NMR providers, attach/detach
+lifetime, and classify-to-program invocation flows, see
+[netebpfext-agent-context.md](./netebpfext-agent-context.md).
+
 ## Crash Dump Debugging
 
 See [docs/CrashDumpDebugging.md](../docs/CrashDumpDebugging.md) for instructions on downloading and analyzing crash dumps from CI failures. Use the `debug-crash-dump` skill for agent-assisted dump analysis.
