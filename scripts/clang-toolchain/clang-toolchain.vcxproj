@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) eBPF for Windows contributors
+  SPDX-License-Identifier: MIT
+-->
+<Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildThisFileDirectory)..\clang-toolchain.props" />
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{C6D0A842-4B51-4BA5-A947-1C953BD03E50}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>clang_toolchain</RootNamespace>
+    <TargetFramework>native</TargetFramework>
+    <_NuGetTargetFallbackMoniker>native,Version=v0.0</_NuGetTargetFallbackMoniker>
+    <RestorePackages>true</RestorePackages>
+    <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
+    <MSBuildProjectExtensionsPath>$(MSBuildThisFileDirectory)obj\$(MSBuildProjectName)\</MSBuildProjectExtensionsPath>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset Condition="'$(MSBuildAssemblyVersion)' &gt;= '18.0'">v145</PlatformToolset>
+    <PlatformToolset Condition="'$(MSBuildAssemblyVersion)' &lt; '18.0'">v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ItemGroup>
+    <PackageReference Include="llvm.tools"
+                      Version="[$(EbpfInternalClangPackageVersion)]"
+                      GeneratePathProperty="true"
+                      IncludeAssets="none"
+                      PrivateAssets="all" />
+    <PackageReference Include="clang.headers"
+                      Version="[$(EbpfInternalClangPackageVersion)]"
+                      GeneratePathProperty="true"
+                      IncludeAssets="none"
+                      PrivateAssets="all" />
+  </ItemGroup>
+  <Target Name="WriteResolvedClangPackagePaths">
+    <Error Condition="'$(ResolvedClangPackagePathsFile)' == ''"
+           Text="ResolvedClangPackagePathsFile must be specified." />
+    <Error Condition="'$(ProjectAssetsFile)' == '' or !Exists('$(ProjectAssetsFile)')"
+           Text="The Clang toolchain restore did not produce project.assets.json." />
+    <Error Condition="'$(Pkgllvm_tools)' == ''"
+           Text="NuGet did not generate the llvm.tools package path property." />
+    <Error Condition="'$(Pkgclang_headers)' == ''"
+           Text="NuGet did not generate the clang.headers package path property." />
+    <ItemGroup>
+      <_ResolvedClangPackagePath Include="llvm.tools=$(Pkgllvm_tools)" />
+      <_ResolvedClangPackagePath Include="clang.headers=$(Pkgclang_headers)" />
+    </ItemGroup>
+    <WriteLinesToFile File="$(ResolvedClangPackagePathsFile)"
+                      Lines="@(_ResolvedClangPackagePath)"
+                      Overwrite="true"
+                      Encoding="UTF-8" />
+  </Target>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

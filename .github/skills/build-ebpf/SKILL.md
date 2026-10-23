@@ -249,6 +249,10 @@ If bpf2c output changes and `tests\bpf2c_tests` expected files must be updated:
 .\scripts\generate_expected_bpf2c_output.ps1 x64\Debug
 ```
 
+The regeneration script always uses the pinned Public Clang toolchain. It prefers an exact installed
+compiler and provisions the official compiler and resource headers in the shared user tool cache only
+when necessary, then restores the worktree's previous Clang toolchain state.
+
 ## Dependency Chain
 
 When building specific components, be aware of the dependency order:
@@ -290,14 +294,27 @@ After cloning, changing submodule pointers, or resetting submodules, run the ini
 # From solution root — initializes submodules, generates cmake projects, restores NuGet
 .\scripts\initialize_ebpf_repo.ps1
 
+# Select the Public channel and require the exact installed compiler without downloading
+.\scripts\initialize_ebpf_repo.ps1 -LlvmChannel Public
+
+# Prefer the exact installed compiler and otherwise use the shared portable cache
+.\scripts\initialize_ebpf_repo.ps1 -LlvmChannel Public -PublicClangSource Auto
+
+# Force the repository-managed portable Public compiler
+.\scripts\initialize_ebpf_repo.ps1 -LlvmChannel Public -PublicClangSource Portable
+
 # Or with ARM64
 .\scripts\initialize_ebpf_repo.ps1 -Architecture ARM64
+
+# With access to the authenticated internal feed, restore the Internal Clang toolchain through NuGet
+.\scripts\initialize_ebpf_repo.ps1 -LlvmChannel Internal
 ```
 
 This script:
 1. Runs `git submodule update --init --recursive`
 2. Generates cmake projects for ebpf-verifier, Catch2, and ubpf in their respective `build/` dirs
 3. Restores NuGet packages for the solution
+4. Configures the selected Clang channel and acquisition source in `build\ebpf-clang-toolchain.props`
 
 **IMPORTANT:** If cmake-generated project files are missing (e.g., `external/ebpf-verifier/build/prevail.vcxproj`), MSBuild will error with MSB3202. Run `initialize_ebpf_repo.ps1` to regenerate them.
 
@@ -312,19 +329,27 @@ This script:
 When manually compiling BPF C programs with clang, use the full set of include paths
 from the `tests\sample\sample.vcxproj` CustomBuild rules.
 
-**Locate clang.exe** — use the first existing path (highest priority first):
-`packages\llvm.tools\clang.exe`, `"$env:ProgramFiles\LLVM\bin\clang.exe"`,
-`"$(& "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath)\VC\Tools\Llvm\bin\clang.exe"`
+**Locate the configured compiler and resource directory** — run repository initialization first,
+then read both values from the generated toolchain state:
+
+```powershell
+$toolchain = [xml](Get-Content .\build\ebpf-clang-toolchain.props -Raw)
+$clangPath = (Select-Xml -Xml $toolchain -XPath "//*[local-name()='EbpfConfiguredClangPath']").Node.InnerText
+$clangResourceDir = (Select-Xml -Xml $toolchain -XPath "//*[local-name()='EbpfConfiguredClangResourceDir']").Node.InnerText
+```
+
+Initialization validates the selected pinned toolchain. Do not independently select Clang from
+`PATH`, Visual Studio, or a repository-local `packages` directory.
 
 ```powershell
 # Standard sample programs (tests\sample\*.c)
-& '<clang-path>' -g -target bpf -O2 -Werror `
+& $clangPath -g -target bpf -O2 -Werror -resource-dir $clangResourceDir `
   -Iinclude -Iexternal\bpftool `
   -Itests\xdp -Itests\socket -Itests\sample\ext\inc -Itests\include `
   -c tests\sample\<name>.c -o x64\Debug\<name>.o
 
 # Undocked sample programs (tests\sample\undocked\*.c) — add extra includes
-& '<clang-path>' -g -target bpf -O2 -Werror `
+& $clangPath -g -target bpf -O2 -Werror -resource-dir $clangResourceDir `
   -Iinclude -Iexternal\bpftool `
   -Itests\xdp -Itests\socket -Itests\sample\ext\inc -Itests\include `
   -Itests\sample -Iundocked\tests\sample\ext\inc `

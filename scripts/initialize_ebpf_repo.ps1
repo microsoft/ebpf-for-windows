@@ -9,11 +9,20 @@ param (
     # specific toolset, so the CMake generator, platform toolset, and NuGet/MSBuild restore all match
     # the Visual Studio version you intend to build with.
     [parameter(Mandatory = $false)][string] $VisualStudioVersion = "",
+    # Auto reuses this worktree's persisted selection, otherwise selects Internal only when the exact
+    # Internal feed is enabled, and defaults to Public. Explicit Public or Internal always wins.
+    [parameter(Mandatory = $false)][ValidateSet("Auto", "Public", "Internal")][string] $LlvmChannel = "Auto",
+    # Public defaults to an exact validated installation. Auto and Portable explicitly opt into
+    # repository-managed portable provisioning.
+    [parameter(Mandatory = $false)]
+    [ValidateSet("Auto", "Installed", "Portable")]
+    [string] $PublicClangSource = "Installed",
     [parameter(Mandatory = $false)][switch] $SkipHostToolBootstrap
 )
 
 # Ensure errors are treated as terminating exceptions
 $ErrorActionPreference = "Stop"
+$publicClangSourceSpecified = $PSBoundParameters.ContainsKey("PublicClangSource")
 
 # This script assumes it is called from the root of the repository, but it can be called from any directory.
 # To handle this, we first get the directory where the script is located and then change the parent directory to the root of the repository.
@@ -61,8 +70,12 @@ if (-not $msbuildPath -or -not (Test-Path $msbuildPath)) {
     # Fall back to assuming msbuild is on PATH.
     $msbuildPath = "msbuild"
 }
+$msbuildDir = if ($msbuildPath -and (Test-Path $msbuildPath)) { Split-Path -Parent $msbuildPath } else { $null }
 Write-Host "Using MSBuild: $msbuildPath"
 Write-Host "Using CMake generator: $cmakeGenerator"
+Write-Host "Requested LLVM channel: $LlvmChannel"
+$requestedPublicClangSource = if ($publicClangSourceSpecified) { $PublicClangSource } else { "<not specified>" }
+Write-Host "Requested Public Clang source: $requestedPublicClangSource"
 
 # Helper to run a command, check exit code, and abort on failure.
 function Invoke-NativeCommand {
@@ -120,11 +133,51 @@ function Remove-ArchitectureSpecificBuildDirectories {
     }
 }
 
+$configureClangArguments = @{
+    Channel = $LlvmChannel
+    MSBuildPath = $msbuildDir
+}
+if ($publicClangSourceSpecified) {
+    $configureClangArguments.PublicClangSource = $PublicClangSource
+}
+& (Join-Path $scriptPath "configure-clang-toolchain.ps1") @configureClangArguments
+$clangToolchainStatePath = Join-Path (Split-Path -Parent $scriptPath) "build\ebpf-clang-toolchain.props"
+$clangToolchainState = [xml](Get-Content -Path $clangToolchainStatePath -Raw)
+$clangToolchainStateNamespaceManager = New-Object System.Xml.XmlNamespaceManager($clangToolchainState.NameTable)
+$clangToolchainStateNamespaceManager.AddNamespace("m", "http://schemas.microsoft.com/developer/msbuild/2003")
+$resolvedLlvmChannelNode = $clangToolchainState.SelectSingleNode(
+    "/m:Project/m:PropertyGroup/m:EbpfConfiguredClangChannel", $clangToolchainStateNamespaceManager)
+$resolvedPublicClangSourceNode = $clangToolchainState.SelectSingleNode(
+    "/m:Project/m:PropertyGroup/m:EbpfConfiguredClangSource", $clangToolchainStateNamespaceManager)
+if (-not $resolvedLlvmChannelNode -or $resolvedLlvmChannelNode.InnerText -notin @("Public", "Internal")) {
+    throw "The Clang toolchain configuration did not persist a resolved channel."
+}
+if (-not $resolvedPublicClangSourceNode) {
+    throw "The Clang toolchain configuration did not persist a resolved source."
+}
+$resolvedLlvmChannel = $resolvedLlvmChannelNode.InnerText
+$resolvedClangSource = $resolvedPublicClangSourceNode.InnerText
+if (($resolvedLlvmChannel -eq "Public" -and $resolvedClangSource -notin @("Installed", "Portable")) -or
+    ($resolvedLlvmChannel -eq "Internal" -and $resolvedClangSource -ne "InternalNuGet")) {
+    throw "The Clang toolchain configuration did not persist a valid source."
+}
+Write-Host "Using LLVM channel: $resolvedLlvmChannel"
+Write-Host "Using Clang source: $resolvedClangSource"
+
 $hostArchitecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
 if (!$SkipHostToolBootstrap -and $Architecture -ieq "ARM64" -and $hostArchitecture -ieq "x64") {
     Write-Host "Bootstrapping x64 bpf2c host tools before configuring the ARM64 target."
     Remove-ArchitectureSpecificBuildDirectories
-    & $PSCommandPath -Architecture x64 -VisualStudioVersion $VisualStudioVersion -SkipHostToolBootstrap
+    $recursiveInitializationArguments = @{
+        Architecture = "x64"
+        VisualStudioVersion = $VisualStudioVersion
+        LlvmChannel = $resolvedLlvmChannel
+        SkipHostToolBootstrap = $true
+    }
+    if ($resolvedLlvmChannel -eq "Public") {
+        $recursiveInitializationArguments.PublicClangSource = $resolvedClangSource
+    }
+    & $PSCommandPath @recursiveInitializationArguments
     if (!$?) {
         throw "Failed to initialize x64 host dependencies."
     }
@@ -155,7 +208,6 @@ if (!$SkipHostToolBootstrap -and $Architecture -ieq "ARM64" -and $hostArchitectu
 
 # Define the commands to run
 $cmakeCommonArgs = "-G `"$cmakeGenerator`" -A $Architecture"
-$msbuildDir = if ($msbuildPath -and (Test-Path $msbuildPath)) { Split-Path -Parent $msbuildPath } else { $null }
 $nugetRestoreCommand = if ($msbuildDir) {
     "nuget restore ebpf-for-windows.sln -MSBuildPath `"$msbuildDir`""
 } else {
