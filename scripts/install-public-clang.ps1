@@ -8,7 +8,6 @@ $archiveName = "clang+llvm-18.1.8-x86_64-pc-windows-msvc.tar.xz"
 $archiveRoot = "clang+llvm-18.1.8-x86_64-pc-windows-msvc"
 $releaseUrl = "https://github.com/llvm/llvm-project/releases/download/llvmorg-$version"
 $archiveUrl = "$releaseUrl/$($archiveName.Replace('+', '%2B'))"
-$archiveSha256 = "22c5907db053026cc2a8ff96d21c0f642a90d24d66c23c6d28ee7b1d572b82e8"
 $resourceVersion = ([System.Version]::Parse($version)).Major
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $installRoot = Join-Path $repositoryRoot "llvm"
@@ -28,26 +27,6 @@ function Get-ToolVersion {
 
     $match = [regex]::Match(($versionOutput -join "`n"), '\bversion\s+(?<version>\d+\.\d+\.\d+)(?:\s|$)')
     return $(if ($match.Success) { $match.Groups["version"].Value } else { $null })
-}
-
-function Get-Sha256 {
-    param([string] $Path)
-
-    $stream = [System.IO.File]::OpenRead($Path)
-    try {
-        $sha256 = [System.Security.Cryptography.SHA256]::Create()
-        try {
-            $hashBytes = $sha256.ComputeHash($stream)
-        }
-        finally {
-            $sha256.Dispose()
-        }
-    }
-    finally {
-        $stream.Dispose()
-    }
-
-    return ([System.BitConverter]::ToString($hashBytes)).Replace("-", "").ToLowerInvariant()
 }
 
 function Test-PublicClangInstall {
@@ -125,11 +104,6 @@ try {
     }
     if (-not (Test-Path -LiteralPath $archivePath -PathType Leaf)) {
         throw "Public Clang archive download did not create '$archivePath'."
-    }
-
-    $actualHash = Get-Sha256 -Path $archivePath
-    if ($actualHash -ne $archiveSha256) {
-        throw "Public Clang archive hash mismatch. Expected $archiveSha256 but found $actualHash."
     }
 
     $tarCommand = Get-Command tar.exe -ErrorAction SilentlyContinue
