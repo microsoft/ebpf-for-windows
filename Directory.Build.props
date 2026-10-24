@@ -113,9 +113,8 @@
   <PropertyGroup Condition="Exists('$(SolutionDir)packages\llvm.tools\clang.exe')">
     <ClangExec>"$(SolutionDir)packages\llvm.tools\clang.exe"</ClangExec>
   </PropertyGroup>
-  <!-- Prefer a complete repo-local Public Clang installation when present. -->
-  <PropertyGroup
-    Condition="Exists('$(SolutionDir)llvm\bin\clang.exe') And Exists('$(SolutionDir)llvm\lib\clang\18\include\stdint.h')">
+  <!-- Prefer a repo-local Public Clang installation when present. -->
+  <PropertyGroup Condition="Exists('$(SolutionDir)llvm\bin\clang.exe')">
     <ClangExec>"$(SolutionDir)llvm\bin\clang.exe"</ClangExec>
     <ClangResourceInclude>$(SolutionDir)llvm\lib\clang\18\include</ClangResourceInclude>
   </PropertyGroup>
