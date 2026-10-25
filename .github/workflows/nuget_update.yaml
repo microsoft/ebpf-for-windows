@@ -22,23 +22,16 @@ jobs:
       contents: write  # for Git to git push
       pull-requests: write  # for PR creation
 
-    env:
-      # Path to the solution file relative to the root of the project.
-      SOLUTION_FILE_PATH: ebpf-for-windows.sln
-      BUILD_ARTIFACT_NAME: Build-x64
-      BUILD_CONFIGURATION: Release
-      BUILD_PLATFORM: x64
-
     runs-on: windows-2025
 
     steps:
       # Check out the main repo.
       - name: Harden Runner
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c  # v2.21.0
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25  # v2.22.1
         with:
           egress-policy: audit
 
-      - uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           # Only check out main repo, not submodules.
           ref: ${{ github.event.workflow_run.head_branch }}
@@ -49,16 +42,16 @@ jobs:
           cache-name: cache-nuget-modules
         with:
           path: packages
-          key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('**/packages.config') }}
+          key: ${{ runner.os }}-nuget-v2-${{ hashFiles('installer/packages.config') }}
 
       - name: Restore NuGet packages
-        working-directory: ${{env.GITHUB_WORKSPACE}}
-        run: nuget restore -noninteractive -verbosity detailed ${{env.SOLUTION_FILE_PATH}}
+        working-directory: ${{ github.workspace }}
+        run: nuget restore -noninteractive -verbosity detailed installer\packages.config -PackagesDirectory packages
 
       # Update nuget packages used by the solution.
       - name: Update NuGet packages
         run: |
-          nuget update -noninteractive -verbosity detailed ${{env.SOLUTION_FILE_PATH}}
+          nuget update -noninteractive -verbosity detailed installer\packages.config -RepositoryPath packages
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0
@@ -72,5 +65,5 @@ jobs:
           labels: |
             automated pr
             nuget update
-          branch: nuget_update_${{ hashFiles('**/packages.config') }}
+          branch: nuget_update_${{ hashFiles('installer/packages.config') }}
           base: ${{ github.event.workflow_run.head_branch }}

@@ -34,12 +34,45 @@ typedef enum _sock_addr_test_action
     SOCK_ADDR_TEST_ACTION_BLOCK,
     SOCK_ADDR_TEST_ACTION_REDIRECT,
     SOCK_ADDR_TEST_ACTION_FAILURE,
-    SOCK_ADDR_TEST_ACTION_ROUND_ROBIN
+    SOCK_ADDR_TEST_ACTION_ROUND_ROBIN,
+    SOCK_ADDR_TEST_ACTION_REDIRECT_REJECT,
+    SOCK_ADDR_TEST_ACTION_INVALID
 } sock_addr_test_action_t;
+
+_Must_inspect_result_ ebpf_result_t
+netebpfext_unit_invoke_noop_program(
+    _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result)
+{
+    UNREFERENCED_PARAMETER(client_binding_context);
+    UNREFERENCED_PARAMETER(context);
+    *result = 0;
+    return EBPF_SUCCESS;
+}
+
+TEST_CASE("nmr_provider_init", "[netebpfext]")
+{
+    // Verify that every program-info and hook NPI provider binds successfully. This variation can run with fault
+    // injection enabled to exercise failures during NMR provider initialization.
+    constexpr bool initialize_platform = true;
+    constexpr auto allow_fault_injection = netebpf_ext_helper_t::fault_injection_policy_t::allow;
+    ebpf_extension_data_t npi_specific_characteristics = {
+        .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
+    };
+    netebpfext_helper_base_client_context_t client_context = {};
+
+    netebpf_ext_helper_t helper(
+        &npi_specific_characteristics,
+        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_noop_program,
+        &client_context,
+        initialize_platform,
+        allow_fault_injection);
+    helper.require_initialized();
+}
 
 TEST_CASE("query program info", "[netebpfext]")
 {
     netebpf_ext_helper_t helper;
+    helper.require_initialized();
     std::vector<GUID> expected_guids = {
         EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_PROGRAM_TYPE_SOCK_OPS, EBPF_PROGRAM_TYPE_BIND};
     std::vector<std::string> expected_program_names = {"sock_addr", "sockops", "bind"};
@@ -104,6 +137,7 @@ TEST_CASE("bind_invoke", "[netebpfext]")
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_bind_program,
         (netebpfext_helper_base_client_context_t*)client_context);
+    helper.require_initialized();
 
     netebpfext_initialize_fwp_classify_parameters(&parameters);
 
@@ -126,6 +160,7 @@ TEST_CASE("bind_invoke", "[netebpfext]")
 TEST_CASE("bind_context", "[netebpfext]")
 {
     netebpf_ext_helper_t helper;
+    helper.require_initialized();
     auto bind_program_data = helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_BIND);
     REQUIRE(bind_program_data != nullptr);
 
@@ -164,7 +199,8 @@ TEST_CASE("bind_context", "[netebpfext]")
             sizeof(input_context),
             (void**)&bind_context) == EBPF_SUCCESS);
     REQUIRE(bind_context->app_id_start <= bind_context->app_id_end);
-    REQUIRE(wcscmp((wchar_t*)bind_context->app_id_start, valid_app_id_1) == 0);
+    REQUIRE((bind_context->app_id_end - bind_context->app_id_start) == sizeof(valid_app_id_1));
+    REQUIRE(memcmp(bind_context->app_id_start, valid_app_id_1, sizeof(valid_app_id_1)) == 0);
     bind_program_data->context_destroy(bind_context, nullptr, &output_data_size, nullptr, &output_context_size);
 
     // Positive test:
@@ -179,7 +215,8 @@ TEST_CASE("bind_context", "[netebpfext]")
             sizeof(input_context),
             (void**)&bind_context) == EBPF_SUCCESS);
     REQUIRE(bind_context->app_id_start <= bind_context->app_id_end);
-    REQUIRE(wcscmp((wchar_t*)bind_context->app_id_start, truncated_app_id_2) == 0);
+    REQUIRE((bind_context->app_id_end - bind_context->app_id_start) == sizeof(truncated_app_id_2));
+    REQUIRE(memcmp(bind_context->app_id_start, truncated_app_id_2, sizeof(truncated_app_id_2)) == 0);
     bind_program_data->context_destroy(bind_context, nullptr, &output_data_size, nullptr, &output_context_size);
 
     // Positive test:
@@ -195,7 +232,40 @@ TEST_CASE("bind_context", "[netebpfext]")
             sizeof(input_context),
             (void**)&bind_context) == EBPF_SUCCESS);
     REQUIRE(bind_context->app_id_start <= bind_context->app_id_end);
-    REQUIRE(wcscmp((wchar_t*)bind_context->app_id_start, truncated_app_id_3) == 0);
+    REQUIRE((bind_context->app_id_end - bind_context->app_id_start) == sizeof(truncated_app_id_3));
+    REQUIRE(memcmp(bind_context->app_id_start, truncated_app_id_3, sizeof(truncated_app_id_3)) == 0);
+    bind_program_data->context_destroy(bind_context, nullptr, &output_data_size, nullptr, &output_context_size);
+
+    // Positive test:
+    // Valid app id with consecutive backslashes
+    wchar_t valid_app_id_4[] = L"C:\\Windows\\\\TestAppId.exe";
+    wchar_t truncated_app_id_4[] = L"TestAppId.exe";
+    REQUIRE(
+        bind_program_data->context_create(
+            (uint8_t*)valid_app_id_4,
+            sizeof(valid_app_id_4),
+            (const uint8_t*)&input_context,
+            sizeof(input_context),
+            (void**)&bind_context) == EBPF_SUCCESS);
+    REQUIRE(bind_context->app_id_start <= bind_context->app_id_end);
+    REQUIRE((bind_context->app_id_end - bind_context->app_id_start) == sizeof(truncated_app_id_4));
+    REQUIRE(memcmp(bind_context->app_id_start, truncated_app_id_4, sizeof(truncated_app_id_4)) == 0);
+    bind_program_data->context_destroy(bind_context, nullptr, &output_data_size, nullptr, &output_context_size);
+
+    // Positive test:
+    // Valid app id - multiple backslashes only
+    wchar_t valid_app_id_5[] = L"\\\\";
+    wchar_t truncated_app_id_5[] = L"";
+    REQUIRE(
+        bind_program_data->context_create(
+            (uint8_t*)valid_app_id_5,
+            sizeof(valid_app_id_5),
+            (const uint8_t*)&input_context,
+            sizeof(input_context),
+            (void**)&bind_context) == EBPF_SUCCESS);
+    REQUIRE(bind_context->app_id_start <= bind_context->app_id_end);
+    REQUIRE((bind_context->app_id_end - bind_context->app_id_start) == sizeof(truncated_app_id_5));
+    REQUIRE(memcmp(bind_context->app_id_start, truncated_app_id_5, sizeof(truncated_app_id_5)) == 0);
     bind_program_data->context_destroy(bind_context, nullptr, &output_data_size, nullptr, &output_context_size);
 
     // Negative test:
@@ -277,6 +347,7 @@ TEST_CASE("bind_hard_soft_permit", "[netebpfext][bind]")
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_bind_program,
         (netebpfext_helper_base_client_context_t*)client_context);
+    helper.require_initialized();
 
     netebpfext_initialize_fwp_classify_parameters(&parameters);
 
@@ -396,6 +467,7 @@ netebpfext_unit_invoke_sock_addr_program(
         *result = BPF_SOCK_ADDR_VERDICT_REJECT;
         break;
     case SOCK_ADDR_TEST_ACTION_REDIRECT:
+    case SOCK_ADDR_TEST_ACTION_REDIRECT_REJECT:
         sock_addr_context->user_port++;
         if (sock_addr_context->family == AF_INET) {
             sock_addr_context->user_ip4++;
@@ -403,10 +475,14 @@ netebpfext_unit_invoke_sock_addr_program(
             auto first_octet = &sock_addr_context->user_ip6[0];
             (*first_octet)++;
         }
-        *result = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+        *result = (action == SOCK_ADDR_TEST_ACTION_REDIRECT) ? BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT
+                                                             : BPF_SOCK_ADDR_VERDICT_REJECT;
         break;
     case SOCK_ADDR_TEST_ACTION_FAILURE:
         return_result = EBPF_FAILED;
+        break;
+    case SOCK_ADDR_TEST_ACTION_INVALID:
+        *result = UINT32_MAX;
         break;
     default:
         *result = BPF_SOCK_ADDR_VERDICT_REJECT;
@@ -430,6 +506,7 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
         (netebpfext_helper_base_client_context_t*)client_context);
+    helper.require_initialized();
 
     netebpfext_initialize_fwp_classify_parameters(&parameters);
 
@@ -489,7 +566,19 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
     result = helper.test_cgroup_inet6_connect(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
+    // A rejected destination rewrite is not applied, so CONNECT_AUTHORIZATION must find the cached verdict using the
+    // original destination.
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_REDIRECT_REJECT;
+
+    result = helper.test_cgroup_inet4_connect(&parameters);
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
+    result = helper.test_cgroup_inet6_connect(&parameters);
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
     // Test redirect for recv_accept.
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_REDIRECT;
+
     result = helper.test_cgroup_inet4_recv_accept(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
@@ -777,7 +866,7 @@ TEST_CASE("sock_addr_bind_get_network_context", "[netebpfext][bind][sock_addr]")
 
     auto invoke_fn = [](const void* client_binding_context, const void* context, uint32_t* result) -> ebpf_result_t {
         auto cc = (test_get_netctx_client_context_t*)client_binding_context;
-        auto sock_addr_context = (bpf_sock_addr_t*)context;
+        const bpf_sock_addr_t* sock_addr_context = (const bpf_sock_addr_t*)context;
         auto sock_addr_program_data =
             cc->base.helper->get_program_info_provider_data(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR);
         bpf_sock_addr_get_network_context_t get_net_ctx = reinterpret_cast<bpf_sock_addr_get_network_context_t>(
@@ -791,7 +880,7 @@ TEST_CASE("sock_addr_bind_get_network_context", "[netebpfext][bind][sock_addr]")
 
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
-        (_ebpf_extension_dispatch_function)(ebpf_result_t (*)(const void*, const void*, uint32_t*))invoke_fn,
+        (_ebpf_extension_dispatch_function)(ebpf_result_t(*)(const void*, const void*, uint32_t*))invoke_fn,
         (netebpfext_helper_base_client_context_t*)client_context);
 
     netebpfext_initialize_fwp_classify_parameters(&parameters);
@@ -845,7 +934,7 @@ TEST_CASE("sock_addr_bind_set_redirect_context_rejected", "[netebpfext][bind][so
 
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
-        (_ebpf_extension_dispatch_function)(ebpf_result_t (*)(const void*, const void*, uint32_t*))invoke_fn,
+        (_ebpf_extension_dispatch_function)(ebpf_result_t(*)(const void*, const void*, uint32_t*))invoke_fn,
         (netebpfext_helper_base_client_context_t*)client_context);
 
     netebpfext_initialize_fwp_classify_parameters(&parameters);
@@ -941,6 +1030,7 @@ TEST_CASE("sock_addr_invoke_concurrent1", "[netebpfext_concurrent]")
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
         (netebpfext_helper_base_client_context_t*)client_context);
+    helper.require_initialized();
 
     std::vector<std::jthread> threads;
 
@@ -997,6 +1087,7 @@ TEST_CASE("sock_addr_invoke_concurrent2", "[netebpfext_concurrent]")
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
         (netebpfext_helper_base_client_context_t*)client_context);
+    helper.require_initialized();
 
     std::vector<std::jthread> threads;
 
@@ -1051,6 +1142,7 @@ TEST_CASE("sock_addr_invoke_concurrent3", "[netebpfext_concurrent]")
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
         (netebpfext_helper_base_client_context_t*)client_context);
+    helper.require_initialized();
 
     std::vector<std::jthread> threads;
 
@@ -1091,6 +1183,7 @@ TEST_CASE("sock_addr_invoke_concurrent3", "[netebpfext_concurrent]")
 TEST_CASE("sock_addr_context", "[netebpfext]")
 {
     netebpf_ext_helper_t helper;
+    helper.require_initialized();
     auto sock_addr_program_data = helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR);
     REQUIRE(sock_addr_program_data != nullptr);
 
@@ -1171,6 +1264,7 @@ TEST_CASE("sock_addr_connect_authorization_invoke", "[netebpfext]")
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
         (netebpfext_helper_base_client_context_t*)client_context);
+    helper.require_initialized();
 
     netebpfext_initialize_fwp_classify_parameters(&parameters);
 
@@ -1255,6 +1349,7 @@ TEST_CASE("wfp_filter_delete_failure_runtime_retry", "[netebpfext][wfp_cleanup]"
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
         (netebpfext_helper_base_client_context_t*)client_context);
+    helper.require_initialized();
 
     // Attaching the connect program creates WFP filters.
     REQUIRE(usersim_fwp_get_fwpm_filter_count() > 0);
@@ -1290,6 +1385,7 @@ TEST_CASE("wfp_filter_delete_failure_unload_reclaim", "[netebpfext][wfp_cleanup]
             &npi_specific_characteristics,
             (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
             (netebpfext_helper_base_client_context_t*)client_context);
+        helper.require_initialized();
 
         REQUIRE(usersim_fwp_get_fwpm_filter_count() > 0);
 
@@ -1327,6 +1423,7 @@ TEST_CASE("wfp_filter_delete_failure_unload_deletes_stale_filter", "[netebpfext]
             &npi_specific_characteristics,
             (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
             (netebpfext_helper_base_client_context_t*)client_context);
+        helper.require_initialized();
 
         REQUIRE(usersim_fwp_get_fwpm_filter_count() > 0);
 
@@ -1429,6 +1526,7 @@ TEST_CASE("sock_ops_invoke", "[netebpfext]")
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_ops_program,
         (netebpfext_helper_base_client_context_t*)client_context);
+    helper.require_initialized();
 
     netebpfext_initialize_fwp_classify_parameters(&parameters);
 
@@ -1454,6 +1552,7 @@ TEST_CASE("sock_ops_invoke", "[netebpfext]")
 TEST_CASE("sock_ops_context", "[netebpfext]")
 {
     netebpf_ext_helper_t helper;
+    helper.require_initialized();
     auto sock_ops_program_data = helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_SOCK_OPS);
     REQUIRE(sock_ops_program_data != nullptr);
 
@@ -1606,6 +1705,7 @@ TEST_CASE("sock_ops_invoke_concurrent1", "[netebpfext_concurrent]")
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_ops_program,
         (netebpfext_helper_base_client_context_t*)client_context);
+    helper.require_initialized();
 
     std::vector<std::jthread> threads;
 
@@ -1651,6 +1751,7 @@ TEST_CASE("sock_ops_invoke_concurrent2", "[netebpfext_concurrent]")
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_ops_program,
         (netebpfext_helper_base_client_context_t*)client_context);
+    helper.require_initialized();
 
     std::vector<std::jthread> threads;
 
@@ -1696,7 +1797,7 @@ TEST_CASE("sock_addr_listen_invoke", "[netebpfext]")
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
         (netebpfext_helper_base_client_context_t*)client_context);
-    REQUIRE(helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR) != nullptr);
+    helper.require_initialized();
 
     netebpfext_initialize_fwp_classify_parameters(&parameters);
 
@@ -1729,11 +1830,30 @@ TEST_CASE("sock_addr_listen_invoke", "[netebpfext]")
 
     result = helper.test_cgroup_inet6_listen(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
+
+    // Test program invocation failures.
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_FAILURE;
+
+    result = helper.test_cgroup_inet4_listen(&parameters);
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
+    result = helper.test_cgroup_inet6_listen(&parameters);
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
+    // Test invalid verdict normalization.
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_INVALID;
+
+    result = helper.test_cgroup_inet4_listen(&parameters);
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
+    result = helper.test_cgroup_inet6_listen(&parameters);
+    REQUIRE(result == FWP_ACTION_BLOCK);
 }
 
 TEST_CASE("sock_addr_listen_context", "[netebpfext]")
 {
     netebpf_ext_helper_t helper;
+    helper.require_initialized();
     auto sock_addr_program_data = helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR);
     REQUIRE(sock_addr_program_data != nullptr);
 

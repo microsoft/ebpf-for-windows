@@ -110,7 +110,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c  # v2.21.0
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25  # v2.22.1
         with:
           egress-policy: audit
 
@@ -142,7 +142,7 @@ jobs:
           powershell.exe "echo 'VCINSTALLDIR=%VCINSTALLDIR%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
           powershell.exe "echo $env:PROCESSOR_ARCHITECTURE"
 
-      - uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         if: steps.skip_check.outputs.should_skip != 'true'
         with:
           repository: ${{inputs.repository}}
@@ -296,15 +296,41 @@ jobs:
         run:
           '"C:\Program Files\LLVM\bin\clang.exe" --version'
 
-      - name: Cache nuget packages
+      - name: Configure NuGet package cache
+        if: steps.skip_check.outputs.should_skip != 'true'
+        run: |
+          "NUGET_PACKAGES=${{ runner.temp }}\nuget-packages" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Cache EverParse package
         if: steps.skip_check.outputs.should_skip != 'true'
         continue-on-error: true
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306
-        env:
-          cache-name: cache-nuget-modules
+        with:
+          path: ${{ runner.temp }}\nuget-packages\everparse
+          key: ${{ runner.os }}-nuget-everparse-${{ hashFiles('libs/everparse.props') }}
+
+      - name: Cache WDK packages
+        if: steps.skip_check.outputs.should_skip != 'true'
+        continue-on-error: true
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306
+        with:
+          path: |
+            ${{ runner.temp }}\nuget-packages\microsoft.windows.sdk.cpp
+            ${{ runner.temp }}\nuget-packages\microsoft.windows.sdk.cpp.x64
+            ${{ runner.temp }}\nuget-packages\microsoft.windows.sdk.cpp.arm64
+            ${{ runner.temp }}\nuget-packages\microsoft.windows.sdk.cpp.x86
+            ${{ runner.temp }}\nuget-packages\microsoft.windows.wdk.x64
+            ${{ runner.temp }}\nuget-packages\microsoft.windows.wdk.arm64
+            ${{ runner.temp }}\nuget-packages\microsoft.windows.wdk.x86
+          key: ${{ runner.os }}-nuget-wdk-${{ runner.arch }}-${{env.BUILD_PLATFORM}}-vs${{env.VS_VERSION}}-${{ hashFiles('wdk.props', 'Directory.Build.targets', 'external/usersim/wdk.props', 'external/ebpf-extension-common/Directory.Build.targets', 'tools/bpf2c/templates/*.vcxproj') }}
+
+      - name: Cache legacy NuGet packages
+        if: steps.skip_check.outputs.should_skip != 'true'
+        continue-on-error: true
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306
         with:
           path: packages
-          key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('**/packages.config') }}-${{env.msvc_tools_version}}
+          key: ${{ runner.os }}-nuget-v2-${{ hashFiles('installer/packages.config') }}
 
       - name: Cache verifier project
         # The hash is based on the HEAD of the ebpf-verifier submodule, the Directory.Build.props file, and the build variant.
@@ -323,7 +349,7 @@ jobs:
           CXXFLAGS: /ZH:SHA_256 ${{env.CXX_FLAGS}}
           LDFLAGS: ${{env.LD_FLAGS}}
         run: |
-          .\scripts\initialize_ebpf_repo.ps1 ${{env.BUILD_PLATFORM}}
+          .\scripts\initialize_ebpf_repo.ps1 -Architecture ${{env.BUILD_PLATFORM}} -VisualStudioVersion ${{env.VS_VERSION}}
 
       - name: Build
         if: steps.skip_check.outputs.should_skip != 'true'
@@ -383,7 +409,7 @@ jobs:
         working-directory: ${{env.GITHUB_WORKSPACE}}
         run: |
           cd ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-          Invoke-WebRequest https://github.com/microsoft/bpf_performance/releases/download/v0.13.0/build-Release-windows-2022.zip -OutFile bpf_performance.zip
+          Invoke-WebRequest https://github.com/microsoft/bpf_performance/releases/download/v0.14.0/build-Release-windows-2022.zip -OutFile bpf_performance.zip
 
       - name: Prepare 1ES artifacts
         if: steps.skip_check.outputs.should_skip != 'true' && (inputs.build_artifact == 'Build-x64' && matrix.configurations == 'Release')

@@ -53,6 +53,112 @@ static const std::set<bpf_attach_type> ebpf_core_attach_types = {
 std::vector<uint8_t>
 prepare_udp_packet(uint16_t udp_length, uint16_t ethernet_type);
 
+void
+test_libbpf_load_program(ebpf_execution_type_t execution_type)
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+    struct bpf_object* object;
+    int program_fd;
+    const char* file_name = execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o";
+#pragma warning(suppress : 4996) // deprecated
+    int result = bpf_prog_load_deprecated(file_name, BPF_PROG_TYPE_SAMPLE, &object, &program_fd);
+    REQUIRE(result == 0);
+    REQUIRE(object != nullptr);
+    REQUIRE(program_fd != ebpf_fd_invalid);
+
+    bpf_object__close(object);
+}
+
+DECLARE_JIT_TEST_CASES("libbpf load program", "[libbpf][deprecated]", test_libbpf_load_program);
+
+void
+test_libbpf_prog_test_run(ebpf_execution_type_t execution_type)
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+    struct bpf_object* object;
+    int program_fd;
+    const char* file_name = execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o";
+#pragma warning(suppress : 4996) // deprecated
+    int result = bpf_prog_load_deprecated(file_name, BPF_PROG_TYPE_SAMPLE, &object, &program_fd);
+    REQUIRE(result == 0);
+    REQUIRE(object != nullptr);
+    REQUIRE(program_fd != ebpf_fd_invalid);
+
+    bpf_test_run_opts opts = {};
+    sample_program_context_t in_ctx{0};
+    sample_program_context_t out_ctx{0};
+    opts.repeat = 10;
+    opts.ctx_in = reinterpret_cast<uint8_t*>(&in_ctx);
+    opts.ctx_size_in = sizeof(in_ctx);
+    opts.ctx_out = reinterpret_cast<uint8_t*>(&out_ctx);
+    opts.ctx_size_out = sizeof(out_ctx);
+
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+
+    REQUIRE(opts.duration > 0);
+
+    // Negative tests.
+
+    // Bad fd.
+    REQUIRE(bpf_prog_test_run_opts(nonexistent_fd, &opts) == -EINVAL);
+
+    // NULL context.
+    opts.ctx_in = nullptr;
+    opts.ctx_size_in = 0;
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EINVAL);
+
+    // Zero length context.
+    opts.ctx_in = reinterpret_cast<uint8_t*>(&in_ctx);
+    opts.ctx_size_in = 0;
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EINVAL);
+
+    // Context out is too small.
+    std::vector<uint8_t> small_context(1);
+    opts.ctx_in = reinterpret_cast<uint8_t*>(&in_ctx);
+    opts.ctx_size_in = sizeof(in_ctx);
+    opts.ctx_out = small_context.data();
+    opts.ctx_size_out = static_cast<uint32_t>(small_context.size());
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EOTHER);
+
+    // Context in, null context out.
+    opts.ctx_in = reinterpret_cast<uint8_t*>(&in_ctx);
+    opts.ctx_size_in = sizeof(in_ctx);
+    opts.ctx_out = nullptr;
+    opts.ctx_size_out = 0;
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EOTHER);
+
+    // No context in, Context out.
+    std::vector<uint8_t> context_out(1024);
+    opts.ctx_in = nullptr;
+    opts.ctx_size_in = 0;
+    opts.ctx_out = reinterpret_cast<uint8_t*>(&out_ctx);
+    opts.ctx_size_out = sizeof(out_ctx);
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EINVAL);
+    REQUIRE(opts.ctx_size_out == sizeof(sample_program_context_t));
+
+    // With bpf syscall.
+    bpf_attr attr = {};
+    attr.test.prog_fd = program_fd;
+    attr.test.repeat = 1000;
+    attr.test.data_in = reinterpret_cast<uint64_t>(nullptr);
+    attr.test.data_out = reinterpret_cast<uint64_t>(nullptr);
+    attr.test.data_size_in = 0;
+    attr.test.data_size_out = 0;
+    attr.test.ctx_in = reinterpret_cast<uint64_t>(&in_ctx);
+    attr.test.ctx_size_in = sizeof(in_ctx);
+    attr.test.ctx_out = reinterpret_cast<uint64_t>(&out_ctx);
+    attr.test.ctx_size_out = sizeof(out_ctx);
+    REQUIRE(bpf(BPF_PROG_TEST_RUN, &attr, sizeof(attr)) == 0);
+    REQUIRE(attr.test.ctx_size_out == sizeof(sample_program_context_t));
+    REQUIRE(attr.test.duration > 0);
+
+    bpf_object__close(object);
+}
+
+DECLARE_JIT_TEST_CASES("libbpf prog test run", "[libbpf][deprecated]", test_libbpf_prog_test_run);
+
 TEST_CASE("empty bpf_load_program", "[libbpf][deprecated]")
 {
     _test_helper_libbpf test_helper;
@@ -633,7 +739,7 @@ _test_libbpf_map(ebpf_execution_type_t execution_type)
     // NULL key.
     result = bpf_map_lookup_elem(map_fd, NULL, &value);
     REQUIRE(result < 0);
-    REQUIRE(errno == EINVAL);
+    REQUIRE(errno == EFAULT);
 
     // Invalid key.
     result = bpf_map_delete_elem(map_fd, &index);
@@ -653,7 +759,7 @@ _test_libbpf_map(ebpf_execution_type_t execution_type)
     // NULL key.
     result = bpf_map_update_elem(map_fd, NULL, &value, 0);
     REQUIRE(result < 0);
-    REQUIRE(errno == EINVAL);
+    REQUIRE(errno == EFAULT);
 
     // Invalid key.
     result = bpf_map_update_elem(map_fd, &index, &value, 0);
@@ -775,7 +881,7 @@ _test_libbpf_map(ebpf_execution_type_t execution_type)
     // next_key is NULL.
     result = bpf_map_get_next_key(map_fd, NULL, NULL);
     REQUIRE(result < 0);
-    REQUIRE(errno == EINVAL);
+    REQUIRE(errno == EFAULT);
 
     bpf_object__close(object);
 }
@@ -2481,9 +2587,10 @@ _ebpf_test_count_entries_map_in_map(int outer_map_fd)
     return entries_count;
 }
 
-static void
-_ebpf_test_map_in_map(ebpf_map_type_t type)
+// Verify libbpf can create and update arrays and hash tables of maps.
+TEMPLATE_TEST_CASE("simple map of maps", "[libbpf]", MAP_OF_MAPS_TYPES)
 {
+    constexpr ebpf_map_type_t type = TestType::value;
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
 
@@ -2517,7 +2624,7 @@ _ebpf_test_map_in_map(ebpf_map_type_t type)
 
     uint32_t count = _ebpf_test_count_entries_map_in_map(outer_map_fd);
     // Verify the number of elements in the outer map.
-    if (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+    if constexpr (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
         REQUIRE(count == 1);
     } else {
         // For ARRAY_OF_MAPS, the count is max_entries.
@@ -2527,7 +2634,7 @@ _ebpf_test_map_in_map(ebpf_map_type_t type)
     // Verify that we can read it back.
     REQUIRE(bpf_map_lookup_elem(outer_map_fd, &outer_key, &inner_map_id) == 0);
 
-    if (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+    if constexpr (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
         // Replacing an existing hash-of-maps entry must release the stored object pointer.
         REQUIRE(bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0) == 0);
         ebpf_id_t replaced_inner_map_id;
@@ -2548,7 +2655,7 @@ _ebpf_test_map_in_map(ebpf_map_type_t type)
     REQUIRE(error < 0);
     REQUIRE(errno == EBADF);
 
-    if (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+    if constexpr (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
         // Try deleting outer key that doesn't exist.
         error = bpf_map_delete_elem(outer_map_fd, &outer_key);
         REQUIRE(error < 0);
@@ -2570,7 +2677,7 @@ _ebpf_test_map_in_map(ebpf_map_type_t type)
     REQUIRE(error == 0);
 
     // Verify the number of elements in the outer map is 0.
-    if (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+    if constexpr (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
         REQUIRE(_ebpf_test_count_entries_map_in_map(outer_map_fd) == 0);
     } else {
         // For ARRAY_OF_MAPS, the count is max_entries.
@@ -2585,12 +2692,6 @@ _ebpf_test_map_in_map(ebpf_map_type_t type)
     REQUIRE(bpf_map_get_next_id(0, &id) < 0);
     REQUIRE(errno == ENOENT);
 }
-
-// Verify libbpf can create and update arrays of maps.
-TEST_CASE("simple array of maps", "[libbpf]") { _ebpf_test_map_in_map(BPF_MAP_TYPE_ARRAY_OF_MAPS); }
-
-// Verify libbpf can create and update hash tables of maps.
-TEST_CASE("simple hash of maps", "[libbpf]") { _ebpf_test_map_in_map(BPF_MAP_TYPE_HASH_OF_MAPS); }
 
 // Verify an app can communicate with an eBPF program via an array of maps.
 static void
@@ -3504,7 +3605,7 @@ TEST_CASE("bpf_object__open_file with .dll", "[libbpf]")
     bpf_object__close(object);
 }
 
-TEST_CASE("bpf_object__load with .dll", "[libbpf]")
+TEST_CASE("bpf_object__load with _um.dll-native", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
     test_helper.initialize();
@@ -3785,9 +3886,9 @@ TEST_CASE("libbpf_num_possible_cpus", "[libbpf]")
     REQUIRE(cpu_count > 0);
 }
 
-void
-_test_nested_maps(bpf_map_type map_type)
+TEMPLATE_TEST_CASE("map_of_maps", "[libbpf]", MAP_OF_MAPS_TYPES)
 {
+    constexpr bpf_map_type map_type = TestType::value;
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
 
@@ -3828,9 +3929,6 @@ _test_nested_maps(bpf_map_type map_type)
     Platform::_close(inner_map_fd1);
     Platform::_close(outer_map_fd);
 }
-
-TEST_CASE("array_map_of_maps", "[libbpf]") { _test_nested_maps(BPF_MAP_TYPE_ARRAY_OF_MAPS); }
-TEST_CASE("hash_map_of_maps", "[libbpf]") { _test_nested_maps(BPF_MAP_TYPE_HASH_OF_MAPS); }
 
 TEST_CASE("libbpf_load_stress", "[libbpf]")
 {

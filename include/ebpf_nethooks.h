@@ -249,7 +249,8 @@ typedef struct _bpf_sock_addr_test_context
  * @retval 0 The operation was successful.
  * @retval <0 A failure occurred (e.g., network context unavailable at current attach layer).
  */
-EBPF_HELPER(int, bpf_sock_addr_get_network_context, (bpf_sock_addr_t * ctx, void* context_ptr, uint32_t context_size));
+EBPF_HELPER(
+    int, bpf_sock_addr_get_network_context, (const bpf_sock_addr_t* ctx, void* context_ptr, uint32_t context_size));
 #ifndef __doxygen
 #define bpf_sock_addr_get_network_context ((bpf_sock_addr_get_network_context_t)BPF_FUNC_sock_addr_get_network_context)
 #endif

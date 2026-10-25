@@ -6,7 +6,7 @@
       "trigger_paths": [
         "libs/ioctl_spec/EbpfProtocol.3d",
         "libs/ioctl_spec/ioctl_spec.vcxproj",
-        "libs/ioctl_spec/packages.config",
+        "libs/everparse.props",
         "libs/ioctl_spec/generated/EbpfProtocol.h",
         "libs/ioctl_spec/generated/EbpfProtocolWrapper.h",
         "libs/ioctl_spec/generated/EverParse.h",
@@ -29,7 +29,7 @@
       "trigger_paths": [
         "libs/elf_spec/Elf.3d",
         "libs/elf_spec/elf_spec.vcxproj",
-        "libs/elf_spec/packages.config",
+        "libs/everparse.props",
         "libs/elf_spec/generated/Elf.h",
         "libs/elf_spec/generated/ElfWrapper.h",
         "libs/elf_spec/generated/EverParse.h",

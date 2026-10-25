@@ -128,50 +128,6 @@ perform_socket_bind(const uint16_t test_port, bool expect_success = true)
     WSACleanup();
 }
 
-void
-ring_buffer_api_test(ebpf_execution_type_t execution_type)
-{
-    struct bpf_object* object = nullptr;
-    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
-    program_load_attach_helper_t _helper;
-    _helper.initialize("bindmonitor_ringbuf.o", BPF_PROG_TYPE_BIND, "bind_monitor", execution_type, nullptr, 0, hook);
-    object = _helper.get_object();
-
-    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
-    REQUIRE(process_map_fd > 0);
-
-    // Create a list of fake app IDs and set it to event context.
-    std::wstring app_id = L"api_test.exe";
-    std::vector<std::vector<char>> app_ids;
-    char* p = reinterpret_cast<char*>(&app_id[0]);
-    std::vector<char> temp(p, p + (app_id.size() + 1) * sizeof(wchar_t));
-
-    // ring_buffer_api_test_helper expects a list of app IDs of size RING_BUFFER_TEST_EVENT_COUNT.
-    for (auto i = 0; i < RING_BUFFER_TEST_EVENT_COUNT; i++) {
-        app_ids.push_back(temp);
-    }
-
-    ring_buffer_api_test_helper(process_map_fd, app_ids, [](int i) {
-        const uint16_t _test_port = 12345 + static_cast<uint16_t>(i);
-        perform_socket_bind(_test_port);
-    });
-}
-
-// See also divide_by_zero_test_um in end_to_end.cpp for the user-mode equivalent.
-void
-divide_by_zero_test_km(ebpf_execution_type_t execution_type)
-{
-    struct bpf_object* object = nullptr;
-    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
-    program_load_attach_helper_t _helper;
-    _helper.initialize("divide_by_zero.o", BPF_PROG_TYPE_BIND, "divide_by_zero", execution_type, nullptr, 0, hook);
-    object = _helper.get_object();
-
-    perform_socket_bind(0, true);
-
-    // If we don't bug-check, the test passed.
-}
-
 int32_t
 get_expected_jit_result(int32_t expected_result)
 {
