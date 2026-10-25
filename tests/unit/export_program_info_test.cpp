@@ -256,8 +256,8 @@ TEST_CASE("validate_btf_resolved_function_provider_data", "[shared]")
 
 TEST_CASE("validate_native_entry_header_total_size", "[shared]")
 {
-    // Native metadata arrays use total_size as their element stride, so only strides
-    // for supported ABI layouts are accepted.
+    // Native metadata arrays use total_size as their element stride, which must
+    // be at least the size of the supported ABI layout.
 
     // Helper function entry.
     {

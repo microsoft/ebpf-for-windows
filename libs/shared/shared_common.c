@@ -219,8 +219,7 @@ _ebpf_validate_extension_object_header(
 
     return (
         (header->version == _supported_ebpf_extension_version[object_type]) &&
-        (_ebpf_is_size_supported(supported_sizes, count, header->size)) &&
-        (header->total_size >= header->size));
+        (_ebpf_is_size_supported(supported_sizes, count, header->size)) && (header->total_size >= header->size));
 }
 
 #ifndef GUID_NULL
@@ -390,16 +389,9 @@ ebpf_validate_object_header_native_helper_function_entry(
 bool
 ebpf_validate_object_header_native_map_entry(_In_ const ebpf_extension_header_t* native_map_entry_header)
 {
-    if (native_map_entry_header == NULL) {
-        return false;
-    }
-
     return (
-        _ebpf_validate_extension_object_header(EBPF_NATIVE_MAP_ENTRY, native_map_entry_header) &&
-        ((native_map_entry_header->size == EBPF_NATIVE_MAP_ENTRY_LEGACY_SIZE &&
-          native_map_entry_header->total_size == EBPF_NATIVE_MAP_ENTRY_LEGACY_TOTAL_SIZE) ||
-         (native_map_entry_header->size == EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_SIZE &&
-          native_map_entry_header->total_size == EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_TOTAL_SIZE)));
+        (native_map_entry_header != NULL) &&
+        _ebpf_validate_extension_object_header(EBPF_NATIVE_MAP_ENTRY, native_map_entry_header));
 }
 
 _Success_(return) bool ebpf_native_map_entry_to_current(_Out_ map_entry_t* destination, _In_ const void* source)
