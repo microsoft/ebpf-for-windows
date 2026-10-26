@@ -6,7 +6,7 @@ on:
 jobs:
   stable_linux:
     name: stable Linux
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 60
     steps:
       - name: Harden Runner
@@ -128,6 +128,23 @@ jobs:
             --recursive \
             --depth 1
 
+          init_script="$virtme_root/virtme/guest/virtme-init"
+
+          # Ubuntu 26.04's uutils env fails before guest procfs is mounted.
+          # Workaround this until https://bugs.launchpad.net/ubuntu/+source/rust-coreutils/+bug/2137745
+          # is fixed.
+          case "$(head -n 1 "$init_script")" in
+            '#!/usr/bin/env bash')
+              sed -i '1s|^#!/usr/bin/env bash$|#!/bin/bash|' "$init_script"
+              ;;
+            '#!/bin/bash')
+              ;; # Already compatible.
+            *)
+              echo "Unexpected virtme-init shebang; review the Ubuntu 26.04 workaround" >&2
+              exit 1
+              ;;
+          esac
+
           "$virtme_root/vng" --version
 
       - name: Run behavior matrix on stable Linux
@@ -170,7 +187,7 @@ jobs:
     needs:
       - stable_linux
       - windows
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
       - name: Harden Runner
