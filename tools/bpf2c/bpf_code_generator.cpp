@@ -15,7 +15,6 @@
 #include "bpf_code_generator.h"
 #include "ebpf_api.h"
 #include "ebpf_store_helper.h"
-#include "ebpf_version.h"
 #pragma warning(push)
 #pragma warning(disable : 26495) // Always initialize a member variable
 #define ebpf_inst ebpf_inst_btf
@@ -2166,7 +2165,7 @@ void
 bpf_code_generator::emit_c_code(std::ostream& output_stream)
 {
     // Emit C file.
-    output_stream << "#include \"bpf2c.h\"" << std::endl << std::endl;
+    output_stream << "#include \"bpf2c.h\"" << std::endl << "#include \"ebpf_version.h\"" << std::endl << std::endl;
 
     // Emit hash data in its own section.
     if (elf_file_hash.has_value()) {
@@ -2792,16 +2791,12 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
     output_stream << "}" << std::endl;
     output_stream << std::endl;
 
-    std::string version_major = std::to_string(EBPF_VERSION_MAJOR);
-    std::string version_minor = std::to_string(EBPF_VERSION_MINOR);
-    std::string version_revision = std::to_string(EBPF_VERSION_REVISION);
-
     output_stream << "static void" << std::endl
                   << "_get_version(_Out_ bpf2c_version_t* version)" << std::endl
                   << "{" << std::endl
-                  << INDENT "version->major = " << version_major << ";" << std::endl
-                  << INDENT "version->minor = " << version_minor << ";" << std::endl
-                  << INDENT "version->revision = " << version_revision << ";" << std::endl
+                  << INDENT "version->major = EBPF_VERSION_MAJOR;" << std::endl
+                  << INDENT "version->minor = EBPF_VERSION_MINOR;" << std::endl
+                  << INDENT "version->revision = EBPF_VERSION_REVISION;" << std::endl
                   << "}" << std::endl
                   << std::endl;
 

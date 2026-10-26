@@ -220,9 +220,9 @@ extern "C"
     } program_entry_t;
 
     /**
-     * @brief Version information for the bpf2c compiler.
-     * This structure contains the version information for the bpf2c compiler that generated the module. It can be
-     * used to determine if the module is compatible with the current version of the eBPF for Windows runtime.
+     * @brief Version information for the SDK used to compile the native module.
+     * This structure contains the version information from ebpf_version.h when the generated C code is compiled.
+     * It can be used to determine if the module is compatible with the current version of the eBPF for Windows runtime.
      */
     typedef struct _bpf2c_version
     {
