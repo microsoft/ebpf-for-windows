@@ -88,14 +88,9 @@ try {
         "--fail",
         "--location",
         "--retry", "3",
-        "--retry-all-errors",
-        "--retry-connrefused",
-        "--retry-delay", "5",
         "--connect-timeout", "30",
         "--speed-limit", "1024",
         "--speed-time", "120",
-        "--progress-bar",
-        "--show-error",
         "--output", $archivePath,
         $archiveUrl)
     & $curlCommand.Source @curlArguments
