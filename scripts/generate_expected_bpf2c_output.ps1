@@ -236,8 +236,9 @@ try {
         throw "Failed to rebuild BPF sample objects with Public Clang $publicVersion."
     }
 
+    # Run bpf2c from the host platform; the BPF objects remain in the target build directory.
     $hostBpf2cPath = Join-Path $repositoryRoot "$hostPlatform\$configuration\bpf2c.exe"
-Update-ExpectedOutput -BuildPath $resolvedBuildPath -Bpf2cCommand $hostBpf2cPath
+    Update-ExpectedOutput -BuildPath $resolvedBuildPath -Bpf2cCommand $hostBpf2cPath
 }
 finally {
     Set-Location $currentLocation
