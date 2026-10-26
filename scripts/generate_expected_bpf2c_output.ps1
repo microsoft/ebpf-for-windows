@@ -88,12 +88,14 @@ sample programs present in test\samples.
 #>
 function Update-ExpectedOutput
 {
-    param([string]$BuildPath)
+    param(
+        [string]$BuildPath,
+        [string]$Bpf2cCommand
+    )
 
     $PSRoot = $PSScriptRoot
     $SamplePath = $PSRoot + "\..\tests\sample"
     $ExpectedOutputPath = $PSRoot + "\..\tests\bpf2c_tests\expected"
-    $Bpf2cCommand = Join-Path $BuildPath "bpf2c.exe"
     if (-not (Test-Path $Bpf2cCommand))
     {
         throw "bpf2c was not found at '$Bpf2cCommand'."
@@ -184,7 +186,7 @@ if (-not [System.String]::Equals(
 
 $toolchainPropertiesPath = Join-Path $repositoryRoot "build\ebpf-clang-toolchain.props"
 $previousToolchainState = if (Test-Path $toolchainPropertiesPath) {
-    Get-Content -Path $toolchainPropertiesPath -Raw
+    Get-Content -Path $toolchainPropertiesPath -Raw -Encoding UTF8
 } else {
     $null
 }
@@ -214,7 +216,7 @@ try {
         -Channel Public `
         -PublicClangSource Auto
 
-    [xml]$toolchainProperties = Get-Content -Path $toolchainPropertiesPath -Raw
+    [xml]$toolchainProperties = Get-Content -Path $toolchainPropertiesPath -Raw -Encoding UTF8
     $channel = Get-XmlProperty -Document $toolchainProperties -Name "EbpfConfiguredClangChannel"
     $source = Get-XmlProperty -Document $toolchainProperties -Name "EbpfConfiguredClangSource"
     $version = Get-XmlProperty -Document $toolchainProperties -Name "EbpfConfiguredClangVersion"
@@ -234,12 +236,13 @@ try {
         throw "Failed to rebuild BPF sample objects with Public Clang $publicVersion."
     }
 
-    Update-ExpectedOutput $resolvedBuildPath
+    $hostBpf2cPath = Join-Path $repositoryRoot "$hostPlatform\$configuration\bpf2c.exe"
+Update-ExpectedOutput -BuildPath $resolvedBuildPath -Bpf2cCommand $hostBpf2cPath
 }
 finally {
     Set-Location $currentLocation
     if ($null -ne $previousToolchainState) {
-        $currentToolchainState = Get-Content -Path $toolchainPropertiesPath -Raw
+        $currentToolchainState = Get-Content -Path $toolchainPropertiesPath -Raw -Encoding UTF8
         if ($currentToolchainState -ne $previousToolchainState) {
             $temporaryToolchainStatePath =
                 "{0}.{1}.tmp" -f $toolchainPropertiesPath, [guid]::NewGuid().ToString("N")

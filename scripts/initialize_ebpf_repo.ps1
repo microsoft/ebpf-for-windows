@@ -142,7 +142,7 @@ if ($publicClangSourceSpecified) {
 }
 & (Join-Path $scriptPath "configure-clang-toolchain.ps1") @configureClangArguments
 $clangToolchainStatePath = Join-Path (Split-Path -Parent $scriptPath) "build\ebpf-clang-toolchain.props"
-$clangToolchainState = [xml](Get-Content -Path $clangToolchainStatePath -Raw)
+$clangToolchainState = [xml](Get-Content -Path $clangToolchainStatePath -Raw -Encoding UTF8)
 $clangToolchainStateNamespaceManager = New-Object System.Xml.XmlNamespaceManager($clangToolchainState.NameTable)
 $clangToolchainStateNamespaceManager.AddNamespace("m", "http://schemas.microsoft.com/developer/msbuild/2003")
 $resolvedLlvmChannelNode = $clangToolchainState.SelectSingleNode(

@@ -36,7 +36,7 @@ function Get-PersistedClangChannel {
     }
 
     try {
-        $state = [xml](Get-Content -Path $generatedPropertiesPath -Raw)
+        $state = [xml](Get-Content -Path $generatedPropertiesPath -Raw -Encoding UTF8)
         $stateNamespaceManager = New-Object System.Xml.XmlNamespaceManager($state.NameTable)
         $stateNamespaceManager.AddNamespace("m", "http://schemas.microsoft.com/developer/msbuild/2003")
         $schemaNode = $state.SelectSingleNode(
@@ -71,7 +71,7 @@ function Get-PersistedPublicClangSelection {
     }
 
     try {
-        $state = [xml](Get-Content -Path $generatedPropertiesPath -Raw)
+        $state = [xml](Get-Content -Path $generatedPropertiesPath -Raw -Encoding UTF8)
         $stateNamespaceManager = New-Object System.Xml.XmlNamespaceManager($state.NameTable)
         $stateNamespaceManager.AddNamespace("m", "http://schemas.microsoft.com/developer/msbuild/2003")
         $schemaNode = $state.SelectSingleNode(
@@ -513,11 +513,11 @@ finally {
 }
 
 $existingContent = if (Test-Path $generatedPropertiesPath) {
-    Get-Content -Path $generatedPropertiesPath -Raw
+    Get-Content -Path $generatedPropertiesPath -Raw -Encoding UTF8
 } else {
     ""
 }
-$newContent = Get-Content -Path $temporaryPropertiesPath -Raw
+$newContent = Get-Content -Path $temporaryPropertiesPath -Raw -Encoding UTF8
 if ($existingContent -ne $newContent) {
     Move-Item -LiteralPath $temporaryPropertiesPath -Destination $generatedPropertiesPath -Force
 } else {
