@@ -149,6 +149,21 @@ jobs:
           submodules: 'recursive'
           ref: ${{inputs.ref}}
 
+      - name: Read Public LLVM configuration
+        if: steps.skip_check.outputs.should_skip != 'true'
+        id: llvm-config
+        run: |
+          [xml]$manifest = Get-Content .\scripts\clang-toolchain.props -Raw
+          $namespaceManager = New-Object System.Xml.XmlNamespaceManager($manifest.NameTable)
+          $namespaceManager.AddNamespace("m", "http://schemas.microsoft.com/developer/msbuild/2003")
+          $version = $manifest.SelectSingleNode("/m:Project/m:PropertyGroup/m:EbpfPublicClangVersion", $namespaceManager).InnerText
+          $sha256 = $manifest.SelectSingleNode("/m:Project/m:PropertyGroup/m:EbpfPublicClangInstallerSha256", $namespaceManager).InnerText
+          if (-not $version -or -not $sha256) {
+            throw "The Public LLVM configuration is incomplete."
+          }
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "sha256=$sha256" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
       - name: Configure Windows Error Reporting to make a local copy of any crashes that occur.
         id: configure_windows_error_reporting
         if: steps.skip_check.outputs.should_skip != 'true'
@@ -231,30 +246,32 @@ jobs:
             throw "Visual Studio installer failed with exit code $($proc.ExitCode)."
           }
 
-      - name: Cache LLVM 18.1.8 installer
+      - name: Cache LLVM installer
         if: steps.skip_check.outputs.should_skip != 'true'
         id: cache-llvm
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306
         with:
           path: ${{ runner.temp }}\llvm-installer
-          key: ${{ runner.os }}-llvm-18.1.8-installer
+          key: ${{ runner.os }}-llvm-${{ hashFiles('scripts/clang-toolchain.props') }}
 
-      - name: Download LLVM 18.1.8 installer
+      - name: Download Public LLVM installer
         if: steps.skip_check.outputs.should_skip != 'true' && steps.cache-llvm.outputs.cache-hit != 'true'
         run: |
+          $version = "${{ steps.llvm-config.outputs.version }}"
           $installerDir = "${{ runner.temp }}\llvm-installer"
           New-Item -ItemType Directory -Force -Path $installerDir | Out-Null
-          $installerPath = "$installerDir\LLVM-18.1.8-win64.exe"
-          $url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/LLVM-18.1.8-win64.exe"
-          Write-Host "Downloading LLVM 18.1.8 from $url"
+          $installerPath = "$installerDir\LLVM-$version-win64.exe"
+          $url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-$version/LLVM-$version-win64.exe"
+          Write-Host "Downloading Public LLVM from $url"
           Invoke-WebRequest -Uri $url -OutFile $installerPath -UseBasicParsing
           Write-Host "Downloaded LLVM installer to $installerPath"
 
       - name: Verify LLVM installer hash
         if: steps.skip_check.outputs.should_skip != 'true'
         run: |
-          $installerPath = "${{ runner.temp }}\llvm-installer\LLVM-18.1.8-win64.exe"
-          $expectedHash = "94af030060d88cc17e9f00ef1663ebdc1126b35e16bebdfa1e807984b70abd8f"
+          $version = "${{ steps.llvm-config.outputs.version }}"
+          $installerPath = "${{ runner.temp }}\llvm-installer\LLVM-$version-win64.exe"
+          $expectedHash = "${{ steps.llvm-config.outputs.sha256 }}"
           $actualHash = (Get-FileHash -Path $installerPath -Algorithm SHA256).Hash.ToLower()
           Write-Host "Expected SHA256: $expectedHash"
           Write-Host "Actual SHA256:   $actualHash"
@@ -263,38 +280,27 @@ jobs:
           }
           Write-Host "Hash verification passed"
 
-      - name: Install LLVM 18.1.8
+      - name: Install Public LLVM
         if: steps.skip_check.outputs.should_skip != 'true'
         run: |
-          $installerPath = "${{ runner.temp }}\llvm-installer\LLVM-18.1.8-win64.exe"
+          $expectedVersion = "${{ steps.llvm-config.outputs.version }}"
+          $installerPath = "${{ runner.temp }}\llvm-installer\LLVM-$expectedVersion-win64.exe"
           $installDir = "C:\Program Files\LLVM"
-          # Run silent install
-          Write-Host "Installing LLVM 18.1.8 to $installDir"
-          Start-Process -FilePath $installerPath -ArgumentList "/S", "/D=$installDir" -Wait -NoNewWindow
-          # Verify installation
-          if (Test-Path "$installDir\bin\clang.exe") {
-            $version = & "$installDir\bin\clang.exe" --version | Select-Object -First 1
-            Write-Host "Successfully installed: $version"
-            echo "$installDir\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          } else {
-            throw "LLVM installation failed - clang.exe not found"
+          Write-Host "Installing LLVM $expectedVersion to $installDir"
+          $installer = Start-Process -FilePath $installerPath -ArgumentList "/S", "/D=$installDir" -Wait -PassThru -NoNewWindow
+          if ($installer.ExitCode -ne 0) {
+            throw "LLVM installer failed with exit code $($installer.ExitCode)."
           }
-
-      - name: Add Visual Studio LLVM to path
-        if: steps.skip_check.outputs.should_skip != 'true'
-        run: |
-          echo "$env:VCINSTALLDIR\tools\llvm\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
-      - name: Check for Clang version (MSVC)
-        if: steps.skip_check.outputs.should_skip != 'true'
-        run:
-          clang.exe --version
-
-      - name: Check for Clang version (LLVM)
-        if: steps.skip_check.outputs.should_skip != 'true'
-        shell: cmd
-        run:
-          '"C:\Program Files\LLVM\bin\clang.exe" --version'
+          $clangPath = "$installDir\bin\clang.exe"
+          if (-not (Test-Path $clangPath)) {
+            throw "LLVM installation did not create '$clangPath'."
+          }
+          $versionOutput = & $clangPath --version 2>&1
+          $versionPattern = "(?m)^clang version $([regex]::Escape($expectedVersion))(\s|$)"
+          if ($LASTEXITCODE -ne 0 -or ($versionOutput -join "`n") -notmatch $versionPattern) {
+            throw "Expected Clang $expectedVersion, got: $($versionOutput -join ' ')"
+          }
+          Write-Host "Successfully installed: $($versionOutput | Select-Object -First 1)"
 
       - name: Configure NuGet package cache
         if: steps.skip_check.outputs.should_skip != 'true'
@@ -349,7 +355,7 @@ jobs:
           CXXFLAGS: /ZH:SHA_256 ${{env.CXX_FLAGS}}
           LDFLAGS: ${{env.LD_FLAGS}}
         run: |
-          .\scripts\initialize_ebpf_repo.ps1 -Architecture ${{env.BUILD_PLATFORM}} -VisualStudioVersion ${{env.VS_VERSION}}
+          .\scripts\initialize_ebpf_repo.ps1 -Architecture ${{env.BUILD_PLATFORM}} -VisualStudioVersion ${{env.VS_VERSION}} -LlvmChannel Public
 
       - name: Build
         if: steps.skip_check.outputs.should_skip != 'true'

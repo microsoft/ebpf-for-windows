@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) eBPF for Windows contributors
+  SPDX-License-Identifier: MIT
+-->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <EbpfClangToolchainStateSchemaVersion>1</EbpfClangToolchainStateSchemaVersion>
+    <EbpfPublicClangVersion>18.1.8</EbpfPublicClangVersion>
+    <EbpfPublicClangInstallerSha256>94af030060d88cc17e9f00ef1663ebdc1126b35e16bebdfa1e807984b70abd8f</EbpfPublicClangInstallerSha256>
+    <EbpfInternalClangVersion>19.1.4</EbpfInternalClangVersion>
+    <EbpfInternalClangPackageRevision>34</EbpfInternalClangPackageRevision>
+    <EbpfInternalClangPackageVersion>$(EbpfInternalClangVersion)-$(EbpfInternalClangPackageRevision)</EbpfInternalClangPackageVersion>
+  </PropertyGroup>
+</Project>

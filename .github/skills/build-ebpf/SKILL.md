@@ -290,8 +290,14 @@ After cloning, changing submodule pointers, or resetting submodules, run the ini
 # From solution root — initializes submodules, generates cmake projects, restores NuGet
 .\scripts\initialize_ebpf_repo.ps1
 
+# Force the pinned Public Clang toolchain instead of the default Auto selection
+.\scripts\initialize_ebpf_repo.ps1 -LlvmChannel Public
+
 # Or with ARM64
 .\scripts\initialize_ebpf_repo.ps1 -Architecture ARM64
+
+# With access to the authenticated internal feed, restore the Internal Clang toolchain through NuGet
+.\scripts\initialize_ebpf_repo.ps1 -LlvmChannel Internal
 ```
 
 This script:
@@ -312,19 +318,27 @@ This script:
 When manually compiling BPF C programs with clang, use the full set of include paths
 from the `tests\sample\sample.vcxproj` CustomBuild rules.
 
-**Locate clang.exe** — use the first existing path (highest priority first):
-`packages\llvm.tools\clang.exe`, `"$env:ProgramFiles\LLVM\bin\clang.exe"`,
-`"$(& "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath)\VC\Tools\Llvm\bin\clang.exe"`
+**Locate the configured compiler and resource directory** — run repository initialization first,
+then read both values from the generated toolchain state:
+
+```powershell
+$toolchain = [xml](Get-Content .\build\ebpf-clang-toolchain.props -Raw)
+$clangPath = (Select-Xml -Xml $toolchain -XPath "//*[local-name()='EbpfConfiguredClangPath']").Node.InnerText
+$clangResourceDir = (Select-Xml -Xml $toolchain -XPath "//*[local-name()='EbpfConfiguredClangResourceDir']").Node.InnerText
+```
+
+Initialization validates the selected pinned toolchain. Do not independently select Clang from
+`PATH`, Visual Studio, or a repository-local `packages` directory.
 
 ```powershell
 # Standard sample programs (tests\sample\*.c)
-& '<clang-path>' -g -target bpf -O2 -Werror `
+& $clangPath -g -target bpf -O2 -Werror -resource-dir $clangResourceDir `
   -Iinclude -Iexternal\bpftool `
   -Itests\xdp -Itests\socket -Itests\sample\ext\inc -Itests\include `
   -c tests\sample\<name>.c -o x64\Debug\<name>.o
 
 # Undocked sample programs (tests\sample\undocked\*.c) — add extra includes
-& '<clang-path>' -g -target bpf -O2 -Werror `
+& $clangPath -g -target bpf -O2 -Werror -resource-dir $clangResourceDir `
   -Iinclude -Iexternal\bpftool `
   -Itests\xdp -Itests\socket -Itests\sample\ext\inc -Itests\include `
   -Itests\sample -Iundocked\tests\sample\ext\inc `
