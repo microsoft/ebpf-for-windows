@@ -394,6 +394,15 @@ of the bpf2c executable that generated it. Product version updates therefore do 
 Furthermore, the generated source files also contain references to local file paths in the embedded comments, which can
 differ for each person regenerating them.
 
-These paths therefore need to be canonicalized to make them portable and this is done by running the following command
-from the ```ebpf-for-windows``` project root directory:
-``` .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\```.
+These paths therefore need to be canonicalized to make them portable. Regenerate and validate the expected output by
+running the following command from the ```ebpf-for-windows``` project root directory:
+
+```powershell
+.\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
+```
+
+Expected output is always generated with the pinned Public Clang version. A compatible installed compiler is preferred;
+otherwise, the first invocation downloads the official LLVM portable archive and selectively extracts the compiler and
+resource headers to the user-level eBPF for Windows tool cache. Later invocations and other worktrees reuse that cache.
+No administrator access or PATH changes are required, and the worktree's previous toolchain state is restored after
+regeneration.

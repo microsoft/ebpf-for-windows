@@ -20,9 +20,19 @@ native code) with bpf2c. On verification failure, diagnose using the PREVAIL ref
 
 ## Prerequisites
 
-- **clang.exe** — find the first existing path (highest priority first):
-  `packages\llvm.tools\clang.exe`, `"$env:ProgramFiles\LLVM\bin\clang.exe"`,
-  `"$(& "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath)\VC\Tools\Llvm\bin\clang.exe"`
+- **clang.exe and resource headers** — run repository initialization first, then read both values
+  from the generated toolchain state:
+  ```powershell
+  $toolchain = [xml](Get-Content .\build\ebpf-clang-toolchain.props -Raw)
+  $clangPath = (Select-Xml -Xml $toolchain -XPath "//*[local-name()='EbpfConfiguredClangPath']").Node.InnerText
+  $clangResourceDir = (Select-Xml -Xml $toolchain -XPath "//*[local-name()='EbpfConfiguredClangResourceDir']").Node.InnerText
+  ```
+  Do not independently select Clang from `PATH`, Visual Studio, or a repository-local `packages`
+  directory. The Internal compiler package requires its separately restored resource headers; with
+  access to the authenticated internal feed, select it using
+  `.\scripts\initialize_ebpf_repo.ps1 -LlvmChannel Internal`. The Public channel requires the pinned
+  installed compiler by default. To use it without installing it or changing PATH, run
+  `.\scripts\initialize_ebpf_repo.ps1 -LlvmChannel Public -PublicClangSource Portable`.
 - **bpf2c.exe** — if `x64\Debug\bpf2c.exe` is missing, build it:
   `msbuild ebpf-for-windows.sln /m /p:Configuration=Debug /p:Platform=x64 /t:tools\bpf2c`
 
@@ -34,7 +44,7 @@ Run from the **solution root directory** (use the clang path found above):
 
 ```powershell
 # Standard sample programs
-& '<clang-path>' -g -target bpf -O2 -Werror `
+& $clangPath -g -target bpf -O2 -Werror -resource-dir $clangResourceDir `
   -Iinclude -Iexternal\bpftool `
   -Itests\xdp -Itests\socket `
   -Itests\sample\ext\inc -Itests\include `
