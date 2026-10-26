@@ -51,6 +51,8 @@ An **command line install/uninstall** is also supported, through the direct use 
   links must be present; the installer fails safely if it detects a partial backup set. Link restoration is skipped
   when removal is part of a major upgrade, and is rolled back if the uninstall fails.
   The original `eBPFCore`, `NetEbpfExt`, and `eBPFSvc` service registry keys and running states are also retained.
+  If installation fails after starting the drivers, rollback stops each driver before restoring its previous
+  image path or deleting a service registration created by the MSI.
   Final uninstall restores services that existed before installation and removes only services created by the MSI.
   It also saves the existing machine and installing-user eBPF registry stores under
   `%ProgramData%\eBPF-for-Windows\MsiBackup`, replaces them with metadata for the installed version, and restores the
