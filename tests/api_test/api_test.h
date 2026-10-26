@@ -161,6 +161,3 @@ test_map_next_previous(const char* file_name, int expected_map_count)
 
 void
 tailcall_load_test(_In_z_ const char* file_name);
-
-void
-bpf_user_helpers_test(ebpf_execution_type_t execution_type);

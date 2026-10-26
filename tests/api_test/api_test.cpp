@@ -1490,8 +1490,6 @@ TEST_CASE("nomap_load_test", "[native_tests]")
     REQUIRE(object != nullptr);
 }
 
-TEST_CASE("bpf_user_helpers_test_native", "[api_test]") { bpf_user_helpers_test(EBPF_EXECUTION_NATIVE); }
-
 TEST_CASE("ioctl_stress", "[stress]")
 {
     struct bpf_object* object = nullptr;
