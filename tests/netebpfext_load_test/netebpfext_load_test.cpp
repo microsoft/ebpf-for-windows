@@ -5,6 +5,7 @@
 #include "api_test_jit.h"
 #include "bpf/bpf.h"
 #include "bpf/libbpf.h"
+#include "misc_helper.h"
 #include "program_helper.h"
 #include "sample_test_common.h"
 #include "socket_helper.h"
@@ -13,6 +14,8 @@
 #include <ws2tcpip.h>
 #include <io.h>
 #include <mstcpip.h>
+#define _NTDEF_ // UNICODE_STRING is already defined.
+#include <ntsecapi.h>
 #include <vector>
 
 static void
@@ -224,6 +227,57 @@ TEST_CASE("bindmonitor_tailcall_native_test", "[netebpfext]")
     REQUIRE(bpf_object__find_map_by_name(object, "dummy_outer_idx_map") != nullptr);
     cleanup();
 }
+
+// Tests the following helper functions via the bindmonitor program:
+// 1. bpf_get_current_pid_tgid()
+// 2. bpf_get_current_logon_id()
+// 3. bpf_is_current_admin()
+static void
+_bpf_user_helpers_test(ebpf_execution_type_t execution_type)
+{
+    uint64_t process_thread_id = get_current_pid_tgid();
+    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    native_module_helper_t module_helper;
+    module_helper.initialize("bindmonitor", execution_type);
+    program_load_attach_helper_t helper;
+    helper.initialize(
+        module_helper.get_file_name().c_str(), BPF_PROG_TYPE_BIND, "BindMonitor", execution_type, nullptr, 0, hook);
+    struct bpf_object* object = helper.get_object();
+
+    WSAData data{};
+    REQUIRE(WSAStartup(2, &data) == 0);
+    auto winsock_cleanup = std::unique_ptr<void, void (*)(void*)>(
+        reinterpret_cast<void*>(1), [](void*) { WSACleanup(); });
+
+    SOCKET sock = INVALID_SOCKET;
+    REQUIRE(_perform_bind(&sock, 0) == 0);
+    if (sock != INVALID_SOCKET) {
+        closesocket(sock);
+    }
+
+    // Validate the contents of the audit map.
+    fd_t audit_map_fd = bpf_object__find_map_fd_by_name(object, "audit_map");
+    REQUIRE(audit_map_fd > 0);
+
+    audit_entry_t entry = {0};
+    int result = bpf_map_lookup_elem(audit_map_fd, &process_thread_id, &entry);
+    REQUIRE(result == 0);
+
+    REQUIRE(entry.is_admin == -1);
+
+    REQUIRE(entry.logon_id != 0);
+    SECURITY_LOGON_SESSION_DATA* session_data = NULL;
+    result = LsaGetLogonSessionData((PLUID)&entry.logon_id, &session_data);
+    REQUIRE(result == ERROR_SUCCESS);
+
+    LsaFreeReturnBuffer(session_data);
+}
+
+#if !defined(CONFIG_BPF_JIT_DISABLED)
+TEST_CASE("bpf_user_helpers_test_jit", "[netebpfext]") { _bpf_user_helpers_test(EBPF_EXECUTION_JIT); }
+#endif
+
+TEST_CASE("bpf_user_helpers_test_native", "[netebpfext]") { _bpf_user_helpers_test(EBPF_EXECUTION_NATIVE); }
 
 struct _ebpf_program_load_test_parameters
 {
