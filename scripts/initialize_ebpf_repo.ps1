@@ -9,6 +9,9 @@ param (
     # specific toolset, so the CMake generator, platform toolset, and NuGet/MSBuild restore all match
     # the Visual Studio version you intend to build with.
     [parameter(Mandatory = $false)][string] $VisualStudioVersion = "",
+    # Public uses a validated local installation of the pinned LLVM version. Internal restores the
+    # matching compiler and resource headers from the configured NuGet feed.
+    [parameter(Mandatory = $false)][ValidateSet("Public", "Internal")][string] $LlvmChannel = "Public",
     [parameter(Mandatory = $false)][switch] $SkipHostToolBootstrap
 )
 
@@ -61,8 +64,10 @@ if (-not $msbuildPath -or -not (Test-Path $msbuildPath)) {
     # Fall back to assuming msbuild is on PATH.
     $msbuildPath = "msbuild"
 }
+$msbuildDir = if ($msbuildPath -and (Test-Path $msbuildPath)) { Split-Path -Parent $msbuildPath } else { $null }
 Write-Host "Using MSBuild: $msbuildPath"
 Write-Host "Using CMake generator: $cmakeGenerator"
+Write-Host "Using LLVM channel: $LlvmChannel"
 
 # Helper to run a command, check exit code, and abort on failure.
 function Invoke-NativeCommand {
@@ -120,11 +125,13 @@ function Remove-ArchitectureSpecificBuildDirectories {
     }
 }
 
+& (Join-Path $scriptPath "configure-clang-toolchain.ps1") -Channel $LlvmChannel -MSBuildPath $msbuildDir
+
 $hostArchitecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
 if (!$SkipHostToolBootstrap -and $Architecture -ieq "ARM64" -and $hostArchitecture -ieq "x64") {
     Write-Host "Bootstrapping x64 bpf2c host tools before configuring the ARM64 target."
     Remove-ArchitectureSpecificBuildDirectories
-    & $PSCommandPath -Architecture x64 -VisualStudioVersion $VisualStudioVersion -SkipHostToolBootstrap
+    & $PSCommandPath -Architecture x64 -VisualStudioVersion $VisualStudioVersion -LlvmChannel $LlvmChannel -SkipHostToolBootstrap
     if (!$?) {
         throw "Failed to initialize x64 host dependencies."
     }
@@ -155,7 +162,6 @@ if (!$SkipHostToolBootstrap -and $Architecture -ieq "ARM64" -and $hostArchitectu
 
 # Define the commands to run
 $cmakeCommonArgs = "-G `"$cmakeGenerator`" -A $Architecture"
-$msbuildDir = if ($msbuildPath -and (Test-Path $msbuildPath)) { Split-Path -Parent $msbuildPath } else { $null }
 $nugetRestoreCommand = if ($msbuildDir) {
     "nuget restore ebpf-for-windows.sln -MSBuildPath `"$msbuildDir`""
 } else {
