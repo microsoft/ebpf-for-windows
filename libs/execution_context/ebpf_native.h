@@ -138,6 +138,17 @@ extern "C"
     _Must_inspect_result_ ebpf_result_t
     ebpf_native_authorize_module(_In_ const GUID* module_id, _In_ const uint8_t* module_hash);
 
+    /**
+     * @brief Check whether an authorization entry exists for a native module.
+     * Used by tests to verify that entries are consumed on load and expire.
+     *
+     * @param[in] module_id Module ID to look up.
+     * @retval true An authorization entry exists for the module.
+     * @retval false No authorization entry exists for the module.
+     */
+    bool
+    ebpf_native_authorization_entry_exists(_In_ const GUID* module_id);
+
 #ifdef __cplusplus
 }
 #endif

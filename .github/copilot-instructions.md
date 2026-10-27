@@ -88,6 +88,11 @@ See [docs/DevelopmentGuide.md](../docs/DevelopmentGuide.md) for full details. Ke
   // SPDX-License-Identifier: MIT
   ```
 
+## GitHub Actions
+
+- Pin third-party actions to a full commit SHA and append the corresponding release version as a comment:
+  `uses: owner/action@<40-character-sha>  # vX.Y.Z`
+
 ## Extension Development
 
 eBPF extensions are kernel drivers providing hooks/helpers via NMR. See [docs/eBpfExtensions.md](../docs/eBpfExtensions.md).
