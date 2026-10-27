@@ -4,8 +4,8 @@
 $ErrorActionPreference = "Stop"
 
 $version = "18.1.8"
-$archiveName = "clang+llvm-18.1.8-x86_64-pc-windows-msvc.tar.xz"
-$archiveRoot = "clang+llvm-18.1.8-x86_64-pc-windows-msvc"
+$archiveName = "clang+llvm-${version}-x86_64-pc-windows-msvc.tar.xz"
+$archiveRoot = "clang+llvm-${version}-x86_64-pc-windows-msvc"
 $releaseUrl = "https://github.com/llvm/llvm-project/releases/download/llvmorg-$version"
 $archiveUrl = "$releaseUrl/$($archiveName.Replace('+', '%2B'))"
 $resourceVersion = ([System.Version]::Parse($version)).Major
