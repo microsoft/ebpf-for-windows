@@ -46,7 +46,8 @@ An **command line install/uninstall** is also supported, through the direct use 
   The service registrations are updated to use the canonical Windows paths. The installation fails before changing
   any canonical link if a service cannot be stopped, a canonical binary is missing, or the replacement hard links
   cannot be staged (for example, because `INSTALLFOLDER` is on another volume). The installer temporarily grants
-  itself access to protected inbox binaries while changing their hard links and then restores their original ACLs.
+  itself access to protected inbox binaries while changing their hard links and then restores their original ACLs
+  through the temporary rollback links. Distinct replacement files retain their MSI-installed ACLs.
   The original hard links remain under `.ebpf-msi-backup` names until a final uninstall restores them. All six backup
   links must be present; the installer fails safely if it detects a partial backup set. Link restoration is skipped
   when removal is part of a major upgrade, and is rolled back if the uninstall fails.
