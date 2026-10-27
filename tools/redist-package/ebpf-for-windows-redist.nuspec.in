@@ -37,7 +37,7 @@
 		<file src="NetEbpfExt.sys" target="lib\native\bin\drivers"/>
 		<file src="NetEbpfExt.pdb" target="lib\native\bin\drivers"/>
 		<!--eBPF tracing -->
-		<file src="..\..\scripts\ebpf_tracing.cmd" target="lib\native\bin"/>
+		<file src="..\..\scripts\ebpf_tracing.ps1" target="lib\native\bin"/>
 		<file src="..\..\scripts\ebpf_tracing_startup_task.xml" target="lib\native\bin"/>
 		<file src="..\..\scripts\ebpf_tracing_periodic_task.xml" target="lib\native\bin"/>
 	</files>
