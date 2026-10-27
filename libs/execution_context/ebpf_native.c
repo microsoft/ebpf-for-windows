@@ -1018,8 +1018,10 @@ _ebpf_native_provider_attach_client_callback(
         }
     }
     // Delete the entry from the authorized module table if it exists.
-    (void)ebpf_hash_table_delete(
-        _ebpf_native_authorized_module_table, NULL, (const uint8_t*)&client_context->client_module_id);
+    // Note: key on the client_module_id parameter - client_context->client_module_id
+    // is not assigned until later in this function, so using it here would delete
+    // GUID_NULL and permanently leak the entry.
+    (void)ebpf_hash_table_delete(_ebpf_native_authorized_module_table, NULL, (const uint8_t*)client_module_id);
 
     ebpf_lock_unlock(&_ebpf_native_authorized_module_table_lock, state);
     if (result != EBPF_SUCCESS) {
@@ -2865,6 +2867,17 @@ ebpf_native_authorize_module(_In_ const GUID* module_id, _In_ const uint8_t* mod
     EBPF_RETURN_RESULT(result);
 }
 
+bool
+ebpf_native_authorization_entry_exists(_In_ const GUID* module_id)
+{
+    uint8_t* value = NULL;
+    ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_native_authorized_module_table_lock);
+    bool exists =
+        ebpf_hash_table_find(_ebpf_native_authorized_module_table, (const uint8_t*)module_id, &value) == EBPF_SUCCESS;
+    ebpf_lock_unlock(&_ebpf_native_authorized_module_table_lock, state);
+    return exists;
+}
+
 /**
  * @brief Callback function for the authorized module cleanup work item.
  * Authorized modules that have not been used for more than EBPF_NATIVE_AUTHORIZE_MODULE_ENTRY_TIMEOUT_NANOSECONDS
@@ -2926,6 +2939,11 @@ _ebpf_native_authorized_module_cleanup_work_item_callback(_Inout_opt_ void* cont
             _ebpf_native_authorized_module_cleanup_work_item,
             EBPF_NATIVE_AUTHORIZE_MODULE_ENTRY_TIMEOUT_NANOSECONDS / 1000);
         _ebpf_native_authorized_module_cleanup_work_item_scheduled = true;
+    } else {
+        // Nothing left to expire: clear the flag so the next authorize re-arms
+        // the one-shot timer. Without this, entries added after the table first
+        // drains are never cleaned up for the rest of the boot.
+        _ebpf_native_authorized_module_cleanup_work_item_scheduled = false;
     }
 
     ebpf_lock_unlock(&_ebpf_native_authorized_module_table_lock, state);
