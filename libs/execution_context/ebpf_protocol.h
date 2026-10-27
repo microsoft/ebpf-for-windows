@@ -475,6 +475,9 @@ typedef struct _ebpf_operation_load_native_programs_request
 {
     struct _ebpf_operation_header header;
     GUID module_id;
+    // Optional pin root path (UTF-8, not null terminated) used as the prefix for maps declared with
+    // LIBBPF_PIN_BY_NAME. A request with no path bytes uses the default pin root path.
+    uint8_t pin_root_path[1];
 } ebpf_operation_load_native_programs_request_t;
 
 typedef struct _ebpf_program_information
@@ -499,12 +502,18 @@ typedef struct _ebpf_map_information
     uint8_t data[1];
 } ebpf_map_information_t;
 
+#define EBPF_NATIVE_MAP_REUSE_STATUS_PRESENT 0x53554552u
+
 typedef struct _ebpf_operation_load_native_programs_reply
 {
     struct _ebpf_operation_header header;
     size_t program_handle_count;
     size_t map_handle_count;
     // Map handles followed by program handles.
+    // If the reply buffer has room for all map reuse-status bytes, they follow the handle arrays
+    // (one byte per map: 0 = created, 1 = reused). Legacy handle-only reply buffers remain supported.
+    // When space permits, EBPF_NATIVE_MAP_REUSE_STATUS_PRESENT follows the reuse-status bytes as a uint32_t.
+    // Clients must not use the status bytes for rollback unless this marker is present.
     uint8_t data[1];
 } ebpf_operation_load_native_programs_reply_t;
 

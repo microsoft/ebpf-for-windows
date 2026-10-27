@@ -27,11 +27,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <Target Name="SetVersion" BeforeTargets="PreBuildEvent">
-    <WriteLinesToFile File="$(OutDir)ebpf_version.h" WriteOnlyWhenDifferent="true" Overwrite="true" Lines="
-#define EBPF_VERSION_MAJOR $(EbpfVersion_Major)
-#define EBPF_VERSION_MINOR $(EbpfVersion_Minor)
-#define EBPF_VERSION_REVISION $(EbpfVersion_Revision)
-#define EBPF_VERSION &quot;$(EbpfVersion)&quot;" />
+    <Copy SourceFiles="$(SolutionDir)include\ebpf_version.h" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
   </Target>
   <ItemGroup>
     <CustomBuild Include="..\deploy-ebpf.ps1.in">
