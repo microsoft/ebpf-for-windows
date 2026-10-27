@@ -179,31 +179,31 @@ switch ($command) {
             Save-RundownFile $bpfStatePath 'bpfstate'
         } finally {
             Pop-Location
-        }
 
-        Get-ChildItem -LiteralPath $tracePath -Filter '*.etl' -File |
-            Sort-Object Name -Descending | Select-Object -Skip 1 |
-            Move-Item -Destination $committedPath -Force
+            Get-ChildItem -LiteralPath $tracePath -Filter '*.etl' -File |
+                Sort-Object Name -Descending | Select-Object -Skip 1 |
+                Move-Item -Destination $committedPath -Force
 
-        foreach ($pattern in @('wfpstate_*.*', 'bpfstate_*.*')) {
-            Get-ChildItem -LiteralPath $committedPath -Filter $pattern -File |
-                Sort-Object LastWriteTime -Descending |
-                Select-Object -Skip $options.max_committed_rundown_state_files | Remove-Item -Force
-        }
-
-        $etlFiles = @(Get-ChildItem -LiteralPath $committedPath -Filter '*.etl' -File |
-            Sort-Object LastWriteTime -Descending)
-        # Preserve the batch script's exemption of the newest committed ETL from the size budget.
-        $sizeKB = 0L
-        $maxSizeKB = [long]$options.max_committed_folder_size_mb * 1024
-        foreach ($file in ($etlFiles | Select-Object -Skip 1)) {
-            $sizeKB += [long][Math]::Floor($file.Length / 1KB)
-            if ($sizeKB -gt $maxSizeKB) {
-                Remove-Item -LiteralPath $file.FullName -Force
+            foreach ($pattern in @('wfpstate_*.*', 'bpfstate_*.*')) {
+                Get-ChildItem -LiteralPath $committedPath -Filter $pattern -File |
+                    Sort-Object LastWriteTime -Descending |
+                    Select-Object -Skip $options.max_committed_rundown_state_files | Remove-Item -Force
             }
+
+            $etlFiles = @(Get-ChildItem -LiteralPath $committedPath -Filter '*.etl' -File |
+                Sort-Object LastWriteTime -Descending)
+            # Preserve the batch script's exemption of the newest committed ETL from the size budget.
+            $sizeKB = 0L
+            $maxSizeKB = [long]$options.max_committed_folder_size_mb * 1024
+            foreach ($file in ($etlFiles | Select-Object -Skip 1)) {
+                $sizeKB += [long][Math]::Floor($file.Length / 1KB)
+                if ($sizeKB -gt $maxSizeKB) {
+                    Remove-Item -LiteralPath $file.FullName -Force
+                }
+            }
+            Get-ChildItem -LiteralPath $committedPath -Filter '*.etl' -File |
+                Sort-Object LastWriteTime -Descending |
+                Select-Object -Skip $options.max_committed_etl_files | Remove-Item -Force
         }
-        Get-ChildItem -LiteralPath $committedPath -Filter '*.etl' -File |
-            Sort-Object LastWriteTime -Descending |
-            Select-Object -Skip $options.max_committed_etl_files | Remove-Item -Force
     }
 }
