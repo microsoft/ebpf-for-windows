@@ -54,7 +54,8 @@ restores their ACLs through rollback links; distinct replacement files retain th
 
 ### Backup filenames
 
-Service and store metadata reside under `%ProgramData%\eBPF-for-Windows\MsiBackup`.
+Service and HKLM store metadata reside under `%ProgramData%\eBPF-for-Windows\MsiBackup`.
+HKCU snapshots reside in its `UserStore` subdirectory.
 In the table, `<scope>` is `hklm` or `hkcu`, and `<service>` is eBPFCore, NetEbpfExt, or eBPFSvc.
 
 | State | Metadata | Registry export |
@@ -65,6 +66,39 @@ In the table, `<scope>` is `hklm` or `hkcu`, and `<service>` is eBPFCore, NetEbp
 | Install-attempt service rollback | `ebpf-services.rollback.json` | `<service>.rollback.reg` |
 
 Registry exports are created only for keys that existed; metadata records absent keys.
+
+### Backup directory protection
+
+Backup actions require SYSTEM or an elevated administrator token. The application directory,
+backup directory, and `UserStore` are created with protected ACLs granting full control only to
+SYSTEM and Administrators. No ordinary-user write access is granted, including for HKCU snapshots.
+HKCU registry actions remain impersonated and retain the same-installing-user requirement.
+
+Before using any backups, each action checks directory and file ownership, rejects unprivileged
+write permissions, and rejects reparse points and hard-linked backup files. Ancestor directories
+are also checked for permissions that would let an unprivileged user replace the protected path.
+Directory handles remain open without write or delete sharing during the action to prevent path replacement
+or changes to reparse data.
+Existing untrusted directories or contents cause an error; the installer never changes their ACLs
+and then treats them as trusted. An administrator must investigate and recover such existing state
+before retrying. Do not delete original backups merely to bypass the check.
+
+Trusted legacy HKCU snapshots in the backup root are moved into `UserStore`. Registry destinations
+and service export filenames are validated, and store imports reject keys outside the saved store.
+Uninstall preparation stages `ForceEbpfStack.cleanup.ps1` in the protected backup directory so
+commit can use the same validation after the installed script is removed. Successful commit removes
+the staged script and backup files; empty protected directories are retained for future installations.
+Cleanup errors are logged by the custom action without rolling back an otherwise completed uninstall.
+
+Run the isolated regression suite from an elevated Windows PowerShell:
+
+```powershell
+.\scripts\test_msi_backup_security.ps1
+```
+
+It creates uniquely named disposable ProgramData directories and registry keys, checks rejected ACLs,
+owners, links, and path replacement, and exercises HKLM/HKCU backup, rollback, restore, and cleanup.
+It does not change the installed eBPF services or canonical binaries.
 
 Binary links are beside the canonical Windows files: `.ebpf-msi-new` stages replacement,
 `.ebpf-msi-rollback` preserves pre-attempt state, and `.ebpf-msi-backup` preserves original state.
@@ -203,11 +237,9 @@ flowchart TD
 
     subgraph Commit["Success-only commit actions"]
         CleanupRequired{"Final removal?"}
-        MachineCleanup["Force_eBPF_store_uninstall_commit_HKLM"]
-        UserCleanup["Force_eBPF_store_uninstall_commit_HKCU"]
         ServiceCleanup["Force_eBPF_services_uninstall_commit"]
         Finished["InstallFinalize completes successfully"]
-        CleanupRequired -->|Yes| MachineCleanup --> UserCleanup --> ServiceCleanup --> Finished
+        CleanupRequired -->|Yes| ServiceCleanup --> Finished
         CleanupRequired -->|No: preserve durable backups for newer product| Finished
     end
 
@@ -220,6 +252,6 @@ If normal uninstall work reports a fatal error, MSI follows recovery rather than
 cleanup path. Recovery is not expanded here; it restores the pre-uninstall state using the rollback work
 accumulated so far.
 
-The three uninstall commit actions execute only after normal removal succeeds. Unlike installation
+The combined uninstall commit action executes only after normal removal succeeds. Unlike installation
 commit cleanup, final-uninstall cleanup deletes durable original-state backups as well as temporary
 recovery files.
