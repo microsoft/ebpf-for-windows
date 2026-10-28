@@ -69,6 +69,8 @@ An **command line install/uninstall** is also supported, through the direct use 
   In the forced stack replacement path, previous driver configurations are restored by the full service
   rollback after binary and store restoration, without separate per-driver image-path undo actions.
   Final uninstall restores services that existed before installation and removes only services created by the MSI.
+  During full removal, the explicit driver-stop actions stop NetEbpfExt before eBPFCore, before removing
+  MSI-created service registrations.
   It also saves the existing machine and installing-user eBPF registry stores under
   `%ProgramData%\eBPF-for-Windows\MsiBackup`, replaces them with metadata for the installed version, and restores the
   saved stores during a final uninstall. Store restoration is skipped when removal is part of a major upgrade.
