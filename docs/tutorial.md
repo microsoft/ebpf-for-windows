@@ -757,6 +757,22 @@ which are memory structures that can be shared between eBPF programs and/or
 applications.  They are typically used to store state between invocations
 of eBPF programs, or to expose information (e.g., statistics) to applications.
 
+By default, `BPF_MAP_TYPE_HASH`, `BPF_MAP_TYPE_PERCPU_HASH`, `BPF_MAP_TYPE_HASH_OF_MAPS`, and
+`BPF_MAP_TYPE_LPM_TRIE` enforce their configured `max_entries`, matching Linux behavior.
+Windows also supports the `BPF_F_NO_MAX_ENTRIES` map creation flag to allow these maps to grow
+beyond `max_entries`. Applications relying on the previous unbounded Windows behavior must
+explicitly opt in with this flag.
+For maps created through `bpf_map_create()`, set `bpf_map_create_opts.map_flags` to this flag.
+For program-defined maps, set `.map_flags = BPF_F_NO_MAX_ENTRIES` in a legacy map definition, or
+add `__uint(map_flags, BPF_F_NO_MAX_ENTRIES);` to a BTF map definition, then rebuild the program
+(including regenerating native code with bpf2c when applicable).
+
+With this flag, `max_entries` must still be nonzero but is only an initial bucket-count hint:
+there is no entry-count bound, and the map can grow subject to available resources.
+`bpf_map__max_entries()` and map information queries continue to return the configured value,
+not the current entry count or an enforced maximum. Other map types reject this flag;
+LRU maps retain their bounded eviction behavior.
+
 To see how maps are exposed to eBPF programs, let's first start from a
 plain eBPF program:
 

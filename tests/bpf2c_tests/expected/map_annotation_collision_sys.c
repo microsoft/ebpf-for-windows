@@ -160,6 +160,7 @@ _bpf2c_npi_client_detach_provider(_In_ void* client_binding_context)
 }
 
 #include "bpf2c.h"
+#include "ebpf_version.h"
 
 static void
 _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ size_t* size)
@@ -174,8 +175,8 @@ static map_entry_t _maps[] = {
      {0, 0},
      {
          1,                 // Current Version.
-         80,                // Struct size up to the last field.
-         80,                // Total struct size including padding.
+         84,                // Struct size up to the last field.
+         88,                // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_HASH, // Type of map.
@@ -187,13 +188,15 @@ static map_entry_t _maps[] = {
          13,                // Identifier for a map template.
          0,                 // The id of the inner map template.
      },
-     "hash_map"},
+     "hash_map",        // Map name.
+     0,                 // Map creation flags.
+    },
     {
      {0, 0},
      {
          1,                  // Current Version.
-         80,                 // Struct size up to the last field.
-         80,                 // Total struct size including padding.
+         84,                 // Struct size up to the last field.
+         88,                 // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
@@ -205,7 +208,9 @@ static map_entry_t _maps[] = {
          19,                 // Identifier for a map template.
          0,                  // The id of the inner map template.
      },
-     "array_map"},
+     "array_map",        // Map name.
+     0,                  // Map creation flags.
+    },
 };
 #pragma data_seg(pop)
 
@@ -254,7 +259,7 @@ map_annotation_collision(void* context, const program_runtime_context_t* runtime
 #line 59 "sample/undocked/map_annotation_collision.c"
     // Prologue.
 #line 59 "sample/undocked/map_annotation_collision.c"
-    uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
+    uint64_t stack[((UBPF_STACK_SIZE * 2) + 7) / 8];
 #line 59 "sample/undocked/map_annotation_collision.c"
     register uint64_t r0 = 0;
 #line 59 "sample/undocked/map_annotation_collision.c"
@@ -327,7 +332,7 @@ map_annotation_collision(void* context, const program_runtime_context_t* runtime
     READ_ONCE_32(r1, r10, OFFSET(-4));
     // EBPF_OP_CALL pc=12 dst=r0 src=r1 offset=0 imm=4
 #line 70 "sample/undocked/map_annotation_collision.c"
-    r0 = lookup_hash_value(r1, r2, r3, r4, r5, r10, context, runtime_context);
+    r0 = lookup_hash_value(r1, r2, r3, r4, r5, r10 - UBPF_STACK_SIZE, context, runtime_context);
     // EBPF_OP_MOV64_REG pc=13 dst=r1 src=r0 offset=0 imm=0
 #line 70 "sample/undocked/map_annotation_collision.c"
     r1 = r0;
@@ -417,9 +422,9 @@ _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ s
 static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
-    version->major = 1;
-    version->minor = 6;
-    version->revision = 0;
+    version->major = EBPF_VERSION_MAJOR;
+    version->minor = EBPF_VERSION_MINOR;
+    version->revision = EBPF_VERSION_REVISION;
 }
 
 static void

@@ -21,6 +21,21 @@
 typedef class _native_module_helper
 {
   public:
+    _native_module_helper() = default;
+
+    // Non-copyable: the destructor deletes the underlying .sys file, so two
+    // instances with the same _file_name and _delete_file_on_destruction = true
+    // would race / double-delete.
+    _native_module_helper(const _native_module_helper&) = delete;
+    _native_module_helper&
+    operator=(const _native_module_helper&) = delete;
+
+    // Movable: transfer the file ownership flag and clear it on the source so
+    // only the destination's destructor deletes the file.
+    _native_module_helper(_native_module_helper&& other) noexcept;
+    _native_module_helper&
+    operator=(_native_module_helper&& other) noexcept;
+
     void
     initialize(_In_z_ const char* file_name_prefix)
     {

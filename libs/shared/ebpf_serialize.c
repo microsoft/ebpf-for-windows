@@ -198,8 +198,13 @@ ebpf_deserialize_map_info_array(
         source = (ebpf_serialized_map_info_t*)current;
         destination = &out_map_info[map_index];
 
-        // Copy the map definition part.
-        destination->definition = source->definition;
+        // Copy the stable public definition.
+        destination->definition.type = source->definition.type;
+        destination->definition.key_size = source->definition.key_size;
+        destination->definition.value_size = source->definition.value_size;
+        destination->definition.max_entries = source->definition.max_entries;
+        destination->definition.inner_map_id = source->definition.inner_map_id;
+        destination->definition.pinning = source->definition.pinning;
 
         // Advance the input buffer current pointer.
         current += EBPF_OFFSET_OF(ebpf_serialized_map_info_t, pin_path);

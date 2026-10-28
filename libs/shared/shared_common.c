@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "bpf2c.h"
+#include "ebpf_native_structs.h"
 #include "ebpf_program_types.h"
 #include "ebpf_serialize.h"
 #include "ebpf_shared_framework.h"
@@ -107,8 +108,9 @@ size_t _ebpf_native_helper_function_entry_supported_size[] = {EBPF_NATIVE_HELPER
 #define EBPF_NATIVE_HELPER_FUNCTION_DATA_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(helper_function_data_t, tail_call)
 size_t _ebpf_native_helper_function_data_supported_size[] = {EBPF_NATIVE_HELPER_FUNCTION_DATA_SIZE_0};
 
-#define EBPF_NATIVE_MAP_ENTRY_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(map_entry_t, name)
-size_t _ebpf_native_map_entry_supported_size[] = {EBPF_NATIVE_MAP_ENTRY_SIZE_0};
+#define EBPF_NATIVE_MAP_ENTRY_SIZE_0 EBPF_NATIVE_MAP_ENTRY_LEGACY_SIZE
+#define EBPF_NATIVE_MAP_ENTRY_SIZE_1 EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_SIZE
+size_t _ebpf_native_map_entry_supported_size[] = {EBPF_NATIVE_MAP_ENTRY_SIZE_0, EBPF_NATIVE_MAP_ENTRY_SIZE_1};
 
 #define EBPF_NATIVE_MAP_DATA_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(map_data_t, address)
 #define EBPF_NATIVE_MAP_DATA_SIZE_1 EBPF_SIZE_INCLUDING_FIELD(map_data_t, array_data)
@@ -217,7 +219,7 @@ _ebpf_validate_extension_object_header(
 
     return (
         (header->version == _supported_ebpf_extension_version[object_type]) &&
-        (_ebpf_is_size_supported(supported_sizes, count, header->size)));
+        (_ebpf_is_size_supported(supported_sizes, count, header->size)) && (header->total_size >= header->size));
 }
 
 #ifndef GUID_NULL
@@ -390,6 +392,33 @@ ebpf_validate_object_header_native_map_entry(_In_ const ebpf_extension_header_t*
     return (
         (native_map_entry_header != NULL) &&
         _ebpf_validate_extension_object_header(EBPF_NATIVE_MAP_ENTRY, native_map_entry_header));
+}
+
+_Success_(return) bool ebpf_native_map_entry_to_current(_Out_opt_ map_entry_t* destination, _In_opt_ const void* source)
+{
+    const ebpf_native_map_entry_legacy_t* legacy_entry = (const ebpf_native_map_entry_legacy_t*)source;
+
+    if (destination == NULL || source == NULL || !ebpf_validate_object_header_native_map_entry(&legacy_entry->header)) {
+        return false;
+    }
+
+    memset(destination, 0, sizeof(*destination));
+    switch (legacy_entry->header.size) {
+    case EBPF_NATIVE_MAP_ENTRY_LEGACY_SIZE:
+        destination->zero_marker[0] = legacy_entry->zero_marker[0];
+        destination->zero_marker[1] = legacy_entry->zero_marker[1];
+        destination->definition = legacy_entry->definition;
+        destination->name = legacy_entry->name;
+        break;
+    case EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_SIZE:
+        memcpy(destination, source, legacy_entry->header.size);
+        break;
+    default:
+        return false;
+    }
+
+    destination->header = (ebpf_native_module_header_t)EBPF_NATIVE_MAP_ENTRY_HEADER;
+    return true;
 }
 
 bool
@@ -760,6 +789,47 @@ Exit:
     ebpf_program_data_free(program_data_copy);
 
     EBPF_RETURN_RESULT(result);
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_build_map_pin_path(
+    _Out_writes_(output_size) char* output,
+    size_t output_size,
+    _In_opt_z_ const char* pin_root_path,
+    _In_z_ const char* map_name)
+{
+    EBPF_LOG_ENTRY();
+    size_t root_length = pin_root_path != NULL ? strlen(pin_root_path) : 0;
+    size_t name_length = strlen(map_name);
+    bool append_separator =
+        pin_root_path != NULL &&
+        (root_length == 0 || (pin_root_path[root_length - 1] != '/' && pin_root_path[root_length - 1] != '\\'));
+    size_t name_offset = 0;
+    size_t required_size = 0;
+    ebpf_result_t result = ebpf_safe_size_t_add(root_length, append_separator ? 1 : 0, &name_offset);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
+    result = ebpf_safe_size_t_add(name_offset, name_length, &required_size);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
+    result = ebpf_safe_size_t_add(required_size, 1, &required_size);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
+    if (required_size > output_size) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+
+    if (root_length > 0) {
+        memcpy(output, pin_root_path, root_length);
+    }
+    if (append_separator) {
+        output[root_length] = '/';
+    }
+    memcpy(output + name_offset, map_name, name_length + 1);
+    EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
 ebpf_result_t

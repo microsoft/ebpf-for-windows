@@ -11,7 +11,6 @@ This script updates the WDK version in all relevant files. It queries the NuGet 
 - wdk.props
 - tools\bpf2c\templates\kernel_mode_bpf2c.vcxproj
 - tools\bpf2c\templates\user_mode_bpf2c.vcxproj
-- scripts\setup_build\packages.config
 
 The script creates a backup of each file before updating it. If an error occurs during the update, the script rolls back
 all changes.
@@ -178,68 +177,6 @@ back the changes.
     }
 }
 
-function Update-TemplateFile(
-    [string]$template_file_path,
-    [string]$output_file_path,
-    [string]$version_number
-) {
-<#
-.SYNOPSIS
-Updates the WDK version in a template file.
-
-.DESCRIPTION
-Updates the WDK version in a template file by replacing the existing version number placeholder with the specified
-version number.
-
-.PARAMETER template_file_path
-The path to the template file to update.
-
-.PARAMETER output_file_path
-The path to the output file to write the updated contents.
-
-.PARAMETER version_number
-The new version number to set in the file.
-
-.NOTES
-This function creates a backup of the output file before updating it. If an error occurs during the update, the function
-rolls back the changes.
-#>
-
-    if ([string]::IsNullOrWhiteSpace($template_file_path) -or [string]::IsNullOrWhiteSpace($output_file_path)) {
-        throw "File paths cannot be empty"
-    }
-    if (-not ($version_number -match '^\d+\.\d+\.\d+\.\d+$')) {
-        throw "Invalid version format: $version_number"
-    }
-    if (-not (Test-Path $template_file_path)) {
-        throw "Template file not found: $template_file_path"
-    }
-    try {
-        # Create backup if output file exists
-        $backup_path = $null
-        if (Test-Path $output_file_path) {
-            $backup_path = "$output_file_path.bak"
-            Copy-Item $output_file_path $backup_path -Force
-        }
-
-        # Read the contents of the file
-        $template_file_content = Get-Content $template_file_path
-        # Replace the version number in the file
-        $template_file_content = $template_file_content -replace "\$\(WDKVersion\)", $version_number
-        # Write the updated contents back to the file
-        Set-Content $output_file_path $template_file_content
-        # Print success message
-        Write-Output "Updated WDK version in $output_file_path to $version_number"
-    }
-    catch {
-        if ($backup_path -and (Test-Path $backup_path)) {
-            Copy-Item $backup_path $output_file_path -Force
-            Remove-Item $backup_path
-        }
-        throw "Failed to update template file: $_"
-    }
-}
-
 # List of files updated by the script used for rollback.
 $files_updated = @()
 
@@ -265,13 +202,6 @@ try {
         Update-VersionInVsFile $vs_file $wdk_version_number
         $files_updated += $vs_file
     }
-
-    # Generate the new packages.config file. The template pins two WDK versions: the $(WDKVersion)
-    # placeholder for the Visual Studio 2026 toolset, and a hardcoded entry for the last
-    # VS 2022-compatible WDK. Regenerating from the template therefore preserves both.
-    $packages_config_path = "$PSScriptRoot\..\scripts\setup_build\packages.config"
-    Update-TemplateFile -template_file_path "$PSScriptRoot\..\scripts\setup_build\packages.config.template" -output_file_path $packages_config_path -version_number $wdk_version_number
-    $files_updated += $packages_config_path
 
     # Print success message
     Write-Output "Updated WDK version in all files"

@@ -3,11 +3,14 @@
 
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 
+#include "bpf2c.h"
 #include "btf_test_shared.hpp"
 #include "catch_wrapper.hpp"
+#include "ebpf_native_structs.h"
 #include "export_program_info.cpp"
 
 #include <cstring>
+#include <memory>
 #include <string>
 
 static const GUID _btf_test_module_guid = {
@@ -251,4 +254,172 @@ TEST_CASE("validate_btf_resolved_function_provider_data", "[shared]")
 
     provider_data.btf_resolved_function_prototypes = invalid_prototypes;
     REQUIRE_FALSE(ebpf_validate_btf_resolved_function_provider_data(&provider_data));
+}
+
+TEST_CASE("native_map_entry_to_current", "[shared]")
+{
+    const size_t source_size = GENERATE(
+        EBPF_NATIVE_MAP_ENTRY_LEGACY_TOTAL_SIZE,
+        EBPF_NATIVE_MAP_ENTRY_LEGACY_TOTAL_SIZE + 1,
+        EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_SIZE,
+        EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_TOTAL_SIZE,
+        EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_TOTAL_SIZE + 1);
+    const bool is_legacy = source_size < EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_SIZE;
+    CAPTURE(source_size);
+
+    map_entry_t entry = {};
+    entry.zero_marker[0] = 1;
+    entry.zero_marker[1] = 2;
+    entry.header = EBPF_NATIVE_MAP_ENTRY_HEADER;
+    entry.header.size = is_legacy ? EBPF_NATIVE_MAP_ENTRY_LEGACY_SIZE : EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_SIZE;
+    entry.header.total_size = source_size;
+    entry.definition = {BPF_MAP_TYPE_HASH, 4, 8, 16, 0, LIBBPF_PIN_NONE, 1, 0};
+    entry.name = "test_map";
+    entry.map_flags = BPF_F_NO_MAX_ENTRIES;
+
+    SYSTEM_INFO system_info = {};
+    GetSystemInfo(&system_info);
+    auto release = [](void* address) { VirtualFree(address, 0, MEM_RELEASE); };
+    std::unique_ptr<void, decltype(release)> allocation(
+        VirtualAlloc(nullptr, 2 * static_cast<size_t>(system_info.dwPageSize), MEM_RESERVE | MEM_COMMIT, PAGE_NOACCESS),
+        release);
+    REQUIRE(allocation != nullptr);
+    DWORD old_protection = 0;
+    REQUIRE(VirtualProtect(allocation.get(), system_info.dwPageSize, PAGE_READWRITE, &old_protection));
+
+    // End the serialized entry at a guard page so any read beyond its stride faults.
+    auto source = static_cast<uint8_t*>(allocation.get()) + system_info.dwPageSize - source_size;
+    memcpy(source, &entry, entry.header.size);
+
+    map_entry_t destination = {};
+    destination.map_flags = UINT32_MAX;
+    REQUIRE(ebpf_native_map_entry_to_current(&destination, source));
+    REQUIRE(destination.zero_marker[0] == entry.zero_marker[0]);
+    REQUIRE(destination.zero_marker[1] == entry.zero_marker[1]);
+    REQUIRE(destination.header.version == EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION);
+    REQUIRE(destination.header.size == EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_SIZE);
+    REQUIRE(destination.header.total_size == EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_TOTAL_SIZE);
+    REQUIRE(memcmp(&destination.definition, &entry.definition, sizeof(entry.definition)) == 0);
+    REQUIRE(destination.name == entry.name);
+    REQUIRE(destination.map_flags == (is_legacy ? 0 : entry.map_flags));
+}
+
+TEST_CASE("native_map_entry_to_current_null_arguments", "[shared]")
+{
+    map_entry_t entry = {};
+    entry.header = EBPF_NATIVE_MAP_ENTRY_HEADER;
+    REQUIRE_FALSE(ebpf_native_map_entry_to_current(nullptr, &entry));
+    REQUIRE_FALSE(ebpf_native_map_entry_to_current(&entry, nullptr));
+    REQUIRE_FALSE(ebpf_native_map_entry_to_current(nullptr, nullptr));
+}
+
+TEST_CASE("validate_native_entry_header_total_size", "[shared]")
+{
+    // Native metadata arrays use total_size as their element stride, which must
+    // be at least the size of the supported ABI layout.
+
+    // Helper function entry.
+    {
+        ebpf_extension_header_t header = {
+            EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION,
+            EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION_SIZE,
+            EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE};
+
+        // Valid header should pass.
+        REQUIRE(ebpf_validate_object_header_native_helper_function_entry(&header));
+
+        // total_size == 0 should fail.
+        header.total_size = 0;
+        REQUIRE_FALSE(ebpf_validate_object_header_native_helper_function_entry(&header));
+
+        // total_size < size should fail.
+        header.total_size = header.size - 1;
+        REQUIRE_FALSE(ebpf_validate_object_header_native_helper_function_entry(&header));
+
+        header.total_size = EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE + 1;
+        REQUIRE(ebpf_validate_object_header_native_helper_function_entry(&header));
+    }
+
+    // Map entry.
+    {
+        ebpf_extension_header_t header = {
+            EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION,
+            EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_SIZE,
+            EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_TOTAL_SIZE};
+
+        REQUIRE(ebpf_validate_object_header_native_map_entry(&header));
+
+        header.total_size = 0;
+        REQUIRE_FALSE(ebpf_validate_object_header_native_map_entry(&header));
+
+        header.total_size = header.size - 1;
+        REQUIRE_FALSE(ebpf_validate_object_header_native_map_entry(&header));
+
+        header.total_size = EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_TOTAL_SIZE + 1;
+        REQUIRE(ebpf_validate_object_header_native_map_entry(&header));
+    }
+
+    // Program entry.
+    {
+        ebpf_extension_header_t header = {
+            EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION,
+            EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE,
+            EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_TOTAL_SIZE};
+
+        REQUIRE(ebpf_validate_object_header_native_program_entry(&header));
+
+        header.total_size = 0;
+        REQUIRE_FALSE(ebpf_validate_object_header_native_program_entry(&header));
+
+        header.total_size = header.size - 1;
+        REQUIRE_FALSE(ebpf_validate_object_header_native_program_entry(&header));
+
+        header.total_size = EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_TOTAL_SIZE + 1;
+        REQUIRE(ebpf_validate_object_header_native_program_entry(&header));
+
+        header.size = EBPF_SIZE_INCLUDING_FIELD(program_entry_t, program_info_hash_type);
+        header.total_size = header.size;
+        REQUIRE(ebpf_validate_object_header_native_program_entry(&header));
+
+        header.total_size++;
+        REQUIRE(ebpf_validate_object_header_native_program_entry(&header));
+    }
+
+    // Map initial values.
+    {
+        ebpf_extension_header_t header = {
+            EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION,
+            EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION_SIZE,
+            EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION_TOTAL_SIZE};
+
+        REQUIRE(ebpf_validate_object_header_native_map_initial_values(&header));
+
+        header.total_size = 0;
+        REQUIRE_FALSE(ebpf_validate_object_header_native_map_initial_values(&header));
+
+        header.total_size = header.size - 1;
+        REQUIRE_FALSE(ebpf_validate_object_header_native_map_initial_values(&header));
+
+        header.total_size = EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION_TOTAL_SIZE + 1;
+        REQUIRE(ebpf_validate_object_header_native_map_initial_values(&header));
+    }
+
+    // Global variable section info.
+    {
+        ebpf_extension_header_t header = {
+            EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION,
+            EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION_SIZE,
+            EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION_TOTAL_SIZE};
+
+        REQUIRE(ebpf_validate_object_header_native_global_variable_section_info(&header));
+
+        header.total_size = 0;
+        REQUIRE_FALSE(ebpf_validate_object_header_native_global_variable_section_info(&header));
+
+        header.total_size = header.size - 1;
+        REQUIRE_FALSE(ebpf_validate_object_header_native_global_variable_section_info(&header));
+
+        header.total_size = EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION_TOTAL_SIZE + 1;
+        REQUIRE(ebpf_validate_object_header_native_global_variable_section_info(&header));
+    }
 }

@@ -201,8 +201,47 @@ typedef enum _ebpf_sock_addr_verdict
 } ebpf_sock_addr_verdict_t;
 ```
 
-When multiple bind programs are attached, the verdicts are combined: if any program
-rejects, the bind is blocked.
+When multiple bind programs are attached, the verdicts are combined using a
+most-restrictive accumulation rule:
+
+- **Priority (highest wins)**: `REJECT` > `PROCEED_HARD` > `PROCEED_SOFT`
+- The accumulated verdict is the highest-priority value returned by any
+  attached program.
+- **Short-circuit on REJECT**: If any program returns `REJECT`, the provider
+  loop stops immediately — subsequent programs are not invoked.
+- If no programs are attached (or all are detached), the default verdict is
+  `PROCEED_SOFT` (permit).
+- An unknown/invalid return value from a program is treated as `REJECT`.
+
+The accumulated eBPF verdict decides whether the bind is permitted
+(`PROCEED_SOFT` or `PROCEED_HARD`) or denied (`REJECT`, surfaced to the caller as
+`WSAEACCES` / `EACCES`). Among eBPF programs the most-restrictive verdict wins, so
+a later program returning `REJECT` still denies a bind that a prior program
+permitted.
+
+### Multi-Attach Test Coverage
+
+The following scenarios are exercised in `tests/socket/socket_tests.cpp`
+(tagged `[bind_tests][multi_attach]`), across TCP/UDP and IPv4/IPv6:
+
+| Scenario | Programs | Expected Result |
+|---|---|---|
+| All soft permits | 2× `PROCEED_SOFT` | Bind allowed |
+| Second program rejects | `PROCEED_SOFT` + `REJECT` | Bind denied |
+| First program rejects (short-circuit) | `REJECT` + `PROCEED_SOFT` | Bind denied |
+| Soft + hard mix | `PROCEED_SOFT` + `PROCEED_HARD` | Bind allowed (hard priority) |
+| Soft permits blocked by WFP | 2× `PROCEED_SOFT` + WFP block | Bind denied |
+| Hard overrides WFP | 2 programs (one returns `PROCEED_HARD`) + WFP block | Bind allowed |
+| Hard permit first overrides WFP | `PROCEED_HARD` + `PROCEED_SOFT` + WFP block | Bind allowed |
+| Reject beats hard permit | `REJECT` + `PROCEED_HARD` | Bind denied |
+| Hard permit then reject | `PROCEED_HARD` + `REJECT` | Bind denied |
+| Detach middle program | 3 programs → detach REJECT middle | Bind recovers |
+| Detach first program | `REJECT` + 2× `PROCEED_SOFT` → detach first | Bind recovers |
+| Detach last program | 2× `PROCEED_SOFT` + `REJECT` → detach last | Bind recovers |
+| Detach and reattach | Detach + reattach with new verdict | Verdict updates |
+| Three soft permits | 3× `PROCEED_SOFT` | Bind allowed |
+| Third program rejects | 2× `PROCEED_SOFT` + `REJECT` | Bind denied |
+| Third program hard permit overrides WFP | 2× `PROCEED_SOFT` + `PROCEED_HARD` + WFP block | Bind allowed |
 
 ## Architecture
 
@@ -265,7 +304,7 @@ control-flow helpers:
 | `bpf_get_current_pid_tgid` | Returns the bind caller's PID/TID |
 | `bpf_get_current_logon_id` | Returns the logon session ID; returns `0` when the bind has no associated user token (e.g. some system binds) |
 | `bpf_is_current_admin` | Returns `1` if the caller has Administrator privileges, `0` otherwise; returns `-1` when no user token is available (e.g. some system binds) |
-| `bpf_get_socket_cookie` | Returns `0` at the bind layer — the WFP transport endpoint is not yet allocated at `ALE_RESOURCE_ASSIGNMENT`, so no cookie is available |
+| `bpf_get_socket_cookie` | Returns the ALE transport endpoint handle when WFP provides `FWPS_METADATA_FIELD_TRANSPORT_ENDPOINT_HANDLE` metadata at bind |
 | `bpf_sock_addr_get_network_context` | Returns interface metadata; `interface_type` and `tunnel_type` are available; `next_hop_interface_luid` and `sub_interface_index` are not available at the bind layer and are returned as their unspecified defaults |
 | `bpf_sock_addr_set_redirect_context` | **Not supported** at the bind layer — returns `-1` |
 

@@ -114,7 +114,11 @@ _base_socket::_base_socket(
     local_addr.ss_family = address_family;
     INETADDR_SET_PORT((PSOCKADDR)&local_addr, htons(port));
 
-    // Retry bind operation a few times if it fails with WSAENOBUFS (10055) error as it may be transient.
+    auto is_transient_error = [](int err) {
+        return err == WSAENOBUFS || err == WSAEADDRNOTAVAIL || err == WSAEADDRINUSE;
+    };
+
+    // Retry bind operation a few times if it fails with transient network errors (10055, 10049, 10048).
     for (int i = 0; i < 5; ++i) {
         error = bind(socket, (PSOCKADDR)&local_addr, sizeof(local_addr));
         if (error == 0) {
@@ -128,17 +132,21 @@ _base_socket::_base_socket(
         // If expecting a bind error, capture it and validate later.
         if (expected_bind_error != 0) {
             _bind_succeeded = false;
-            // Still retry on WSAENOBUFS as it may be transient.
-            if (_actual_bind_error != WSAENOBUFS) {
+            // Still retry on transient errors.
+            if (!is_transient_error(_actual_bind_error)) {
                 break;
             }
         } else {
-            // Default behavior: FAIL on non-transient errors.
-            if (_actual_bind_error != WSAENOBUFS) {
+            // Default behavior: Allow retries on transient network errors.
+            if (!is_transient_error(_actual_bind_error)) {
                 FAIL("Failed to bind socket with error: " << _actual_bind_error);
             }
         }
         Sleep(1000);
+    }
+
+    if (expected_bind_error == 0 && !_bind_succeeded) {
+        FAIL("Failed to bind socket after retries with error: " << _actual_bind_error);
     }
 
     // Validate expected bind error.
@@ -977,4 +985,36 @@ _stream_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t buf
         reinterpret_cast<unsigned long*>(&redirect_context_size),
         nullptr,
         nullptr);
+}
+
+void
+perform_socket_bind(uint16_t test_port, bool expect_success)
+{
+    WSAData data;
+    int error = WSAStartup(2, &data);
+    if (error != 0) {
+        FAIL("Unable to load Winsock: " << error);
+        return;
+    }
+
+    SOCKET _socket = INVALID_SOCKET;
+    _socket = WSASocket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP, nullptr, 0, 0);
+    REQUIRE(_socket != INVALID_SOCKET);
+    uint32_t ipv6_option = 0;
+    REQUIRE(
+        setsockopt(
+            _socket, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&ipv6_option), sizeof(unsigned long)) ==
+        0);
+    SOCKADDR_STORAGE sock_addr;
+    sock_addr.ss_family = AF_INET6;
+    INETADDR_SETANY((PSOCKADDR)&sock_addr);
+
+    ((PSOCKADDR_IN6)&sock_addr)->sin6_port = htons(test_port);
+    if (expect_success) {
+        REQUIRE(bind(_socket, (PSOCKADDR)&sock_addr, sizeof(sock_addr)) == 0);
+    } else {
+        REQUIRE(bind(_socket, (PSOCKADDR)&sock_addr, sizeof(sock_addr)) != 0);
+    }
+
+    WSACleanup();
 }

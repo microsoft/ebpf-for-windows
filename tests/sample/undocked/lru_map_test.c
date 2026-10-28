@@ -17,14 +17,14 @@ struct
 } lru_map SEC(".maps");
 
 SEC("sample_ext")
-bind_action_t
+int
 lru_lookup_program(sample_program_context_t* context)
 {
     // Look up keys in LRU map starting from context->process_id (start key).
     uint32_t key = context->uint32_data;
     uint64_t num_keys = (uint64_t)context->uint16_data;
     if (num_keys > 253) { // Limit for verification (254/255 hit loop count failure).
-        return (bind_action_t)-1;
+        return -1;
     }
     uint32_t found_count = 0;
     for (uint64_t i = 0; i < num_keys; i++) {
@@ -35,6 +35,6 @@ lru_lookup_program(sample_program_context_t* context)
         key++;
     }
 
-    // Return number of keys found (cast to bind_action_t).
-    return (bind_action_t)found_count;
+    // Return number of keys found.
+    return (int)found_count;
 }

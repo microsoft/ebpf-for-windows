@@ -35,6 +35,7 @@ get_metadata_table()
 }
 
 #include "bpf2c.h"
+#include "ebpf_version.h"
 
 static void
 _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ size_t* size)
@@ -81,7 +82,7 @@ func(void* context, const program_runtime_context_t* runtime_context)
 #line 18 "sample/undocked/btf_resolved.c"
     // Prologue.
 #line 18 "sample/undocked/btf_resolved.c"
-    uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
+    uint64_t stack[((UBPF_STACK_SIZE * 2) + 7) / 8];
 #line 18 "sample/undocked/btf_resolved.c"
     register uint64_t r0 = 0;
 #line 18 "sample/undocked/btf_resolved.c"
@@ -107,7 +108,7 @@ func(void* context, const program_runtime_context_t* runtime_context)
     READ_ONCE_32(r1, r1, OFFSET(16));
     // EBPF_OP_CALL pc=1 dst=r0 src=r1 offset=0 imm=1
 #line 18 "sample/undocked/btf_resolved.c"
-    r0 = btf_lookup(r1, r2, r3, r4, r5, r10, context, runtime_context);
+    r0 = btf_lookup(r1, r2, r3, r4, r5, r10 - UBPF_STACK_SIZE, context, runtime_context);
     // EBPF_OP_EXIT pc=2 dst=r0 src=r0 offset=0 imm=0
 #line 18 "sample/undocked/btf_resolved.c"
     return r0;
@@ -184,9 +185,9 @@ _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ s
 static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
-    version->major = 1;
-    version->minor = 6;
-    version->revision = 0;
+    version->major = EBPF_VERSION_MAJOR;
+    version->minor = EBPF_VERSION_MINOR;
+    version->revision = EBPF_VERSION_REVISION;
 }
 
 static void

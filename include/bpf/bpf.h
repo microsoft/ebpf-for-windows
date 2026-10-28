@@ -63,11 +63,15 @@ bpf_link_get_next_id(__u32 start_id, __u32* next_id);
 /**
  * @brief Create a new map.
  *
+ * HASH, PERCPU_HASH, HASH_OF_MAPS, and LPM_TRIE maps enforce max_entries by default.
+ * To retain their previous unbounded behavior, set opts->map_flags to BPF_F_NO_MAX_ENTRIES.
+ * This Windows-only flag removes the entry-count bound; see BPF_F_NO_MAX_ENTRIES for details.
+ *
  * @param[in] map_type Type of outer map to create.
  * @param[in] map_name Optionally, the name to use for the map.
  * @param[in] key_size Size in bytes of keys.
  * @param[in] value_size Size in bytes of values.
- * @param[in] max_entries Maximum number of entries in the map.
+ * @param[in] max_entries Entry-count limit, or initial bucket-count hint with BPF_F_NO_MAX_ENTRIES.
  * @param[in] opts Structure of options using which a map gets created.
  *
  * @returns A new file descriptor that refers to the map.

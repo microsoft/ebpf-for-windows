@@ -296,7 +296,7 @@ int redirect_and_basic_filter(struct bpf_sock_addr *ctx)
     // Example uses IPv4 (`connect4`). Adapt to IPv6 with the appropriate attach
     // type and IP fields (for example, `user_ip6`).
     // Block known malicious destinations immediately.
-    if (is_blacklisted_destination(ctx->user_ip4)) {
+    if (is_blocklisted_destination(ctx->user_ip4)) {
         return BPF_SOCK_ADDR_VERDICT_REJECT;
     }
 
@@ -348,7 +348,7 @@ int interface_aware_authorization(struct bpf_sock_addr *ctx)
 }
 ```
 
-> Note: The example functions `is_blacklisted_destination()`, `needs_proxy_inspection()`, `is_highly_trusted_destination()`, `is_sensitive_destination()`, `is_internal_network()`, `is_approved_interface()`, `is_restricted_sub_interface()`, `is_high_bandwidth_destination()`, and `validate_tunnel_route()` are illustrative placeholders and are not eBPF helper functions. Program authors should implement equivalent logic using appropriate data structures and policies (for example, BPF maps, configuration maps, and policy engines).
+> Note: The example functions `is_blocklisted_destination()`, `needs_proxy_inspection()`, `is_highly_trusted_destination()`, `is_sensitive_destination()`, `is_internal_network()`, `is_approved_interface()`, `is_restricted_sub_interface()`, `is_high_bandwidth_destination()`, and `validate_tunnel_route()` are illustrative placeholders and are not eBPF helper functions. Program authors should implement equivalent logic using appropriate data structures and policies (for example, BPF maps, configuration maps, and policy engines).
 
 ## See Also
 

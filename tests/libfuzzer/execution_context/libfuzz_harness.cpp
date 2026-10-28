@@ -205,8 +205,7 @@ typedef class _hook_provider
         : client_binding_context(nullptr), client_data(nullptr), client_dispatch_table(nullptr),
           client_registration_instance(nullptr), nmr_binding_handle(nullptr), nmr_provider_handle(nullptr)
     {
-        attach_provider_data.header.version = EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION;
-        attach_provider_data.header.size = EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_SIZE;
+        attach_provider_data.header = EBPF_ATTACH_PROVIDER_DATA_HEADER;
         attach_provider_data.supported_program_type = program_type;
         attach_provider_data.bpf_attach_type = BPF_ATTACH_TYPE_UNSPEC;
         this->attach_type = attach_type;

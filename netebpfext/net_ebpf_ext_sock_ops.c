@@ -60,8 +60,9 @@ const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_sock_ops_wf
 typedef struct _net_ebpf_extension_sock_ops_wfp_filter_context
 {
     net_ebpf_extension_wfp_filter_context_t base;
-    uint32_t compartment_id; ///< Compartment Id condition value for the filters (if any).
-    KSPIN_LOCK lock;         ///< Lock for synchronization.
+    uint32_t compartment_id;                          ///< Compartment Id condition value for the filters (if any).
+    KSPIN_LOCK lock;                                  ///< Lock for synchronization.
+    ebpf_ext_hook_rundown_t flow_established_rundown; ///< Rundown protection for flow context publication.
     _Guarded_by_(lock) net_ebpf_extension_sock_ops_wfp_flow_context_list_t
         flow_context_list; ///< List of flow contexts associated with WFP flows.
 } net_ebpf_extension_sock_ops_wfp_filter_context_t;
@@ -212,6 +213,7 @@ _net_ebpf_extension_sock_ops_create_filter_context(
     local_filter_context->compartment_id = compartment_id;
     local_filter_context->base.filter_ids_count = NET_EBPF_SOCK_OPS_FILTER_COUNT;
     KeInitializeSpinLock(&local_filter_context->lock);
+    ebpf_ext_init_rundown(&local_filter_context->flow_established_rundown);
     InitializeListHead(&local_filter_context->flow_context_list.list_head);
 
     // Add WFP filters at appropriate layers and set the hook NPI client as the filter's raw context.
@@ -285,6 +287,9 @@ _net_ebpf_extension_sock_ops_cleanup_filter_context(_Inout_opt_ net_ebpf_extensi
     }
 
     local_filter_context = (net_ebpf_extension_sock_ops_wfp_filter_context_t*)filter_context;
+
+    // Stop new flow contexts from being published and wait for in-progress publications to finish.
+    ebpf_ext_wait_for_rundown(&local_filter_context->flow_established_rundown);
 
     // Pop one entry at a time under the lock: the flow delete callback runs asynchronously and would unlink and
     // free entries from a detached list while it was being walked. Whichever of this loop and
@@ -485,6 +490,8 @@ net_ebpf_extension_sock_ops_flow_established_classify(
         net_ebpf_extension_get_hook_id_from_wfp_layer_id(incoming_fixed_values->layerId);
     KIRQL old_irql = PASSIVE_LEVEL;
     ebpf_result_t program_result;
+    bool flow_established_rundown_acquired = false;
+    bool flow_context_inserted = false;
 
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(classify_context);
@@ -506,6 +513,16 @@ net_ebpf_extension_sock_ops_flow_established_classify(
             STATUS_INVALID_PARAMETER);
         goto Exit;
     }
+
+    if (!ebpf_ext_enter_rundown(&filter_context->flow_established_rundown)) {
+        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+            "net_ebpf_extension_sock_ops_flow_established_classify - Flow establishment rundown detected.",
+            STATUS_INVALID_PARAMETER);
+        goto Exit;
+    }
+    flow_established_rundown_acquired = true;
 
     local_flow_context = (net_ebpf_extension_sock_ops_wfp_flow_context_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(net_ebpf_extension_sock_ops_wfp_flow_context_t), NET_EBPF_EXTENSION_POOL_TAG);
@@ -544,16 +561,10 @@ net_ebpf_extension_sock_ops_flow_established_classify(
     // Store the flow_id in the sock_ops context for the helper function.
     local_flow_context->context.flow_id = local_flow_context->parameters.flow_id;
 
-    status = FwpsFlowAssociateContext(
-        local_flow_context->parameters.flow_id,
-        local_flow_context->parameters.layer_id,
-        local_flow_context->parameters.callout_id,
-        (uint64_t)(uintptr_t)local_flow_context);
-    if (!NT_SUCCESS(status)) {
-        EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS, "FwpsFlowAssociateContext", status);
-        goto Exit;
-    }
-
+    // Invoke the sock_ops program with BPF_SOCK_OPS_ACTIVE_ESTABLISHED_CB or BPF_SOCK_OPS_PASSIVE_ESTABLISHED_CB before
+    // transferring the flow context to WFP. The program context is embedded in the flow context, which may be freed by
+    // the flow delete callback after FwpsFlowAssociateContext succeeds. Associating first could also allow
+    // BPF_SOCK_OPS_CONNECTION_DELETED_CB to run before the established operation.
     program_result = net_ebpf_extension_hook_invoke_programs(sock_ops_context, &filter_context->base, &result);
     if (program_result == EBPF_OBJECT_NOT_FOUND) {
         // No program is attached to this hook.
@@ -580,7 +591,21 @@ net_ebpf_extension_sock_ops_flow_established_classify(
     KeAcquireSpinLock(&filter_context->lock, &old_irql);
     InsertTailList(&filter_context->flow_context_list.list_head, &local_flow_context->link);
     filter_context->flow_context_list.count++;
+    flow_context_inserted = true;
     KeReleaseSpinLock(&filter_context->lock, old_irql);
+
+    status = FwpsFlowAssociateContext(
+        local_flow_context->parameters.flow_id,
+        local_flow_context->parameters.layer_id,
+        local_flow_context->parameters.callout_id,
+        (uint64_t)(uintptr_t)local_flow_context);
+    if (!NT_SUCCESS(status)) {
+        EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS, "FwpsFlowAssociateContext", status);
+        goto Exit;
+    }
+
+    // The flow context must remain valid after a successful association until WFP invokes the flow delete callback.
+    // WFP owns the flow context after a successful association. Do not access local_flow_context after this point.
     local_flow_context = NULL;
 
     classify_output->actionType = (result == 0) ? FWP_ACTION_PERMIT : FWP_ACTION_BLOCK;
@@ -590,10 +615,22 @@ net_ebpf_extension_sock_ops_flow_established_classify(
 
 Exit:
     if (local_flow_context != NULL) {
+        if (flow_context_inserted) {
+            KeAcquireSpinLock(&filter_context->lock, &old_irql);
+            RemoveEntryList(&local_flow_context->link);
+            InitializeListHead(&local_flow_context->link);
+            filter_context->flow_context_list.count--;
+            KeReleaseSpinLock(&filter_context->lock, old_irql);
+        }
+
         if (local_flow_context->filter_context != NULL) {
             DEREFERENCE_FILTER_CONTEXT(&local_flow_context->filter_context->base);
         }
         ExFreePool(local_flow_context);
+    }
+
+    if (flow_established_rundown_acquired) {
+        ebpf_ext_leave_rundown(&filter_context->flow_established_rundown);
     }
 }
 
@@ -621,8 +658,7 @@ net_ebpf_extension_sock_ops_flow_delete(uint16_t layer_id, uint32_t callout_id, 
     }
 
     // Unlink before the context_deleting check below: this function frees the flow context before it returns, so
-    // an early return would leave a freed entry linked into flow_context_list. The entry is already self-linked if
-    // the teardown drain removed it first.
+    // an early return would leave a freed entry linked into flow_context_list.
     KeAcquireSpinLock(&filter_context->lock, &irql);
     if (!IsListEmpty(&local_flow_context->link)) {
         RemoveEntryList(&local_flow_context->link);

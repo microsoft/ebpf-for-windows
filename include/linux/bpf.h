@@ -93,8 +93,8 @@ typedef struct
     enum bpf_map_type map_type;          ///< Type of map to create.
     uint32_t key_size;                   ///< Size in bytes of keys.
     uint32_t value_size;                 ///< Size in bytes of values.
-    uint32_t max_entries;                ///< Maximum number of entries in the map.
-    uint32_t map_flags;                  ///< Not supported, must be zero.
+    uint32_t max_entries;                ///< Entry-count limit, or initial bucket-count hint with BPF_F_NO_MAX_ENTRIES.
+    uint32_t map_flags;                  ///< Map flags. Supported: BPF_F_NO_MAX_ENTRIES.
     uint32_t inner_map_fd;               ///< File descriptor of inner map.
     uint32_t numa_node;                  ///< Not supported, must be zero.
     char map_name[SYS_BPF_OBJ_NAME_LEN]; ///< Map name.
@@ -220,7 +220,7 @@ typedef struct
     ebpf_id_t id;                    ///< Map ID.
     uint32_t key_size;               ///< Size in bytes of a map key.
     uint32_t value_size;             ///< Size in bytes of a map value.
-    uint32_t max_entries;            ///< Maximum number of entries allowed in the map.
+    uint32_t max_entries;            ///< Configured entry-count limit; not enforced with BPF_F_NO_MAX_ENTRIES.
     uint32_t map_flags;              ///< Map flags.
     char name[SYS_BPF_OBJ_NAME_LEN]; ///< Null-terminated map name.
 } sys_bpf_map_info_t;

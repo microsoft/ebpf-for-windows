@@ -160,6 +160,7 @@ _bpf2c_npi_client_detach_provider(_In_ void* client_binding_context)
 }
 
 #include "bpf2c.h"
+#include "ebpf_version.h"
 
 static void
 _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ size_t* size)
@@ -174,8 +175,8 @@ static map_entry_t _maps[] = {
      {0, 0},
      {
          1,                 // Current Version.
-         80,                // Struct size up to the last field.
-         80,                // Total struct size including padding.
+         84,                // Struct size up to the last field.
+         88,                // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_HASH, // Type of map.
@@ -187,13 +188,15 @@ static map_entry_t _maps[] = {
          21,                // Identifier for a map template.
          0,                 // The id of the inner map template.
      },
-     "policy_map"},
+     "policy_map",      // Map name.
+     0,                 // Map creation flags.
+    },
     {
      {0, 0},
      {
          1,                 // Current Version.
-         80,                // Struct size up to the last field.
-         80,                // Total struct size including padding.
+         84,                // Struct size up to the last field.
+         88,                // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_HASH, // Type of map.
@@ -205,25 +208,29 @@ static map_entry_t _maps[] = {
          30,                // Identifier for a map template.
          0,                 // The id of the inner map template.
      },
-     "audit_map"},
+     "audit_map",       // Map name.
+     0,                 // Map creation flags.
+    },
     {
      {0, 0},
      {
-         1,                 // Current Version.
-         80,                // Struct size up to the last field.
-         80,                // Total struct size including padding.
+         1,                           // Current Version.
+         84,                          // Struct size up to the last field.
+         88,                          // Total struct size including padding.
      },
      {
-         BPF_MAP_TYPE_HASH, // Type of map.
-         24,                // Size in bytes of a map key.
-         28,                // Size in bytes of a map value.
-         100,               // Maximum number of entries allowed in the map.
-         0,                 // Inner map index.
-         LIBBPF_PIN_NONE,   // Pinning type for the map.
-         32,                // Identifier for a map template.
-         0,                 // The id of the inner map template.
+         BPF_MAP_TYPE_HASH,           // Type of map.
+         24,                          // Size in bytes of a map key.
+         28,                          // Size in bytes of a map value.
+         100,                         // Maximum number of entries allowed in the map.
+         0,                           // Inner map index.
+         LIBBPF_PIN_NONE,             // Pinning type for the map.
+         32,                          // Identifier for a map template.
+         0,                           // The id of the inner map template.
      },
-     "authorization_policy_map"},
+     "authorization_policy_map",  // Map name.
+     0,                           // Map creation flags.
+    },
 };
 #pragma data_seg(pop)
 
@@ -1432,9 +1439,9 @@ _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ s
 static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
-    version->major = 1;
-    version->minor = 6;
-    version->revision = 0;
+    version->major = EBPF_VERSION_MAJOR;
+    version->minor = EBPF_VERSION_MINOR;
+    version->revision = EBPF_VERSION_REVISION;
 }
 
 static void

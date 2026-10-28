@@ -34,6 +34,7 @@ struct
     __type(key, uint32_t);
     __uint(max_entries, 1);
     __type(value, uint32_t);
+    __uint(map_flags, BPF_F_NO_MAX_ENTRIES);
     __uint(pinning, LIBBPF_PIN_BY_NAME);
     __array(values, inner_map);
 } outer_map SEC(".maps");

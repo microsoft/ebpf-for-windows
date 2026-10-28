@@ -1,19 +1,21 @@
 
 # EBPF for Windows Stream Inspection Hook
 
+> **Status:** This proposal predates the expanded
+> [flow classification hook requirements](FlowClassifyHookRequirements.md). The design below will be revised in
+> follow-up work to satisfy them; it currently describes the original stream-only design.
 
 ## Contents
 
 1. [Purpose](#purpose)
-2. [Requirements](#requirements)
-3. [Alternative - Using existing Linux hooks](#alternative---using-existing-linux-hooks)
-4. [eBPF Design](#ebpf-design)
+2. [Alternative - Using existing Linux hooks](#alternative---using-existing-linux-hooks)
+3. [eBPF Design](#ebpf-design)
     - [Program Type](#program-type)
     - [Hook](#hook)
-5. [Architecture](#architecture)
+4. [Architecture](#architecture)
     - [Hook Integration and Flow](#hook-integration-and-flow)
     - [Stream Hook Lifecycle](#stream-hook-lifecycle)
-6. [WFP Implementation Details](#wfp-implementation-details)
+5. [WFP Implementation Details](#wfp-implementation-details)
 
 
 ---
@@ -24,23 +26,6 @@ Support an eBPF interface to support inspecting TCP stream data and then based o
 
 The new hooks will support security and observability related solutions that require parsing TCP stream data
 without incurring overhead for flows that can be ignored.
-
-## Requirements
-
-- Hook that allows choosing whether to classify a newly established TCP connection at the stream layer.
-- Hook that receives each stream layer data segment in-order for both ingress and egress traffic.
-  - 3 possible actions:
-    - Allow the connection and stop being invoked for this flow.
-    - Block the connection (no further invocations for this flow).
-    - Allow the segment but keep getting invoked for further data segments (need more data to classify).
-- Hook that supports cleanup of flows that were closed while still being classified.
-- No eBPF programs should be invoked for segments on flows not needing stream layer classification.
-- Multiple programs can be attached to the stream layer classify hooks at once.
-  - Each program will be invoked in attached order until the flow is blocked or the program has allowed the flow.
-- After a flow is allowed/blocked, there should be no further invocations of that program for the flow.
-  - If the flow is blocked, no further stream-layer eBPF programs will be invoked for the flow.
-  - If the flow is allowed, other stream layer programs that are still classifying the flow will continue to be invoked.
-- We do not currently need any stream mutation support for these hooks -- only inline inspect/allow/block.
 
 ## Alternative - Using existing Linux hooks
 

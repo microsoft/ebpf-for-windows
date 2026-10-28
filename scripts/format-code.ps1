@@ -126,7 +126,7 @@ OPTIONS:
     -w, --whatif            Run the script without actually modifying the files
                             and display the diff of expected changes, if any.
     --exclude-dirs          Subdirectories to exclude. If unspecified, then
-                            ./external, ./packages and ./x64 are excluded.
+                            ./external, ./llvm, ./packages and ./x64 are excluded.
                             All subdirectories are relative to the current path.
     --include-exts          File extensions to include for formatting. If
                             unspecified, then *.h, *.hpp, *.c, *.cpp, *idl, and
@@ -163,7 +163,7 @@ To run only against a specified set of comma separated files in the current dire
 ##==============================================================================
 function get_find_args()
 {
-    $defaultExcludeDirs=@( ".git", "external", "packages", "x64" );
+    $defaultExcludeDirs=@( ".git", "external", "llvm", "packages", "x64" );
     $defaultIncludeExts=@( "h", "hpp", "c", "cpp", "idl", "acf" )
 
     $findargs='get-childitem -Recurse -Name "*" -Path "." '
@@ -249,17 +249,67 @@ function check_clang-format()
 {
     # Windows does not have a clang-format-7 executable
 
-
     $required_cfver='18.1.8'
+    $repositoryRoot=[System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
+    $candidates=@(
+        (Join-Path $repositoryRoot "llvm\bin\clang-format.exe"),
+        (Join-Path $repositoryRoot "packages\llvm.tools\clang-format.exe")
+    )
+
+    if ($env:ProgramFiles) {
+        $candidates += Join-Path $env:ProgramFiles "LLVM\bin\clang-format.exe"
+    }
+
+    if ($env:VSINSTALLDIR) {
+        $candidates += Join-Path $env:VSINSTALLDIR "VC\Tools\Llvm\bin\clang-format.exe"
+    }
+
+    $vswherePath="${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+    if (Test-Path -LiteralPath $vswherePath -PathType Leaf) {
+        $vsClangFormat=@(& $vswherePath -latest -products "*" -find "VC\Tools\Llvm\bin\clang-format.exe" 2> $null) |
+            Select-Object -First 1
+        if ($vsClangFormat) {
+            $candidates += $vsClangFormat
+        }
+    }
+
+    foreach ($candidate in ($candidates | Select-Object -Unique)) {
+        if ($candidate -and (Test-Path -LiteralPath $candidate -PathType Leaf)) {
+            $global:cf=$candidate
+            break
+        }
+    }
+
+    if (-not $global:cf) {
+        $pathClangFormat=Get-Command clang-format -CommandType Application -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+        if ($pathClangFormat) {
+            $global:cf=$pathClangFormat.Source
+        }
+    }
+
+    if (-not $global:cf) {
+        Write-Host "clang-format not installed"
+        return $false
+    }
 
     try {
-       $cfver=(( Invoke-Expression "clang-format --version" 2> $null ) -split " ")[2]
+        $versionOutput=@(& $global:cf --version 2> $null)
+        if ($LASTEXITCODE -ne 0) {
+            throw "clang-format exited with code $LASTEXITCODE"
+        }
+        $versionMatch=[regex]::Match(($versionOutput -join "`n"), '\bversion\s+(?<version>\d+\.\d+\.\d+)(?:\s|$)')
+        if (-not $versionMatch.Success) {
+            throw "Unable to parse clang-format version."
+        }
+        $cfver=$versionMatch.Groups["version"].Value
     }
     catch {
         Write-Host "clang-format not installed"
         return $false
     }
 
+    log_verbose "Using clang-format: $global:cf"
     $req_ver = $required_cfver -split '.'
     $cf_ver  = $cfver -split '.'
 
@@ -277,7 +327,6 @@ function check_clang-format()
         }
         # Equal just keeps going
     }
-    $global:cf="clang-format"
     return $true
 }
 
@@ -298,27 +347,27 @@ $filelist = get_file_list;
 $filecount=0
 $changecount=0
 
-$cfargs="$global:cf -style=file"
+$cfargs=@("-style=file")
 if ( !$whatif ) {
-    $cfargs="$cfargs -i"
+    $cfargs += "-i"
 }
 
 foreach ( $file in $filelist ) {
     $filecount+=1;
-    $cf="$cfargs $file"
+    $formatterArguments=@($cfargs + [string]$file)
 
 
     if ( $whatif ) {
         log_whatif "Formatting $file ..."
-        ( Invoke-Expression ($cf) ) | Compare-Object (get-content $file)
+        (& $global:cf @formatterArguments) | Compare-Object (get-content $file)
     }
     else {
         if ( $verbose ) {
             log_verbose "Formatting $file ..."
-            Invoke-Expression $cf
+            & $global:cf @formatterArguments
         }
         else {
-            Invoke-Expression $cf > $null
+            & $global:cf @formatterArguments > $null
         }
     }
     if ( $? ) {

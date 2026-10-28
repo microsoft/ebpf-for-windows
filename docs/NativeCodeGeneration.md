@@ -387,6 +387,10 @@ this directory) are used for test automation during CI/CD workflows.  If the ```
 changes for any reason, the source files in this directory may need to be regenerated as well. Not doing so could
 result in failures in the CI/CD test passes.
 
+Generated sources include [ebpf_version.h](../include/ebpf_version.h), which is shipped in the SDK NuGet package.
+The native module reports the SDK version used to compile the generated C code, rather than embedding the version
+of the bpf2c executable that generated it. Product version updates therefore do not require regenerating these files.
+
 Furthermore, the generated source files also contain references to local file paths in the embedded comments, which can
 differ for each person regenerating them.
 

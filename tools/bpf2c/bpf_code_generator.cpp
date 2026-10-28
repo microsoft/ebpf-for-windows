@@ -15,7 +15,6 @@
 #include "bpf_code_generator.h"
 #include "ebpf_api.h"
 #include "ebpf_store_helper.h"
-#include "ebpf_version.h"
 #pragma warning(push)
 #pragma warning(disable : 26495) // Always initialize a member variable
 #define ebpf_inst ebpf_inst_btf
@@ -28,6 +27,7 @@
 #pragma warning(pop)
 
 #include <windows.h>
+#include <algorithm>
 #include <cassert>
 #include <format>
 #include <iomanip>
@@ -620,6 +620,21 @@ vector_of(const ELFIO::section& sec)
     return {(T*)data, (T*)(data + size)};
 }
 
+static uint32_t
+get_uint_value_for_btf_map(
+    const libbtf::btf_type_data& btf_data, libbtf::btf_type_id id, const char* member_name, uint32_t default_value)
+{
+    auto map_struct = btf_data.get_kind_type<libbtf::btf_kind_struct>(id);
+    for (const auto& member : map_struct.members) {
+        if (member.name == member_name) {
+            // This should use value_from_BTF__uint from btf_parser.cpp, but it's static.
+            auto value_type_id = btf_data.dereference_pointer(member.type);
+            return btf_data.get_kind_type<libbtf::btf_kind_array>(value_type_id).count_of_elements;
+        }
+    }
+    return default_value;
+}
+
 // Parse a BTF maps section.
 void
 bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
@@ -696,20 +711,13 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
             map_definition.max_entries = map_descriptor.max_entries;
             map_definition.id = map_descriptor.original_fd;
             map_definition.inner_id = map_descriptor.inner_map_fd != -1 ? map_descriptor.inner_map_fd : 0;
+            map_definition.map_flags =
+                get_uint_value_for_btf_map(btf_data.value(), map_descriptor.original_fd, "map_flags", 0);
+            map_definition.pinning = static_cast<ebpf_pin_type_t>(
+                get_uint_value_for_btf_map(btf_data.value(), map_descriptor.original_fd, "pinning", LIBBPF_PIN_NONE));
 
-            // Get pinning data from the BTF data.
             auto map_struct = btf_data->get_kind_type<libbtf::btf_kind_struct>(map_descriptor.original_fd);
             for (const auto& member : map_struct.members) {
-                if (member.name == "pinning") {
-                    // This should use value_from_BTF__uint from btf_parser.cpp, but it's static.
-                    auto pinning_type_id = member.type;
-                    // Dereference the pointer type.
-                    pinning_type_id = btf_data->dereference_pointer(pinning_type_id);
-                    // Get the array type.
-                    auto pinning_type = btf_data->get_kind_type<libbtf::btf_kind_array>(pinning_type_id);
-                    // Value is encoded as the number of elements in the array.
-                    map_definition.pinning = static_cast<ebpf_pin_type_t>(pinning_type.count_of_elements);
-                }
                 // "values" is a variable length array of pointers to values.
                 // Compute the offset of the values array and resize the vector
                 // to hold the initial values.
@@ -1041,6 +1049,42 @@ bpf_code_generator::get_reachable_subprograms(const unsafe_string& entry_name) c
         }
     }
     return reachable;
+}
+
+size_t
+bpf_code_generator::get_maximum_call_depth(const unsafe_string& entry_name) const
+{
+    std::map<unsafe_string, size_t> maximum_depths;
+    std::set<unsafe_string> active_calls;
+    std::function<size_t(const unsafe_string&)> calculate_depth = [&](const unsafe_string& program_name) {
+        if (const auto it = maximum_depths.find(program_name); it != maximum_depths.end()) {
+            return it->second;
+        }
+        if (!active_calls.insert(program_name).second) {
+            throw bpf_code_generator_exception("recursive local function call: " + program_name.raw());
+        }
+
+        const auto program = programs.find(program_name);
+        if (program == programs.end()) {
+            throw bpf_code_generator_exception("local function call target not found: " + program_name.raw());
+        }
+
+        size_t maximum_depth = 1;
+        for (const auto& instruction : program->second.output_instructions) {
+            if (instruction.instruction.opcode == INST_OP_CALL && instruction.instruction.src == INST_CALL_LOCAL) {
+                if (instruction.relocation.empty()) {
+                    throw bpf_code_generator_exception("local function call target not found: " + program_name.raw());
+                }
+                maximum_depth = std::max(maximum_depth, 1 + calculate_depth(instruction.relocation));
+            }
+        }
+
+        active_calls.erase(program_name);
+        maximum_depths.emplace(program_name, maximum_depth);
+        return maximum_depth;
+    };
+
+    return calculate_depth(entry_name);
 }
 
 void
@@ -2006,7 +2050,9 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
                 output.lines.push_back(
                     get_register_name(0) + " = " + function_name + "(" + get_register_name(1) + ", " +
                     get_register_name(2) + ", " + get_register_name(3) + ", " + get_register_name(4) + ", " +
-                    get_register_name(5) + ", " + get_register_name(10) + ", context, runtime_context);");
+                    get_register_name(5) + ", " + get_register_name(10) +
+                    " - UBPF_STACK_SIZE, context, "
+                    "runtime_context);");
             } else if (inst.opcode == INST_OP_EXIT) {
                 output.lines.push_back("return " + get_register_name(0) + ";");
             } else {
@@ -2119,7 +2165,7 @@ void
 bpf_code_generator::emit_c_code(std::ostream& output_stream)
 {
     // Emit C file.
-    output_stream << "#include \"bpf2c.h\"" << std::endl << std::endl;
+    output_stream << "#include \"bpf2c.h\"" << std::endl << "#include \"ebpf_version.h\"" << std::endl << std::endl;
 
     // Emit hash data in its own section.
     if (elf_file_hash.has_value()) {
@@ -2193,6 +2239,8 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             width = std::max(width, std::log10((size_t)entry.definition.id));
 
             width = std::max(width, std::log10((size_t)entry.definition.inner_id));
+            width = std::max(width, (double)name.quoted().size());
+            width = std::max(width, std::log10((size_t)entry.definition.map_flags));
             auto stream_width = static_cast<std::streamsize>(std::floor(width) + 1);
             stream_width += 2; // Add space for the trailing ", "
 
@@ -2232,7 +2280,11 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                           << std::to_string(entry.definition.inner_id) + "," << "// The id of the inner map template."
                           << std::endl;
             output_stream << INDENT " }," << std::endl;
-            output_stream << INDENT " " << name.quoted() << "}," << std::endl;
+            output_stream << INDENT " " << std::left << std::setw(stream_width) << name.quoted() + "," << "// Map name."
+                          << std::endl;
+            output_stream << INDENT " " << std::left << std::setw(stream_width)
+                          << std::to_string(entry.definition.map_flags) + "," << "// Map creation flags." << std::endl;
+            output_stream << INDENT "}," << std::endl;
         }
         output_stream << "};" << std::endl;
         output_stream << "#pragma data_seg(pop)" << std::endl;
@@ -2582,7 +2634,11 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         program.get_register_name(1);
         program.get_register_name(10);
         output_stream << prolog_line_info << INDENT "// Prologue." << std::endl;
-        output_stream << prolog_line_info << INDENT "uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];" << std::endl;
+        const size_t maximum_call_depth = get_maximum_call_depth(program_name);
+        const std::string stack_size = maximum_call_depth == 1
+                                           ? "UBPF_STACK_SIZE"
+                                           : "(UBPF_STACK_SIZE * " + std::to_string(maximum_call_depth) + ")";
+        output_stream << prolog_line_info << INDENT "uint64_t stack[(" << stack_size << " + 7) / 8];" << std::endl;
         for (const auto& r : _register_names) {
             // Skip unused registers.
             if (program.referenced_registers.find(r) == program.referenced_registers.end()) {
@@ -2735,16 +2791,12 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
     output_stream << "}" << std::endl;
     output_stream << std::endl;
 
-    std::string version_major = std::to_string(EBPF_VERSION_MAJOR);
-    std::string version_minor = std::to_string(EBPF_VERSION_MINOR);
-    std::string version_revision = std::to_string(EBPF_VERSION_REVISION);
-
     output_stream << "static void" << std::endl
                   << "_get_version(_Out_ bpf2c_version_t* version)" << std::endl
                   << "{" << std::endl
-                  << INDENT "version->major = " << version_major << ";" << std::endl
-                  << INDENT "version->minor = " << version_minor << ";" << std::endl
-                  << INDENT "version->revision = " << version_revision << ";" << std::endl
+                  << INDENT "version->major = EBPF_VERSION_MAJOR;" << std::endl
+                  << INDENT "version->minor = EBPF_VERSION_MINOR;" << std::endl
+                  << INDENT "version->revision = EBPF_VERSION_REVISION;" << std::endl
                   << "}" << std::endl
                   << std::endl;
 

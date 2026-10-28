@@ -175,6 +175,55 @@ typedef enum _ebpf_sock_addr_verdict
 } ebpf_sock_addr_verdict_t;
 ```
 
+When multiple listen programs are attached with the same attach parameters, their verdicts are accumulated within
+that attachment scope using the following priority:
+
+`REJECT` > `PROCEED_HARD` > `PROCEED_SOFT`
+
+- The most restrictive verdict returned by any program becomes the effective verdict.
+- A `REJECT` verdict stops the program chain immediately.
+- Unknown verdict values and program invocation failures are treated as `REJECT`.
+- If no matching program is found, the effective verdict remains `PROCEED_SOFT`.
+- Address and port changes are not supported at the listen layer. The original context is restored after each
+  program so one program's changes are not visible to programs invoked later in the chain.
+
+The effective eBPF verdict is then translated to a WFP action:
+
+- `PROCEED_SOFT` permits the listen while retaining `FWPS_RIGHT_ACTION_WRITE`.
+- `PROCEED_HARD` permits the listen and clears `FWPS_RIGHT_ACTION_WRITE`.
+- `REJECT` blocks the listen and clears `FWPS_RIGHT_ACTION_WRITE`.
+
+These actions participate in normal WFP arbitration with filters in other sublayers. See
+[WFP Filter Arbitration](https://learn.microsoft.com/en-us/windows/win32/fwp/filter-arbitration) for details.
+Wildcard and compartment-specific attachment scopes use separate WFP filters, so their effective verdicts are also
+subject to WFP arbitration rather than being combined by the in-scope accumulator.
+
+### Multi-Attach Test Coverage
+
+The following scenarios are exercised for both TCP/IPv4 and TCP/IPv6:
+
+| Scenario | Expected result |
+|---|---|
+| Two soft permits | Listen allowed |
+| Soft permit followed by reject | Listen denied |
+| Reject followed by soft permit | Listen denied; chain stops on reject |
+| Soft permit followed by hard permit | Listen allowed |
+| Two soft permits with a WFP block | Listen denied |
+| Soft permit followed by hard permit with a WFP block | Listen allowed |
+| Hard permit followed by soft permit with a WFP block | Listen allowed |
+| Reject followed by hard permit | Listen denied |
+| Hard permit followed by reject | Listen denied |
+| Three soft permits | Listen allowed |
+| Third program rejects | Listen denied |
+| Third program hard-permits with a WFP block | Listen allowed |
+| Detach the first rejecting program | Listen recovers |
+| Detach the middle rejecting program | Listen recovers |
+| Detach the last rejecting program | Listen recovers |
+| Detach and reattach a program with a rejecting policy | Listen becomes denied |
+| Compartment-specific reject with wildcard permits, in both attachment orders | Listen denied |
+| Wildcard reject with compartment-specific soft permits, in both attachment orders | Expected to deny; currently `[!mayfail]` because wildcard rejection is not enforced across attachment scopes |
+| Wildcard reject with a compartment-specific hard permit | Expected to deny; currently `[!mayfail]` because wildcard rejection is not enforced across attachment scopes |
+
 ## Architecture
 
 ### Hook Integration and Flow
@@ -266,7 +315,7 @@ net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet6_listen_filter_parameter
 ### Security and Access Control
 
 - **Port Access Control**: Restrict which processes can listen on privileged ports (< 1024)
-- **Process Whitelisting**: Only allow authorized applications to open network listeners
+- **Process Allow-list**: Only allow authorized applications to open network listeners
 - **User-based Restrictions**: Prevent certain users from opening network services
 
 ### Monitoring and Auditing

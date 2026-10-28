@@ -11,9 +11,11 @@
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
 #include "ebpf_platform.h"
+#include "ebpf_protocol.h"
 #include "ebpf_tracelog.h"
 #include "helpers.h"
 #include "libbpf_test_jit.h"
+#include "mock.h"
 #include "platform.h"
 #include "program_helper.h"
 #include "spec/vm_isa.hpp"
@@ -23,6 +25,8 @@
 #include <crtdbg.h>
 #include <cstdlib>
 #include <fstream>
+#include <functional>
+#include <memory>
 #include <mutex>
 #include <stop_token>
 #include <thread>
@@ -52,6 +56,112 @@ static const std::set<bpf_attach_type> ebpf_core_attach_types = {
 
 std::vector<uint8_t>
 prepare_udp_packet(uint16_t udp_length, uint16_t ethernet_type);
+
+void
+test_libbpf_load_program(ebpf_execution_type_t execution_type)
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+    struct bpf_object* object;
+    int program_fd;
+    const char* file_name = execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o";
+#pragma warning(suppress : 4996) // deprecated
+    int result = bpf_prog_load_deprecated(file_name, BPF_PROG_TYPE_SAMPLE, &object, &program_fd);
+    REQUIRE(result == 0);
+    REQUIRE(object != nullptr);
+    REQUIRE(program_fd != ebpf_fd_invalid);
+
+    bpf_object__close(object);
+}
+
+DECLARE_JIT_TEST_CASES("libbpf load program", "[libbpf][deprecated]", test_libbpf_load_program);
+
+void
+test_libbpf_prog_test_run(ebpf_execution_type_t execution_type)
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+    struct bpf_object* object;
+    int program_fd;
+    const char* file_name = execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o";
+#pragma warning(suppress : 4996) // deprecated
+    int result = bpf_prog_load_deprecated(file_name, BPF_PROG_TYPE_SAMPLE, &object, &program_fd);
+    REQUIRE(result == 0);
+    REQUIRE(object != nullptr);
+    REQUIRE(program_fd != ebpf_fd_invalid);
+
+    bpf_test_run_opts opts = {};
+    sample_program_context_t in_ctx{0};
+    sample_program_context_t out_ctx{0};
+    opts.repeat = 10;
+    opts.ctx_in = reinterpret_cast<uint8_t*>(&in_ctx);
+    opts.ctx_size_in = sizeof(in_ctx);
+    opts.ctx_out = reinterpret_cast<uint8_t*>(&out_ctx);
+    opts.ctx_size_out = sizeof(out_ctx);
+
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+
+    REQUIRE(opts.duration > 0);
+
+    // Negative tests.
+
+    // Bad fd.
+    REQUIRE(bpf_prog_test_run_opts(nonexistent_fd, &opts) == -EINVAL);
+
+    // NULL context.
+    opts.ctx_in = nullptr;
+    opts.ctx_size_in = 0;
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EINVAL);
+
+    // Zero length context.
+    opts.ctx_in = reinterpret_cast<uint8_t*>(&in_ctx);
+    opts.ctx_size_in = 0;
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EINVAL);
+
+    // Context out is too small.
+    std::vector<uint8_t> small_context(1);
+    opts.ctx_in = reinterpret_cast<uint8_t*>(&in_ctx);
+    opts.ctx_size_in = sizeof(in_ctx);
+    opts.ctx_out = small_context.data();
+    opts.ctx_size_out = static_cast<uint32_t>(small_context.size());
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EOTHER);
+
+    // Context in, null context out.
+    opts.ctx_in = reinterpret_cast<uint8_t*>(&in_ctx);
+    opts.ctx_size_in = sizeof(in_ctx);
+    opts.ctx_out = nullptr;
+    opts.ctx_size_out = 0;
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EOTHER);
+
+    // No context in, Context out.
+    std::vector<uint8_t> context_out(1024);
+    opts.ctx_in = nullptr;
+    opts.ctx_size_in = 0;
+    opts.ctx_out = reinterpret_cast<uint8_t*>(&out_ctx);
+    opts.ctx_size_out = sizeof(out_ctx);
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == -EINVAL);
+    REQUIRE(opts.ctx_size_out == sizeof(sample_program_context_t));
+
+    // With bpf syscall.
+    bpf_attr attr = {};
+    attr.test.prog_fd = program_fd;
+    attr.test.repeat = 1000;
+    attr.test.data_in = reinterpret_cast<uint64_t>(nullptr);
+    attr.test.data_out = reinterpret_cast<uint64_t>(nullptr);
+    attr.test.data_size_in = 0;
+    attr.test.data_size_out = 0;
+    attr.test.ctx_in = reinterpret_cast<uint64_t>(&in_ctx);
+    attr.test.ctx_size_in = sizeof(in_ctx);
+    attr.test.ctx_out = reinterpret_cast<uint64_t>(&out_ctx);
+    attr.test.ctx_size_out = sizeof(out_ctx);
+    REQUIRE(bpf(BPF_PROG_TEST_RUN, &attr, sizeof(attr)) == 0);
+    REQUIRE(attr.test.ctx_size_out == sizeof(sample_program_context_t));
+    REQUIRE(attr.test.duration > 0);
+
+    bpf_object__close(object);
+}
+
+DECLARE_JIT_TEST_CASES("libbpf prog test run", "[libbpf][deprecated]", test_libbpf_prog_test_run);
 
 TEST_CASE("empty bpf_load_program", "[libbpf][deprecated]")
 {
@@ -235,27 +345,33 @@ DECLARE_ALL_TEST_CASES("libbpf program", "[libbpf]", _test_libbpf_program);
 static void
 _test_libbpf_subprogram(ebpf_execution_type_t execution_type)
 {
-    _test_helper_libbpf test_helper;
+    _test_helper_end_to_end test_helper;
     test_helper.initialize();
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
     const char* file_name =
-        (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_bpf2bpf_um.dll" : "bindmonitor_bpf2bpf.o");
+        (execution_type == EBPF_EXECUTION_NATIVE ? "bpf2bpf_loop_um.dll" : "bpf2bpf_loop.o");
     struct bpf_object* object = bpf_object__open(file_name);
     REQUIRE(object != nullptr);
 
     // Test bpf_object__find_program_by_name().
-    struct bpf_program* program = bpf_object__find_program_by_name(object, "BindMonitor_Callee");
-    REQUIRE(program == nullptr);
-    program = bpf_object__find_program_by_name(object, "BindMonitor_Caller");
-    REQUIRE(program != nullptr);
+    REQUIRE(bpf_object__find_program_by_name(object, "increment") == nullptr);
+    REQUIRE(bpf_object__find_program_by_name(object, "stack_frame_test") == nullptr);
+    struct bpf_program* loop_program = bpf_object__find_program_by_name(object, "caller_with_loop");
+    REQUIRE(loop_program != nullptr);
+    struct bpf_program* stack_program = bpf_object__find_program_by_name(object, "stack_frame_test_entry");
+    REQUIRE(stack_program != nullptr);
 
     // Test bpf_object__next_program().
-    REQUIRE(bpf_object__next_program(object, program) == nullptr);
-    REQUIRE(bpf_object__next_program(object, nullptr) == program);
+    REQUIRE(bpf_object__next_program(object, nullptr) == loop_program);
+    REQUIRE(bpf_object__next_program(object, loop_program) == stack_program);
+    REQUIRE(bpf_object__next_program(object, stack_program) == nullptr);
 
-    // Test bpf_object__next_program().
-    REQUIRE(bpf_object__prev_program(object, program) == nullptr);
-    REQUIRE(bpf_object__prev_program(object, nullptr) == program);
+    // Test bpf_object__prev_program().
+    REQUIRE(bpf_object__prev_program(object, nullptr) == stack_program);
+    REQUIRE(bpf_object__prev_program(object, stack_program) == loop_program);
+    REQUIRE(bpf_object__prev_program(object, loop_program) == nullptr);
 
     // Load the program.
     REQUIRE(bpf_object__load(object) == 0);
@@ -633,7 +749,7 @@ _test_libbpf_map(ebpf_execution_type_t execution_type)
     // NULL key.
     result = bpf_map_lookup_elem(map_fd, NULL, &value);
     REQUIRE(result < 0);
-    REQUIRE(errno == EINVAL);
+    REQUIRE(errno == EFAULT);
 
     // Invalid key.
     result = bpf_map_delete_elem(map_fd, &index);
@@ -653,7 +769,7 @@ _test_libbpf_map(ebpf_execution_type_t execution_type)
     // NULL key.
     result = bpf_map_update_elem(map_fd, NULL, &value, 0);
     REQUIRE(result < 0);
-    REQUIRE(errno == EINVAL);
+    REQUIRE(errno == EFAULT);
 
     // Invalid key.
     result = bpf_map_update_elem(map_fd, &index, &value, 0);
@@ -775,12 +891,237 @@ _test_libbpf_map(ebpf_execution_type_t execution_type)
     // next_key is NULL.
     result = bpf_map_get_next_key(map_fd, NULL, NULL);
     REQUIRE(result < 0);
-    REQUIRE(errno == EINVAL);
+    REQUIRE(errno == EFAULT);
 
     bpf_object__close(object);
 }
 
 DECLARE_ALL_TEST_CASES("libbpf map", "[libbpf]", _test_libbpf_map);
+
+static void
+_test_map_max_entries_program(
+    ebpf_execution_type_t execution_type,
+    bool no_max_entries,
+    const char* object_name_override = nullptr,
+    const char* program_name_override = nullptr,
+    const char* map_name_override = nullptr)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* object_name =
+        object_name_override ? object_name_override : (no_max_entries ? "map_no_max_entries" : "map_max_entries");
+    std::string file_name = std::string(object_name) + (execution_type == EBPF_EXECUTION_NATIVE ? "_um.dll" : ".o");
+    bpf_object_ptr object(bpf_object__open(file_name.c_str()));
+    REQUIRE(object != nullptr);
+    REQUIRE(ebpf_object_set_execution_type(object.get(), execution_type) == EBPF_SUCCESS);
+    REQUIRE(bpf_object__load(object.get()) == 0);
+
+    const char* program_name =
+        program_name_override ? program_name_override : (no_max_entries ? "map_no_max_entries" : "map_max_entries");
+    const char* map_name =
+        map_name_override ? map_name_override : (no_max_entries ? "no_max_entries_map" : "max_entries_map");
+    bpf_program* program = bpf_object__find_program_by_name(object.get(), program_name);
+    REQUIRE(program != nullptr);
+    bpf_map* map = bpf_object__find_map_by_name(object.get(), map_name);
+    REQUIRE(map != nullptr);
+    REQUIRE(bpf_map__max_entries(map) == 2);
+
+    int map_fd = bpf_map__fd(map);
+    REQUIRE(map_fd >= 0);
+    bpf_map_info map_info{};
+    uint32_t map_info_size = sizeof(map_info);
+    REQUIRE(bpf_obj_get_info_by_fd(map_fd, &map_info, &map_info_size) == 0);
+    REQUIRE(map_info.map_flags == (no_max_entries ? BPF_F_NO_MAX_ENTRIES : 0U));
+
+    // Fill the map from user mode.
+    for (uint32_t key = 0; key < bpf_map__max_entries(map); key++) {
+        uint64_t value = (uint64_t)key * key;
+        REQUIRE(bpf_map_update_elem(map_fd, &key, &value, BPF_ANY) == 0);
+    }
+
+    // A new key beyond max_entries succeeds only for the opted-in map.
+    uint32_t user_key = bpf_map__max_entries(map);
+    uint64_t user_value = (uint64_t)user_key * user_key;
+    int update_result = bpf_map_update_elem(map_fd, &user_key, &user_value, BPF_ANY);
+    REQUIRE((update_result == 0) == no_max_entries);
+    uint64_t found_value = 0;
+    int lookup_result = bpf_map_lookup_elem(map_fd, &user_key, &found_value);
+    REQUIRE((lookup_result == 0) == no_max_entries);
+    if (no_max_entries) {
+        REQUIRE(found_value == user_value);
+    }
+
+    bpf_link_ptr link(bpf_program__attach(program));
+    REQUIRE(link != nullptr);
+
+    // The BPF program attempts to insert another distinct key beyond max_entries.
+    INITIALIZE_SAMPLE_CONTEXT
+    uint32_t program_key = bpf_map__max_entries(map) + 1;
+    ctx->data_start = reinterpret_cast<uint8_t*>(&program_key);
+    ctx->data_end = ctx->data_start + sizeof(program_key);
+    uint32_t program_result = 0;
+    REQUIRE(hook.fire(ctx, &program_result) == EBPF_SUCCESS);
+    REQUIRE((program_result == 0) == no_max_entries);
+
+    found_value = 0;
+    lookup_result = bpf_map_lookup_elem(map_fd, &program_key, &found_value);
+    REQUIRE((lookup_result == 0) == no_max_entries);
+    if (no_max_entries) {
+        REQUIRE(found_value == (uint64_t)program_key * program_key);
+    }
+}
+
+static void
+_test_map_no_max_entries_program(ebpf_execution_type_t execution_type)
+{
+    _test_map_max_entries_program(execution_type, true);
+}
+
+static void
+_test_map_bounded_entries_program(ebpf_execution_type_t execution_type)
+{
+    _test_map_max_entries_program(execution_type, false);
+}
+
+static void
+_test_legacy_map_no_max_entries_program(ebpf_execution_type_t execution_type)
+{
+    _test_map_max_entries_program(execution_type, true, "map_no_max_entries_legacy");
+}
+
+static void
+_test_legacy_map_bounded_entries_program(ebpf_execution_type_t execution_type)
+{
+    _test_map_max_entries_program(execution_type, false, "map_max_entries_legacy");
+}
+
+static void
+_test_legacy_map_compat_program(ebpf_execution_type_t execution_type)
+{
+    _test_map_max_entries_program(execution_type, false, "map_legacy_compat", "map_legacy_compat", "legacy_map");
+}
+
+DECLARE_JIT_TEST_CASES(
+    "libbpf map no max entries program", "[libbpf][map_no_max_entries]", _test_map_no_max_entries_program);
+DECLARE_JIT_TEST_CASES(
+    "libbpf map bounded entries program", "[libbpf][map_no_max_entries]", _test_map_bounded_entries_program);
+DECLARE_JIT_TEST_CASES(
+    "libbpf legacy map no max entries program",
+    "[libbpf][map_no_max_entries][legacy_map]",
+    _test_legacy_map_no_max_entries_program);
+DECLARE_JIT_TEST_CASES(
+    "libbpf legacy map bounded entries program",
+    "[libbpf][map_no_max_entries][legacy_map]",
+    _test_legacy_map_bounded_entries_program);
+DECLARE_JIT_TEST_CASES(
+    "libbpf legacy 32-byte map definition",
+    "[libbpf][map_no_max_entries][legacy_map]",
+    _test_legacy_map_compat_program);
+
+TEST_CASE("libbpf map_no_max_entries_flag", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    // Create hash map with BPF_F_NO_MAX_ENTRIES - should allow inserts beyond max_entries.
+    uint32_t max_entries = 4;
+    bpf_map_create_opts opts = {sizeof(opts)};
+    opts.map_flags = BPF_F_NO_MAX_ENTRIES;
+    int map_fd = bpf_map_create(BPF_MAP_TYPE_HASH, "unbounded", sizeof(uint32_t), sizeof(uint64_t), max_entries, &opts);
+    REQUIRE(map_fd >= 0);
+
+    // Fill the map to max_entries.
+    for (uint32_t key = 0; key < max_entries; key++) {
+        uint64_t value = static_cast<uint64_t>(key) * key;
+        REQUIRE(bpf_map_update_elem(map_fd, &key, &value, 0) == 0);
+    }
+
+    // Insert beyond max_entries should succeed.
+    uint32_t extra_key = max_entries;
+    uint64_t extra_value = 0xdeadbeef;
+    REQUIRE(bpf_map_update_elem(map_fd, &extra_key, &extra_value, 0) == 0);
+
+    // Verify the extra entry.
+    uint64_t lookup_value = 0;
+    REQUIRE(bpf_map_lookup_elem(map_fd, &extra_key, &lookup_value) == 0);
+    REQUIRE(lookup_value == 0xdeadbeef);
+
+    Platform::_close(map_fd);
+
+    // Create hash map WITHOUT the flag - should enforce max_entries.
+    int bounded_fd =
+        bpf_map_create(BPF_MAP_TYPE_HASH, "bounded", sizeof(uint32_t), sizeof(uint64_t), max_entries, NULL);
+    REQUIRE(bounded_fd >= 0);
+
+    // Fill the map.
+    for (uint32_t key = 0; key < max_entries; key++) {
+        uint64_t value = static_cast<uint64_t>(key) * key;
+        REQUIRE(bpf_map_update_elem(bounded_fd, &key, &value, 0) == 0);
+    }
+
+    // Insert beyond max_entries should fail.
+    extra_key = max_entries;
+    REQUIRE(bpf_map_update_elem(bounded_fd, &extra_key, &extra_value, 0) < 0);
+
+    Platform::_close(bounded_fd);
+
+    // BPF_F_NO_MAX_ENTRIES on array maps should fail.
+    opts.map_flags = BPF_F_NO_MAX_ENTRIES;
+    int array_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "bad_array", sizeof(uint32_t), sizeof(uint64_t), 10, &opts);
+    REQUIRE(array_fd < 0);
+}
+
+TEST_CASE("libbpf inner map flag compatibility", "[libbpf][map_no_max_entries]")
+{
+    const auto outer_type = GENERATE(BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_HASH_OF_MAPS);
+    const uint32_t template_flags = GENERATE(0U, BPF_F_NO_MAX_ENTRIES);
+    CAPTURE(outer_type, template_flags);
+
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    bpf_map_create_opts inner_opts = {sizeof(inner_opts)};
+    inner_opts.map_flags = template_flags;
+    int template_fd = bpf_map_create(BPF_MAP_TYPE_HASH, "template", sizeof(uint32_t), sizeof(uint64_t), 2, &inner_opts);
+    REQUIRE(template_fd >= 0);
+
+    inner_opts.map_flags = template_flags ^ BPF_F_NO_MAX_ENTRIES;
+    int mismatched_fd =
+        bpf_map_create(BPF_MAP_TYPE_HASH, "mismatched", sizeof(uint32_t), sizeof(uint64_t), 2, &inner_opts);
+    REQUIRE(mismatched_fd >= 0);
+
+    bpf_map_create_opts outer_opts = {sizeof(outer_opts)};
+    outer_opts.inner_map_fd = template_fd;
+    int outer_fd = bpf_map_create(outer_type, "outer", sizeof(uint32_t), sizeof(uint32_t), 2, &outer_opts);
+    REQUIRE(outer_fd >= 0);
+
+    uint32_t key = 0;
+    REQUIRE(bpf_map_update_elem(outer_fd, &key, &mismatched_fd, BPF_ANY) < 0);
+    REQUIRE(bpf_map_update_elem(outer_fd, &key, &template_fd, BPF_ANY) == 0);
+
+    bpf_map_info template_info = {};
+    uint32_t info_size = sizeof(template_info);
+    REQUIRE(bpf_obj_get_info_by_fd(template_fd, &template_info, &info_size) == 0);
+    uint32_t inner_id = 0;
+    REQUIRE(bpf_map_lookup_elem(outer_fd, &key, &inner_id) == 0);
+    REQUIRE(inner_id == template_info.id);
+
+    // A rejected replacement must leave the previously inserted map unchanged.
+    REQUIRE(bpf_map_update_elem(outer_fd, &key, &mismatched_fd, BPF_EXIST) < 0);
+    REQUIRE(bpf_map_lookup_elem(outer_fd, &key, &inner_id) == 0);
+    REQUIRE(inner_id == template_info.id);
+    REQUIRE(bpf_map_update_elem(outer_fd, &key, &template_fd, BPF_EXIST) == 0);
+
+    Platform::_close(outer_fd);
+    Platform::_close(mismatched_fd);
+    Platform::_close(template_fd);
+}
 
 TEST_CASE("libbpf create queue", "[libbpf]")
 {
@@ -2481,9 +2822,10 @@ _ebpf_test_count_entries_map_in_map(int outer_map_fd)
     return entries_count;
 }
 
-static void
-_ebpf_test_map_in_map(ebpf_map_type_t type)
+// Verify libbpf can create and update arrays and hash tables of maps.
+TEMPLATE_TEST_CASE("simple map of maps", "[libbpf]", MAP_OF_MAPS_TYPES)
 {
+    constexpr ebpf_map_type_t type = TestType::value;
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
 
@@ -2517,7 +2859,7 @@ _ebpf_test_map_in_map(ebpf_map_type_t type)
 
     uint32_t count = _ebpf_test_count_entries_map_in_map(outer_map_fd);
     // Verify the number of elements in the outer map.
-    if (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+    if constexpr (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
         REQUIRE(count == 1);
     } else {
         // For ARRAY_OF_MAPS, the count is max_entries.
@@ -2527,7 +2869,7 @@ _ebpf_test_map_in_map(ebpf_map_type_t type)
     // Verify that we can read it back.
     REQUIRE(bpf_map_lookup_elem(outer_map_fd, &outer_key, &inner_map_id) == 0);
 
-    if (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+    if constexpr (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
         // Replacing an existing hash-of-maps entry must release the stored object pointer.
         REQUIRE(bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0) == 0);
         ebpf_id_t replaced_inner_map_id;
@@ -2548,7 +2890,7 @@ _ebpf_test_map_in_map(ebpf_map_type_t type)
     REQUIRE(error < 0);
     REQUIRE(errno == EBADF);
 
-    if (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+    if constexpr (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
         // Try deleting outer key that doesn't exist.
         error = bpf_map_delete_elem(outer_map_fd, &outer_key);
         REQUIRE(error < 0);
@@ -2570,7 +2912,7 @@ _ebpf_test_map_in_map(ebpf_map_type_t type)
     REQUIRE(error == 0);
 
     // Verify the number of elements in the outer map is 0.
-    if (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+    if constexpr (type == BPF_MAP_TYPE_HASH_OF_MAPS) {
         REQUIRE(_ebpf_test_count_entries_map_in_map(outer_map_fd) == 0);
     } else {
         // For ARRAY_OF_MAPS, the count is max_entries.
@@ -2585,12 +2927,6 @@ _ebpf_test_map_in_map(ebpf_map_type_t type)
     REQUIRE(bpf_map_get_next_id(0, &id) < 0);
     REQUIRE(errno == ENOENT);
 }
-
-// Verify libbpf can create and update arrays of maps.
-TEST_CASE("simple array of maps", "[libbpf]") { _ebpf_test_map_in_map(BPF_MAP_TYPE_ARRAY_OF_MAPS); }
-
-// Verify libbpf can create and update hash tables of maps.
-TEST_CASE("simple hash of maps", "[libbpf]") { _ebpf_test_map_in_map(BPF_MAP_TYPE_HASH_OF_MAPS); }
 
 // Verify an app can communicate with an eBPF program via an array of maps.
 static void
@@ -3504,7 +3840,7 @@ TEST_CASE("bpf_object__open_file with .dll", "[libbpf]")
     bpf_object__close(object);
 }
 
-TEST_CASE("bpf_object__load with .dll", "[libbpf]")
+TEST_CASE("bpf_object__load with _um.dll-native", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
     test_helper.initialize();
@@ -3552,6 +3888,385 @@ TEST_CASE("bpf_object__load with .dll", "[libbpf]")
     REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
     REQUIRE(bpf_link__destroy(link.release()) == 0);
     bpf_object__close(object);
+}
+
+static void
+_test_load_with_default_pin_root_path(ebpf_execution_type_t execution_type)
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    const char* file_name = execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_um.dll" : "map_reuse.o";
+    struct bpf_object_open_opts opts = {};
+    opts.pin_root_path = GENERATE(static_cast<const char*>(nullptr), "");
+    const bool null_options = GENERATE(false, true);
+    bpf_object_ptr object;
+    const bool from_memory = execution_type != EBPF_EXECUTION_NATIVE && GENERATE(false, true);
+    if (from_memory) {
+        std::ifstream file(file_name, std::ios::binary | std::ios::ate);
+        REQUIRE(file.is_open());
+        const auto file_size = file.tellg();
+        REQUIRE(file_size > 0);
+        std::vector<uint8_t> data(static_cast<size_t>(file_size));
+        file.seekg(0, std::ios::beg);
+        file.read(reinterpret_cast<char*>(data.data()), static_cast<std::streamsize>(data.size()));
+        REQUIRE(file.good());
+        object.reset(bpf_object__open_mem(data.data(), data.size(), null_options ? nullptr : &opts));
+    } else {
+        object.reset(bpf_object__open_file(file_name, null_options ? nullptr : &opts));
+    }
+    REQUIRE(object != nullptr);
+    REQUIRE(object->pin_root_path == nullptr);
+    REQUIRE(ebpf_object_set_execution_type(object.get(), execution_type) == EBPF_SUCCESS);
+
+    for (auto* map : object->maps) {
+        if (map->map_definition.pinning == LIBBPF_PIN_BY_NAME) {
+            REQUIRE(map->pin_path == std::string("/ebpf/global/") + map->name);
+        } else {
+            REQUIRE(map->pin_path == nullptr);
+        }
+    }
+    REQUIRE(bpf_object__load(object.get()) == 0);
+    for (auto* map : object->maps) {
+        if (map->map_definition.pinning != LIBBPF_PIN_BY_NAME) {
+            REQUIRE_FALSE(bpf_map__is_pinned(map));
+            continue;
+        }
+        REQUIRE(bpf_map__is_pinned(map));
+        fd_t pinned_fd = bpf_obj_get(map->name);
+        REQUIRE(pinned_fd > 0);
+        struct bpf_map_info pinned_info = {};
+        struct bpf_map_info map_info = {};
+        uint32_t info_size = sizeof(pinned_info);
+        REQUIRE(bpf_obj_get_info_by_fd(pinned_fd, &pinned_info, &info_size) == 0);
+        info_size = sizeof(map_info);
+        REQUIRE(bpf_obj_get_info_by_fd(bpf_map__fd(map), &map_info, &info_size) == 0);
+        REQUIRE(pinned_info.id == map_info.id);
+        Platform::_close(pinned_fd);
+        REQUIRE(bpf_map__unpin(map, nullptr) == 0);
+        REQUIRE(bpf_obj_get(map->pin_path) < 0);
+    }
+}
+
+DECLARE_ALL_TEST_CASES(
+    "bpf_object__load with default pin root path", "[libbpf]", _test_load_with_default_pin_root_path);
+
+static void
+_test_load_with_per_map_pin_path(ebpf_execution_type_t execution_type)
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    const char* file_name = execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o";
+    bpf_object_ptr object(bpf_object__open_file(file_name, nullptr));
+    REQUIRE(object != nullptr);
+    REQUIRE(ebpf_object_set_execution_type(object.get(), execution_type) == EBPF_SUCCESS);
+
+    struct bpf_map* map = bpf_object__find_map_by_name(object.get(), "test_map");
+    REQUIRE(map != nullptr);
+    const char* pin_path = "/custompath/test_map";
+    bool pinned_on_load = true;
+
+    SECTION("set before load") { REQUIRE(bpf_map__set_pin_path(map, pin_path) == 0); }
+    SECTION("clear before load")
+    {
+        REQUIRE(bpf_map__set_pin_path(map, pin_path) == 0);
+        REQUIRE(bpf_map__set_pin_path(map, nullptr) == 0);
+        pinned_on_load = false;
+    }
+    SECTION("set after load") { pinned_on_load = false; }
+
+    REQUIRE_FALSE(bpf_map__is_pinned(map));
+    REQUIRE(bpf_object__load(object.get()) == 0);
+    REQUIRE(bpf_map__is_pinned(map) == pinned_on_load);
+    if (!pinned_on_load) {
+        REQUIRE(bpf_obj_get(pin_path) < 0);
+        REQUIRE(bpf_map__set_pin_path(map, pin_path) == 0);
+        REQUIRE_FALSE(bpf_map__is_pinned(map));
+        REQUIRE(bpf_map__pin(map, nullptr) == 0);
+        REQUIRE(bpf_map__is_pinned(map));
+    }
+
+    fd_t pinned_fd = bpf_obj_get(pin_path);
+    REQUIRE(pinned_fd > 0);
+    struct bpf_map_info pinned_info = {};
+    struct bpf_map_info map_info = {};
+    uint32_t info_size = sizeof(pinned_info);
+    REQUIRE(bpf_obj_get_info_by_fd(pinned_fd, &pinned_info, &info_size) == 0);
+    info_size = sizeof(map_info);
+    REQUIRE(bpf_obj_get_info_by_fd(bpf_map__fd(map), &map_info, &info_size) == 0);
+    REQUIRE(pinned_info.id == map_info.id);
+    Platform::_close(pinned_fd);
+
+    REQUIRE(bpf_map__unpin(map, nullptr) == 0);
+    REQUIRE_FALSE(bpf_map__is_pinned(map));
+    REQUIRE(bpf_obj_get(pin_path) < 0);
+}
+
+DECLARE_ALL_TEST_CASES("bpf_object__load with per-map pin path", "[libbpf]", _test_load_with_per_map_pin_path);
+
+TEST_CASE("ebpf_build_map_pin_path", "[shared]")
+{
+    const struct
+    {
+        const char* root;
+        const char* expected_path;
+    } test_cases[] = {
+        {nullptr, "map"},
+        {"", "/map"},
+        {"/", "/map"},
+        {"\\", "\\map"},
+        {"/custom", "/custom/map"},
+        {"/custom/", "/custom/map"},
+        {"/custom\\", "/custom\\map"},
+    };
+    char output[EBPF_MAX_PIN_PATH_LENGTH];
+    for (const auto& test_case : test_cases) {
+        CAPTURE(test_case.root);
+        REQUIRE(ebpf_build_map_pin_path(output, sizeof(output), test_case.root, "map") == EBPF_SUCCESS);
+        REQUIRE(std::string(output) == test_case.expected_path);
+    }
+
+    std::string root(EBPF_MAX_PIN_PATH_LENGTH - sizeof("map"), 'a');
+    root.front() = '/';
+    root.back() = GENERATE('/', '\\');
+    REQUIRE(ebpf_build_map_pin_path(output, sizeof(output), root.c_str(), "map") == EBPF_SUCCESS);
+    REQUIRE(std::string(output) == root + "map");
+    REQUIRE(strlen(output) == EBPF_MAX_PIN_PATH_LENGTH - 1);
+    REQUIRE(ebpf_build_map_pin_path(output, sizeof(output) - 1, root.c_str(), "map") == EBPF_INVALID_ARGUMENT);
+    root.insert(1, 1, 'a');
+    REQUIRE(ebpf_build_map_pin_path(output, sizeof(output), root.c_str(), "map") == EBPF_INVALID_ARGUMENT);
+}
+
+TEST_CASE("bpf_map__set_pin_path with native automatic pin path", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    struct bpf_object_open_opts opts = {};
+    opts.pin_root_path = GENERATE("/ebpf/global", "/custompath/global");
+    bpf_object_ptr object(bpf_object__open_file("map_reuse_um.dll", &opts));
+    REQUIRE(object != nullptr);
+
+    struct bpf_map* map = bpf_object__find_map_by_name(object.get(), "port_map");
+    REQUIRE(map != nullptr);
+    const std::string original_path = map->pin_path;
+
+    SECTION("override")
+    {
+        REQUIRE(bpf_map__set_pin_path(map, "/unsupported/port_map") == -EINVAL);
+        REQUIRE(errno == EINVAL);
+        REQUIRE(map->pin_path == original_path);
+    }
+
+    SECTION("clear")
+    {
+        REQUIRE(bpf_map__set_pin_path(map, nullptr) == -EINVAL);
+        REQUIRE(errno == EINVAL);
+        REQUIRE(map->pin_path == original_path);
+    }
+
+    SECTION("same path") { REQUIRE(bpf_map__set_pin_path(map, original_path.c_str()) == 0); }
+    SECTION("canonical alias")
+    {
+        char canonical_path[EBPF_MAX_PIN_PATH_LENGTH];
+        REQUIRE(ebpf_canonicalize_path(canonical_path, sizeof(canonical_path), original_path.c_str()) == EBPF_SUCCESS);
+        REQUIRE(bpf_map__set_pin_path(map, canonical_path) == 0);
+    }
+
+    REQUIRE(bpf_object__load(object.get()) == 0);
+    REQUIRE(bpf_map__is_pinned(map));
+    REQUIRE(bpf_map__set_pin_path(map, "/unsupported/port_map") == -EINVAL);
+    REQUIRE(bpf_map__set_pin_path(map, nullptr) == -EINVAL);
+    REQUIRE(bpf_map__unpin(map, nullptr) == 0);
+
+    struct bpf_map* outer_map = bpf_object__find_map_by_name(object.get(), "outer_map");
+    REQUIRE(outer_map != nullptr);
+    REQUIRE(bpf_map__unpin(outer_map, nullptr) == 0);
+
+    REQUIRE(bpf_map__set_pin_path(map, "/explicit/port_map") == 0);
+    REQUIRE(bpf_map__pin(map, nullptr) == 0);
+    REQUIRE(bpf_map__set_pin_path(map, "/explicit/port_map") == 0);
+    REQUIRE(bpf_map__set_pin_path(map, nullptr) == -EINVAL);
+    REQUIRE(bpf_map__unpin(map, nullptr) == 0);
+    REQUIRE(bpf_map__set_pin_path(map, nullptr) == 0);
+}
+
+TEST_CASE("bpf_object__load with native per-map pin path rollback", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    bpf_object_ptr object(bpf_object__open_file("droppacket_um.dll", nullptr));
+    REQUIRE(object != nullptr);
+    REQUIRE(object->maps.size() == 2);
+    const char* pin_path = "/custompath/native_rollback";
+    REQUIRE(bpf_map__set_pin_path(object->maps[0], pin_path) == 0);
+    REQUIRE(bpf_map__set_pin_path(object->maps[1], pin_path) == 0);
+
+    SECTION("remove a newly created pin")
+    {
+        REQUIRE(bpf_object__load(object.get()) == -EEXIST);
+        REQUIRE(bpf_obj_get(pin_path) < 0);
+    }
+
+    SECTION("preserve a pre-existing pin")
+    {
+        fd_t existing_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+        REQUIRE(existing_fd > 0);
+        REQUIRE(bpf_obj_pin(existing_fd, pin_path) == 0);
+        REQUIRE(bpf_object__load(object.get()) == -EEXIST);
+
+        fd_t pinned_fd = bpf_obj_get(pin_path);
+        REQUIRE(pinned_fd > 0);
+        struct bpf_map_info existing_info = {};
+        struct bpf_map_info pinned_info = {};
+        uint32_t info_size = sizeof(existing_info);
+        REQUIRE(bpf_obj_get_info_by_fd(existing_fd, &existing_info, &info_size) == 0);
+        info_size = sizeof(pinned_info);
+        REQUIRE(bpf_obj_get_info_by_fd(pinned_fd, &pinned_info, &info_size) == 0);
+        REQUIRE(existing_info.id == pinned_info.id);
+        Platform::_close(pinned_fd);
+        REQUIRE(ebpf_object_unpin(pin_path) == EBPF_SUCCESS);
+        Platform::_close(existing_fd);
+    }
+}
+
+TEST_CASE("bpf_object__load with native automatic pin path rollback", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    const bool reuse_outer = GENERATE(false, true);
+    const bool reuse_port = GENERATE(false, true);
+    struct bpf_object_open_opts opts = {};
+    opts.pin_root_path = "/custompath/native_rollback";
+    bpf_object_ptr existing_object(bpf_object__open_file("map_reuse_um.dll", &opts));
+    REQUIRE(existing_object != nullptr);
+    REQUIRE(bpf_object__load(existing_object.get()) == 0);
+
+    struct bpf_map* existing_outer = bpf_object__find_map_by_name(existing_object.get(), "outer_map");
+    struct bpf_map* existing_port = bpf_object__find_map_by_name(existing_object.get(), "port_map");
+    REQUIRE(existing_outer != nullptr);
+    REQUIRE(existing_port != nullptr);
+    if (!reuse_outer) {
+        REQUIRE(bpf_map__unpin(existing_outer, nullptr) == 0);
+    }
+    if (!reuse_port) {
+        REQUIRE(bpf_map__unpin(existing_port, nullptr) == 0);
+    }
+
+    const char* explicit_path = "/custompath/native_rollback/explicit";
+    fd_t collision_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(collision_fd > 0);
+    REQUIRE(bpf_obj_pin(collision_fd, explicit_path) == 0);
+
+    bpf_object_ptr object(bpf_object__open_file("map_reuse_um.dll", &opts));
+    REQUIRE(object != nullptr);
+    struct bpf_map* inner = bpf_object__find_map_by_name(object.get(), "inner_map");
+    REQUIRE(inner != nullptr);
+    REQUIRE(bpf_map__set_pin_path(inner, explicit_path) == 0);
+
+    SECTION("per-map pinning fails") { REQUIRE(bpf_object__load(object.get()) == -EEXIST); }
+
+    SECTION("program initialization fails before map initialization")
+    {
+        std::vector<ebpf_program_t*> saved_programs;
+        saved_programs.swap(object->programs);
+        int result = bpf_object__load(object.get());
+        saved_programs.swap(object->programs);
+        REQUIRE(result == -EINVAL);
+    }
+
+    auto check_pin = [](const char* path, fd_t original_fd, bool expected, bool reused) {
+        fd_t pinned_fd = bpf_obj_get(path);
+        if (!expected) {
+            REQUIRE(pinned_fd < 0);
+            REQUIRE(errno == ENOENT);
+            return;
+        }
+        REQUIRE(pinned_fd > 0);
+        struct bpf_map_info original_info = {};
+        struct bpf_map_info pinned_info = {};
+        uint32_t info_size = sizeof(original_info);
+        REQUIRE(bpf_obj_get_info_by_fd(original_fd, &original_info, &info_size) == 0);
+        info_size = sizeof(pinned_info);
+        REQUIRE(bpf_obj_get_info_by_fd(pinned_fd, &pinned_info, &info_size) == 0);
+        if (reused) {
+            REQUIRE(pinned_info.id == original_info.id);
+        } else {
+            REQUIRE(pinned_info.id != original_info.id);
+        }
+        Platform::_close(pinned_fd);
+    };
+
+    check_pin(existing_outer->pin_path, bpf_map__fd(existing_outer), true, reuse_outer);
+    check_pin(existing_port->pin_path, bpf_map__fd(existing_port), true, reuse_port);
+    check_pin(explicit_path, collision_fd, true, true);
+
+    if (reuse_outer) {
+        REQUIRE(bpf_map__unpin(existing_outer, nullptr) == 0);
+    } else {
+        REQUIRE(ebpf_object_unpin(existing_outer->pin_path) == EBPF_SUCCESS);
+    }
+    if (reuse_port) {
+        REQUIRE(bpf_map__unpin(existing_port, nullptr) == 0);
+    } else {
+        REQUIRE(ebpf_object_unpin(existing_port->pin_path) == EBPF_SUCCESS);
+    }
+    REQUIRE(ebpf_object_unpin(explicit_path) == EBPF_SUCCESS);
+    Platform::_close(collision_fd);
+}
+
+TEST_CASE("native handle-only reply size limit", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    const size_t map_count = GENERATE(size_t{4}, size_t{5});
+    const size_t program_count = 8184;
+    const size_t reply_size = offsetof(ebpf_operation_load_native_programs_reply_t, data) +
+                              (map_count + program_count) * sizeof(ebpf_handle_t);
+    REQUIRE(reply_size + map_count + sizeof(uint32_t) > UINT16_MAX);
+
+    bool programs_requested = false;
+    auto original_handler = device_io_control_handler;
+    auto restore_handler = std::unique_ptr<void, std::function<void(void*)>>(
+        &original_handler, [&](void*) { device_io_control_handler.swap(original_handler); });
+    device_io_control_handler = [&](HANDLE device,
+                                    DWORD code,
+                                    void* input,
+                                    DWORD input_size,
+                                    void* output,
+                                    DWORD output_size,
+                                    DWORD* bytes_returned,
+                                    OVERLAPPED* overlapped) -> BOOL {
+        auto* request = static_cast<ebpf_operation_header_t*>(input);
+        if (input != nullptr && input_size >= sizeof(*request) && request->id == EBPF_OPERATION_LOAD_NATIVE_PROGRAMS) {
+            programs_requested = true;
+            REQUIRE(output_size == reply_size);
+            SetLastError(ERROR_ACCESS_DENIED);
+            return FALSE;
+        }
+        BOOL success =
+            original_handler(device, code, input, input_size, output, output_size, bytes_returned, overlapped);
+        if (success && input != nullptr && input_size >= sizeof(*request) &&
+            request->id == EBPF_OPERATION_LOAD_NATIVE_MODULE) {
+            auto* reply = static_cast<ebpf_operation_load_native_module_reply_t*>(output);
+            reply->count_of_maps = map_count;
+            reply->count_of_programs = program_count;
+        }
+        return success;
+    };
+
+    size_t maps = map_count;
+    size_t programs = program_count;
+    std::vector<fd_t> map_fds(maps);
+    std::vector<fd_t> program_fds(programs);
+    REQUIRE(
+        ebpf_object_load_native_by_fds("droppacket_um.dll", &maps, map_fds.data(), &programs, program_fds.data()) ==
+        (reply_size <= UINT16_MAX ? EBPF_ACCESS_DENIED : EBPF_ARITHMETIC_OVERFLOW));
+    REQUIRE(programs_requested == (reply_size <= UINT16_MAX));
 }
 
 // Test bpf() with the following command ids:
@@ -3785,9 +4500,9 @@ TEST_CASE("libbpf_num_possible_cpus", "[libbpf]")
     REQUIRE(cpu_count > 0);
 }
 
-void
-_test_nested_maps(bpf_map_type map_type)
+TEMPLATE_TEST_CASE("map_of_maps", "[libbpf]", MAP_OF_MAPS_TYPES)
 {
+    constexpr bpf_map_type map_type = TestType::value;
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
 
@@ -3828,9 +4543,6 @@ _test_nested_maps(bpf_map_type map_type)
     Platform::_close(inner_map_fd1);
     Platform::_close(outer_map_fd);
 }
-
-TEST_CASE("array_map_of_maps", "[libbpf]") { _test_nested_maps(BPF_MAP_TYPE_ARRAY_OF_MAPS); }
-TEST_CASE("hash_map_of_maps", "[libbpf]") { _test_nested_maps(BPF_MAP_TYPE_HASH_OF_MAPS); }
 
 TEST_CASE("libbpf_load_stress", "[libbpf]")
 {
@@ -4026,47 +4738,48 @@ TEST_CASE("sequential_tail_call", "[libbpf]")
     REQUIRE(opts.retval == -EBPF_NO_MORE_TAIL_CALLS);
 }
 
-bind_action_t
-emulate_bind_tail_call(std::function<ebpf_result_t(void*, uint32_t*)>& invoke, uint64_t pid, const char* appid)
+uint32_t
+emulate_sample_tail_call(std::function<ebpf_result_t(void*, uint32_t*)>& invoke)
 {
     uint32_t result;
-    std::string app_id = appid;
-    INITIALIZE_BIND_CONTEXT
-    ctx->app_id_start = (uint8_t*)app_id.c_str();
-    ctx->app_id_end = (uint8_t*)(app_id.c_str()) + app_id.size();
-    ctx->process_id = pid;
-    ctx->operation = BIND_OPERATION_BIND;
+    INITIALIZE_SAMPLE_CONTEXT
 
     REQUIRE(invoke(reinterpret_cast<void*>(ctx), &result) == EBPF_SUCCESS);
 
-    return static_cast<bind_action_t>(result);
+    return result;
 }
 
-TEST_CASE("bind_tail_call_max_exceed", "[libbpf]")
+TEST_CASE("sample_tail_call_max_exceed", "[libbpf]")
 {
     const int TOTAL_TAIL_CALL = MAX_TAIL_CALL_CNT + 2;
 
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
 
-    program_info_provider_t bind_program_info;
-    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
-    struct bpf_object* object = bpf_object__open("tail_call_max_exceed_um.dll");
+        const char* file_name =
+    #if defined(CONFIG_BPF_JIT_DISABLED)
+        "tail_call_max_exceed_um.dll";
+    #else
+        "tail_call_max_exceed.o";
+    #endif
+        struct bpf_object* object = bpf_object__open(file_name);
     REQUIRE(object != nullptr);
 
     // Load the BPF program.
     REQUIRE(bpf_object__load(object) == 0);
 
     // Get the map used to store the next program to call.
-    struct bpf_map* map = bpf_object__find_map_by_name(object, "bind_tail_call_map");
+    struct bpf_map* map = bpf_object__find_map_by_name(object, "sample_tail_call_map");
     REQUIRE(map != nullptr);
 
     // Get the fd of the prog array map.
     fd_t map_fd = bpf_map__fd(map);
     REQUIRE(map_fd > 0);
 
-    std::string first_program_name{"bind_test_caller"};
+    std::string first_program_name{"sample_test_caller"};
     struct bpf_program* first_program = bpf_object__find_program_by_name(object, first_program_name.c_str());
     REQUIRE(first_program != nullptr);
 
@@ -4086,21 +4799,20 @@ TEST_CASE("bind_tail_call_max_exceed", "[libbpf]")
     REQUIRE(bpf_map_get_next_key(map_fd, &key, &key) < 0);
     REQUIRE(errno == ENOENT);
 
-    // Create a hook for the bind program.
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    // Create a hook for the sample program.
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
 
     // Attach the hook.
     bpf_link_ptr link;
     uint32_t ifindex = 0;
-    uint64_t fake_pid = 123456;
     REQUIRE(hook.attach_link(first_program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
 
     std::function<ebpf_result_t(void*, uint32_t*)> invoke =
         [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t { return hook.fire(context, result); };
 
-    // Binding to the port should be denied because the number of tail call programs exceeds MAX_TAIL_CALL_COUNT.
-    REQUIRE(emulate_bind_tail_call(invoke, fake_pid, "fake_app_1") == BIND_DENY);
+    // The final program returns 1. A result of 2 proves execution stopped when the tail call limit was reached.
+    REQUIRE(emulate_sample_tail_call(invoke) == 2);
 
     hook.detach_and_close_link(&link);
 }
@@ -4465,10 +5177,10 @@ _utility_test(ebpf_execution_type_t execution_type)
     const char dll_name[] = "utility_um.dll";
     const char obj_name[] = "utility.o";
     test_helper.initialize();
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
     program_info_provider_t sample_program_info;
-    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? dll_name : obj_name);
     struct bpf_object* process_object = bpf_object__open(file_name);
@@ -4484,8 +5196,7 @@ _utility_test(ebpf_execution_type_t execution_type)
     REQUIRE(link != nullptr);
 
     // Now run the ebpf program.
-    INITIALIZE_BIND_CONTEXT
-    ctx->operation = BIND_OPERATION_BIND;
+    INITIALIZE_SAMPLE_CONTEXT
 
     uint32_t result;
     REQUIRE(hook.fire(ctx, &result) == EBPF_SUCCESS);
@@ -4508,10 +5219,10 @@ _strings_test(ebpf_execution_type_t execution_type)
     const char dll_name[] = "strings_um.dll";
     const char obj_name[] = "strings.o";
     test_helper.initialize();
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
     program_info_provider_t sample_program_info;
-    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? dll_name : obj_name);
     struct bpf_object* process_object = bpf_object__open(file_name);
@@ -4527,8 +5238,7 @@ _strings_test(ebpf_execution_type_t execution_type)
     REQUIRE(string_link != nullptr);
 
     // Now run the ebpf program.
-    INITIALIZE_BIND_CONTEXT
-    ctx->operation = BIND_OPERATION_BIND;
+    INITIALIZE_SAMPLE_CONTEXT
 
     uint32_t result{};
     REQUIRE(hook.fire(ctx, &result) == EBPF_SUCCESS);
@@ -4549,10 +5259,10 @@ _program_flags_test(ebpf_execution_type_t execution_type)
     const char dll_name[] = "utility_um.dll";
     const char obj_name[] = "utility.o";
     test_helper.initialize();
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
     program_info_provider_t sample_program_info;
-    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? dll_name : obj_name);
     struct bpf_object* process_object = bpf_object__open(file_name);
@@ -4591,8 +5301,7 @@ _program_flags_test(ebpf_execution_type_t execution_type)
     REQUIRE(client_data->prog_attach_flags == 0xCCCCCCCC);
 
     // Now run the ebpf program.
-    INITIALIZE_BIND_CONTEXT
-    ctx->operation = BIND_OPERATION_BIND;
+    INITIALIZE_SAMPLE_CONTEXT
 
     uint32_t result;
     REQUIRE(hook.fire(ctx, &result) == EBPF_SUCCESS);

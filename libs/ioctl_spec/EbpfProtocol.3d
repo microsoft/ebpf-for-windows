@@ -72,7 +72,7 @@
 // Byte offset of variable-length data from start of message.
 // Must match offsetof() on the C struct (x64 MSVC, default packing).
 #define CREATE_PROGRAM_DATA_OFFSET              28
-#define CREATE_MAP_DATA_OFFSET                  40
+#define CREATE_MAP_DATA_OFFSET                  48
 #define LOAD_CODE_CODE_OFFSET                   20
 #define FIND_ELEMENT_KEY_OFFSET                 17
 #define MAP_UPDATE_DATA_OFFSET                  20
@@ -127,16 +127,18 @@ where (MessageLength >= CREATE_PROGRAM_DATA_OFFSET)
   EBPF_OPERATION_CREATE_MAP (id=3)
 
   Body layout after 8-byte header:
-    ebpf_map_definition_in_memory_t    (24 bytes, offset 8)
-    ebpf_handle_t inner_map_handle     (8 bytes, offset 32)
-    uint8_t data[]                     (variable, offset 40 - map name)
+    ebpf_map_definition_in_memory_t    (28 bytes, offset 8)
+    4 bytes padding                    (offset 36)
+    ebpf_handle_t inner_map_handle     (8 bytes, offset 40)
+    uint8_t data[]                     (variable, offset 48 - map name)
 
   Validates: minimum length for fixed fields, variable data region.
 */
 typedef struct _CREATE_MAP_BODY (UINT16 MessageLength)
 where (MessageLength >= CREATE_MAP_DATA_OFFSET)
 {
-    UINT8 MapDefinition[24];
+    UINT8 MapDefinition[28];
+    UINT8 Padding[4];
     UINT8 InnerMapHandle[8];
     UINT8 Data[:byte-size (UINT32)(MessageLength - CREATE_MAP_DATA_OFFSET)];
 } CREATE_MAP_BODY;

@@ -1043,7 +1043,7 @@ function Get-CoreNetTools {
     } else {
         $duoNicPath = "$DownloadPath\corenet-ci-main\vm-setup\duonic\*"
     }
-    Move-Item -Path $duoNicPath -Destination $pwd -Force
+    Copy-Item -Path $duoNicPath -Destination $pwd -Recurse -Force -ErrorAction Stop
     # Procdump.
     Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\procdump64.exe" -Destination $pwd -Force
     # NotMyFault.
@@ -1089,6 +1089,10 @@ function Get-PSExec {
 .PARAMETER ArgumentList
     The arguments to pass to the script block.
 
+.PARAMETER SuppressInvocationErrorLogging
+    Suppresses outer exception diagnostics when the caller handles invocation failures.
+    Guest errors are always diagnosed, and all exceptions are rethrown. Defaults to false.
+
 .EXAMPLE
     Invoke-CommandOnVM -VMName "MyVM" -VMIsRemote $true -Credential $credential -ScriptBlock { Get-Process }
 #>
@@ -1098,13 +1102,45 @@ function Invoke-CommandOnVM {
         [Parameter(Mandatory = $false)][bool] $VMIsRemote = $false,
         [Parameter(Mandatory = $true)][PSCredential] $Credential,
         [Parameter(Mandatory = $true)][ScriptBlock] $ScriptBlock,
-        [Parameter(Mandatory = $false)][object[]] $ArgumentList = @()
+        [Parameter(Mandatory = $false)][object[]] $ArgumentList = @(),
+        [Parameter(Mandatory = $false)][bool] $SuppressInvocationErrorLogging = $false
     )
+    $CommandText = $ScriptBlock.ToString()
+    $CommandPreview = ($CommandText.Trim() -split '\r\n|\n|\r', 2)[0]
     Write-Log "Invoking command on VM: $VMName (IsRemote: $VMIsRemote)"
-    if ($VMIsRemote) {
-        Invoke-Command -ComputerName $VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -ErrorAction Stop
-    } else {
-        Invoke-Command -VMName $VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -ErrorAction Stop
+    Write-Log "ScriptBlock: '$CommandPreview'" -ForegroundColor Cyan
+    # Catch errors inside the guest to print their original location and stack before remoting
+    # serializes them for the host-side catch, which also handles connection failures.
+    # Script blocks passed through -ArgumentList arrive as strings, not executable script blocks.
+    # Pass the original command as text to the wrapper and recreate it inside the guest's try block.
+    $DiagnosticScriptBlock = {
+        param(
+            [string] $CommandText,
+            [object[]] $CommandArguments
+        )
+        try {
+            $CommandScriptBlock = [scriptblock]::Create($CommandText)
+            & $CommandScriptBlock @CommandArguments
+        } catch {
+            Write-Host "Error ID: $($_.FullyQualifiedErrorId)" -ForegroundColor Red
+            Write-Host "Location: $($_.InvocationInfo.PositionMessage)" -ForegroundColor Red
+            Write-Host "Guest stack: $($_.ScriptStackTrace)" -ForegroundColor Red
+            throw
+        }
+    }
+    $InvocationArguments = @($CommandText, $ArgumentList)
+    try {
+        if ($VMIsRemote) {
+            Invoke-Command -ComputerName $VMName -Credential $Credential -ScriptBlock $DiagnosticScriptBlock -ArgumentList $InvocationArguments -ErrorAction Stop
+        } else {
+            Invoke-Command -VMName $VMName -Credential $Credential -ScriptBlock $DiagnosticScriptBlock -ArgumentList $InvocationArguments -ErrorAction Stop
+        }
+    } catch {
+        if (-not $SuppressInvocationErrorLogging) {
+            Write-Log "Command invocation failed on VM ${VMName}: $($_.Exception.Message)" -ForegroundColor Red
+            Write-Log "Error ID: $($_.FullyQualifiedErrorId); Stack: $($_.ScriptStackTrace)" -ForegroundColor Red
+        }
+        throw
     }
 }
 

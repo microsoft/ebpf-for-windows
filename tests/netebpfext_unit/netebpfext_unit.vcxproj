@@ -108,6 +108,11 @@
     <ClCompile Include="netebpf_ext_helper.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ResourceCompile Update="$(SolutionDir)resource\ebpf_resource.rc">
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(SolutionDir)$(Platform)\NativeOnlyDebug;$(SolutionDir)$(Platform)\NativeOnlyRelease</AdditionalIncludeDirectories>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\external\Catch2\build\src\Catch2.vcxproj">
       <Project>{8d538cbe-01bf-4a2e-a98a-6c368fdf13d7}</Project>
     </ProjectReference>

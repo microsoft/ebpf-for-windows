@@ -344,7 +344,8 @@ function Invoke-CICDTests
 {
     param([parameter(Mandatory = $true)][bool] $VerboseLogs,
           [parameter(Mandatory = $true)][bool] $ExecuteSystemTests,
-          [parameter(Mandatory = $false)][bool] $ProofOfVerification = $false)
+          [parameter(Mandatory = $false)][bool] $ProofOfVerification = $false,
+          [parameter(Mandatory = $false)][bool] $ExecuteOnHost = $false)
 
 
     Push-Location $WorkingDirectory
@@ -361,11 +362,18 @@ function Invoke-CICDTests
         $ExcludeProofOfVerification = "~[proof_of_verification]"
     }
 
+    $SocketTestArguments = ""
+    if ($ExecuteOnHost -and $env:PROCESSOR_ARCHITECTURE -eq "ARM64") {
+        Write-Log "Excluding socket-cookie token-resolution tests: ARM64 CI hosts lack the required OS patch."
+        $SocketTestArguments = "~[socket_cookie_access_token_validation]"
+    }
+
     $TestList = @(
         (New-TestTuple -Test "api_test.exe" -Arguments "~`"load_native_program_invalid4`" ~pinned_map_enum $ExcludeProofOfVerification" -Timeout 600),
+        (New-TestTuple -Test "netebpfext_load_test.exe" -Timeout 600),
         (New-TestTuple -Test "bpftool_tests.exe" -Arguments "~`"prog load map_in_map`" ~`"prog prog run`""),
         (New-TestTuple -Test "sample_ext_app.exe"),
-        (New-TestTuple -Test "socket_tests.exe" -Timeout 1800)
+        (New-TestTuple -Test "socket_tests.exe" -Arguments $SocketTestArguments -Timeout 1800)
     )
 
     foreach ($Test in $TestList) {
@@ -374,7 +382,10 @@ function Invoke-CICDTests
 
     # Now run the system tests.
 
-    $SystemTestList = @((New-TestTuple -Test "api_test.exe" -Arguments "$ExcludeProofOfVerification"))
+    $SystemTestList = @(
+        (New-TestTuple -Test "api_test.exe" -Arguments "$ExcludeProofOfVerification"),
+        (New-TestTuple -Test "netebpfext_load_test.exe")
+    )
     if ($ExecuteSystemTests) {
         foreach ($Test in $SystemTestList) {
             $TestCommand = "PsExec64.exe"
@@ -503,12 +514,11 @@ function Invoke-CICDStressTests
         return
     }
 
-    Write-Log "Executing eBPF kernel mode multi-threaded stress tests (restart extension:$RestartExtension)."
+    Write-Log "Executing eBPF core and netebpfext kernel mode multi-threaded stress tests (restart extension:$RestartExtension)."
 
     $LASTEXITCODE = 0
 
     $TestHangTimeout = 120*60 # 120 minutes hang timeout.
-    $TestCommand = ".\ebpf_stress_tests_km.exe"
     $TestArguments = " "
     if ($RestartExtension -eq $false) {
         $TestArguments = "-td=5"
@@ -516,7 +526,10 @@ function Invoke-CICDStressTests
         $TestArguments = "-td=5 -er=1"
     }
 
-    Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -TracingProfileName "EbpfForWindowsProvider"
+    $TestCommands = @(".\ebpf_stress_tests_km.exe", ".\net_ebpf_stress_tests_km.exe")
+    foreach ($TestCommand in $TestCommands) {
+        Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -TracingProfileName "EbpfForWindowsProvider"
+    }
 
     Pop-Location
 }

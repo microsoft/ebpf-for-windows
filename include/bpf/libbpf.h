@@ -134,11 +134,14 @@ __u32
 bpf_map__key_size(const struct bpf_map* map);
 
 /**
- * @brief Get the maximum number of entries allowed in a given map.
+ * @brief Get the configured max_entries value for a given map.
+ *
+ * For maps created with BPF_F_NO_MAX_ENTRIES, this is an initial bucket-count hint, not an enforced
+ * entry-count limit. It does not report the current number of entries.
  *
  * @param[in] map Map to check.
  *
- * @returns The maximum number of entries allowed.
+ * @returns The configured max_entries value.
  */
 __u32
 bpf_map__max_entries(const struct bpf_map* map);

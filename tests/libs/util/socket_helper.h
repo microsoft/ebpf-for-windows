@@ -482,3 +482,11 @@ typedef class _wsa_helper
   private:
     int startup_result;
 } wsa_helper_t;
+
+/**
+ * @brief Perform a UDP IPv6 socket bind on the given port.
+ * @param[in] test_port Port to bind.
+ * @param[in] expect_success Whether the bind is expected to succeed.
+ */
+void
+perform_socket_bind(uint16_t test_port, bool expect_success);
