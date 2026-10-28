@@ -39,8 +39,8 @@ An **command line install/uninstall** is also supported, through the direct use 
 
 * For a new installation, an existing `eBPFCore` registration blocks installation unless `FORCE=1` is supplied.
   Forced installation preserves the original eBPF stack for restoration on final uninstall.
-  `INSTALLFOLDER` must support NTFS hard links on the same volume as Windows, and uninstall must run as
-  the user whose HKCU store was backed up. See [MSI forced installation and restoration](MsiForcedInstallation.md)
+  `INSTALLFOLDER` must support NTFS hard links on the same volume as Windows.
+  See [MSI forced installation and restoration](MsiForcedInstallation.md)
   for requirements, backup files, rollback behavior, and execution flows.
 
     ```bash
