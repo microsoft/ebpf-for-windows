@@ -41,6 +41,47 @@ version **C**. The original backup must remain **A**, while this attempt's rollb
 preserve **B**. If C fails, restore **B**; on final uninstall of a successfully installed version,
 restore **A**. A single overwritten backup cannot serve both purposes.
 
+### Requirements and recovery details
+
+New installations are rejected if NetEbpfExt's `ImagePath` is detected without an eBPFCore `ImagePath`,
+even with `FORCE=1`. Maintenance and uninstall remain allowed.
+
+Forced replacement uses NTFS hard links for six binaries under `System32` and `System32\drivers`,
+and updates service registrations to those canonical Windows paths. `INSTALLFOLDER` must be on the
+same volume as Windows and support hard links. Missing canonical binaries, failure to stop a service,
+or failure to stage replacement links aborts replacement before any canonical link is changed.
+
+The standard MSI service-stop action is skipped for forced stack replacement so the custom chain can
+capture running states before stopping services. Normal installation, maintenance, and uninstall
+retain standard service stopping. The installer temporarily grants access to protected originals and
+restores their ACLs through rollback links; distinct replacement files retain their MSI-installed ACLs.
+
+During installation rollback, stop actions precede driver configuration recovery or deletion of
+MSI-created registrations. Full service recovery follows binary and store recovery. Final uninstall
+stops NetEbpfExt before eBPFCore, restores pre-existing services, and removes MSI-created services.
+An uninstall failure attempts to recover the pre-uninstall state.
+
+### Backup filenames
+
+Service and store metadata reside under `%ProgramData%\eBPF-for-Windows\MsiBackup`.
+In the table, `<scope>` is `hklm` or `hkcu`, and `<service>` is eBPFCore, NetEbpfExt, or eBPFSvc.
+
+| State | Metadata | Registry export |
+|---|---|---|
+| Original store | `ebpf-store-<scope>.json` | `ebpf-store-<scope>.reg` |
+| Install-attempt store rollback | `ebpf-store-<scope>.rollback.json` | `ebpf-store-<scope>.rollback.reg` |
+| Original services | `ebpf-services.original.json` | `<service>.original.reg` |
+| Install-attempt service rollback | `ebpf-services.rollback.json` | `<service>.rollback.reg` |
+
+Registry exports are created only for keys that existed; metadata records absent keys.
+Legacy store `.pending` metadata and service `ebpf-services.pending.json` / `ebpf-services.json`
+remain supported for recovery and restoration. Conflicting legacy and current metadata names are rejected.
+
+Binary links are beside the canonical Windows files: `.ebpf-msi-new` stages replacement,
+`.ebpf-msi-rollback` preserves pre-attempt state, and `.ebpf-msi-backup` preserves original state.
+They are hard links to binaries, not JSON or registry exports. A partial set of the six original
+binary backup links is rejected rather than restored incompletely.
+
 ## 1. Install execution flow
 
 This chart follows the successful **new-install** path, using the current compiled MSI's execution
