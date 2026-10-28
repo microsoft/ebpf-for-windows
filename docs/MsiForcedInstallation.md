@@ -1,13 +1,9 @@
 # MSI forced installation and restoration
 
-These charts describe the execution flow authored in `installer\Product.wxs`.
-
 ## MSI behavior
 
 For a new installation, if the registry search detects an existing eBPFCore service `ImagePath`,
-the MSI stops unless `FORCE=1` is supplied. This checks service registration, not whether the driver
-file exists or is running. With no existing core, ordinary installation does not use the forced
-backup/hard-link path.
+the MSI stops unless `FORCE=1` is supplied.
 
 With `FORCE=1` and an existing eBPFCore registration, the MSI:
 
@@ -24,7 +20,7 @@ registry stores; the distinction between these is explained below.
 On final uninstall, the saved original service state, binary hard links, and registry stores are used
 to restore the managed eBPF stack to its pre-MSI state. Original-state restoration and backup deletion
 are skipped when an older MSI is removed as part of a major upgrade, so the newer version can retain
-those backups. HKCU restoration currently requires uninstall to run as the user whose store was backed up.
+those backups.
 
 ### Why original backups and rollback files are separate
 
@@ -56,11 +52,6 @@ capture running states before stopping services. Normal installation, maintenanc
 retain standard service stopping. The installer temporarily grants access to protected originals and
 restores their ACLs through rollback links; distinct replacement files retain their MSI-installed ACLs.
 
-During installation rollback, stop actions precede driver configuration recovery or deletion of
-MSI-created registrations. Full service recovery follows binary and store recovery. Final uninstall
-stops NetEbpfExt before eBPFCore, restores pre-existing services, and removes MSI-created services.
-An uninstall failure attempts to recover the pre-uninstall state.
-
 ### Backup filenames
 
 Service and store metadata reside under `%ProgramData%\eBPF-for-Windows\MsiBackup`.
@@ -74,8 +65,6 @@ In the table, `<scope>` is `hklm` or `hkcu`, and `<service>` is eBPFCore, NetEbp
 | Install-attempt service rollback | `ebpf-services.rollback.json` | `<service>.rollback.reg` |
 
 Registry exports are created only for keys that existed; metadata records absent keys.
-Legacy store `.pending` metadata and service `ebpf-services.pending.json` / `ebpf-services.json`
-remain supported for recovery and restoration. Conflicting legacy and current metadata names are rejected.
 
 Binary links are beside the canonical Windows files: `.ebpf-msi-new` stages replacement,
 `.ebpf-msi-rollback` preserves pre-attempt state, and `.ebpf-msi-backup` preserves original state.
@@ -226,10 +215,6 @@ flowchart TD
     Finished --> Query["eBPFCore_Driver_uninstall_flush"]
     Query --> Done["Uninstall sequence finishes"]
 ```
-
-This preserves the **current compiled order**: NetEbpfExt is stopped before eBPFCore. Custom driver stops
-and MSI-created service removal precede standard `StopServices`. Missing-service errors on the two explicit
-driver stops are ignored, as authored.
 
 If normal uninstall work reports a fatal error, MSI follows recovery rather than the success-only
 cleanup path. Recovery is not expanded here; it restores the pre-uninstall state using the rollback work
