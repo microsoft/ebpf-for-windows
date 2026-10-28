@@ -107,9 +107,9 @@ SPDX-License-Identifier: MIT
 			<Custom Action="Force_eBPF_store_uninstall_prepare_HKCU" After="Force_eBPF_store_uninstall_rollback_HKLM">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
 			<Custom Action="eBPF_netsh_helper_uninstall" After="Force_eBPF_store_uninstall_rollback_HKCU">REMOVE="ALL"</Custom>
 
-			<Custom Action="eBPFCore_Driver_stop" After="eBPF_netsh_helper_uninstall">REMOVE="ALL"</Custom>
-			<Custom Action="NetEbpfExt_Driver_stop" After="eBPFCore_Driver_stop">REMOVE="ALL"</Custom>
-			<Custom Action="Force_eBPF_services_uninstall_remove" After="NetEbpfExt_Driver_stop">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
+			<Custom Action="NetEbpfExt_Driver_stop" After="eBPF_netsh_helper_uninstall">REMOVE="ALL"</Custom>
+			<Custom Action="eBPFCore_Driver_stop" After="NetEbpfExt_Driver_stop">REMOVE="ALL"</Custom>
+			<Custom Action="Force_eBPF_services_uninstall_remove" After="eBPFCore_Driver_stop">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
 
 			<Custom Action="Force_eBPF_store_restore_HKLM" Before="Force_eBPF_store_restore_HKCU">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
 			<Custom Action="Force_eBPF_store_restore_HKCU" Before="Force_eBPF_binaries_uninstall_restore">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
