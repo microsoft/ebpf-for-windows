@@ -90,16 +90,6 @@ commit can use the same validation after the installed script is removed. Succes
 the staged script and backup files; empty protected directories are retained for future installations.
 Cleanup errors are logged by the custom action without rolling back an otherwise completed uninstall.
 
-Run the isolated regression suite from an elevated Windows PowerShell:
-
-```powershell
-.\scripts\test_msi_backup_security.ps1
-```
-
-It creates uniquely named disposable ProgramData directories and registry keys, checks rejected ACLs,
-owners, links, and path replacement, and exercises HKLM/HKCU backup, rollback, restore, and cleanup.
-It does not change the installed eBPF services or canonical binaries.
-
 Binary links are beside the canonical Windows files: `.ebpf-msi-new` stages replacement,
 `.ebpf-msi-rollback` preserves pre-attempt state, and `.ebpf-msi-backup` preserves original state.
 They are hard links to binaries, not JSON or registry exports. A partial set of the six original
