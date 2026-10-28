@@ -34,6 +34,15 @@ struct
     __uint(max_entries, 256);
 } bind_verdict_map SEC(".maps");
 
+// Per-module invocation count used by multi-attach ordering tests.
+struct
+{
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __type(key, uint32_t);
+    __type(value, uint64_t);
+    __uint(max_entries, 1);
+} bind_invocation_count_map SEC(".maps");
+
 __inline int
 authorize_bind(bpf_sock_addr_t* ctx)
 {
@@ -43,6 +52,11 @@ authorize_bind(bpf_sock_addr_t* ctx)
 
     uint32_t* verdict = bpf_map_lookup_elem(&bind_verdict_map, &key);
     if (verdict != NULL) {
+        uint32_t invocation_key = 0;
+        uint64_t* invocation_count = bpf_map_lookup_elem(&bind_invocation_count_map, &invocation_key);
+        if (invocation_count != NULL) {
+            (*invocation_count)++;
+        }
         return *verdict;
     }
     return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;

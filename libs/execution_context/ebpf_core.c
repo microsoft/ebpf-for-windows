@@ -651,6 +651,39 @@ _ebpf_core_protocol_load_native_programs(
     size_t required_reply_length = 0;
     size_t map_handles_size = 0;
     size_t program_handles_size = 0;
+    uint8_t* map_reused = NULL;
+    size_t pin_root_path_length = 0;
+    char pin_root_path[EBPF_MAX_PIN_PATH_LENGTH];
+
+    // Extract the optional pin root path. With no path bytes, ebpf_native_load_programs uses
+    // the default pin root path.
+    result = ebpf_safe_size_t_subtract(
+        request->header.length,
+        EBPF_OFFSET_OF(ebpf_operation_load_native_programs_request_t, pin_root_path),
+        &pin_root_path_length);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    if (pin_root_path_length >= EBPF_MAX_PIN_PATH_LENGTH) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    // The path on the wire is not null terminated, so copy it into a null terminated buffer.
+    if (pin_root_path_length > 0) {
+        memcpy(
+            pin_root_path,
+            (const uint8_t*)request + EBPF_OFFSET_OF(ebpf_operation_load_native_programs_request_t, pin_root_path),
+            pin_root_path_length);
+    }
+    pin_root_path[pin_root_path_length] = '\0';
+
+    // Embedded null characters would silently truncate the path.
+    if (strlen(pin_root_path) != pin_root_path_length) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
 
     // Validate that the reply length is sufficient.
     result = ebpf_native_get_count_of_maps(&request->module_id, &count_of_map_handles);
@@ -689,6 +722,11 @@ _ebpf_core_protocol_load_native_programs(
         goto Done;
     }
 
+    // Legacy callers allocate only the handle arrays. Emit reuse status only if the entire tail fits.
+    if (count_of_map_handles > 0 && reply_length - required_reply_length >= count_of_map_handles) {
+        map_reused = (uint8_t*)reply + required_reply_length;
+    }
+
     if (count_of_map_handles) {
         size_t map_handles_length = 0;
         result = ebpf_safe_size_t_multiply(sizeof(ebpf_handle_t), count_of_map_handles, &map_handles_length);
@@ -716,7 +754,13 @@ _ebpf_core_protocol_load_native_programs(
     }
 
     result = ebpf_native_load_programs(
-        &request->module_id, count_of_map_handles, map_handles, count_of_program_handles, program_handles);
+        &request->module_id,
+        (pin_root_path_length > 0) ? pin_root_path : NULL,
+        count_of_map_handles,
+        map_handles,
+        map_reused,
+        count_of_program_handles,
+        program_handles);
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
@@ -729,6 +773,10 @@ _ebpf_core_protocol_load_native_programs(
     }
     if (program_handles) {
         memcpy(reply->data + map_handles_size, program_handles, program_handles_size);
+    }
+    if (map_reused != NULL && reply_length - required_reply_length - count_of_map_handles >= sizeof(uint32_t)) {
+        uint32_t marker = EBPF_NATIVE_MAP_REUSE_STATUS_PRESENT;
+        memcpy(map_reused + count_of_map_handles, &marker, sizeof(marker));
     }
 
 Done:
@@ -1049,7 +1097,7 @@ _ebpf_core_protocol_map_get_next_key(
 Done:
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
 
-    EBPF_RETURN_RESULT(retval);
+    EBPF_RETURN_ENUMERATION_RESULT(retval);
 }
 
 static ebpf_result_t
@@ -1885,7 +1933,7 @@ _get_next_id(
     _In_ const ebpf_operation_get_next_id_request_t* request,
     _Out_ ebpf_operation_get_next_id_reply_t* reply)
 {
-    EBPF_RETURN_RESULT(ebpf_object_get_next_id(request->start_id, type, &reply->next_id));
+    EBPF_RETURN_ENUMERATION_RESULT(ebpf_object_get_next_id(request->start_id, type, &reply->next_id));
 }
 
 static ebpf_result_t
@@ -1893,7 +1941,7 @@ _ebpf_core_protocol_get_next_link_id(
     _In_ const ebpf_operation_get_next_id_request_t* request, _Out_ ebpf_operation_get_next_id_reply_t* reply)
 {
     EBPF_LOG_ENTRY();
-    EBPF_RETURN_RESULT(_get_next_id(EBPF_OBJECT_LINK, request, reply));
+    EBPF_RETURN_ENUMERATION_RESULT(_get_next_id(EBPF_OBJECT_LINK, request, reply));
 }
 
 static ebpf_result_t
@@ -1901,7 +1949,7 @@ _ebpf_core_protocol_get_next_map_id(
     _In_ const ebpf_operation_get_next_id_request_t* request, _Out_ ebpf_operation_get_next_id_reply_t* reply)
 {
     EBPF_LOG_ENTRY();
-    EBPF_RETURN_RESULT(_get_next_id(EBPF_OBJECT_MAP, request, reply));
+    EBPF_RETURN_ENUMERATION_RESULT(_get_next_id(EBPF_OBJECT_MAP, request, reply));
 }
 
 static ebpf_result_t
@@ -1909,7 +1957,7 @@ _ebpf_core_protocol_get_next_program_id(
     _In_ const ebpf_operation_get_next_id_request_t* request, _Out_ ebpf_operation_get_next_id_reply_t* reply)
 {
     EBPF_LOG_ENTRY();
-    EBPF_RETURN_RESULT(_get_next_id(EBPF_OBJECT_PROGRAM, request, reply));
+    EBPF_RETURN_ENUMERATION_RESULT(_get_next_id(EBPF_OBJECT_PROGRAM, request, reply));
 }
 
 static ebpf_result_t
@@ -2981,7 +3029,8 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY_ASYNC(map_async_query, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(map_write_data, data, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_FIXED_REPLY(load_native_module, data, PROTOCOL_NATIVE_MODE),
-    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_VARIABLE_REPLY(load_native_programs, data, PROTOCOL_NATIVE_MODE),
+    DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(
+        load_native_programs, pin_root_path, data, PROTOCOL_NATIVE_MODE),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC(program_test_run, data, data, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_FIXED_REPLY(map_update_element_batch, data, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_FIXED_REPLY(map_delete_element_batch, keys, PROTOCOL_ALL_MODES),
@@ -3171,7 +3220,7 @@ ebpf_core_invoke_protocol_handler(
         goto Done;
     }
 
-    if (request->length > input_buffer_length || request->length < sizeof(*request)) {
+    if (request->length > input_buffer_length || request->length < handler->minimum_request_size) {
         retval = EBPF_INVALID_ARGUMENT;
         goto Done;
     }

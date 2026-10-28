@@ -35,6 +35,7 @@ get_metadata_table()
 }
 
 #include "bpf2c.h"
+#include "ebpf_version.h"
 
 static void
 _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ size_t* size)
@@ -350,9 +351,9 @@ _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ s
 static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
-    version->major = 1;
-    version->minor = 6;
-    version->revision = 0;
+    version->major = EBPF_VERSION_MAJOR;
+    version->minor = EBPF_VERSION_MINOR;
+    version->revision = EBPF_VERSION_REVISION;
 }
 
 static void

@@ -217,7 +217,8 @@ _ebpf_validate_extension_object_header(
 
     return (
         (header->version == _supported_ebpf_extension_version[object_type]) &&
-        (_ebpf_is_size_supported(supported_sizes, count, header->size)));
+        (_ebpf_is_size_supported(supported_sizes, count, header->size)) &&
+        (header->total_size >= header->size));
 }
 
 #ifndef GUID_NULL
@@ -760,6 +761,47 @@ Exit:
     ebpf_program_data_free(program_data_copy);
 
     EBPF_RETURN_RESULT(result);
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_build_map_pin_path(
+    _Out_writes_(output_size) char* output,
+    size_t output_size,
+    _In_opt_z_ const char* pin_root_path,
+    _In_z_ const char* map_name)
+{
+    EBPF_LOG_ENTRY();
+    size_t root_length = pin_root_path != NULL ? strlen(pin_root_path) : 0;
+    size_t name_length = strlen(map_name);
+    bool append_separator =
+        pin_root_path != NULL &&
+        (root_length == 0 || (pin_root_path[root_length - 1] != '/' && pin_root_path[root_length - 1] != '\\'));
+    size_t name_offset = 0;
+    size_t required_size = 0;
+    ebpf_result_t result = ebpf_safe_size_t_add(root_length, append_separator ? 1 : 0, &name_offset);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
+    result = ebpf_safe_size_t_add(name_offset, name_length, &required_size);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
+    result = ebpf_safe_size_t_add(required_size, 1, &required_size);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
+    if (required_size > output_size) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+
+    if (root_length > 0) {
+        memcpy(output, pin_root_path, root_length);
+    }
+    if (append_separator) {
+        output[root_length] = '/';
+    }
+    memcpy(output + name_offset, map_name, name_length + 1);
+    EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
 ebpf_result_t

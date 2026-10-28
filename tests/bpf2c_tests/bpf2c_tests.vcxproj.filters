@@ -28,7 +28,7 @@
     <ClCompile Include="elf_bpf.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\external\ubpf\external\bpf_conformance\src\bpf_assembler.cc">
+    <ClCompile Include="..\..\external\ubpf\external\bpf_conformance\lib\src\bpf_assembler.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -42,7 +42,7 @@
     <ClInclude Include="..\..\tools\bpf2c\btf_parser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\external\ubpf\external\bpf_conformance\src\bpf_assembler.h">
+    <ClInclude Include="..\..\external\ubpf\external\bpf_conformance\lib\include\bpf_conformance_core\bpf_assembler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
