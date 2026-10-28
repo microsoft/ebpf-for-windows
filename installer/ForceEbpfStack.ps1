@@ -8,7 +8,6 @@ param(
         "Install",
         "Rollback",
         "Commit",
-        "RestoreService",
         "InstallEbpfSvc",
         "BackupServices",
         "RollbackServices",
@@ -31,10 +30,6 @@ param(
     [string]$InstallRoot,
 
     [string]$SystemRootPath = $env:SystemRoot,
-
-    [string]$ServiceName,
-
-    [string]$ImagePath,
 
     [ValidateSet("HKLM", "HKCU")]
     [string]$Scope,
@@ -508,7 +503,7 @@ function Restore-OriginalLinks
 function Restore-MsiLinks
 {
     if ((Get-BackupCount) -eq 0 -and
-        -not (Test-Path -LiteralPath (Join-Path $StateRoot "ebpf-services.json") -PathType Leaf)) {
+        -not (Test-Path -LiteralPath (Get-ServicePaths).StateFile -PathType Leaf)) {
         return
     }
 
@@ -560,6 +555,14 @@ function Get-StorePaths
     param([Parameter(Mandatory = $true)][string]$StoreScope)
 
     $scopeName = $StoreScope.ToLowerInvariant()
+    $rollbackStateFile = Join-Path $StateRoot "ebpf-store-$scopeName.rollback.json"
+    $legacyPendingFile = Join-Path $StateRoot "ebpf-store-$scopeName.pending"
+    if (Test-Path -LiteralPath $legacyPendingFile) {
+        if (Test-Path -LiteralPath $rollbackStateFile) {
+            throw "Both legacy and current $StoreScope eBPF store rollback metadata exist in '$StateRoot'."
+        }
+        $rollbackStateFile = $legacyPendingFile
+    }
     return @{
         RegistryPath =
             if ([string]::IsNullOrWhiteSpace($StoreRegistryPath)) {
@@ -569,7 +572,7 @@ function Get-StorePaths
             }
         RegistryFile = Join-Path $StateRoot "ebpf-store-$scopeName.reg"
         StateFile = Join-Path $StateRoot "ebpf-store-$scopeName.json"
-        PendingFile = Join-Path $StateRoot "ebpf-store-$scopeName.pending"
+        RollbackStateFile = $rollbackStateFile
         RollbackRegistryFile = Join-Path $StateRoot "ebpf-store-$scopeName.rollback.reg"
         UninstallStateFile = Join-Path $StateRoot "ebpf-store-$scopeName.uninstall.json"
         UninstallRegistryFile = Join-Path $StateRoot "ebpf-store-$scopeName.uninstall.reg"
@@ -601,11 +604,24 @@ function Remove-RegistryTreeIfPresent
 
 function Get-ServicePaths
 {
-    return @{
-        StateFile = Join-Path $StateRoot "ebpf-services.json"
-        PendingFile = Join-Path $StateRoot "ebpf-services.pending.json"
+    $paths = @{
+        StateFile = Join-Path $StateRoot "ebpf-services.original.json"
+        RollbackStateFile = Join-Path $StateRoot "ebpf-services.rollback.json"
         UninstallRollbackFile = Join-Path $StateRoot "ebpf-services.uninstall-rollback.json"
     }
+    foreach ($entry in @(
+        @{ Key = "StateFile"; LegacyFileName = "ebpf-services.json" },
+        @{ Key = "RollbackStateFile"; LegacyFileName = "ebpf-services.pending.json" }
+    )) {
+        $legacyFile = Join-Path $StateRoot $entry.LegacyFileName
+        if (Test-Path -LiteralPath $legacyFile) {
+            if (Test-Path -LiteralPath $paths[$entry.Key]) {
+                throw "Both legacy and current eBPF service $($entry.Key) metadata exist in '$StateRoot'."
+            }
+            $paths[$entry.Key] = $legacyFile
+        }
+    }
+    return $paths
 }
 
 function Get-ServiceRegistryPath
@@ -1033,7 +1049,7 @@ function Backup-Services
 {
     $paths = Get-ServicePaths
     New-Item -ItemType Directory -Path $StateRoot -Force | Out-Null
-    if ((Test-Path -LiteralPath $paths.PendingFile) -or
+    if ((Test-Path -LiteralPath $paths.RollbackStateFile) -or
         (Test-Path -LiteralPath $paths.UninstallRollbackFile)) {
         throw "Incomplete eBPF service transaction exists in '$StateRoot'."
     }
@@ -1048,10 +1064,10 @@ function Backup-Services
             throw "Incomplete eBPF service backup exists in '$StateRoot'."
         }
     }
-    Save-CurrentServices -StateFile $paths.PendingFile -FileSuffix "rollback"
-    $pending = Read-ServiceState -Path $paths.PendingFile
-    $pending | Add-Member -NotePropertyName CreatedDurableBackup -NotePropertyValue $shouldCreateDurableBackup
-    $pending | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $paths.PendingFile -Encoding UTF8
+    Save-CurrentServices -StateFile $paths.RollbackStateFile -FileSuffix "rollback"
+    $rollbackState = Read-ServiceState -Path $paths.RollbackStateFile
+    $rollbackState | Add-Member -NotePropertyName CreatedDurableBackup -NotePropertyValue $shouldCreateDurableBackup
+    $rollbackState | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $paths.RollbackStateFile -Encoding UTF8
     if ($shouldCreateDurableBackup) {
         Save-CurrentServices -StateFile $paths.StateFile -FileSuffix "original"
     } else {
@@ -1062,15 +1078,15 @@ function Backup-Services
 function Rollback-ServiceTransaction
 {
     $paths = Get-ServicePaths
-    $pending = Read-ServiceState -Path $paths.PendingFile
-    if ($null -eq $pending) {
+    $rollbackState = Read-ServiceState -Path $paths.RollbackStateFile
+    if ($null -eq $rollbackState) {
         return
     }
 
-    Apply-ServiceState -State $pending -StartIfPreviouslyRunning $true
+    Apply-ServiceState -State $rollbackState -StartIfPreviouslyRunning $true
     Remove-ServiceStateFiles -FileSuffix "rollback"
-    Remove-Item -LiteralPath $paths.PendingFile -Force
-    if ([bool]$pending.CreatedDurableBackup) {
+    Remove-Item -LiteralPath $paths.RollbackStateFile -Force
+    if ([bool]$rollbackState.CreatedDurableBackup) {
         Remove-ServiceStateFiles -FileSuffix "original"
         Remove-Item -LiteralPath $paths.StateFile -Force
     }
@@ -1141,7 +1157,7 @@ function Backup-Store
 
     $paths = Get-StorePaths -StoreScope $Scope
     New-Item -ItemType Directory -Path $StateRoot -Force | Out-Null
-    if ((Test-Path -LiteralPath $paths.PendingFile) -or
+    if ((Test-Path -LiteralPath $paths.RollbackStateFile) -or
         (Test-Path -LiteralPath $paths.RollbackRegistryFile)) {
         throw "Incomplete $Scope eBPF store transaction exists in '$StateRoot'."
     }
@@ -1181,7 +1197,7 @@ function Backup-Store
         Read-StoreState -Paths $paths | Out-Null
     }
 
-    $pendingState = [PSCustomObject]@{
+    $rollbackState = [PSCustomObject]@{
         SchemaVersion = 1
         Scope = $Scope
         RegistryPath = $paths.RegistryPath
@@ -1189,7 +1205,7 @@ function Backup-Store
         UserSid = if ($Scope -eq "HKCU") { Get-CurrentUserSid } else { $null }
         CreatedDurableBackup = $shouldCreateDurableBackup
     }
-    $pendingState | ConvertTo-Json | Set-Content -LiteralPath $paths.PendingFile -Encoding UTF8
+    $rollbackState | ConvertTo-Json | Set-Content -LiteralPath $paths.RollbackStateFile -Encoding UTF8
 }
 
 function Read-StoreState
@@ -1219,20 +1235,20 @@ function Rollback-StoreTransaction
     }
 
     $paths = Get-StorePaths -StoreScope $Scope
-    if (-not (Test-Path -LiteralPath $paths.PendingFile -PathType Leaf)) {
+    if (-not (Test-Path -LiteralPath $paths.RollbackStateFile -PathType Leaf)) {
         return
     }
 
-    $pendingState = Get-Content -LiteralPath $paths.PendingFile -Raw | ConvertFrom-Json
-    if ([int]$pendingState.SchemaVersion -ne 1 -or [string]$pendingState.Scope -ne $Scope) {
-        throw "Invalid pending $Scope eBPF store transaction."
+    $rollbackState = Get-Content -LiteralPath $paths.RollbackStateFile -Raw | ConvertFrom-Json
+    if ([int]$rollbackState.SchemaVersion -ne 1 -or [string]$rollbackState.Scope -ne $Scope) {
+        throw "Invalid $Scope eBPF store rollback transaction."
     }
-    if ($Scope -eq "HKCU" -and [string]$pendingState.UserSid -ne (Get-CurrentUserSid)) {
-        throw "The pending HKCU eBPF store transaction belongs to a different user."
+    if ($Scope -eq "HKCU" -and [string]$rollbackState.UserSid -ne (Get-CurrentUserSid)) {
+        throw "The HKCU eBPF store rollback transaction belongs to a different user."
     }
 
-    Remove-RegistryTreeIfPresent -RegistryPath ([string]$pendingState.RegistryPath)
-    if ([bool]$pendingState.StoreExisted) {
+    Remove-RegistryTreeIfPresent -RegistryPath ([string]$rollbackState.RegistryPath)
+    if ([bool]$rollbackState.StoreExisted) {
         if (-not (Test-Path -LiteralPath $paths.RollbackRegistryFile -PathType Leaf)) {
             throw "The $Scope eBPF rollback store file is missing: $($paths.RollbackRegistryFile)"
         }
@@ -1243,8 +1259,8 @@ function Rollback-StoreTransaction
     }
 
     Remove-Item -LiteralPath $paths.RollbackRegistryFile -Force -ErrorAction SilentlyContinue
-    Remove-Item -LiteralPath $paths.PendingFile -Force
-    if ([bool]$pendingState.CreatedDurableBackup) {
+    Remove-Item -LiteralPath $paths.RollbackStateFile -Force
+    if ([bool]$rollbackState.CreatedDurableBackup) {
         Remove-Item -LiteralPath $paths.RegistryFile -Force -ErrorAction SilentlyContinue
         Remove-Item -LiteralPath $paths.StateFile -Force
     }
@@ -1354,7 +1370,7 @@ function Commit-StoreRestore
     $paths = Get-StorePaths -StoreScope $Scope
     Remove-Item -LiteralPath $paths.RegistryFile -Force -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath $paths.StateFile -Force -ErrorAction SilentlyContinue
-    Remove-Item -LiteralPath $paths.PendingFile -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $paths.RollbackStateFile -Force -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath $paths.RollbackRegistryFile -Force -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath $paths.UninstallRegistryFile -Force -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath $paths.UninstallStateFile -Force -ErrorAction SilentlyContinue
@@ -1446,7 +1462,6 @@ switch ($Action) {
         Invoke-ForAllMappings {
             param($mapping)
 
-            Remove-Item -LiteralPath ($mapping.Link + ".ebpf-msi-new") -Force -ErrorAction SilentlyContinue
             $rollback = $mapping.Link + ".ebpf-msi-rollback"
             if (Test-Path -LiteralPath $rollback -PathType Leaf) {
                 $rollbackAcl = Get-RestorableFileAcl -Path $rollback
@@ -1469,20 +1484,6 @@ switch ($Action) {
         }
     }
 
-    "RestoreService" {
-        if ([string]::IsNullOrWhiteSpace($ServiceName) -or [string]::IsNullOrWhiteSpace($ImagePath)) {
-            throw "ServiceName and ImagePath are required for RestoreService."
-        }
-        if ($ImagePath.StartsWith("#%")) {
-            $ImagePath = $ImagePath.Substring(2)
-        }
-
-        & "$env:SystemRoot\System32\sc.exe" config $ServiceName binpath= $ImagePath
-        if ($LASTEXITCODE -ne 0) {
-            throw "Failed to restore the $ServiceName service ImagePath."
-        }
-    }
-
     "InstallEbpfSvc" {
         Install-MsiEbpfService
     }
@@ -1498,7 +1499,7 @@ switch ($Action) {
     "CommitServices" {
         $paths = Get-ServicePaths
         Remove-ServiceStateFiles -FileSuffix "rollback"
-        Remove-Item -LiteralPath $paths.PendingFile -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $paths.RollbackStateFile -Force -ErrorAction SilentlyContinue
     }
 
     "PrepareRestoreServices" {
@@ -1528,7 +1529,7 @@ switch ($Action) {
     "CommitStore" {
         foreach ($storeScope in @("HKLM", "HKCU")) {
             $paths = Get-StorePaths -StoreScope $storeScope
-            Remove-Item -LiteralPath $paths.PendingFile -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $paths.RollbackStateFile -Force -ErrorAction SilentlyContinue
             Remove-Item -LiteralPath $paths.RollbackRegistryFile -Force -ErrorAction SilentlyContinue
         }
     }
