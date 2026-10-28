@@ -281,7 +281,8 @@ TEST_CASE("native_map_entry_to_current", "[shared]")
     GetSystemInfo(&system_info);
     auto release = [](void* address) { VirtualFree(address, 0, MEM_RELEASE); };
     std::unique_ptr<void, decltype(release)> allocation(
-        VirtualAlloc(nullptr, 2 * system_info.dwPageSize, MEM_RESERVE | MEM_COMMIT, PAGE_NOACCESS), release);
+        VirtualAlloc(nullptr, 2 * static_cast<size_t>(system_info.dwPageSize), MEM_RESERVE | MEM_COMMIT, PAGE_NOACCESS),
+        release);
     REQUIRE(allocation != nullptr);
     DWORD old_protection = 0;
     REQUIRE(VirtualProtect(allocation.get(), system_info.dwPageSize, PAGE_READWRITE, &old_protection));
