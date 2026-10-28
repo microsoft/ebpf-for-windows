@@ -346,7 +346,8 @@ SPDX-License-Identifier: MIT
 		<CustomAction Id="NetEbpfExt_Driver_stop_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
 		<Property Id="NetEbpfExt_Driver_uninstall_rollback" Value='"sc.exe" delete NetEbpfExt' />
 		<CustomAction Id="NetEbpfExt_Driver_uninstall_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
-		<SetProperty Id="Force_eBPFSvc_configure" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action InstallEbpfSvc" Before="Force_eBPFSvc_configure" Sequence="execute"/>
+		<SetProperty Id="Force_eBPFSvc_configure" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action InstallEbpfSvc" Before="SetForce_eBPFSvc_configure_canonical" Sequence="execute"/>
+		<SetProperty Id="Force_eBPFSvc_configure" Action="SetForce_eBPFSvc_configure_canonical" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action InstallEbpfSvc -UseCanonicalServicePath" Before="Force_eBPFSvc_configure" Sequence="execute">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</SetProperty>
 		<CustomAction Id="Force_eBPFSvc_configure" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
 		<Property Id="eBPFSvc_uninstall_rollback" Value='"sc.exe" delete eBPFSvc' />
 		<CustomAction Id="eBPFSvc_uninstall_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
