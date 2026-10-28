@@ -8,6 +8,9 @@ To install files you built yourself and run CI/CD scripts on a remote VM, follow
 
 ### Method 1 (Install a release with the MSI installer)
 
+For forced replacement, backup and rollback behavior, and uninstall execution flows, see
+[MSI forced installation and restoration](MsiForcedInstallation.md).
+
 Do the following from within the VM:
 
 1. Download the `eBPF-for-Windows.x.x.x.msi` file from the [latest release on GitHub](https://github.com/microsoft/ebpf-for-windows/releases).
