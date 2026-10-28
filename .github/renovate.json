@@ -5,6 +5,9 @@
     "helpers:pinGitHubActionDigests"
   ],
   "schedule": ["on saturday"],
+  "git-submodules": {
+    "enabled": true
+  },
   "packageRules": [
     {
       "matchManagers": ["github-actions"],

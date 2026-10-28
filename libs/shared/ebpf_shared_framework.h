@@ -275,6 +275,24 @@ ebpf_duplicate_program_data(
     _In_ const ebpf_program_data_t* program_data, _Outptr_ ebpf_program_data_t** new_program_data);
 
 /**
+ * @brief Join a pin root path and map name without adding a redundant separator.
+ *
+ * @param[out] output Buffer in which to write the null-terminated pin path.
+ * @param[in] output_size Size of output buffer.
+ * @param[in] pin_root_path Optional root path; NULL uses the bare map name.
+ * @param[in] map_name Map name to append.
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_INVALID_ARGUMENT The output buffer did not have sufficient space.
+ * @retval EBPF_ARITHMETIC_OVERFLOW The combined path length overflowed.
+ */
+_Must_inspect_result_ ebpf_result_t
+ebpf_build_map_pin_path(
+    _Out_writes_(output_size) char* output,
+    size_t output_size,
+    _In_opt_z_ const char* pin_root_path,
+    _In_z_ const char* map_name);
+
+/**
  * @brief Canonicalize a path using filesystem canonicalization rules.
  *
  * @param[out] output Buffer in which to write canonicalized path.

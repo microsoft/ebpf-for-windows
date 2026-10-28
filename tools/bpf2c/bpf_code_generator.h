@@ -572,6 +572,15 @@ class bpf_code_generator
     std::set<unsafe_string>
     get_reachable_subprograms(const unsafe_string& entry_name) const;
 
+    /**
+     * @brief Get the maximum stack-frame depth reachable from an entry program.
+     *
+     * @param[in] entry_name Name of the entry program.
+     * @return Maximum number of BPF stack frames, including the entry program.
+     */
+    size_t
+    get_maximum_call_depth(const unsafe_string& entry_name) const;
+
     int pe_section_name_counter{};
     std::map<unsafe_string, bpf_code_generator_program> programs;
     ELFIO::elfio reader;

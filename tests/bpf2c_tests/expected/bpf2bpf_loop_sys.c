@@ -160,6 +160,7 @@ _bpf2c_npi_client_detach_provider(_In_ void* client_binding_context)
 }
 
 #include "bpf2c.h"
+#include "ebpf_version.h"
 
 static void
 _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ size_t* size)
@@ -218,6 +219,8 @@ static helper_function_entry_t caller_with_loop_helpers[] = {
 // Forward references for local functions.
 static uint64_t
 increment(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context, const program_runtime_context_t* runtime_context);
+static uint64_t
+stack_frame_test(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context, const program_runtime_context_t* runtime_context);
 
 static GUID caller_with_loop_program_type_guid = {
     0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
@@ -227,7 +230,7 @@ static uint16_t caller_with_loop_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "sample~1")
+#pragma code_seg(push, "sample~2")
 static uint64_t
 caller_with_loop(void* context, const program_runtime_context_t* runtime_context)
 #line 28 "sample/undocked/bpf2bpf_loop.c"
@@ -235,7 +238,7 @@ caller_with_loop(void* context, const program_runtime_context_t* runtime_context
 #line 28 "sample/undocked/bpf2bpf_loop.c"
     // Prologue.
 #line 28 "sample/undocked/bpf2bpf_loop.c"
-    uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
+    uint64_t stack[((UBPF_STACK_SIZE * 2) + 7) / 8];
 #line 28 "sample/undocked/bpf2bpf_loop.c"
     register uint64_t r0 = 0;
 #line 28 "sample/undocked/bpf2bpf_loop.c"
@@ -264,89 +267,77 @@ caller_with_loop(void* context, const program_runtime_context_t* runtime_context
     // EBPF_OP_STXW pc=1 dst=r10 src=r0 offset=-4 imm=0
 #line 30 "sample/undocked/bpf2bpf_loop.c"
     WRITE_ONCE_32(r10, (uint32_t)r0, OFFSET(-4));
-    // EBPF_OP_STXW pc=2 dst=r10 src=r0 offset=-12 imm=0
+    // EBPF_OP_STXDW pc=2 dst=r10 src=r0 offset=-16 imm=0
 #line 33 "sample/undocked/bpf2bpf_loop.c"
-    WRITE_ONCE_32(r10, (uint32_t)r0, OFFSET(-12));
-    // EBPF_OP_LDXW pc=3 dst=r1 src=r10 offset=-12 imm=0
+    WRITE_ONCE_64(r10, (uint64_t)r0, OFFSET(-16));
+    // EBPF_OP_LDXDW pc=3 dst=r1 src=r10 offset=-16 imm=0
 #line 33 "sample/undocked/bpf2bpf_loop.c"
-    READ_ONCE_32(r1, r10, OFFSET(-12));
-    // EBPF_OP_LSH64_IMM pc=4 dst=r1 src=r0 offset=0 imm=32
+    READ_ONCE_64(r1, r10, OFFSET(-16));
+    // EBPF_OP_JGT_IMM pc=4 dst=r1 src=r0 offset=8 imm=9
 #line 33 "sample/undocked/bpf2bpf_loop.c"
-    r1 <<= (IMMEDIATE(32) & 63);
-    // EBPF_OP_ARSH64_IMM pc=5 dst=r1 src=r0 offset=0 imm=32
-#line 33 "sample/undocked/bpf2bpf_loop.c"
-    r1 = (int64_t)r1 >> (uint32_t)(IMMEDIATE(32) & 63);
-    // EBPF_OP_JSGT_IMM pc=6 dst=r1 src=r0 offset=10 imm=9
-#line 33 "sample/undocked/bpf2bpf_loop.c"
-    if ((int64_t)r1 > IMMEDIATE(9)) {
+    if (r1 > IMMEDIATE(9)) {
 #line 33 "sample/undocked/bpf2bpf_loop.c"
         goto label_2;
 #line 33 "sample/undocked/bpf2bpf_loop.c"
     }
-    // EBPF_OP_MOV64_IMM pc=7 dst=r6 src=r0 offset=0 imm=10
+    // EBPF_OP_MOV64_IMM pc=5 dst=r6 src=r0 offset=0 imm=10
 #line 33 "sample/undocked/bpf2bpf_loop.c"
     r6 = IMMEDIATE(10);
 label_1:
-    // EBPF_OP_MOV64_REG pc=8 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=6 dst=r1 src=r0 offset=0 imm=0
 #line 34 "sample/undocked/bpf2bpf_loop.c"
     r1 = r0;
-    // EBPF_OP_CALL pc=9 dst=r0 src=r1 offset=0 imm=18
+    // EBPF_OP_CALL pc=7 dst=r0 src=r1 offset=0 imm=16
 #line 34 "sample/undocked/bpf2bpf_loop.c"
-    r0 = increment(r1, r2, r3, r4, r5, r10, context, runtime_context);
-    // EBPF_OP_LDXW pc=10 dst=r1 src=r10 offset=-12 imm=0
+    r0 = increment(r1, r2, r3, r4, r5, r10 - UBPF_STACK_SIZE, context, runtime_context);
+    // EBPF_OP_LDXDW pc=8 dst=r1 src=r10 offset=-16 imm=0
 #line 33 "sample/undocked/bpf2bpf_loop.c"
-    READ_ONCE_32(r1, r10, OFFSET(-12));
-    // EBPF_OP_ADD64_IMM pc=11 dst=r1 src=r0 offset=0 imm=1
+    READ_ONCE_64(r1, r10, OFFSET(-16));
+    // EBPF_OP_ADD64_IMM pc=9 dst=r1 src=r0 offset=0 imm=1
 #line 33 "sample/undocked/bpf2bpf_loop.c"
     r1 += IMMEDIATE(1);
-    // EBPF_OP_STXW pc=12 dst=r10 src=r1 offset=-12 imm=0
+    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-16 imm=0
 #line 33 "sample/undocked/bpf2bpf_loop.c"
-    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-12));
-    // EBPF_OP_LDXW pc=13 dst=r1 src=r10 offset=-12 imm=0
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
+    // EBPF_OP_LDXDW pc=11 dst=r1 src=r10 offset=-16 imm=0
 #line 33 "sample/undocked/bpf2bpf_loop.c"
-    READ_ONCE_32(r1, r10, OFFSET(-12));
-    // EBPF_OP_LSH64_IMM pc=14 dst=r1 src=r0 offset=0 imm=32
+    READ_ONCE_64(r1, r10, OFFSET(-16));
+    // EBPF_OP_JGT_REG pc=12 dst=r6 src=r1 offset=-7 imm=0
 #line 33 "sample/undocked/bpf2bpf_loop.c"
-    r1 <<= (IMMEDIATE(32) & 63);
-    // EBPF_OP_ARSH64_IMM pc=15 dst=r1 src=r0 offset=0 imm=32
-#line 33 "sample/undocked/bpf2bpf_loop.c"
-    r1 = (int64_t)r1 >> (uint32_t)(IMMEDIATE(32) & 63);
-    // EBPF_OP_JSGT_REG pc=16 dst=r6 src=r1 offset=-9 imm=0
-#line 33 "sample/undocked/bpf2bpf_loop.c"
-    if ((int64_t)r6 > (int64_t)r1) {
+    if (r6 > r1) {
 #line 33 "sample/undocked/bpf2bpf_loop.c"
         goto label_1;
 #line 33 "sample/undocked/bpf2bpf_loop.c"
     }
 label_2:
-    // EBPF_OP_STXW pc=17 dst=r10 src=r0 offset=-8 imm=0
+    // EBPF_OP_STXW pc=13 dst=r10 src=r0 offset=-8 imm=0
 #line 34 "sample/undocked/bpf2bpf_loop.c"
     WRITE_ONCE_32(r10, (uint32_t)r0, OFFSET(-8));
-    // EBPF_OP_MOV64_REG pc=18 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=14 dst=r2 src=r10 offset=0 imm=0
 #line 34 "sample/undocked/bpf2bpf_loop.c"
     r2 = r10;
-    // EBPF_OP_ADD64_IMM pc=19 dst=r2 src=r0 offset=0 imm=-4
+    // EBPF_OP_ADD64_IMM pc=15 dst=r2 src=r0 offset=0 imm=-4
 #line 34 "sample/undocked/bpf2bpf_loop.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_MOV64_REG pc=20 dst=r3 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=16 dst=r3 src=r10 offset=0 imm=0
 #line 34 "sample/undocked/bpf2bpf_loop.c"
     r3 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r3 src=r0 offset=0 imm=-8
+    // EBPF_OP_ADD64_IMM pc=17 dst=r3 src=r0 offset=0 imm=-8
 #line 34 "sample/undocked/bpf2bpf_loop.c"
     r3 += IMMEDIATE(-8);
-    // EBPF_OP_LDDW pc=22 dst=r1 src=r1 offset=0 imm=1
+    // EBPF_OP_LDDW pc=18 dst=r1 src=r1 offset=0 imm=1
 #line 37 "sample/undocked/bpf2bpf_loop.c"
     r1 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=20 dst=r4 src=r0 offset=0 imm=0
 #line 37 "sample/undocked/bpf2bpf_loop.c"
     r4 = IMMEDIATE(0);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=2
+    // EBPF_OP_CALL pc=21 dst=r0 src=r0 offset=0 imm=2
 #line 37 "sample/undocked/bpf2bpf_loop.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-    // EBPF_OP_LDXW pc=26 dst=r0 src=r10 offset=-8 imm=0
+    // EBPF_OP_LDXW pc=22 dst=r0 src=r10 offset=-8 imm=0
 #line 38 "sample/undocked/bpf2bpf_loop.c"
     READ_ONCE_32(r0, r10, OFFSET(-8));
-    // EBPF_OP_EXIT pc=27 dst=r0 src=r0 offset=0 imm=0
+    // EBPF_OP_EXIT pc=23 dst=r0 src=r0 offset=0 imm=0
 #line 38 "sample/undocked/bpf2bpf_loop.c"
     return r0;
 #line 28 "sample/undocked/bpf2bpf_loop.c"
@@ -376,22 +367,163 @@ increment(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint6
 #line 22 "sample/undocked/bpf2bpf_loop.c"
     return r0;
 }
+static uint64_t
+stack_frame_test(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context, const program_runtime_context_t* runtime_context)
+{
+    register uint64_t r0 = 0;
+    (void)r2;
+    (void)r3;
+    (void)r4;
+    (void)r5;
+    (void)r10;
+    (void)context;
+    UNREFERENCED_PARAMETER(runtime_context);
+
+    // EBPF_OP_MOV64_REG pc=0 dst=r0 src=r1 offset=0 imm=0
+#line 20 "sample/undocked/bpf2bpf_loop.c"
+    r0 = r1;
+    // EBPF_OP_ADD64_IMM pc=1 dst=r0 src=r0 offset=0 imm=1
+#line 22 "sample/undocked/bpf2bpf_loop.c"
+    r0 += IMMEDIATE(1);
+    // EBPF_OP_EXIT pc=2 dst=r0 src=r0 offset=0 imm=0
+#line 22 "sample/undocked/bpf2bpf_loop.c"
+    return r0;
+}
+static helper_function_entry_t stack_frame_test_entry_helpers[] = {
+    {
+     {1, 40, 40}, // Version header.
+     0,
+     "",
+    },
+};
+
+// Forward references for local functions.
+static uint64_t
+increment(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context, const program_runtime_context_t* runtime_context);
+static uint64_t
+stack_frame_test(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context, const program_runtime_context_t* runtime_context);
+
+static GUID stack_frame_test_entry_program_type_guid = {
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+static GUID stack_frame_test_entry_attach_type_guid = {
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+#pragma code_seg(push, "sample~1")
+static uint64_t
+stack_frame_test_entry(void* context, const program_runtime_context_t* runtime_context)
+#line 28 "sample/undocked/bpf2bpf_loop.c"
+{
+#line 28 "sample/undocked/bpf2bpf_loop.c"
+    // Prologue.
+#line 28 "sample/undocked/bpf2bpf_loop.c"
+    uint64_t stack[((UBPF_STACK_SIZE * 2) + 7) / 8];
+#line 28 "sample/undocked/bpf2bpf_loop.c"
+    register uint64_t r0 = 0;
+#line 28 "sample/undocked/bpf2bpf_loop.c"
+    register uint64_t r1 = 0;
+#line 28 "sample/undocked/bpf2bpf_loop.c"
+    register uint64_t r2 = 0;
+#line 28 "sample/undocked/bpf2bpf_loop.c"
+    register uint64_t r3 = 0;
+#line 28 "sample/undocked/bpf2bpf_loop.c"
+    register uint64_t r4 = 0;
+#line 28 "sample/undocked/bpf2bpf_loop.c"
+    register uint64_t r5 = 0;
+#line 28 "sample/undocked/bpf2bpf_loop.c"
+    register uint64_t r10 = 0;
+
+#line 28 "sample/undocked/bpf2bpf_loop.c"
+    r1 = (uintptr_t)context;
+#line 28 "sample/undocked/bpf2bpf_loop.c"
+    r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
+
+    // EBPF_OP_MOV64_IMM pc=0 dst=r1 src=r0 offset=0 imm=4660
+#line 28 "sample/undocked/bpf2bpf_loop.c"
+    r1 = IMMEDIATE(4660);
+    // EBPF_OP_STXDW pc=1 dst=r10 src=r1 offset=-8 imm=0
+#line 30 "sample/undocked/bpf2bpf_loop.c"
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-8));
+    // EBPF_OP_LDXDW pc=2 dst=r1 src=r10 offset=-8 imm=0
+#line 33 "sample/undocked/bpf2bpf_loop.c"
+    READ_ONCE_64(r1, r10, OFFSET(-8));
+    // EBPF_OP_CALL pc=3 dst=r0 src=r1 offset=0 imm=10
+#line 33 "sample/undocked/bpf2bpf_loop.c"
+    r0 = stack_frame_test(r1, r2, r3, r4, r5, r10 - UBPF_STACK_SIZE, context, runtime_context);
+    // EBPF_OP_MOV64_REG pc=4 dst=r1 src=r0 offset=0 imm=0
+#line 33 "sample/undocked/bpf2bpf_loop.c"
+    r1 = r0;
+    // EBPF_OP_MOV64_IMM pc=5 dst=r2 src=r0 offset=0 imm=1
+#line 33 "sample/undocked/bpf2bpf_loop.c"
+    r2 = IMMEDIATE(1);
+    // EBPF_OP_MOV64_IMM pc=6 dst=r0 src=r0 offset=0 imm=1
+#line 34 "sample/undocked/bpf2bpf_loop.c"
+    r0 = IMMEDIATE(1);
+    // EBPF_OP_JNE_IMM pc=7 dst=r1 src=r0 offset=1 imm=4661
+#line 34 "sample/undocked/bpf2bpf_loop.c"
+    if (r1 != IMMEDIATE(4661)) {
+#line 34 "sample/undocked/bpf2bpf_loop.c"
+        goto label_1;
+#line 34 "sample/undocked/bpf2bpf_loop.c"
+    }
+    // EBPF_OP_MOV64_IMM pc=8 dst=r0 src=r0 offset=0 imm=0
+#line 33 "sample/undocked/bpf2bpf_loop.c"
+    r0 = IMMEDIATE(0);
+label_1:
+    // EBPF_OP_LDXDW pc=9 dst=r1 src=r10 offset=-8 imm=0
+#line 33 "sample/undocked/bpf2bpf_loop.c"
+    READ_ONCE_64(r1, r10, OFFSET(-8));
+    // EBPF_OP_JNE_IMM pc=10 dst=r1 src=r0 offset=1 imm=4660
+#line 33 "sample/undocked/bpf2bpf_loop.c"
+    if (r1 != IMMEDIATE(4660)) {
+#line 33 "sample/undocked/bpf2bpf_loop.c"
+        goto label_2;
+#line 33 "sample/undocked/bpf2bpf_loop.c"
+    }
+    // EBPF_OP_MOV64_IMM pc=11 dst=r2 src=r0 offset=0 imm=0
+#line 33 "sample/undocked/bpf2bpf_loop.c"
+    r2 = IMMEDIATE(0);
+label_2:
+    // EBPF_OP_OR64_REG pc=12 dst=r0 src=r2 offset=0 imm=0
+#line 33 "sample/undocked/bpf2bpf_loop.c"
+    r0 |= r2;
+    // EBPF_OP_EXIT pc=13 dst=r0 src=r0 offset=0 imm=0
+#line 34 "sample/undocked/bpf2bpf_loop.c"
+    return r0;
+#line 28 "sample/undocked/bpf2bpf_loop.c"
+}
+#pragma code_seg(pop)
+#line __LINE__ __FILE__
+
 #pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
         0,
         {1, 154, 160}, // Version header.
         caller_with_loop,
-        "sample~1",
+        "sample~2",
         "sample_ext",
         "caller_with_loop",
         caller_with_loop_maps,
         1,
         caller_with_loop_helpers,
         1,
-        28,
+        24,
         &caller_with_loop_program_type_guid,
         &caller_with_loop_attach_type_guid,
+    },
+    {
+        0,
+        {1, 154, 160}, // Version header.
+        stack_frame_test_entry,
+        "sample~1",
+        "sample_ext",
+        "stack_frame_test_entry",
+        NULL,
+        0,
+        stack_frame_test_entry_helpers,
+        1,
+        14,
+        &stack_frame_test_entry_program_type_guid,
+        &stack_frame_test_entry_attach_type_guid,
     },
 };
 #pragma data_seg(pop)
@@ -400,15 +532,15 @@ static void
 _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)
 {
     *programs = _programs;
-    *count = 1;
+    *count = 2;
 }
 
 static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
-    version->major = 1;
-    version->minor = 6;
-    version->revision = 0;
+    version->major = EBPF_VERSION_MAJOR;
+    version->minor = EBPF_VERSION_MINOR;
+    version->revision = EBPF_VERSION_REVISION;
 }
 
 static void

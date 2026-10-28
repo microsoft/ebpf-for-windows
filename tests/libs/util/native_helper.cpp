@@ -68,3 +68,25 @@ _native_module_helper::~_native_module_helper()
         DeleteFileA(_file_name.c_str());
     }
 }
+
+_native_module_helper::_native_module_helper(_native_module_helper&& other) noexcept
+    : _file_name(std::move(other._file_name)), _delete_file_on_destruction(other._delete_file_on_destruction),
+      _is_main_thread(other._is_main_thread)
+{
+    other._delete_file_on_destruction = false;
+}
+
+_native_module_helper&
+_native_module_helper::operator=(_native_module_helper&& other) noexcept
+{
+    if (this != &other) {
+        if (_delete_file_on_destruction && !_file_name.empty()) {
+            DeleteFileA(_file_name.c_str());
+        }
+        _file_name = std::move(other._file_name);
+        _delete_file_on_destruction = other._delete_file_on_destruction;
+        _is_main_thread = other._is_main_thread;
+        other._delete_file_on_destruction = false;
+    }
+    return *this;
+}

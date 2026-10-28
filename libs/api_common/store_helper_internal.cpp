@@ -39,7 +39,7 @@ _open_ebpf_store_key(_Out_ ebpf_store_key_t* store_key)
 }
 
 static ebpf_result_t
-_load_extension_header(HKEY data_key, _Out_ ebpf_extension_header_t* extension_header)
+_load_extension_header(HKEY data_key, size_t total_size, _Out_ ebpf_extension_header_t* extension_header)
 {
     uint32_t version, size;
 
@@ -56,6 +56,7 @@ _load_extension_header(HKEY data_key, _Out_ ebpf_extension_header_t* extension_h
 
     extension_header->version = static_cast<uint16_t>(version);
     extension_header->size = size;
+    extension_header->total_size = total_size;
 
     EBPF_RETURN_RESULT(result);
 }
@@ -85,7 +86,7 @@ _ebpf_store_load_helper_prototype(
     }
 
     // Load extension header.
-    result = _load_extension_header(helper_info_key, &helper_prototype->header);
+    result = _load_extension_header(helper_info_key, sizeof(*helper_prototype), &helper_prototype->header);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -171,7 +172,8 @@ _ebpf_store_load_program_type_descriptor(
     }
 
     // Load extension header.
-    result = _load_extension_header(program_type_descriptor_key, &local_program_type_descriptor->header);
+    result = _load_extension_header(
+        program_type_descriptor_key, sizeof(*local_program_type_descriptor), &local_program_type_descriptor->header);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -285,7 +287,7 @@ _ebpf_store_load_program_information(
     }
 
     // Load extension header.
-    result = _load_extension_header(program_info_key, &program_information->header);
+    result = _load_extension_header(program_info_key, sizeof(*program_information), &program_information->header);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -952,7 +954,7 @@ ebpf_store_load_btf_resolved_function(
         goto Exit;
     }
 
-    result = _load_extension_header(provider_key, &provider_header);
+    result = _load_extension_header(provider_key, sizeof(provider_header), &provider_header);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }

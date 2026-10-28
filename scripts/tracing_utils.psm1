@@ -28,7 +28,8 @@ function Start-WPRTrace {
         [Parameter(Mandatory=$false)] [string] $TraceType = "file",
         [Parameter(Mandatory=$false)] [string] $WprpFileName = "ebpfforwindows.wprp",
         [Parameter(Mandatory=$false)] [string] $TracingProfileName = "EbpfForWindows-Networking",
-        [Parameter(Mandatory=$false)] [int] $TimeoutSeconds = 60
+        [Parameter(Mandatory=$false)] [int] $TimeoutSeconds = 60,
+        [Parameter(Mandatory=$false)] [switch] $FailOnError
     )
 
     try {
@@ -58,9 +59,15 @@ function Start-WPRTrace {
             Write-Log "Successfully started trace"
         } else {
             Write-Log "Failed to start trace with exit code $exitCode"
+            if ($FailOnError) {
+                throw "Failed to start WPR trace with exit code $exitCode."
+            }
         }
     } catch {
         Write-Log "Exception starting WPR trace: $_" -ForegroundColor Red
+        if ($FailOnError) {
+            throw
+        }
     }
 }
 

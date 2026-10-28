@@ -17,7 +17,6 @@ typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
 #define _AMD64_
 #endif
 
-
 // Mapping from each eBPF result to NTSTATUS
 // (and also show the Win32 error code that the NTSTATUS maps to).
 // This should be consistent with win32_error_code_to_ebpf_result()
@@ -49,7 +48,8 @@ static const NTSTATUS _ebpf_result_mapping[] = {
     /* EBPF_EXTENSION_FAILED_TO_LOAD */ (NTSTATUS)STATUS_DRIVER_UNABLE_TO_LOAD /* ERROR_BAD_DRIVER */,
     /* EBPF_INSUFFICIENT_BUFFER */ (NTSTATUS)STATUS_BUFFER_OVERFLOW /* ERROR_MORE_DATA */,
     /* EBPF_NO_MORE_KEYS */ (NTSTATUS)STATUS_NO_MORE_MATCHES /* ERROR_NO_MORE_MATCHES */,
-    /* EBPF_KEY_ALREADY_EXISTS */ (NTSTATUS)STATUS_ALREADY_REGISTERED /* ERROR_INTERNAL_ERROR, but ought to be ERROR_ALREADY_REGISTERED */,
+    /* EBPF_KEY_ALREADY_EXISTS */
+    (NTSTATUS)STATUS_ALREADY_REGISTERED /* ERROR_INTERNAL_ERROR, but ought to be ERROR_ALREADY_REGISTERED */,
     /* EBPF_NO_MORE_TAIL_CALLS */ (NTSTATUS)STATUS_TOO_MANY_NODES /* ERROR_TOO_MANY_NAMES */,
     /* EBPF_PENDING */ (NTSTATUS)STATUS_PENDING /* ERROR_IO_PENDING */,
     /* EBPF_OUT_OF_SPACE */ (NTSTATUS)STATUS_INSUFFICIENT_RESOURCES /* ERROR_NO_SYSTEM_RESOURCES */,
@@ -59,6 +59,9 @@ static const NTSTATUS _ebpf_result_mapping[] = {
     /* EBPF_STALE_ID */ (NTSTATUS)STATUS_INVALID_DEVICE_STATE /* ERROR_BAD_COMMAND */,
     /* EBPF_INVALID_STATE */ (NTSTATUS)STATUS_INVALID_STATE_TRANSITION /* ERROR_INVALID_STATE */,
 };
+
+static_assert(
+    ARRAYSIZE(_ebpf_result_mapping) == EBPF_RESULT_COUNT, "_ebpf_result_mapping is out of sync with ebpf_result_t");
 
 /**
  * @brief Map an ebpf_result_t to a generic NTSTATUS code.
@@ -73,7 +76,7 @@ ebpf_result_to_ntstatus(ebpf_result_t result)
     if (result < 0) {
         return (NTSTATUS)STATUS_UNSUCCESSFUL;
     }
-    if (result > ARRAYSIZE(_ebpf_result_mapping)) {
+    if (result >= ARRAYSIZE(_ebpf_result_mapping)) {
         return (NTSTATUS)STATUS_UNSUCCESSFUL;
     }
     return _ebpf_result_mapping[result];

@@ -236,8 +236,6 @@ TEST_CASE("EBPF_OPERATION_LOAD_CODE", "[execution_context][negative]")
 }
 #endif
 
-#if !defined(CONFIG_BPF_JIT_DISABLED)
-
 struct program_info_provider_reference_guard
 {
   public:
@@ -301,6 +299,7 @@ test_program_context()
     REQUIRE(ebpf_program_associate_maps(program.get(), maps, EBPF_COUNT_OF(maps)) == EBPF_SUCCESS);
     REQUIRE(((ebpf_core_object_t*)map.get())->base.reference_count == 2);
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
     ebpf_trampoline_table_ptr table;
     ebpf_result_t (*test_function)();
     auto provider_function1 = []() { return (ebpf_result_t)TEST_FUNCTION_RETURN; };
@@ -387,6 +386,7 @@ test_program_context()
     REQUIRE(addresses[0].address != 0);
     REQUIRE(addresses[1].address != 0);
     REQUIRE(addresses[2].address != 0);
+#endif
 
     link_ptr link;
 
@@ -432,10 +432,11 @@ test_program_context()
 
     link.reset();
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
     ebpf_free_trampoline_table(table.release());
+#endif
 }
 
-// Only run the test if JIT is enabled.
 TEST_CASE("program", "[execution_context]") { test_program_context(); }
 
 TEST_CASE("program_test_run_repeat_count_zero", "[execution_context][negative]")
@@ -456,33 +457,7 @@ TEST_CASE("program_test_run_repeat_count_zero", "[execution_context][negative]")
         program.reset(local_program);
     }
 
-    ebpf_trampoline_table_ptr table;
-    ebpf_result_t (*test_function)();
-    auto provider_function1 = []() { return (ebpf_result_t)TEST_FUNCTION_RETURN; };
-    ebpf_result_t (*function_pointer1)() = provider_function1;
-    uint32_t test_function_ids[] = {(EBPF_MAX_GENERAL_HELPER_FUNCTION + 1)};
-    const void* helper_functions[] = {(void*)function_pointer1};
-    ebpf_helper_function_addresses_t helper_function_addresses = {
-        EBPF_HELPER_FUNCTION_ADDRESSES_HEADER, EBPF_COUNT_OF(helper_functions), (uint64_t*)helper_functions};
-
-    {
-        ebpf_trampoline_table_t* local_table = nullptr;
-        REQUIRE(ebpf_allocate_trampoline_table(1, &local_table) == EBPF_SUCCESS);
-        table.reset(local_table);
-    }
-    REQUIRE(
-        ebpf_update_trampoline_table(
-            table.get(), EBPF_COUNT_OF(test_function_ids), test_function_ids, &helper_function_addresses) ==
-        EBPF_SUCCESS);
-    REQUIRE(
-        ebpf_get_trampoline_function(
-            table.get(), EBPF_MAX_GENERAL_HELPER_FUNCTION + 1, reinterpret_cast<void**>(&test_function)) ==
-        EBPF_SUCCESS);
-
-    REQUIRE(
-        ebpf_program_load_code(
-            program.get(), EBPF_CODE_JIT, nullptr, reinterpret_cast<uint8_t*>(test_function), PAGE_SIZE) ==
-        EBPF_SUCCESS);
+    program_info_provider_reference_guard provider_reference(program.get());
 
     ebpf_program_test_run_options_t options = {0};
     sample_program_context_t in_ctx{0};
@@ -514,10 +489,7 @@ TEST_CASE("program_test_run_repeat_count_zero", "[execution_context][negative]")
                 ebpf_assert(async_context != nullptr);
                 ebpf_async_complete(async_context, options->data_size_out, result);
             }) == EBPF_INVALID_ARGUMENT);
-
-    ebpf_free_trampoline_table(table.release());
 }
-#endif
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
 // These tests exist to verify ebpf_core's parsing of messages.

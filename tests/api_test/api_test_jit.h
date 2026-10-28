@@ -41,3 +41,9 @@ get_expected_jit_result(int32_t expected_result);
 
 void
 perform_socket_bind(const uint16_t test_port, bool expect_success);
+
+void
+ring_buffer_api_test(ebpf_execution_type_t execution_type);
+
+void
+divide_by_zero_test_km(ebpf_execution_type_t execution_type);

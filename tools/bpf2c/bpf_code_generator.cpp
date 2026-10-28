@@ -15,7 +15,6 @@
 #include "bpf_code_generator.h"
 #include "ebpf_api.h"
 #include "ebpf_store_helper.h"
-#include "ebpf_version.h"
 #pragma warning(push)
 #pragma warning(disable : 26495) // Always initialize a member variable
 #define ebpf_inst ebpf_inst_btf
@@ -28,6 +27,7 @@
 #pragma warning(pop)
 
 #include <windows.h>
+#include <algorithm>
 #include <cassert>
 #include <format>
 #include <iomanip>
@@ -1043,6 +1043,42 @@ bpf_code_generator::get_reachable_subprograms(const unsafe_string& entry_name) c
     return reachable;
 }
 
+size_t
+bpf_code_generator::get_maximum_call_depth(const unsafe_string& entry_name) const
+{
+    std::map<unsafe_string, size_t> maximum_depths;
+    std::set<unsafe_string> active_calls;
+    std::function<size_t(const unsafe_string&)> calculate_depth = [&](const unsafe_string& program_name) {
+        if (const auto it = maximum_depths.find(program_name); it != maximum_depths.end()) {
+            return it->second;
+        }
+        if (!active_calls.insert(program_name).second) {
+            throw bpf_code_generator_exception("recursive local function call: " + program_name.raw());
+        }
+
+        const auto program = programs.find(program_name);
+        if (program == programs.end()) {
+            throw bpf_code_generator_exception("local function call target not found: " + program_name.raw());
+        }
+
+        size_t maximum_depth = 1;
+        for (const auto& instruction : program->second.output_instructions) {
+            if (instruction.instruction.opcode == INST_OP_CALL && instruction.instruction.src == INST_CALL_LOCAL) {
+                if (instruction.relocation.empty()) {
+                    throw bpf_code_generator_exception("local function call target not found: " + program_name.raw());
+                }
+                maximum_depth = std::max(maximum_depth, 1 + calculate_depth(instruction.relocation));
+            }
+        }
+
+        active_calls.erase(program_name);
+        maximum_depths.emplace(program_name, maximum_depth);
+        return maximum_depth;
+    };
+
+    return calculate_depth(entry_name);
+}
+
 void
 bpf_code_generator::build_global_helper_index()
 {
@@ -2006,7 +2042,9 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
                 output.lines.push_back(
                     get_register_name(0) + " = " + function_name + "(" + get_register_name(1) + ", " +
                     get_register_name(2) + ", " + get_register_name(3) + ", " + get_register_name(4) + ", " +
-                    get_register_name(5) + ", " + get_register_name(10) + ", context, runtime_context);");
+                    get_register_name(5) + ", " + get_register_name(10) +
+                    " - UBPF_STACK_SIZE, context, "
+                    "runtime_context);");
             } else if (inst.opcode == INST_OP_EXIT) {
                 output.lines.push_back("return " + get_register_name(0) + ";");
             } else {
@@ -2119,7 +2157,7 @@ void
 bpf_code_generator::emit_c_code(std::ostream& output_stream)
 {
     // Emit C file.
-    output_stream << "#include \"bpf2c.h\"" << std::endl << std::endl;
+    output_stream << "#include \"bpf2c.h\"" << std::endl << "#include \"ebpf_version.h\"" << std::endl << std::endl;
 
     // Emit hash data in its own section.
     if (elf_file_hash.has_value()) {
@@ -2582,7 +2620,11 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         program.get_register_name(1);
         program.get_register_name(10);
         output_stream << prolog_line_info << INDENT "// Prologue." << std::endl;
-        output_stream << prolog_line_info << INDENT "uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];" << std::endl;
+        const size_t maximum_call_depth = get_maximum_call_depth(program_name);
+        const std::string stack_size = maximum_call_depth == 1
+                                           ? "UBPF_STACK_SIZE"
+                                           : "(UBPF_STACK_SIZE * " + std::to_string(maximum_call_depth) + ")";
+        output_stream << prolog_line_info << INDENT "uint64_t stack[(" << stack_size << " + 7) / 8];" << std::endl;
         for (const auto& r : _register_names) {
             // Skip unused registers.
             if (program.referenced_registers.find(r) == program.referenced_registers.end()) {
@@ -2735,16 +2777,12 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
     output_stream << "}" << std::endl;
     output_stream << std::endl;
 
-    std::string version_major = std::to_string(EBPF_VERSION_MAJOR);
-    std::string version_minor = std::to_string(EBPF_VERSION_MINOR);
-    std::string version_revision = std::to_string(EBPF_VERSION_REVISION);
-
     output_stream << "static void" << std::endl
                   << "_get_version(_Out_ bpf2c_version_t* version)" << std::endl
                   << "{" << std::endl
-                  << INDENT "version->major = " << version_major << ";" << std::endl
-                  << INDENT "version->minor = " << version_minor << ";" << std::endl
-                  << INDENT "version->revision = " << version_revision << ";" << std::endl
+                  << INDENT "version->major = EBPF_VERSION_MAJOR;" << std::endl
+                  << INDENT "version->minor = EBPF_VERSION_MINOR;" << std::endl
+                  << INDENT "version->revision = EBPF_VERSION_REVISION;" << std::endl
                   << "}" << std::endl
                   << std::endl;
 
