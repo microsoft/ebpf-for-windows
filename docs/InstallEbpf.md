@@ -30,6 +30,8 @@ An **command line install/uninstall** is also supported, through the direct use 
 
   * `eBPF_Runtime_Components` (**mandatory**): runtime components (installed in `[Installation folder]\*`, `[Installation folder]\drivers`).
   * `eBPF_Runtime_Components_JIT` (optional): JIT compiler service (installed in `[Installation folder]\JIT`).
+    Normal installations register `eBPFSvc` using this installed executable. Only forced replacement
+    of an existing `eBPFCore` uses the canonical `%SystemRoot%\System32\ebpfsvc.exe` hard link.
 
     e.g., (full featured):
 

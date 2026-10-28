@@ -29,6 +29,8 @@ param(
 
     [string]$InstallRoot,
 
+    [switch]$UseCanonicalServicePath,
+
     [string]$SystemRootPath = $env:SystemRoot,
 
     [ValidateSet("HKLM", "HKCU")]
@@ -926,7 +928,13 @@ function Set-ServiceFromState
 function Install-MsiEbpfService
 {
     $name = "eBPFSvc"
-    $imagePath = '"' + (Join-Path $SystemRootPath "System32\ebpfsvc.exe") + '"'
+    $servicePath =
+        if ($UseCanonicalServicePath) {
+            Join-Path $SystemRootPath "System32\ebpfsvc.exe"
+        } else {
+            Join-Path $InstallRoot "JIT\ebpfsvc.exe"
+        }
+    $imagePath = '"' + $servicePath + '"'
     if ($null -eq (Get-Service -Name $name -ErrorAction SilentlyContinue)) {
         Invoke-NativeCommand `
             -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
