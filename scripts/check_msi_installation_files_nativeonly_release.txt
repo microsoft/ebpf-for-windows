@@ -17,6 +17,7 @@ C:\Program Files\ebpf-for-windows\ebpfnetsh.dll
 C:\Program Files\ebpf-for-windows\ebpfnetsh.pdb
 C:\Program Files\ebpf-for-windows\export_program_info.exe
 C:\Program Files\ebpf-for-windows\export_program_info.pdb
+C:\Program Files\ebpf-for-windows\ForceEbpfStack.ps1
 C:\Program Files\ebpf-for-windows\JIT\ebpfsvc.exe
 C:\Program Files\ebpf-for-windows\JIT\EbpfSvc.pdb
 C:\Program Files\ebpf-for-windows\LICENSE.txt
