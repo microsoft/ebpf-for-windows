@@ -48,12 +48,26 @@ An **command line install/uninstall** is also supported, through the direct use 
   cannot be staged (for example, because `INSTALLFOLDER` is on another volume). The installer temporarily grants
   itself access to protected inbox binaries while changing their hard links and then restores their original ACLs
   through the temporary rollback links. Distinct replacement files retain their MSI-installed ACLs.
+  Store backups under `%ProgramData%\eBPF-for-Windows\MsiBackup` use `ebpf-store-<scope>.reg` and
+  `ebpf-store-<scope>.json` for the durable original state, and matching `.rollback.reg` / `.rollback.json`
+  files for the current installation attempt (`<scope>` is `hklm` or `hkcu`). Older `.pending` metadata files
+  remain readable for recovery; new backups use `.rollback.json`. A transaction with both metadata names is
+  rejected as ambiguous. Service snapshots pair `ebpf-services.rollback.json` with each service's
+  `.rollback.reg` export; their durable state is `ebpf-services.original.json` with `.original.reg` exports.
+  Older `ebpf-services.pending.json` and `ebpf-services.json` names remain supported for recovery and
+  restoration, respectively; conflicting legacy and current metadata names are rejected.
+  Hard-link staging uses `.ebpf-msi-new`, per-attempt recovery uses `.ebpf-msi-rollback`, and durable original
+  files use `.ebpf-msi-backup`; these are links to binaries, not registry exports or JSON metadata.
   The original hard links remain under `.ebpf-msi-backup` names until a final uninstall restores them. All six backup
   links must be present; the installer fails safely if it detects a partial backup set. Link restoration is skipped
   when removal is part of a major upgrade, and is rolled back if the uninstall fails.
   The original `eBPFCore`, `NetEbpfExt`, and `eBPFSvc` service registry keys and running states are also retained.
   If installation fails after starting the drivers, rollback stops each driver before restoring its previous
   image path or deleting a service registration created by the MSI.
+  New installations are rejected if NetEbpfExt's `ImagePath` is detected without an eBPFCore `ImagePath`,
+  including with `FORCE=1`; maintenance and uninstall of this MSI remain allowed.
+  In the forced stack replacement path, previous driver configurations are restored by the full service
+  rollback after binary and store restoration, without separate per-driver image-path undo actions.
   Final uninstall restores services that existed before installation and removes only services created by the MSI.
   It also saves the existing machine and installing-user eBPF registry stores under
   `%ProgramData%\eBPF-for-Windows\MsiBackup`, replaces them with metadata for the installed version, and restores the
