@@ -51,12 +51,21 @@ function Invoke-TracingTool {
 function Save-RundownFile {
     param([string]$SourcePath, [string]$Name)
 
+    if (-not (Test-Path -LiteralPath $SourcePath -PathType Leaf)) {
+        Write-Warning "Rundown file not found '$SourcePath'; skipping $Name snapshot."
+        return
+    }
+
     $filePath = $SourcePath
     if ($options.compress_rundown_state_files -eq 'true') {
         $filePath = [System.IO.Path]::ChangeExtension($SourcePath, '.cab')
         Invoke-TracingTool makecab.exe @($SourcePath, $filePath)
     }
 
+    if (-not (Test-Path -LiteralPath $filePath -PathType Leaf)) {
+        Write-Warning "Rundown file not found '$filePath'; skipping $Name snapshot."
+        return
+    }
     $file = Get-Item -LiteralPath $filePath
     if ($file.Length -le $maxFileSizeBytes) {
         $destination = Join-Path $committedPath ("{0}_{1}{2}" -f $Name, $timestamp, $file.Extension)
@@ -180,17 +189,19 @@ switch ($command) {
         } finally {
             Pop-Location
 
-            Get-ChildItem -LiteralPath $tracePath -Filter '*.etl' -File |
+            # Report individual housekeeping errors without skipping other files or retention passes.
+            Get-ChildItem -LiteralPath $tracePath -Filter '*.etl' -File -ErrorAction Continue |
                 Sort-Object Name -Descending | Select-Object -Skip 1 |
-                Move-Item -Destination $committedPath -Force
+                Move-Item -Destination $committedPath -Force -ErrorAction Continue
 
             foreach ($pattern in @('wfpstate_*.*', 'bpfstate_*.*')) {
-                Get-ChildItem -LiteralPath $committedPath -Filter $pattern -File |
+                Get-ChildItem -LiteralPath $committedPath -Filter $pattern -File -ErrorAction Continue |
                     Sort-Object LastWriteTime -Descending |
-                    Select-Object -Skip $options.max_committed_rundown_state_files | Remove-Item -Force
+                    Select-Object -Skip $options.max_committed_rundown_state_files |
+                    Remove-Item -Force -ErrorAction Continue
             }
 
-            $etlFiles = @(Get-ChildItem -LiteralPath $committedPath -Filter '*.etl' -File |
+            $etlFiles = @(Get-ChildItem -LiteralPath $committedPath -Filter '*.etl' -File -ErrorAction Continue |
                 Sort-Object LastWriteTime -Descending)
             # Preserve the batch script's exemption of the newest committed ETL from the size budget.
             $sizeKB = 0L
@@ -198,12 +209,12 @@ switch ($command) {
             foreach ($file in ($etlFiles | Select-Object -Skip 1)) {
                 $sizeKB += [long][Math]::Floor($file.Length / 1KB)
                 if ($sizeKB -gt $maxSizeKB) {
-                    Remove-Item -LiteralPath $file.FullName -Force
+                    Remove-Item -LiteralPath $file.FullName -Force -ErrorAction Continue
                 }
             }
-            Get-ChildItem -LiteralPath $committedPath -Filter '*.etl' -File |
+            Get-ChildItem -LiteralPath $committedPath -Filter '*.etl' -File -ErrorAction Continue |
                 Sort-Object LastWriteTime -Descending |
-                Select-Object -Skip $options.max_committed_etl_files | Remove-Item -Force
+                Select-Object -Skip $options.max_committed_etl_files | Remove-Item -Force -ErrorAction Continue
         }
     }
 }
