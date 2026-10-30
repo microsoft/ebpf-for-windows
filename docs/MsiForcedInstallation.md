@@ -39,7 +39,7 @@ restore **A**. A single overwritten backup cannot serve both purposes.
 
 ### Requirements and recovery details
 
-New installations are rejected if NetEbpfExt's `ImagePath` is detected without an eBPFCore `ImagePath`,
+New installations are rejected if NetEbpfExt's or eBPFSvc's `ImagePath` is detected without an eBPFCore `ImagePath`,
 even with `FORCE=1`. Maintenance and uninstall remain allowed.
 
 Forced replacement uses NTFS hard links for six binaries under `System32` and `System32\drivers`,
@@ -51,6 +51,13 @@ The standard MSI service-stop action is skipped for forced stack replacement so 
 capture running states before stopping services. Normal installation, maintenance, and uninstall
 retain standard service stopping. The installer temporarily grants access to protected originals and
 restores their ACLs through rollback links; distinct replacement files retain their MSI-installed ACLs.
+Service restoration preserves service and load-order-group dependencies and restores an absent
+`ServiceSidType` to its default, `none`. Uninstall rollback stops restored services before relinking
+the MSI binaries. Missing canonical links are recreated from the MSI files while retaining original
+backups; a failure on one mapping does not prevent recovery attempts on the others.
+
+Success-only cleanup failures are logged but do not trigger rollback after other cleanup actions have
+already deleted recovery data.
 
 ### Backup filenames
 
@@ -69,8 +76,7 @@ Registry exports are created only for keys that existed; metadata records absent
 
 ### Backup directory protection
 
-Backup actions require SYSTEM or an elevated administrator token. The application directory,
-backup directory, and `UserStore` are created with protected ACLs granting full control only to
+The application directory, backup directory, and `UserStore` are created with protected ACLs granting full control only to
 SYSTEM and Administrators. No ordinary-user write access is granted, including for HKCU snapshots.
 HKCU registry actions remain impersonated and retain the same-installing-user requirement.
 
@@ -209,7 +215,7 @@ flowchart TD
         MachineRestore["Force_eBPF_store_restore_HKLM<br/>R: Force_eBPF_binaries_uninstall_rollback"]
         UserRestore["Force_eBPF_store_restore_HKCU"]
         BinaryRestore["Force_eBPF_binaries_uninstall_restore"]
-        ServiceRestore["Force_eBPF_services_uninstall_restore"]
+        ServiceRestore["Force_eBPF_services_uninstall_restore<br/>R: Force_eBPF_services_uninstall_stop_rollback"]
         Files["RemoveFiles"]
         Folders["RemoveFolders"]
         NormalSuccess["Normal uninstall succeeded"]

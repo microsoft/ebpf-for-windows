@@ -15,6 +15,7 @@ param(
         "PrepareRestoreServices",
         "RemoveServices",
         "RestoreServices",
+        "StopServices",
         "RollbackRestoreServices",
         "BackupStore",
         "RollbackStore",
@@ -278,11 +279,7 @@ namespace EbpfMsi
 
         public static IDisposable LockBackupDirectory(string path)
         {
-            path = System.IO.Path.GetFullPath(path).TrimEnd('\\');
-            if (path.Length < 3 || path[1] != ':' || path[2] != '\\' ||
-                path.IndexOf(':', 2) >= 0) {
-                throw new System.IO.IOException("Backup path must be on a local drive: " + path);
-            }
+            path = path.TrimEnd('\\');
             string parent = System.IO.Path.GetDirectoryName(path);
             string boundary = System.IO.Path.GetDirectoryName(parent);
             if (String.IsNullOrEmpty(boundary)) {
@@ -660,9 +657,16 @@ function Restore-OriginalLinks
         }
     } catch {
         $restoreError = $_
+        $rollbackFailures = @()
         try {
             Restore-MsiLinks
-            foreach ($mapping in $mappings) {
+        } catch {
+            $rollbackFailures += $_.Exception.Message
+        }
+        try {
+            Invoke-ForAllMappings {
+                param($mapping)
+
                 $backup = $mapping.Link + ".ebpf-msi-backup"
                 if (Test-Path -LiteralPath $backup -PathType Leaf) {
                     Restore-FileAcl -Path $backup -Acl $originalAcls[$mapping.Link]
@@ -672,7 +676,10 @@ function Restore-OriginalLinks
                 }
             }
         } catch {
-            throw "$($restoreError.Exception.Message)$([Environment]::NewLine)Failed to roll back link restoration: $($_.Exception.Message)"
+            $rollbackFailures += $_.Exception.Message
+        }
+        if ($rollbackFailures.Count -ne 0) {
+            throw "$($restoreError.Exception.Message)$([Environment]::NewLine)Failed to roll back link restoration: $($rollbackFailures -join [Environment]::NewLine)"
         }
         throw $restoreError
     }
@@ -685,18 +692,24 @@ function Restore-MsiLinks
         return
     }
 
-    $mappingsToRestore = @()
-    foreach ($mapping in $mappings) {
+    Invoke-ForAllMappings {
+        param($mapping)
+
         $backup = $mapping.Link + ".ebpf-msi-backup"
         if (-not (Test-Path -LiteralPath $mapping.Source -PathType Leaf)) {
             throw "Installed eBPF binary is missing during uninstall rollback: $($mapping.Source)"
         }
         if (-not (Test-Path -LiteralPath $mapping.Link -PathType Leaf)) {
-            throw "Restored canonical eBPF binary is missing: $($mapping.Link)"
+            if (-not (Test-Path -LiteralPath $backup -PathType Leaf)) {
+                throw "Both the canonical eBPF binary and its backup are missing: $($mapping.Link)"
+            }
+            New-Item -ItemType HardLink -Path $mapping.Link -Target $mapping.Source | Out-Null
+            Remove-BackupFileIfPresent -Path ($mapping.Link + ".ebpf-msi-new")
+            return
         }
         if (Test-Path -LiteralPath $backup -PathType Leaf) {
             if (Test-SameFile -FirstPath $mapping.Link -SecondPath $mapping.Source) {
-                continue
+                return
             }
             if (-not (Test-SameFile -FirstPath $mapping.Link -SecondPath $backup)) {
                 throw "The canonical eBPF binary points to neither the backup nor the MSI file: $($mapping.Link)"
@@ -704,27 +717,23 @@ function Restore-MsiLinks
         } elseif (Test-SameFile -FirstPath $mapping.Link -SecondPath $mapping.Source) {
             throw "The canonical eBPF binary points to the MSI file but its backup is missing: $($mapping.Link)"
         }
-        $mappingsToRestore += @{
-            Mapping = $mapping
-            OriginalAcl = Get-RestorableFileAcl -Path $mapping.Link
-        }
-    }
-
-    foreach ($mappingState in $mappingsToRestore) {
-        $mapping = $mappingState.Mapping
-        $backup = $mapping.Link + ".ebpf-msi-backup"
-        Enable-SystemFileAccess -Path $mapping.Link
+        $originalAcl = Get-RestorableFileAcl -Path $mapping.Link
         $replacement = $mapping.Link + ".ebpf-msi-new"
-        Remove-Item -LiteralPath $replacement -Force -ErrorAction SilentlyContinue
-        New-Item -ItemType HardLink -Path $replacement -Target $mapping.Source |
-            Out-Null
-        if (-not (Test-Path -LiteralPath $backup -PathType Leaf)) {
-            New-Item -ItemType HardLink -Path $backup -Target $mapping.Link |
+        try {
+            Enable-SystemFileAccess -Path $mapping.Link
+            Remove-BackupFileIfPresent -Path $replacement
+            New-Item -ItemType HardLink -Path $replacement -Target $mapping.Source |
                 Out-Null
+            if (-not (Test-Path -LiteralPath $backup -PathType Leaf)) {
+                New-Item -ItemType HardLink -Path $backup -Target $mapping.Link |
+                    Out-Null
+            }
+            Remove-Item -LiteralPath $mapping.Link -Force
+            Move-Item -LiteralPath $replacement -Destination $mapping.Link
+        } finally {
+            $originalPath = if (Test-Path -LiteralPath $backup -PathType Leaf) { $backup } else { $mapping.Link }
+            Restore-FileAcl -Path $originalPath -Acl $originalAcl
         }
-        Remove-Item -LiteralPath $mapping.Link -Force
-        Move-Item -LiteralPath $replacement -Destination $mapping.Link
-        Restore-FileAcl -Path $backup -Acl $mappingState.OriginalAcl
     }
 }
 
@@ -884,6 +893,12 @@ function Get-ServiceState
                 $null
             }
         DependOnService = $dependencies
+        DependOnGroup =
+            if ($null -ne $values.PSObject.Properties["DependOnGroup"]) {
+                @($values.DependOnGroup)
+            } else {
+                @()
+            }
         Description =
             if ($null -ne $values.PSObject.Properties["Description"]) {
                 [string]$values.Description
@@ -1048,8 +1063,20 @@ function Set-ServiceFromState
     if (-not [string]::IsNullOrWhiteSpace([string]$ServiceState.DisplayName)) {
         $arguments += @("DisplayName=", [string]$ServiceState.DisplayName)
     }
-    if (@($ServiceState.DependOnService).Count -ne 0) {
-        $arguments += @("depend=", (@($ServiceState.DependOnService) -join "/"))
+    $dependencies = @($ServiceState.DependOnService)
+    $dependencyState = $ServiceState
+    if ($null -eq $dependencyState.PSObject.Properties["DependOnGroup"]) {
+        # Older snapshots preserve group dependencies only in the registry export imported above.
+        $dependencyState = Get-ItemProperty `
+            -LiteralPath (Get-RegistryProviderPath -RegistryPath (Get-ServiceRegistryPath -Name $name))
+    }
+    if ($null -ne $dependencyState.PSObject.Properties["DependOnGroup"]) {
+        $dependencies += @($dependencyState.DependOnGroup) |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+            ForEach-Object { "+$_" }
+    }
+    if ($dependencies.Count -ne 0) {
+        $arguments += @("depend=", ($dependencies -join "/"))
     } else {
         $arguments += @("depend=", "/")
     }
@@ -1093,7 +1120,7 @@ function Set-ServiceFromState
     } elseif ([int]$ServiceState.Type -in @(16, 32)) {
         Invoke-NativeCommand `
             -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
-            -ArgumentList @("sidtype", $name, "unrestricted") `
+            -ArgumentList @("sidtype", $name, "none") `
             -FailureMessage "Failed to restore the $name service SID type"
         Remove-ItemProperty `
             -LiteralPath (Get-RegistryProviderPath -RegistryPath (Get-ServiceRegistryPath -Name $name)) `
@@ -1631,11 +1658,6 @@ function Commit-StoreRestore
 $backupLock = $null
 try {
     if ($Action -match "(Services|Store)$" -or $Action -eq "CommitRestoreAll") {
-        $principal = [System.Security.Principal.WindowsPrincipal]::new(
-            [System.Security.Principal.WindowsIdentity]::GetCurrent())
-        if (-not $principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)) {
-            throw "MSI backup operations require an elevated administrator or SYSTEM token."
-        }
         $StateRoot = [System.IO.Path]::GetFullPath($StateRoot)
         $backupLock = [EbpfMsi.NativeSecurity]::LockBackupDirectory($StateRoot)
     }
@@ -1775,6 +1797,20 @@ try {
 
         "RestoreServices" {
             Restore-Services
+        }
+
+        "StopServices" {
+            $failures = @()
+            for ($index = $ServiceNames.Count - 1; $index -ge 0; $index--) {
+                try {
+                    Stop-ServiceIfPresent -Name $ServiceNames[$index]
+                } catch {
+                    $failures += "$($ServiceNames[$index]): $($_.Exception.Message)"
+                }
+            }
+            if ($failures.Count -ne 0) {
+                throw ($failures -join [Environment]::NewLine)
+            }
         }
 
         "RollbackRestoreServices" {
