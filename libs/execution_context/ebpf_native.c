@@ -1018,8 +1018,10 @@ _ebpf_native_provider_attach_client_callback(
         }
     }
     // Delete the entry from the authorized module table if it exists.
-    (void)ebpf_hash_table_delete(
-        _ebpf_native_authorized_module_table, NULL, (const uint8_t*)&client_context->client_module_id);
+    // Note: key on the client_module_id parameter - client_context->client_module_id
+    // is not assigned until later in this function, so using it here would delete
+    // GUID_NULL and permanently leak the entry.
+    (void)ebpf_hash_table_delete(_ebpf_native_authorized_module_table, NULL, (const uint8_t*)client_module_id);
 
     ebpf_lock_unlock(&_ebpf_native_authorized_module_table_lock, state);
     if (result != EBPF_SUCCESS) {
@@ -1243,6 +1245,7 @@ _ebpf_native_get_next_map_to_create(_In_reads_(map_count) ebpf_native_map_t* map
 static ebpf_result_t
 _ebpf_native_initialize_maps(
     _In_ const GUID* module_id,
+    _In_opt_z_ const char* pin_root_path,
     _Out_writes_(map_count) ebpf_native_map_t* native_maps,
     _In_reads_(map_count) const map_entry_t* maps,
     size_t map_count)
@@ -1277,9 +1280,23 @@ _ebpf_native_initialize_maps(
         native_maps[i].original_id = i + ORIGINAL_ID_OFFSET;
 
         if (entry->definition.pinning == LIBBPF_PIN_BY_NAME) {
-            // Construct the pin path.
+            // Construct the pin path by prefixing the map name with the requested pin root path.
+            // ebpf_canonicalize_path treats a relative path as relative to the root, so when no
+            // pin root path is supplied the bare map name yields the default pin root.
+            char pin_path[EBPF_MAX_PIN_PATH_LENGTH];
             char canonical_path[EBPF_MAX_PIN_PATH_LENGTH];
-            result = ebpf_canonicalize_path(canonical_path, sizeof(canonical_path), entry->name);
+
+            result = ebpf_build_map_pin_path(pin_path, sizeof(pin_path), pin_root_path, entry->name);
+            if (result != EBPF_SUCCESS) {
+                EBPF_LOG_MESSAGE_GUID(
+                    EBPF_TRACELOG_LEVEL_ERROR,
+                    EBPF_TRACELOG_KEYWORD_NATIVE,
+                    "_ebpf_native_initialize_maps: map pin path too long",
+                    module_id);
+                goto Done;
+            }
+
+            result = ebpf_canonicalize_path(canonical_path, sizeof(canonical_path), pin_path);
             if (result != EBPF_SUCCESS) {
                 EBPF_LOG_MESSAGE_GUID(
                     EBPF_TRACELOG_LEVEL_ERROR,
@@ -1593,7 +1610,7 @@ _ebpf_native_initialize_global_variables(
 }
 
 static ebpf_result_t
-_ebpf_native_create_maps(_Inout_ ebpf_native_module_instance_t* instance)
+_ebpf_native_create_maps(_Inout_ ebpf_native_module_instance_t* instance, _In_opt_z_ const char* pin_root_path)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
@@ -1623,7 +1640,7 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_instance_t* instance)
     instance->map_count = map_count;
     native_maps = instance->maps;
 
-    result = _ebpf_native_initialize_maps(&module->client_module_id, native_maps, maps, map_count);
+    result = _ebpf_native_initialize_maps(&module->client_module_id, pin_root_path, native_maps, maps, map_count);
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
@@ -2459,8 +2476,10 @@ Done:
 _Must_inspect_result_ ebpf_result_t
 ebpf_native_load_programs(
     _In_ const GUID* module_id,
+    _In_opt_z_ const char* pin_root_path,
     size_t count_of_map_handles,
     _Out_writes_opt_(count_of_map_handles) ebpf_handle_t* map_handles,
+    _Out_writes_opt_(count_of_map_handles) uint8_t* map_reused,
     size_t count_of_program_handles,
     _Out_writes_(count_of_program_handles) ebpf_handle_t* program_handles)
 {
@@ -2538,7 +2557,7 @@ ebpf_native_load_programs(
     lock_acquired = false;
 
     // Create maps.
-    result = _ebpf_native_create_maps(&instance);
+    result = _ebpf_native_create_maps(&instance, pin_root_path);
     if (result != EBPF_SUCCESS) {
         EBPF_LOG_MESSAGE_GUID(
             EBPF_TRACELOG_LEVEL_VERBOSE,
@@ -2585,6 +2604,9 @@ ebpf_native_load_programs(
 
     for (int i = 0; i < count_of_map_handles; i++) {
         map_handles[i] = instance.maps[i].handle;
+        if (map_reused != NULL) {
+            map_reused[i] = instance.maps[i].reused ? 1 : 0;
+        }
         instance.maps[i].handle = ebpf_handle_invalid;
     }
 
@@ -2845,6 +2867,17 @@ ebpf_native_authorize_module(_In_ const GUID* module_id, _In_ const uint8_t* mod
     EBPF_RETURN_RESULT(result);
 }
 
+bool
+ebpf_native_authorization_entry_exists(_In_ const GUID* module_id)
+{
+    uint8_t* value = NULL;
+    ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_native_authorized_module_table_lock);
+    bool exists =
+        ebpf_hash_table_find(_ebpf_native_authorized_module_table, (const uint8_t*)module_id, &value) == EBPF_SUCCESS;
+    ebpf_lock_unlock(&_ebpf_native_authorized_module_table_lock, state);
+    return exists;
+}
+
 /**
  * @brief Callback function for the authorized module cleanup work item.
  * Authorized modules that have not been used for more than EBPF_NATIVE_AUTHORIZE_MODULE_ENTRY_TIMEOUT_NANOSECONDS
@@ -2906,6 +2939,11 @@ _ebpf_native_authorized_module_cleanup_work_item_callback(_Inout_opt_ void* cont
             _ebpf_native_authorized_module_cleanup_work_item,
             EBPF_NATIVE_AUTHORIZE_MODULE_ENTRY_TIMEOUT_NANOSECONDS / 1000);
         _ebpf_native_authorized_module_cleanup_work_item_scheduled = true;
+    } else {
+        // Nothing left to expire: clear the flag so the next authorize re-arms
+        // the one-shot timer. Without this, entries added after the table first
+        // drains are never cleaned up for the rest of the boot.
+        _ebpf_native_authorized_module_cleanup_work_item_scheduled = false;
     }
 
     ebpf_lock_unlock(&_ebpf_native_authorized_module_table_lock, state);
