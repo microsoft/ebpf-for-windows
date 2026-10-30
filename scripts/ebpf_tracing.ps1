@@ -169,8 +169,14 @@ switch ($command) {
 
         Push-Location -LiteralPath $tracePath
         try {
-            Invoke-TracingTool netsh.exe @('wfp', 'show', 'state')
-            Save-RundownFile (Join-Path $tracePath 'wfpstate.xml') 'wfpstate'
+            $wfpCollectionError = $null
+            try {
+                Invoke-TracingTool netsh.exe @('wfp', 'show', 'state')
+                Save-RundownFile (Join-Path $tracePath 'wfpstate.xml') 'wfpstate'
+            } catch {
+                $wfpCollectionError = $_
+                Write-Warning "WFP state collection failed; continuing with BPF state collection: $_"
+            }
 
             $bpfStatePath = Join-Path $tracePath 'bpf_state.txt'
             foreach ($kind in @('prog', 'link', 'map')) {
@@ -186,6 +192,9 @@ switch ($command) {
                     Add-Content -LiteralPath $bpfStatePath -Encoding UTF8
             }
             Save-RundownFile $bpfStatePath 'bpfstate'
+            if ($null -ne $wfpCollectionError) {
+                throw $wfpCollectionError
+            }
         } finally {
             Pop-Location
 
