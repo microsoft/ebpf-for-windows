@@ -3,9 +3,9 @@
 
 #pragma once
 
-#include <stddef.h>
-
 #include "ebpf_protocol.h"
+
+#include <stddef.h>
 
 static_assert(sizeof(ebpf_operation_header_t) == 8, "ebpf_operation_header_t must remain 8 bytes");
 static_assert(sizeof(ebpf_operation_id_t) == sizeof(uint32_t), "ebpf_operation_id_t must remain 4 bytes");
@@ -23,7 +23,8 @@ static_assert(
 #endif
 
 static_assert(
-    offsetof(ebpf_operation_create_map_request_t, data) == 40, "ebpf_operation_create_map_request_t.data offset mismatch");
+    offsetof(ebpf_operation_create_map_request_t, data) == 48,
+    "ebpf_operation_create_map_request_t.data offset mismatch");
 static_assert(
     offsetof(ebpf_operation_map_find_element_request_t, key) == 17,
     "ebpf_operation_map_find_element_request_t.key offset mismatch");
@@ -46,7 +47,8 @@ static_assert(
     offsetof(ebpf_operation_get_pinned_object_request_t, path) == 8,
     "ebpf_operation_get_pinned_object_request_t.path offset mismatch");
 static_assert(
-    offsetof(ebpf_operation_link_program_request_t, data) == 32, "ebpf_operation_link_program_request_t.data offset mismatch");
+    offsetof(ebpf_operation_link_program_request_t, data) == 32,
+    "ebpf_operation_link_program_request_t.data offset mismatch");
 static_assert(
     offsetof(ebpf_operation_unlink_program_request_t, data) == 41,
     "ebpf_operation_unlink_program_request_t.data offset mismatch");

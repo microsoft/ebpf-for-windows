@@ -25,6 +25,7 @@ cache_map_original_file_descriptor_with_handle(
     uint32_t key_size,
     uint32_t value_size,
     uint32_t max_entries,
+    uint32_t map_flags,
     uint32_t inner_map_original_fd,
     uint32_t inner_id,
     ebpf_handle_t handle,

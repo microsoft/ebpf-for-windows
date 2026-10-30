@@ -57,6 +57,7 @@ _parse_maps_section_windows(
             s.key_size,
             s.value_size,
             s.max_entries,
+            s.map_flags,
             inner_map_original_fd,
             s.inner_id,
             section_offset,
