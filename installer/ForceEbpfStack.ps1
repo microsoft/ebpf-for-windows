@@ -39,7 +39,7 @@ param(
     [ValidateSet("HKLM", "HKCU")]
     [string]$Scope,
 
-    [string]$StateRoot = (Join-Path $env:ProgramData "eBPF-for-Windows\MsiBackup"),
+    [string]$StateRoot = (Join-Path ([Environment]::GetFolderPath("ProgramFiles")) "ebpf-for-windows\MsiBackup"),
 
     [string]$StoreRegistryPath,
 
@@ -213,6 +213,12 @@ namespace EbpfMsi
                     if (ace.AceQualifier != AceQualifier.AccessAllowed || IsTrustedSid(ace.SecurityIdentifier)) {
                         continue;
                     }
+                    // Program Files inherits a CREATOR OWNER rule for new children, not the directory itself.
+                    // Each backup file's actual owner is checked above.
+                    if (directory && (ace.AceFlags & AceFlags.InheritOnly) != 0 &&
+                        ace.SecurityIdentifier.IsWellKnown(System.Security.Principal.WellKnownSidType.CreatorOwnerSid)) {
+                        continue;
+                    }
                     if (userSid != null && ace.SecurityIdentifier.Value == userSid) {
                         // The user can create files, but cannot delete, re-ACL, or redirect the directory.
                         if (directory && (ace.AceFlags & AceFlags.InheritOnly) == 0 &&
@@ -257,8 +263,7 @@ namespace EbpfMsi
             }
         }
 
-        private static void CreateBackupDirectory(
-            string path, string sddl = "O:BAG:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;;FRFX;;;BU)")
+        public static void CreateUserStore(string path, string sddl)
         {
             RawSecurityDescriptor descriptor = new RawSecurityDescriptor(sddl);
             byte[] bytes = new byte[descriptor.BinaryLength];
@@ -312,7 +317,7 @@ namespace EbpfMsi
                 foreach (string directory in directories) {
                     bool managed = directory == parent || directory == path;
                     if (managed && !userAction) {
-                        CreateBackupDirectory(directory);
+                        System.IO.Directory.CreateDirectory(directory);
                     }
                     guard.Handles.Add(OpenBackupPath(directory, true, !managed));
                 }
@@ -367,11 +372,6 @@ namespace EbpfMsi
             byte[] bytes = new byte[descriptor.BinaryLength];
             descriptor.GetBinaryForm(bytes, 0);
             RestoreFileAcl(path, bytes);
-        }
-
-        public static void CreateUserStore(string path, string sddl)
-        {
-            CreateBackupDirectory(path, sddl);
         }
 
         [DllImport("kernel32.dll", SetLastError = true)]
@@ -878,9 +878,6 @@ function Get-UserStoreOwner
 function Prepare-UserStore
 {
     $userSid = [System.Security.Principal.SecurityIdentifier]::new($InstallingUserSid).Value
-    $directoryAccess = "O:BAG:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;;FRFX;;;BU)"
-    [EbpfMsi.NativeSecurity]::SetBackupAccess((Split-Path $StateRoot), $directoryAccess)
-    [EbpfMsi.NativeSecurity]::SetBackupAccess($StateRoot, $directoryAccess)
     $userStore = Join-Path $StateRoot "UserStore"
     $owner = Get-UserStoreOwner
     if ($null -ne $owner) {
@@ -1477,8 +1474,6 @@ function Prepare-ServiceRestore
     # Commit runs after RemoveFiles, so retain a copy in the already validated, protected directory.
     $cleanupScript = Join-Path $StateRoot "ForceEbpfStack.cleanup.ps1"
     Copy-Item -LiteralPath $PSCommandPath -Destination $cleanupScript -Force
-    [EbpfMsi.NativeSecurity]::SetBackupAccess(
-        $cleanupScript, "O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FR;;;BU)")
     Save-CurrentServices -StateFile $paths.UninstallRollbackFile -FileSuffix "uninstall-rollback"
 }
 

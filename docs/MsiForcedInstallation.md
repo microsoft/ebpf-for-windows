@@ -67,8 +67,11 @@ already deleted recovery data.
 
 ### Backup filenames
 
-Service and HKLM store metadata reside under `%ProgramData%\eBPF-for-Windows\MsiBackup`.
+Service and HKLM store metadata reside under `%ProgramFiles%\ebpf-for-windows\MsiBackup`
+(the native 64-bit Program Files directory), even if `INSTALLFOLDER` is customized.
 HKCU snapshots reside in its `UserStore` subdirectory.
+Packages using the previous ProgramData location must be uninstalled with their original installer
+before installing this version; backups are not migrated.
 In the table, `<scope>` is `hklm` or `hkcu`, and `<service>` is eBPFCore, NetEbpfExt, or eBPFSvc.
 
 | State | Metadata | Registry export |
@@ -82,16 +85,18 @@ Registry exports are created only for keys that existed; metadata records absent
 
 ### Backup directory protection
 
-SYSTEM prepares the backup directories before any HKCU action. Machine backups remain writable and
-readable only by SYSTEM and Administrators. Ordinary users can traverse and read the application and
-backup directories themselves, but that access does not inherit to machine backup files.
+SYSTEM prepares the backup directories before any HKCU action. The application directory, machine
+backup directory, and machine backup files inherit Program Files permissions instead of receiving
+custom ACLs. Ordinary users may read machine backups but cannot modify them; administrators and
+SYSTEM retain write access. Existing application-directory permissions are not rewritten.
+Only the HKCU area and its owner record receive explicit ACLs.
 The protected `hkcu-owner.sid` record is readable by users and writable only by administrators/SYSTEM.
 It identifies the one installing user allowed to create and modify files in `UserStore`.
 That user cannot rename, delete, change permissions on, or create subdirectories inside `UserStore`.
 Full control over the directory remains with SYSTEM and Administrators.
 
 HKCU registry actions remain impersonated, so an unelevated installing-user token can access its own
-backup files without gaining access to machine backups. A different user checks the protected owner
+backup files without gaining write access to machine backups. A different user checks the protected owner
 record and skips before accessing `UserStore`; no other user's profile is loaded.
 
 Before using backups, each action checks directory and file ownership, rejects unexpected
