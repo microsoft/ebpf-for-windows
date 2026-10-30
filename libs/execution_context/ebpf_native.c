@@ -1551,10 +1551,6 @@ _ebpf_native_initialize_global_variables(
     // Get global variables info.
     instance->module->table.global_variable_sections(&global_variables, &global_variable_count);
 
-    if (!_ebpf_validate_global_variable_section_info_array(global_variables, global_variable_count)) {
-        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
-    }
-
     if (global_variable_count == 0) {
         EBPF_RETURN_RESULT(EBPF_SUCCESS);
     }
