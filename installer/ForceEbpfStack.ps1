@@ -201,8 +201,13 @@ namespace EbpfMsi
                 if ((!IsTrustedSid(security.Owner) && !userOwnedFile) || security.DiscretionaryAcl == null) {
                     throw new System.IO.IOException("Untrusted backup owner or missing DACL: " + path);
                 }
-                // Ancestors may allow creating unrelated children, but never replacing the protected path.
-                uint forbidden = ancestor ? 0x100D0040u : 0x500D0156u;
+                // DELETE, WRITE_DAC, WRITE_OWNER, FILE_DELETE_CHILD, and GENERIC_ALL:
+                // ancestors may allow creating unrelated children, but not replacing the protected path.
+                const uint forbiddenAncestorAccess = 0x100D0040u;
+                // Also forbid FILE_WRITE_DATA/FILE_ADD_FILE, FILE_APPEND_DATA/FILE_ADD_SUBDIRECTORY,
+                // FILE_WRITE_EA, FILE_WRITE_ATTRIBUTES, and GENERIC_WRITE on backup files/directories.
+                const uint forbiddenBackupAccess = 0x500D0156u;
+                uint forbidden = ancestor ? forbiddenAncestorAccess : forbiddenBackupAccess;
                 foreach (GenericAce entry in security.DiscretionaryAcl) {
                     if ((entry.AceFlags & AceFlags.InheritOnly) != 0 && ancestor) {
                         continue;
@@ -858,30 +863,8 @@ function Prepare-UserStore
 
     [EbpfMsi.NativeSecurity]::CreateUserStore(
         $userStore, "O:BAG:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)")
-    $legacyLock = [EbpfMsi.NativeSecurity]::LockUserStore($userStore)
+    $userStoreLock = [EbpfMsi.NativeSecurity]::LockUserStore($userStore)
     try {
-        foreach ($suffix in @("json", "reg", "pending", "rollback.json", "rollback.reg", "uninstall.json", "uninstall.reg")) {
-            $legacyFile = Join-Path $StateRoot "ebpf-store-hkcu.$suffix"
-            $destination = Join-Path $userStore "ebpf-store-hkcu.$suffix"
-            if (Test-Path -LiteralPath $legacyFile) {
-                if (Test-Path -LiteralPath $destination) {
-                    throw "Both legacy and current HKCU backups exist: '$legacyFile'."
-                }
-                Move-Item -LiteralPath $legacyFile -Destination $destination
-            }
-        }
-        foreach ($suffix in @("json", "rollback.json", "pending", "uninstall.json")) {
-            $metadata = Join-Path $userStore "ebpf-store-hkcu.$suffix"
-            if (Test-Path -LiteralPath $metadata -PathType Leaf) {
-                $state = Get-Content -LiteralPath $metadata -Raw | ConvertFrom-Json
-                if ([string]::IsNullOrWhiteSpace([string]$state.UserSid)) {
-                    Write-Warning "The legacy HKCU backup has no saved user identity; retaining administrator-only access."
-                    return
-                }
-                $userSid = [System.Security.Principal.SecurityIdentifier]::new([string]$state.UserSid).Value
-                break
-            }
-        }
         $ownerFile = Join-Path $StateRoot "hkcu-owner.sid"
         $temporaryOwnerFile = $ownerFile + ".new"
         Set-Content -LiteralPath $temporaryOwnerFile -Value $userSid -Encoding ASCII
@@ -895,7 +878,7 @@ function Prepare-UserStore
             $userStore, "O:BAG:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;;0x1200ab;;;$userSid)(A;OIIO;0x1301bf;;;$userSid)")
         Move-Item -LiteralPath $temporaryOwnerFile -Destination $ownerFile
     } finally {
-        $legacyLock.Dispose()
+        $userStoreLock.Dispose()
     }
 }
 
@@ -905,14 +888,6 @@ function Get-StorePaths
 
     $scopeName = $StoreScope.ToLowerInvariant()
     $storeRoot = if ($StoreScope -eq "HKCU") { Join-Path $StateRoot "UserStore" } else { $StateRoot }
-    $rollbackStateFile = Join-Path $storeRoot "ebpf-store-$scopeName.rollback.json"
-    $legacyPendingFile = Join-Path $storeRoot "ebpf-store-$scopeName.pending"
-    if (Test-Path -LiteralPath $legacyPendingFile) {
-        if (Test-Path -LiteralPath $rollbackStateFile) {
-            throw "Both legacy and current $StoreScope eBPF store rollback metadata exist in '$StateRoot'."
-        }
-        $rollbackStateFile = $legacyPendingFile
-    }
     return @{
         RegistryPath =
             if ([string]::IsNullOrWhiteSpace($StoreRegistryPath)) {
@@ -922,7 +897,7 @@ function Get-StorePaths
             }
         RegistryFile = Join-Path $storeRoot "ebpf-store-$scopeName.reg"
         StateFile = Join-Path $storeRoot "ebpf-store-$scopeName.json"
-        RollbackStateFile = $rollbackStateFile
+        RollbackStateFile = Join-Path $storeRoot "ebpf-store-$scopeName.rollback.json"
         RollbackRegistryFile = Join-Path $storeRoot "ebpf-store-$scopeName.rollback.reg"
         UninstallStateFile = Join-Path $storeRoot "ebpf-store-$scopeName.uninstall.json"
         UninstallRegistryFile = Join-Path $storeRoot "ebpf-store-$scopeName.uninstall.reg"
@@ -954,24 +929,11 @@ function Remove-RegistryTreeIfPresent
 
 function Get-ServicePaths
 {
-    $paths = @{
+    return @{
         StateFile = Join-Path $StateRoot "ebpf-services.original.json"
         RollbackStateFile = Join-Path $StateRoot "ebpf-services.rollback.json"
         UninstallRollbackFile = Join-Path $StateRoot "ebpf-services.uninstall-rollback.json"
     }
-    foreach ($entry in @(
-        @{ Key = "StateFile"; LegacyFileName = "ebpf-services.json" },
-        @{ Key = "RollbackStateFile"; LegacyFileName = "ebpf-services.pending.json" }
-    )) {
-        $legacyFile = Join-Path $StateRoot $entry.LegacyFileName
-        if (Test-Path -LiteralPath $legacyFile) {
-            if (Test-Path -LiteralPath $paths[$entry.Key]) {
-                throw "Both legacy and current eBPF service $($entry.Key) metadata exist in '$StateRoot'."
-            }
-            $paths[$entry.Key] = $legacyFile
-        }
-    }
-    return $paths
 }
 
 function Get-ServiceRegistryPath

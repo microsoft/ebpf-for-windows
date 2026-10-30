@@ -104,12 +104,10 @@ Existing untrusted directories or contents cause an error; the installer never c
 and then treats them as trusted. An administrator must investigate and recover such existing state
 before retrying. Do not delete original backups merely to bypass the check.
 
-During initial setup, SYSTEM validates legacy administrator-only HKCU snapshots and moves any from
-the backup root into `UserStore`. The saved SID determines ownership when a legacy snapshot exists.
-If the saved identity is missing, the legacy area stays administrator-only and HKCU actions skip.
-Validation and identity selection happen before granting user access. Once the protected owner record
+During initial setup, SYSTEM prepares `UserStore` and records the installing user's SID before
+granting that user access. Once the protected owner record
 exists, SYSTEM does not parse, import, or change permissions on HKCU files. An interrupted initial
-permission migration can require administrator recovery rather than trusting partially migrated files.
+permission setup can require administrator recovery rather than trusting partially configured files.
 Registry destinations
 and service export filenames are validated, and store imports reject keys outside the saved store.
 Uninstall preparation stages `ForceEbpfStack.cleanup.ps1` in the protected backup directory so
