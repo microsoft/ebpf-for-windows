@@ -6,12 +6,11 @@ param(
     [Parameter(Mandatory = $true)]
     [ValidateSet(
         "Install",
+        "BackupLinks",
         "Rollback",
-        "Commit",
         "InstallEbpfSvc",
         "BackupServices",
         "RollbackServices",
-        "CommitServices",
         "PrepareRestoreServices",
         "RemoveServices",
         "RestoreServices",
@@ -19,7 +18,6 @@ param(
         "RollbackRestoreServices",
         "BackupStore",
         "RollbackStore",
-        "CommitStore",
         "PrepareRestoreStore",
         "RestoreStore",
         "RollbackRestoreStore",
@@ -46,10 +44,6 @@ param(
     [string]$StoreRegistryPath,
 
     [string]$InstallingUserSid,
-
-    [string]$OwnerProductCode,
-
-    [string]$OwnerUpgradeCode,
 
     [string[]]$ServiceNames = @("eBPFCore", "NetEbpfExt", "eBPFSvc")
 )
@@ -642,26 +636,21 @@ function Rollback-InstalledLinks
 
         $backup = $mapping.Link + ".ebpf-msi-backup"
         $replacement = $mapping.Link + ".ebpf-msi-new"
-        $rollback = $mapping.Link + ".ebpf-msi-rollback"
-        if (Test-Path -LiteralPath $rollback -PathType Leaf) {
-            $originalAcl = Get-RestorableFileAcl -Path $rollback
+        if (Test-Path -LiteralPath $backup -PathType Leaf) {
+            $originalAcl = Get-RestorableFileAcl -Path $backup
             try {
-                Enable-SystemFileAccess -Path $rollback
+                Enable-SystemFileAccess -Path $backup
                 if (Test-Path -LiteralPath $mapping.Link) {
                     Enable-SystemFileAccess -Path $mapping.Link
                     Remove-Item -LiteralPath $mapping.Link -Force
                 }
-                Move-Item -LiteralPath $rollback -Destination $mapping.Link
-                if ((Test-Path -LiteralPath $backup -PathType Leaf) -and
-                    (Test-SameFile -FirstPath $backup -SecondPath $mapping.Link)) {
-                    Remove-Item -LiteralPath $backup -Force
-                }
+                Move-Item -LiteralPath $backup -Destination $mapping.Link
             } finally {
                 $aclPath =
-                    if (Test-Path -LiteralPath $mapping.Link -PathType Leaf) {
+                    if (Test-Path -LiteralPath $backup -PathType Leaf) {
+                        $backup
+                    } elseif (Test-Path -LiteralPath $mapping.Link -PathType Leaf) {
                         $mapping.Link
-                    } elseif (Test-Path -LiteralPath $rollback -PathType Leaf) {
-                        $rollback
                     } else {
                         $null
                     }
@@ -678,9 +667,7 @@ function Rollback-InstalledLinks
 
 function Restore-OriginalFileAcls
 {
-    param(
-        [Parameter(Mandatory = $true)][hashtable]$OriginalAcls,
-        [Parameter(Mandatory = $true)][bool]$CreatedDurableBackups)
+    param([Parameter(Mandatory = $true)][hashtable]$OriginalAcls)
 
     $failures = @()
     foreach ($mapping in $mappings) {
@@ -688,12 +675,7 @@ function Restore-OriginalFileAcls
             continue
         }
 
-        $candidates = @($mapping.Link + ".ebpf-msi-rollback")
-        if ($CreatedDurableBackups) {
-            $candidates += @(($mapping.Link + ".ebpf-msi-backup"), $mapping.Link)
-        } else {
-            $candidates += $mapping.Link
-        }
+        $candidates = @(($mapping.Link + ".ebpf-msi-backup"), $mapping.Link)
         $aclPath = $candidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
         if ($null -eq $aclPath) {
             $failures += "$($mapping.Link): original file path is unavailable"
@@ -709,6 +691,52 @@ function Restore-OriginalFileAcls
 
     if ($failures.Count -ne 0) {
         throw ($failures -join [Environment]::NewLine)
+    }
+}
+
+function Backup-OriginalLinks
+{
+    foreach ($mapping in $mappings) {
+        if (-not (Test-Path -LiteralPath $mapping.Source -PathType Leaf)) {
+            throw "Installed eBPF binary is missing: $($mapping.Source)"
+        }
+        if (-not (Test-Path -LiteralPath $mapping.Link -PathType Leaf)) {
+            throw "Canonical eBPF binary is missing: $($mapping.Link)"
+        }
+        if (@(Get-ChildItem -Path ($mapping.Link + ".ebpf-msi-*") -Force).Count -ne 0) {
+            throw "Existing eBPF backup or staging file requires recovery before installation: $($mapping.Link)"
+        }
+    }
+
+    $originalAcls = @{}
+    try {
+        foreach ($mapping in $mappings) {
+            $originalAcls[$mapping.Link] = Get-RestorableFileAcl -Path $mapping.Link
+            try {
+                Enable-SystemFileAccess -Path $mapping.Link
+                New-Item -ItemType HardLink -Path ($mapping.Link + ".ebpf-msi-backup") -Target $mapping.Link |
+                    Out-Null
+            } finally {
+                Restore-FileAcl -Path $mapping.Link -Acl $originalAcls[$mapping.Link]
+            }
+        }
+    } catch {
+        $backupError = $_
+        # No canonical paths have changed; discard only links created by this attempt.
+        Invoke-ForAllMappings {
+            param($mapping)
+
+            $backup = $mapping.Link + ".ebpf-msi-backup"
+            if (Test-Path -LiteralPath $backup -PathType Leaf) {
+                try {
+                    Enable-SystemFileAccess -Path $backup
+                    Remove-Item -LiteralPath $backup -Force
+                } finally {
+                    Restore-FileAcl -Path $mapping.Link -Acl $originalAcls[$mapping.Link]
+                }
+            }
+        }
+        throw $backupError
     }
 }
 
@@ -897,8 +925,6 @@ function Get-StorePaths
             }
         RegistryFile = Join-Path $storeRoot "ebpf-store-$scopeName.reg"
         StateFile = Join-Path $storeRoot "ebpf-store-$scopeName.json"
-        RollbackStateFile = Join-Path $storeRoot "ebpf-store-$scopeName.rollback.json"
-        RollbackRegistryFile = Join-Path $storeRoot "ebpf-store-$scopeName.rollback.reg"
         UninstallStateFile = Join-Path $storeRoot "ebpf-store-$scopeName.uninstall.json"
         UninstallRegistryFile = Join-Path $storeRoot "ebpf-store-$scopeName.uninstall.reg"
     }
@@ -931,7 +957,6 @@ function Get-ServicePaths
 {
     return @{
         StateFile = Join-Path $StateRoot "ebpf-services.original.json"
-        RollbackStateFile = Join-Path $StateRoot "ebpf-services.rollback.json"
         UninstallRollbackFile = Join-Path $StateRoot "ebpf-services.uninstall-rollback.json"
     }
 }
@@ -1329,7 +1354,7 @@ function Read-ServiceState
     foreach ($serviceState in @($state.Services)) {
         if ([bool]$serviceState.Existed) {
             $registryFileName = [string]$serviceState.RegistryFile
-            $expectedFiles = @("original", "rollback", "uninstall-rollback") |
+            $expectedFiles = @("original", "uninstall-rollback") |
                 ForEach-Object { "$($serviceState.Name).$_.reg" }
             if ($registryFileName -notin $expectedFiles -or
                 -not (Test-Path -LiteralPath (Join-Path $StateRoot $registryFileName) -PathType Leaf)) {
@@ -1355,8 +1380,6 @@ function Save-CurrentServices
     [PSCustomObject]@{
         SchemaVersion = 1
         Services = $services
-        OwnerProductCode = $OwnerProductCode
-        OwnerUpgradeCode = $OwnerUpgradeCode
         Created = (Get-Date).ToUniversalTime().ToString("o")
     } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $StateFile -Encoding UTF8
 }
@@ -1395,48 +1418,34 @@ function Remove-BackupFileIfPresent
 function Backup-Services
 {
     $paths = Get-ServicePaths
-    New-Item -ItemType Directory -Path $StateRoot -Force | Out-Null
-    if ((Test-Path -LiteralPath $paths.RollbackStateFile) -or
-        (Test-Path -LiteralPath $paths.UninstallRollbackFile)) {
-        throw "Incomplete eBPF service transaction exists in '$StateRoot'."
+    $existingFiles = @(Get-ChildItem -LiteralPath $StateRoot -Filter "ebpf-services.*" -Force)
+    foreach ($name in $ServiceNames) {
+        $existingFiles += @(Get-ChildItem -LiteralPath $StateRoot -Filter "$name.*.reg" -Force)
+    }
+    if ($existingFiles.Count -ne 0) {
+        throw "Existing eBPF service backup requires recovery before installation: '$StateRoot'."
     }
 
-    $shouldCreateDurableBackup = -not (Test-Path -LiteralPath $paths.StateFile -PathType Leaf)
-    if ($shouldCreateDurableBackup) {
-        $existingOriginalFiles =
-            @($ServiceNames | Where-Object {
-                Test-Path -LiteralPath (Join-Path $StateRoot "$_.original.reg") -PathType Leaf
-            })
-        if ($existingOriginalFiles.Count -ne 0) {
-            throw "Incomplete eBPF service backup exists in '$StateRoot'."
-        }
-    }
-    Save-CurrentServices -StateFile $paths.RollbackStateFile -FileSuffix "rollback"
-    $rollbackState = Read-ServiceState -Path $paths.RollbackStateFile
-    $rollbackState | Add-Member -NotePropertyName CreatedDurableBackup -NotePropertyValue $shouldCreateDurableBackup
-    $rollbackState | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $paths.RollbackStateFile -Encoding UTF8
-    if ($shouldCreateDurableBackup) {
+    try {
         Save-CurrentServices -StateFile $paths.StateFile -FileSuffix "original"
-    } else {
-        Read-ServiceState -Path $paths.StateFile | Out-Null
+    } catch {
+        Remove-ServiceStateFiles -FileSuffix "original"
+        Remove-BackupFileIfPresent -Path $paths.StateFile
+        throw
     }
 }
 
 function Rollback-ServiceTransaction
 {
     $paths = Get-ServicePaths
-    $rollbackState = Read-ServiceState -Path $paths.RollbackStateFile
-    if ($null -eq $rollbackState) {
+    $state = Read-ServiceState -Path $paths.StateFile
+    if ($null -eq $state) {
         return
     }
 
-    Apply-ServiceState -State $rollbackState -StartIfPreviouslyRunning $true
-    Remove-ServiceStateFiles -FileSuffix "rollback"
-    Remove-Item -LiteralPath $paths.RollbackStateFile -Force
-    if ([bool]$rollbackState.CreatedDurableBackup) {
-        Remove-ServiceStateFiles -FileSuffix "original"
-        Remove-Item -LiteralPath $paths.StateFile -Force
-    }
+    Apply-ServiceState -State $state -StartIfPreviouslyRunning $true
+    Remove-ServiceStateFiles -FileSuffix "original"
+    Remove-Item -LiteralPath $paths.StateFile -Force
 }
 
 function Remove-MsiServices
@@ -1558,27 +1567,18 @@ function Backup-Store
     }
 
     $paths = Get-StorePaths -StoreScope $Scope
-    if ((Test-Path -LiteralPath $paths.RollbackStateFile) -or
-        (Test-Path -LiteralPath $paths.RollbackRegistryFile)) {
-        throw "Incomplete $Scope eBPF store transaction exists in '$StateRoot'."
+    if (@(Get-ChildItem -LiteralPath (Split-Path $paths.StateFile) -Filter "ebpf-store-$Scope.*" -Force).Count -ne 0) {
+        throw "Existing $Scope eBPF store backup requires recovery before installation: '$StateRoot'."
     }
 
     $providerPath = Get-RegistryProviderPath -RegistryPath $paths.RegistryPath
     $storeExisted = Test-Path -LiteralPath $providerPath
-    if ($storeExisted) {
-        Invoke-NativeCommand `
-            -FilePath (Join-Path $env:SystemRoot "System32\reg.exe") `
-            -ArgumentList @("export", $paths.RegistryPath, $paths.RollbackRegistryFile, "/y") `
-            -FailureMessage "Failed to save the current $Scope eBPF store for rollback"
-    }
-
-    $shouldCreateDurableBackup = -not (Test-Path -LiteralPath $paths.StateFile -PathType Leaf)
-    if ($shouldCreateDurableBackup) {
-        if (Test-Path -LiteralPath $paths.RegistryFile) {
-            throw "Incomplete $Scope eBPF store backup exists in '$StateRoot'."
-        }
+    try {
         if ($storeExisted) {
-            Copy-Item -LiteralPath $paths.RollbackRegistryFile -Destination $paths.RegistryFile
+            Invoke-NativeCommand `
+                -FilePath (Join-Path $env:SystemRoot "System32\reg.exe") `
+                -ArgumentList @("export", $paths.RegistryPath, $paths.RegistryFile, "/y") `
+                -FailureMessage "Failed to save the original $Scope eBPF store"
         }
 
         $state = [PSCustomObject]@{
@@ -1587,26 +1587,14 @@ function Backup-Store
             RegistryPath = $paths.RegistryPath
             StoreExisted = $storeExisted
             UserSid = if ($Scope -eq "HKCU") { Get-CurrentUserSid } else { $null }
-            OwnerProductCode = $OwnerProductCode
-            OwnerUpgradeCode = $OwnerUpgradeCode
             Created = (Get-Date).ToUniversalTime().ToString("o")
         }
-        $temporaryStateFile = $paths.StateFile + ".new"
-        $state | ConvertTo-Json | Set-Content -LiteralPath $temporaryStateFile -Encoding UTF8
-        Move-Item -LiteralPath $temporaryStateFile -Destination $paths.StateFile
-    } else {
-        Read-StoreState -Paths $paths | Out-Null
+        $state | ConvertTo-Json | Set-Content -LiteralPath $paths.StateFile -Encoding UTF8
+    } catch {
+        Remove-BackupFileIfPresent -Path $paths.RegistryFile
+        Remove-BackupFileIfPresent -Path $paths.StateFile
+        throw
     }
-
-    $rollbackState = [PSCustomObject]@{
-        SchemaVersion = 1
-        Scope = $Scope
-        RegistryPath = $paths.RegistryPath
-        StoreExisted = $storeExisted
-        UserSid = if ($Scope -eq "HKCU") { Get-CurrentUserSid } else { $null }
-        CreatedDurableBackup = $shouldCreateDurableBackup
-    }
-    $rollbackState | ConvertTo-Json | Set-Content -LiteralPath $paths.RollbackStateFile -Encoding UTF8
 }
 
 function Read-StoreState
@@ -1652,34 +1640,14 @@ function Rollback-StoreTransaction
     }
 
     $paths = Get-StorePaths -StoreScope $Scope
-    if (-not (Test-Path -LiteralPath $paths.RollbackStateFile -PathType Leaf)) {
+    $state = Read-StoreState -Paths $paths
+    if ($null -eq $state -or -not (Test-StoreRestoreUser -State $state)) {
         return
     }
 
-    $rollbackState = Get-Content -LiteralPath $paths.RollbackStateFile -Raw | ConvertFrom-Json
-    if ([int]$rollbackState.SchemaVersion -ne 1 -or [string]$rollbackState.Scope -ne $Scope) {
-        throw "Invalid $Scope eBPF store rollback transaction."
-    }
-    if (-not (Test-StoreRestoreUser -State $rollbackState)) {
-        return
-    }
-
-    Assert-StoreRegistryPath -RegistryPath ([string]$rollbackState.RegistryPath) -Paths $paths
-    if ([bool]$rollbackState.StoreExisted) {
-        if (-not (Test-Path -LiteralPath $paths.RollbackRegistryFile -PathType Leaf)) {
-            throw "The $Scope eBPF rollback store file is missing: $($paths.RollbackRegistryFile)"
-        }
-        Import-StoreRegistryFile -Path $paths.RollbackRegistryFile -RegistryPath ([string]$rollbackState.RegistryPath)
-    } else {
-        Remove-RegistryTreeIfPresent -RegistryPath ([string]$rollbackState.RegistryPath)
-    }
-
-    Remove-Item -LiteralPath $paths.RollbackRegistryFile -Force -ErrorAction SilentlyContinue
-    Remove-Item -LiteralPath $paths.RollbackStateFile -Force
-    if ([bool]$rollbackState.CreatedDurableBackup) {
-        Remove-Item -LiteralPath $paths.RegistryFile -Force -ErrorAction SilentlyContinue
-        Remove-Item -LiteralPath $paths.StateFile -Force
-    }
+    Restore-Store
+    Remove-BackupFileIfPresent -Path $paths.RegistryFile
+    Remove-Item -LiteralPath $paths.StateFile -Force
 }
 
 function Restore-Store
@@ -1811,7 +1779,7 @@ function Commit-StoreRestore
         }
     }
     foreach ($path in @(
-        $paths.RegistryFile, $paths.StateFile, $paths.RollbackStateFile, $paths.RollbackRegistryFile,
+        $paths.RegistryFile, $paths.StateFile,
         $paths.UninstallRegistryFile, $paths.UninstallStateFile)) {
         Remove-BackupFileIfPresent -Path $path
     }
@@ -1834,54 +1802,47 @@ try {
         }
     }
     switch ($Action) {
+        "BackupLinks" {
+            Backup-OriginalLinks
+        }
+
         "Install" {
             $originalAcls = @{}
             $backupCount = Get-BackupCount
-            if ($backupCount -ne 0 -and $backupCount -ne $mappings.Count) {
+            if ($backupCount -ne $mappings.Count) {
                 throw "Only $backupCount of $($mappings.Count) eBPF hard-link backups exist."
             }
-            $createDurableBackups = $backupCount -eq 0
             foreach ($mapping in $mappings) {
                 $backup = $mapping.Link + ".ebpf-msi-backup"
                 $replacement = $mapping.Link + ".ebpf-msi-new"
-                $rollback = $mapping.Link + ".ebpf-msi-rollback"
                 if (-not (Test-Path -LiteralPath $mapping.Source -PathType Leaf)) {
                     throw "Installed eBPF binary is missing: $($mapping.Source)"
                 }
                 if (-not (Test-Path -LiteralPath $mapping.Link -PathType Leaf)) {
                     throw "Canonical eBPF binary is missing: $($mapping.Link)"
                 }
-                if ((Test-Path -LiteralPath $replacement) -or (Test-Path -LiteralPath $rollback)) {
+                if (Test-Path -LiteralPath $replacement) {
                     throw "Stale eBPF hard-link staging file exists for: $($mapping.Link)"
                 }
-                $originalAcls[$mapping.Link] = Get-RestorableFileAcl -Path $mapping.Link
-                if (-not $createDurableBackups -and (Test-SameFile -FirstPath $backup -SecondPath $mapping.Link)) {
-                    throw "The backup and canonical eBPF paths unexpectedly point to the same file: $($mapping.Link)"
+                $originalAcls[$mapping.Link] = Get-RestorableFileAcl -Path $backup
+                if (-not (Test-SameFile -FirstPath $backup -SecondPath $mapping.Link)) {
+                    throw "The canonical eBPF binary changed after backup: $($mapping.Link)"
                 }
             }
 
             try {
                 foreach ($mapping in $mappings) {
-                    Enable-SystemFileAccess -Path $mapping.Link
-                }
-
-                foreach ($mapping in $mappings) {
                     Write-Output "Staging hard links for $($mapping.Link)"
-                    New-Item -ItemType HardLink -Path ($mapping.Link + ".ebpf-msi-rollback") -Target $mapping.Link |
-                        Out-Null
-                    if ($createDurableBackups) {
-                        New-Item -ItemType HardLink -Path ($mapping.Link + ".ebpf-msi-backup") -Target $mapping.Link |
-                            Out-Null
-                    }
                     New-Item -ItemType HardLink -Path ($mapping.Link + ".ebpf-msi-new") -Target $mapping.Source |
                         Out-Null
                 }
 
                 foreach ($mapping in $mappings) {
+                    Enable-SystemFileAccess -Path $mapping.Link
                     Remove-Item -LiteralPath $mapping.Link -Force
                     Move-Item -LiteralPath ($mapping.Link + ".ebpf-msi-new") -Destination $mapping.Link
                     Restore-FileAcl `
-                        -Path ($mapping.Link + ".ebpf-msi-rollback") `
+                        -Path ($mapping.Link + ".ebpf-msi-backup") `
                         -Acl $originalAcls[$mapping.Link]
                 }
             } catch {
@@ -1894,9 +1855,7 @@ try {
                     $rollbackError = $_
                 }
                 try {
-                    Restore-OriginalFileAcls `
-                        -OriginalAcls $originalAcls `
-                        -CreatedDurableBackups $createDurableBackups
+                    Restore-OriginalFileAcls -OriginalAcls $originalAcls
                 } catch {
                     $aclError = $_
                 }
@@ -1915,32 +1874,6 @@ try {
             Rollback-InstalledLinks
         }
 
-        "Commit" {
-            Invoke-ForAllMappings {
-                param($mapping)
-
-                $rollback = $mapping.Link + ".ebpf-msi-rollback"
-                if (Test-Path -LiteralPath $rollback -PathType Leaf) {
-                    $rollbackAcl = Get-RestorableFileAcl -Path $rollback
-                    $restorePath =
-                        @(($mapping.Link + ".ebpf-msi-backup"), $mapping.Source) |
-                            Where-Object {
-                                (Test-Path -LiteralPath $_ -PathType Leaf) -and
-                                (Test-SameFile -FirstPath $rollback -SecondPath $_)
-                            } |
-                            Select-Object -First 1
-                    try {
-                        Enable-SystemFileAccess -Path $rollback
-                        Remove-Item -LiteralPath $rollback -Force
-                    } finally {
-                        if ($null -ne $restorePath -and (Test-Path -LiteralPath $restorePath -PathType Leaf)) {
-                            Restore-FileAcl -Path $restorePath -Acl $rollbackAcl
-                        }
-                    }
-                }
-            }
-        }
-
         "InstallEbpfSvc" {
             Install-MsiEbpfService
         }
@@ -1951,12 +1884,6 @@ try {
 
         "RollbackServices" {
             Rollback-ServiceTransaction
-        }
-
-        "CommitServices" {
-            $paths = Get-ServicePaths
-            Remove-ServiceStateFiles -FileSuffix "rollback"
-            Remove-BackupFileIfPresent -Path $paths.RollbackStateFile
         }
 
         "PrepareRestoreServices" {
@@ -2011,15 +1938,6 @@ try {
 
         "RollbackStore" {
             Rollback-StoreTransaction
-        }
-
-        "CommitStore" {
-            if ([string]::IsNullOrWhiteSpace($Scope)) {
-                throw "Scope is required for store commit."
-            }
-            $paths = Get-StorePaths -StoreScope $Scope
-            Remove-BackupFileIfPresent -Path $paths.RollbackStateFile
-            Remove-BackupFileIfPresent -Path $paths.RollbackRegistryFile
         }
 
         "RestoreStore" {

@@ -14,8 +14,8 @@ With `FORCE=1` and an existing eBPFCore registration, the MSI:
 4. Saves the HKLM and installing user's HKCU eBPF stores, then replaces their metadata with the MSI's version.
 5. Configures and starts the drivers, and configures and requests startup of eBPFSvc.
 
-The MSI creates backup and rollback files/links to preserve service information, binary links, and
-registry stores; the distinction between these is explained below.
+The MSI saves one original backup set for both failed-install recovery and final uninstall.
+Only uninstall creates additional, temporary recovery snapshots.
 
 On final uninstall, the saved original service state, binary hard links, and HKLM store are used
 to restore the machine-wide eBPF stack to its pre-MSI state. HKCU restoration is best effort by identity:
@@ -24,24 +24,24 @@ with a warning, leaves the caller's HKCU unchanged, and retains the original HKC
 HKCU identity exists, the caller's store is also left unchanged. Other restoration errors remain fatal.
 The same ownership check gates HKCU backup, clear, and population during installation: a different user
 does not change their HKCU store while another user's backup area is retained.
-Original-state restoration and backup deletion
-are skipped when an older MSI is removed as part of a major upgrade, so the newer version can retain
-those backups.
 
-### Why original backups and rollback files are separate
+### One original backup, plus temporary uninstall undo
 
-**Original backups** preserve the state before the first forced replacement. They survive successful
-installation and subsequent replacements/upgrades, and are not overwritten when already present.
-They are used on final uninstall.
+The supported version-change workflow is uninstall, then install; in-place upgrades are disallowed.
+**Original backups** preserve the inbox stack before forced installation. A failed install restores
+that same backup and removes it after recovery. A successful install retains it until final uninstall.
+There is no second initial-install snapshot and no install-time backup cleanup commit.
 
-**Rollback files** preserve the state immediately before the current installation attempt. If that
-attempt fails, they restore the version that was working just before it. They are removed after success.
-Uninstall also creates temporary rollback snapshots so a failed uninstall can recover its starting state.
+Each backup action rejects existing backup/staging data rather than reusing or overwriting it.
+MSI registers that action's rollback only after the backup succeeds, before changing the live state.
+A rejected backup therefore cannot cause rollback to consume a snapshot from an earlier attempt.
+Partial backup failures clean up only their newly created files; interrupted or failed recovery may
+leave data that an administrator must investigate before retrying.
 
-For example: original Windows stack **A** is replaced by MSI version **B**, then an upgrade attempts
-version **C**. The original backup must remain **A**, while this attempt's rollback snapshot must
-preserve **B**. If C fails, restore **B**; on final uninstall of a successfully installed version,
-restore **A**. A single overwritten backup cannot serve both purposes.
+**Uninstall rollback snapshots** preserve the current MSI service and registry state before removal.
+For example, with original stack **A** replaced by MSI stack **B**, successful uninstall restores **A**.
+If uninstall fails after partially restoring **A**, these temporary snapshots and the MSI binaries
+recover **B**. They do not replace the original backup of **A**.
 
 ### Requirements and recovery details
 
@@ -56,7 +56,7 @@ or failure to stage replacement links aborts replacement before any canonical li
 The standard MSI service-stop action is skipped for forced stack replacement so the custom chain can
 capture running states before stopping services. Normal installation, maintenance, and uninstall
 retain standard service stopping. The installer temporarily grants access to protected originals and
-restores their ACLs through rollback links; distinct replacement files retain their MSI-installed ACLs.
+restores their ACLs through the original backup links; distinct replacement files retain their MSI-installed ACLs.
 Service restoration preserves service and load-order-group dependencies and restores an absent
 `ServiceSidType` to its default, `none`. Uninstall rollback stops restored services before relinking
 the MSI binaries. Missing canonical links are recreated from the MSI files while retaining original
@@ -74,9 +74,9 @@ In the table, `<scope>` is `hklm` or `hkcu`, and `<service>` is eBPFCore, NetEbp
 | State | Metadata | Registry export |
 |---|---|---|
 | Original store | `ebpf-store-<scope>.json` | `ebpf-store-<scope>.reg` |
-| Install-attempt store rollback | `ebpf-store-<scope>.rollback.json` | `ebpf-store-<scope>.rollback.reg` |
+| Uninstall store undo | `ebpf-store-<scope>.uninstall.json` | `ebpf-store-<scope>.uninstall.reg` |
 | Original services | `ebpf-services.original.json` | `<service>.original.reg` |
-| Install-attempt service rollback | `ebpf-services.rollback.json` | `<service>.rollback.reg` |
+| Uninstall service undo | `ebpf-services.uninstall-rollback.json` | `<service>.uninstall-rollback.reg` |
 
 Registry exports are created only for keys that existed; metadata records absent keys.
 
@@ -121,7 +121,7 @@ installations.
 Cleanup errors are logged by the custom action without rolling back an otherwise completed uninstall.
 
 Binary links are beside the canonical Windows files: `.ebpf-msi-new` stages replacement,
-`.ebpf-msi-rollback` preserves pre-attempt state, and `.ebpf-msi-backup` preserves original state.
+and `.ebpf-msi-backup` preserves original state for both failed-install recovery and final uninstall.
 They are hard links to binaries, not JSON or registry exports. A partial set of the six original
 binary backup links is rejected rather than restored incompletely.
 
@@ -146,14 +146,15 @@ flowchart TD
         Files["CreateFolders<br/>InstallFiles"]
         UserAccess["Prepare_eBPF_user_store"]
         Forced{"Existing eBPFCore and FORCE=1?"}
-        Backup["Force_eBPF_services_backup<br/>R: Force_eBPF_services_rollback"]
-        NetStop["Force_NetEbpfExt_Driver_stop"]
+        Backup["Force_eBPF_services_backup"]
+        NetStop["Force_NetEbpfExt_Driver_stop<br/>R: Force_eBPF_services_rollback"]
         SvcStop["Force_eBPFSvc_stop"]
         CoreStop["Force_eBPFCore_Driver_stop"]
+        BinaryBackup["Force_eBPF_binaries_backup"]
         Links["Force_eBPF_binaries_hardlink<br/>R: Force_eBPF_binaries_restore"]
-        MachineBackup["Force_eBPF_store_backup_HKLM<br/>R: Force_eBPF_store_rollback_HKLM"]
-        UserBackup["Force_eBPF_store_backup_HKCU<br/>R: Force_eBPF_store_rollback_HKCU"]
-        ClearMachine["Clear_eBPF_store_HKLM"]
+        MachineBackup["Force_eBPF_store_backup_HKLM"]
+        UserBackup["Force_eBPF_store_backup_HKCU<br/>R: Force_eBPF_store_rollback_HKLM"]
+        ClearMachine["Clear_eBPF_store_HKLM<br/>R: Force_eBPF_store_rollback_HKCU [forced replacement]"]
         SetupMachine["Setup_eBPF_store_HKLM"]
         ClearUser["Clear_eBPF_store_HKCU"]
         SetupUser["Setup_eBPF_store_HKCU"]
@@ -179,7 +180,7 @@ flowchart TD
         Stop -->|Yes: standard StopServices skipped| Files
         Files --> UserAccess --> Forced
         Forced -->|Yes| Backup --> NetStop --> SvcStop --> CoreStop
-        CoreStop --> Links --> MachineBackup --> UserBackup --> ClearMachine
+        CoreStop --> BinaryBackup --> Links --> MachineBackup --> UserBackup --> ClearMachine
         Forced -->|No| ClearMachine
         ClearMachine --> SetupMachine --> ClearUser --> SetupUser
         SetupUser --> NetshDelete --> NetshAdd --> CoreExists
@@ -193,32 +194,17 @@ flowchart TD
         NetStart --> Environment --> SvcConfigure --> SvcStart --> Publish --> NormalSuccess
     Allowed -->|Yes| Stop
 
-    subgraph Commit["Success-only commit actions"]
-        CommitForced{"Forced stack replacement?"}
-        BinaryCleanup["Force_eBPF_binaries_cleanup"]
-        UserCleanup["Force_eBPF_store_commit_HKCU"]
-        StoreCleanup["Force_eBPF_store_commit"]
-        ServiceCleanup["Force_eBPF_services_commit"]
-        Finished["InstallFinalize completes successfully"]
-        CommitForced -->|Yes| BinaryCleanup --> UserCleanup --> StoreCleanup --> ServiceCleanup --> Finished
-        CommitForced -->|No: no forced-install commit work| Finished
-    end
-
-    NormalSuccess --> CommitForced
+    NormalSuccess --> Finished["InstallFinalize completes successfully"]
     Finished --> Done["Installation complete"]
 ```
 
-If normal work reports a fatal error, execution leaves the success path and MSI runs the rollback
-work accumulated so far; it does **not** enter the commit area.
-The four commit actions execute in this order: binary cleanup, impersonated HKCU cleanup,
-SYSTEM HKLM cleanup, service cleanup.
-Their execution is **after all normal work above**, even though their scheduling entries appear
-much earlier in the MSI sequence.
+If normal work reports a fatal error, MSI runs the rollback work accumulated so far, using the
+original backups. No success-only install cleanup is needed: successful installation keeps those
+backups for uninstall.
 
 ## 2. Uninstall execution only: when the work actually happens
 
-This chart follows successful full removal (`REMOVE="ALL"`), including the conditional path used when
-a major upgrade removes an older product.
+This chart follows supported final removal (`REMOVE="ALL"` and `NOT UPGRADINGPRODUCTCODE`).
 Rollback annotations use the same `R: <action>` convention as section 1.
 
 
@@ -226,20 +212,17 @@ Rollback annotations use the same `R: <action>` convention as section 1.
 flowchart TD
     Prep["Immediate preparation"]
 
-        FinalRemoval{"Final removal?<br/>NOT UPGRADINGPRODUCTCODE"}
         UserAccess["Prepare_eBPF_user_store_uninstall"]
         ServiceSnapshot["Force_eBPF_services_uninstall_prepare"]
         MachineSnapshot["Force_eBPF_store_uninstall_prepare_HKLM<br/>R: Force_eBPF_services_uninstall_rollback"]
         UserSnapshot["Force_eBPF_store_uninstall_prepare_HKCU<br/>R: Force_eBPF_store_uninstall_rollback_HKLM"]
-        Netsh["eBPF_netsh_helper_uninstall<br/>R: Force_eBPF_store_uninstall_rollback_HKCU [final removal]"]
+        Netsh["eBPF_netsh_helper_uninstall<br/>R: Force_eBPF_store_uninstall_rollback_HKCU"]
         CoreStop["eBPFCore_Driver_stop"]
         NetStop["NetEbpfExt_Driver_stop"]
-        RemoveCreated{"Final removal?"}
         ServiceRemove["Force_eBPF_services_uninstall_remove"]
         Components["ProcessComponents<br/>UnpublishFeatures"]
         StandardStop["StopServices"]
         Environment["RemoveEnvironmentStrings"]
-        RestoreOriginal{"Final removal?"}
         MachineRestore["Force_eBPF_store_restore_HKLM<br/>R: Force_eBPF_binaries_uninstall_rollback"]
         UserRestore["Force_eBPF_store_restore_HKCU"]
         BinaryRestore["Force_eBPF_binaries_uninstall_restore"]
@@ -248,27 +231,21 @@ flowchart TD
         Folders["RemoveFolders"]
         NormalSuccess["Normal uninstall succeeded"]
 
-        FinalRemoval -->|Yes| UserAccess --> ServiceSnapshot --> MachineSnapshot --> UserSnapshot --> Netsh
-        FinalRemoval -->|No: old-product removal during upgrade| Netsh
-        Netsh --> NetStop --> CoreStop --> RemoveCreated
-        RemoveCreated -->|Yes| ServiceRemove --> Components
-        RemoveCreated -->|No| Components
-        Components --> StandardStop --> Environment --> RestoreOriginal
-        RestoreOriginal -->|Yes| MachineRestore --> UserRestore --> BinaryRestore --> ServiceRestore --> Files
-        RestoreOriginal -->|No: preserve original-state backups| Files
+        UserAccess --> ServiceSnapshot --> MachineSnapshot --> UserSnapshot --> Netsh
+        Netsh --> NetStop --> CoreStop --> ServiceRemove --> Components
+        Components --> StandardStop --> Environment --> MachineRestore
+        MachineRestore --> UserRestore --> BinaryRestore --> ServiceRestore --> Files
         Files --> Folders --> NormalSuccess
-    Prep --> FinalRemoval
+    Prep --> UserAccess
 
     subgraph Commit["Success-only commit actions"]
-        CleanupRequired{"Final removal?"}
         UserCleanup["Force_eBPF_store_uninstall_commit_HKCU"]
         ServiceCleanup["Force_eBPF_services_uninstall_commit"]
         Finished["InstallFinalize completes successfully"]
-        CleanupRequired -->|Yes| UserCleanup --> ServiceCleanup --> Finished
-        CleanupRequired -->|No: preserve durable backups for newer product| Finished
+        UserCleanup --> ServiceCleanup --> Finished
     end
 
-    NormalSuccess --> CleanupRequired
+    NormalSuccess --> UserCleanup
     Finished --> Query["eBPFCore_Driver_uninstall_flush"]
     Query --> Done["Uninstall sequence finishes"]
 ```
@@ -278,6 +255,5 @@ cleanup path. Recovery is not expanded here; it restores the pre-uninstall state
 accumulated so far.
 
 The impersonated HKCU commit runs before the SYSTEM service/HKLM commit, only after normal removal
-succeeds. Unlike installation
-commit cleanup, final-uninstall cleanup deletes durable original-state backups as well as temporary
-recovery files.
+succeeds. It deletes restored original-state backups and temporary uninstall recovery files;
+skipped HKCU backups remain.
