@@ -25,6 +25,9 @@ param(
         "RollbackRestoreStore",
         "CommitRestoreStore",
         "CommitRestoreAll",
+        "PrepareUserStore",
+        "ClearStore",
+        "PopulateStore",
         "RestoreLinks",
         "RollbackRestoreLinks")]
     [string]$Action,
@@ -41,6 +44,8 @@ param(
     [string]$StateRoot = (Join-Path $env:ProgramData "eBPF-for-Windows\MsiBackup"),
 
     [string]$StoreRegistryPath,
+
+    [string]$InstallingUserSid,
 
     [string]$OwnerProductCode,
 
@@ -177,7 +182,8 @@ namespace EbpfMsi
                 sid.Value == "S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464");
         }
 
-        private static void CheckBackupAcl(IntPtr handle, string path, bool ancestor)
+        private static void CheckBackupAcl(
+            IntPtr handle, string path, bool ancestor, bool directory, string userSid = null)
         {
             IntPtr owner, group, dacl, sacl, descriptor;
             uint error = GetSecurityInfo(
@@ -190,7 +196,9 @@ namespace EbpfMsi
                 byte[] bytes = new byte[GetSecurityDescriptorLength(descriptor)];
                 Marshal.Copy(descriptor, bytes, 0, bytes.Length);
                 RawSecurityDescriptor security = new RawSecurityDescriptor(bytes, 0);
-                if (!IsTrustedSid(security.Owner) || security.DiscretionaryAcl == null) {
+                bool userOwnedFile = !directory && userSid != null && security.Owner != null &&
+                    security.Owner.Value == userSid;
+                if ((!IsTrustedSid(security.Owner) && !userOwnedFile) || security.DiscretionaryAcl == null) {
                     throw new System.IO.IOException("Untrusted backup owner or missing DACL: " + path);
                 }
                 // Ancestors may allow creating unrelated children, but never replacing the protected path.
@@ -203,8 +211,18 @@ namespace EbpfMsi
                     if (ace == null || ace.IsCallback) {
                         throw new System.IO.IOException("Unsupported backup ACE: " + path);
                     }
-                    if (ace.AceQualifier == AceQualifier.AccessAllowed &&
-                        !IsTrustedSid(ace.SecurityIdentifier) && ((uint)ace.AccessMask & forbidden) != 0) {
+                    if (ace.AceQualifier != AceQualifier.AccessAllowed || IsTrustedSid(ace.SecurityIdentifier)) {
+                        continue;
+                    }
+                    if (userSid != null && ace.SecurityIdentifier.Value == userSid) {
+                        // The user can create files, but cannot delete, re-ACL, or redirect the directory.
+                        if (directory && (ace.AceFlags & AceFlags.InheritOnly) == 0 &&
+                            ((uint)ace.AccessMask & (forbidden & ~0x2u)) != 0) {
+                            throw new System.IO.IOException("Unsafe HKCU directory permissions: " + path);
+                        }
+                        continue;
+                    }
+                    if (((uint)ace.AccessMask & forbidden) != 0) {
                         throw new System.IO.IOException("Unprivileged write access to backup path: " + path);
                     }
                 }
@@ -213,7 +231,7 @@ namespace EbpfMsi
             }
         }
 
-        private static IntPtr OpenBackupPath(string path, bool directory, bool ancestor)
+        private static IntPtr OpenBackupPath(string path, bool directory, bool ancestor, string userSid = null)
         {
             IntPtr handle = CreateFile(
                 path, 0x00020080, directory ? FILE_SHARE_READ : FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -232,7 +250,7 @@ namespace EbpfMsi
                     (!directory && information.NumberOfLinks != 1)) {
                     throw new System.IO.IOException("Backup path is a reparse point, hard link, or wrong type: " + path);
                 }
-                CheckBackupAcl(handle, path, ancestor);
+                CheckBackupAcl(handle, path, ancestor, directory, userSid);
                 return handle;
             } catch {
                 CloseHandle(handle);
@@ -240,10 +258,10 @@ namespace EbpfMsi
             }
         }
 
-        private static void CreateBackupDirectory(string path)
+        private static void CreateBackupDirectory(
+            string path, string sddl = "O:BAG:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;;FRFX;;;BU)")
         {
-            RawSecurityDescriptor descriptor =
-                new RawSecurityDescriptor("O:BAG:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)");
+            RawSecurityDescriptor descriptor = new RawSecurityDescriptor(sddl);
             byte[] bytes = new byte[descriptor.BinaryLength];
             descriptor.GetBinaryForm(bytes, 0);
             GCHandle pinned = GCHandle.Alloc(bytes, GCHandleType.Pinned);
@@ -277,7 +295,7 @@ namespace EbpfMsi
             }
         }
 
-        public static IDisposable LockBackupDirectory(string path)
+        public static IDisposable LockBackupDirectory(string path, bool userAction = false)
         {
             path = path.TrimEnd('\\');
             string parent = System.IO.Path.GetDirectoryName(path);
@@ -294,29 +312,105 @@ namespace EbpfMsi
             try {
                 foreach (string directory in directories) {
                     bool managed = directory == parent || directory == path;
-                    if (managed) {
+                    if (managed && !userAction) {
                         CreateBackupDirectory(directory);
                     }
                     guard.Handles.Add(OpenBackupPath(directory, true, !managed));
                 }
                 string userStore = System.IO.Path.Combine(path, "UserStore");
-                CreateBackupDirectory(userStore);
-                guard.Handles.Add(OpenBackupPath(userStore, true, false));
-                foreach (string file in System.IO.Directory.GetFileSystemEntries(path)) {
-                    if (String.Equals(file, userStore, StringComparison.OrdinalIgnoreCase)) {
-                        continue;
+                if (!userAction) {
+                    foreach (string file in System.IO.Directory.GetFileSystemEntries(path)) {
+                        if (String.Equals(file, userStore, StringComparison.OrdinalIgnoreCase)) {
+                            continue;
+                        }
+                        IntPtr handle = OpenBackupPath(file, false, false);
+                        CloseHandle(handle);
                     }
-                    IntPtr handle = OpenBackupPath(file, false, false);
-                    CloseHandle(handle);
                 }
-                foreach (string file in System.IO.Directory.GetFileSystemEntries(userStore)) {
-                    IntPtr handle = OpenBackupPath(file, false, false);
+                return guard;
+            } catch {
+                guard.Dispose();
+                throw;
+            }
+        }
+
+        public static IDisposable LockUserStore(string path, string userSid = null)
+        {
+            BackupDirectoryLock guard = new BackupDirectoryLock();
+            try {
+                guard.Handles.Add(OpenBackupPath(path, true, false, userSid));
+                foreach (string file in System.IO.Directory.GetFileSystemEntries(path)) {
+                    IntPtr handle = OpenBackupPath(file, false, false, userSid);
                     CloseHandle(handle);
                 }
                 return guard;
             } catch {
                 guard.Dispose();
                 throw;
+            }
+        }
+
+        public static void ValidateProtectedFile(string path)
+        {
+            IntPtr handle = OpenBackupPath(path, false, false);
+            CloseHandle(handle);
+        }
+
+        public static void ValidateUserStoreDirectory(string path, string userSid)
+        {
+            IntPtr handle = OpenBackupPath(path, true, false, userSid);
+            CloseHandle(handle);
+        }
+
+        public static void SetBackupAccess(string path, string sddl)
+        {
+            RawSecurityDescriptor descriptor = new RawSecurityDescriptor(sddl);
+            byte[] bytes = new byte[descriptor.BinaryLength];
+            descriptor.GetBinaryForm(bytes, 0);
+            RestoreFileAcl(path, bytes);
+        }
+
+        public static void CreateUserStore(string path, string sddl)
+        {
+            CreateBackupDirectory(path, sddl);
+        }
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool SetFileInformationByHandle(
+            IntPtr handle, int informationClass, ref int information, uint size);
+
+        public static bool DeleteEmptyUserStore(string path, string userSid)
+        {
+            IntPtr handle = CreateFile(
+                path, 0x00030080, FILE_SHARE_READ | FILE_SHARE_WRITE, IntPtr.Zero, OPEN_EXISTING,
+                FILE_FLAG_BACKUP_SEMANTICS | 0x00200000, IntPtr.Zero);
+            if (handle == new IntPtr(-1)) {
+                int error = Marshal.GetLastWin32Error();
+                if (error == 2 || error == 3) {
+                    return true;
+                }
+                throw new Win32Exception(error, "Cannot open HKCU backup directory for cleanup.");
+            }
+            try {
+                ByHandleFileInformation information;
+                if (!GetFileInformationByHandle(handle, out information)) {
+                    throw new Win32Exception(Marshal.GetLastWin32Error());
+                }
+                if ((information.FileAttributes & 0x410) != 0x10) {
+                    throw new System.IO.IOException("HKCU backup directory is a reparse point or wrong type.");
+                }
+                CheckBackupAcl(handle, path, false, true, userSid);
+                int delete = 1;
+                if (!SetFileInformationByHandle(handle, 4, ref delete, 4)) {
+                    int error = Marshal.GetLastWin32Error();
+                    if (error == 145) {
+                        return false;
+                    }
+                    throw new Win32Exception(error, "Cannot remove empty HKCU backup directory.");
+                }
+                return true;
+            } finally {
+                CloseHandle(handle);
             }
         }
 
@@ -737,16 +831,38 @@ function Restore-MsiLinks
     }
 }
 
-function Get-StorePaths
+function Get-UserStoreOwner
 {
-    param([Parameter(Mandatory = $true)][string]$StoreScope)
+    $ownerFile = Join-Path $StateRoot "hkcu-owner.sid"
+    if (-not (Test-Path -LiteralPath $ownerFile -PathType Leaf)) {
+        return $null
+    }
+    [EbpfMsi.NativeSecurity]::ValidateProtectedFile($ownerFile)
+    return [System.Security.Principal.SecurityIdentifier]::new(
+        (Get-Content -LiteralPath $ownerFile -Raw).Trim()).Value
+}
 
-    $scopeName = $StoreScope.ToLowerInvariant()
-    $storeRoot = if ($StoreScope -eq "HKCU") { Join-Path $StateRoot "UserStore" } else { $StateRoot }
-    if ($StoreScope -eq "HKCU") {
+function Prepare-UserStore
+{
+    $userSid = [System.Security.Principal.SecurityIdentifier]::new($InstallingUserSid).Value
+    $directoryAccess = "O:BAG:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;;FRFX;;;BU)"
+    [EbpfMsi.NativeSecurity]::SetBackupAccess((Split-Path $StateRoot), $directoryAccess)
+    [EbpfMsi.NativeSecurity]::SetBackupAccess($StateRoot, $directoryAccess)
+    $userStore = Join-Path $StateRoot "UserStore"
+    $owner = Get-UserStoreOwner
+    if ($null -ne $owner) {
+        # Once user access is granted, SYSTEM must not consume or re-ACL the files inside.
+        [EbpfMsi.NativeSecurity]::ValidateUserStoreDirectory($userStore, $owner)
+        return
+    }
+
+    [EbpfMsi.NativeSecurity]::CreateUserStore(
+        $userStore, "O:BAG:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)")
+    $legacyLock = [EbpfMsi.NativeSecurity]::LockUserStore($userStore)
+    try {
         foreach ($suffix in @("json", "reg", "pending", "rollback.json", "rollback.reg", "uninstall.json", "uninstall.reg")) {
             $legacyFile = Join-Path $StateRoot "ebpf-store-hkcu.$suffix"
-            $destination = Join-Path $storeRoot "ebpf-store-hkcu.$suffix"
+            $destination = Join-Path $userStore "ebpf-store-hkcu.$suffix"
             if (Test-Path -LiteralPath $legacyFile) {
                 if (Test-Path -LiteralPath $destination) {
                     throw "Both legacy and current HKCU backups exist: '$legacyFile'."
@@ -754,7 +870,41 @@ function Get-StorePaths
                 Move-Item -LiteralPath $legacyFile -Destination $destination
             }
         }
+        foreach ($suffix in @("json", "rollback.json", "pending", "uninstall.json")) {
+            $metadata = Join-Path $userStore "ebpf-store-hkcu.$suffix"
+            if (Test-Path -LiteralPath $metadata -PathType Leaf) {
+                $state = Get-Content -LiteralPath $metadata -Raw | ConvertFrom-Json
+                if ([string]::IsNullOrWhiteSpace([string]$state.UserSid)) {
+                    Write-Warning "The legacy HKCU backup has no saved user identity; retaining administrator-only access."
+                    return
+                }
+                $userSid = [System.Security.Principal.SecurityIdentifier]::new([string]$state.UserSid).Value
+                break
+            }
+        }
+        $ownerFile = Join-Path $StateRoot "hkcu-owner.sid"
+        $temporaryOwnerFile = $ownerFile + ".new"
+        Set-Content -LiteralPath $temporaryOwnerFile -Value $userSid -Encoding ASCII
+        [EbpfMsi.NativeSecurity]::SetBackupAccess(
+            $temporaryOwnerFile, "O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FR;;;BU)")
+        foreach ($file in @(Get-ChildItem -LiteralPath $userStore -File -Force)) {
+            [EbpfMsi.NativeSecurity]::SetBackupAccess(
+                $file.FullName, "O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;0x1301bf;;;$userSid)")
+        }
+        [EbpfMsi.NativeSecurity]::SetBackupAccess(
+            $userStore, "O:BAG:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;;0x1200ab;;;$userSid)(A;OIIO;0x1301bf;;;$userSid)")
+        Move-Item -LiteralPath $temporaryOwnerFile -Destination $ownerFile
+    } finally {
+        $legacyLock.Dispose()
     }
+}
+
+function Get-StorePaths
+{
+    param([Parameter(Mandatory = $true)][string]$StoreScope)
+
+    $scopeName = $StoreScope.ToLowerInvariant()
+    $storeRoot = if ($StoreScope -eq "HKCU") { Join-Path $StateRoot "UserStore" } else { $StateRoot }
     $rollbackStateFile = Join-Path $storeRoot "ebpf-store-$scopeName.rollback.json"
     $legacyPendingFile = Join-Path $storeRoot "ebpf-store-$scopeName.pending"
     if (Test-Path -LiteralPath $legacyPendingFile) {
@@ -1354,7 +1504,10 @@ function Prepare-ServiceRestore
     }
 
     # Commit runs after RemoveFiles, so retain a copy in the already validated, protected directory.
-    Copy-Item -LiteralPath $PSCommandPath -Destination (Join-Path $StateRoot "ForceEbpfStack.cleanup.ps1") -Force
+    $cleanupScript = Join-Path $StateRoot "ForceEbpfStack.cleanup.ps1"
+    Copy-Item -LiteralPath $PSCommandPath -Destination $cleanupScript -Force
+    [EbpfMsi.NativeSecurity]::SetBackupAccess(
+        $cleanupScript, "O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FR;;;BU)")
     Save-CurrentServices -StateFile $paths.UninstallRollbackFile -FileSuffix "uninstall-rollback"
 }
 
@@ -1443,7 +1596,6 @@ function Backup-Store
     }
 
     $paths = Get-StorePaths -StoreScope $Scope
-    New-Item -ItemType Directory -Path $StateRoot -Force | Out-Null
     if ((Test-Path -LiteralPath $paths.RollbackStateFile) -or
         (Test-Path -LiteralPath $paths.RollbackRegistryFile)) {
         throw "Incomplete $Scope eBPF store transaction exists in '$StateRoot'."
@@ -1613,7 +1765,6 @@ function Prepare-StoreRestore
     }
 
     $paths = Get-StorePaths -StoreScope $Scope
-    New-Item -ItemType Directory -Path $StateRoot -Force | Out-Null
     if ((Test-Path -LiteralPath $paths.UninstallStateFile) -or
         (Test-Path -LiteralPath $paths.UninstallRegistryFile)) {
         throw "Incomplete $Scope eBPF store uninstall transaction exists in '$StateRoot'."
@@ -1705,10 +1856,20 @@ function Commit-StoreRestore
 }
 
 $backupLock = $null
+$userStoreLock = $null
 try {
     if ($Action -match "(Services|Store)$" -or $Action -eq "CommitRestoreAll") {
         $StateRoot = [System.IO.Path]::GetFullPath($StateRoot)
-        $backupLock = [EbpfMsi.NativeSecurity]::LockBackupDirectory($StateRoot)
+        $userStoreAction = $Scope -eq "HKCU"
+        $backupLock = [EbpfMsi.NativeSecurity]::LockBackupDirectory($StateRoot, $userStoreAction)
+        if ($userStoreAction) {
+            $owner = Get-UserStoreOwner
+            if ($null -eq $owner -or $owner -ne (Get-CurrentUserSid)) {
+                Write-Warning "Skipping HKCU action '$Action': the current user does not own the installer's HKCU backup area."
+                return
+            }
+            $userStoreLock = [EbpfMsi.NativeSecurity]::LockUserStore((Join-Path $StateRoot "UserStore"), $owner)
+        }
     }
     switch ($Action) {
         "Install" {
@@ -1870,16 +2031,33 @@ try {
             Backup-Store
         }
 
+        "PrepareUserStore" {
+            Prepare-UserStore
+        }
+
+        "ClearStore" {
+            Invoke-NativeCommand -FilePath (Join-Path $InstallRoot "export_program_info.exe") `
+                -ArgumentList @("--clear") -FailureMessage "Failed to clear the user eBPF store"
+        }
+
+        "PopulateStore" {
+            & (Join-Path $InstallRoot "export_program_info.exe")
+            if ($LASTEXITCODE -ne 0) {
+                throw "Failed to populate the user eBPF store (exit code $LASTEXITCODE)."
+            }
+        }
+
         "RollbackStore" {
             Rollback-StoreTransaction
         }
 
         "CommitStore" {
-            foreach ($storeScope in @("HKLM", "HKCU")) {
-                $paths = Get-StorePaths -StoreScope $storeScope
-                Remove-BackupFileIfPresent -Path $paths.RollbackStateFile
-                Remove-BackupFileIfPresent -Path $paths.RollbackRegistryFile
+            if ([string]::IsNullOrWhiteSpace($Scope)) {
+                throw "Scope is required for store commit."
             }
+            $paths = Get-StorePaths -StoreScope $Scope
+            Remove-BackupFileIfPresent -Path $paths.RollbackStateFile
+            Remove-BackupFileIfPresent -Path $paths.RollbackRegistryFile
         }
 
         "RestoreStore" {
@@ -1899,9 +2077,8 @@ try {
         }
 
         "CommitRestoreAll" {
-            foreach ($Scope in @("HKLM", "HKCU")) {
-                Commit-StoreRestore
-            }
+            $Scope = "HKLM"
+            Commit-StoreRestore
             $paths = Get-ServicePaths
             Remove-ServiceStateFiles -FileSuffix "original"
             Remove-ServiceStateFiles -FileSuffix "uninstall-rollback"
@@ -1909,6 +2086,11 @@ try {
                 if (Test-Path -LiteralPath $path) {
                     Remove-Item -LiteralPath $path -Force
                 }
+            }
+            $owner = Get-UserStoreOwner
+            if ($null -ne $owner -and
+                [EbpfMsi.NativeSecurity]::DeleteEmptyUserStore((Join-Path $StateRoot "UserStore"), $owner)) {
+                Remove-Item -LiteralPath (Join-Path $StateRoot "hkcu-owner.sid") -Force
             }
             Remove-Item -LiteralPath (Join-Path $StateRoot "ForceEbpfStack.cleanup.ps1") -Force
         }
@@ -1922,6 +2104,9 @@ try {
         }
     }
 } finally {
+    if ($null -ne $userStoreLock) {
+        $userStoreLock.Dispose()
+    }
     if ($null -ne $backupLock) {
         $backupLock.Dispose()
     }

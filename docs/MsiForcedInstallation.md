@@ -22,6 +22,8 @@ to restore the machine-wide eBPF stack to its pre-MSI state. HKCU restoration is
 only the saved installing user restores their HKCU store. Another user or SYSTEM skips that restoration
 with a warning, leaves the caller's HKCU unchanged, and retains the original HKCU backup. If no saved
 HKCU identity exists, the caller's store is also left unchanged. Other restoration errors remain fatal.
+The same ownership check gates HKCU backup, clear, and population during installation: a different user
+does not change their HKCU store while another user's backup area is retained.
 Original-state restoration and backup deletion
 are skipped when an older MSI is removed as part of a major upgrade, so the newer version can retain
 those backups.
@@ -80,14 +82,21 @@ Registry exports are created only for keys that existed; metadata records absent
 
 ### Backup directory protection
 
-The application directory, backup directory, and `UserStore` are created with protected ACLs granting full control only to
-SYSTEM and Administrators. No ordinary-user write access is granted, including for HKCU snapshots.
-HKCU registry actions remain impersonated. They restore only snapshots belonging to the current user;
-they do not load another user's profile. These actions still need filesystem access to the protected
-backup directory; skipping mismatched identities does not address unelevated-token access failures.
+SYSTEM prepares the backup directories before any HKCU action. Machine backups remain writable and
+readable only by SYSTEM and Administrators. Ordinary users can traverse and read the application and
+backup directories themselves, but that access does not inherit to machine backup files.
+The protected `hkcu-owner.sid` record is readable by users and writable only by administrators/SYSTEM.
+It identifies the one installing user allowed to create and modify files in `UserStore`.
+That user cannot rename, delete, change permissions on, or create subdirectories inside `UserStore`.
+Full control over the directory remains with SYSTEM and Administrators.
 
-Before using any backups, each action checks directory and file ownership, rejects unprivileged
-write permissions, and rejects reparse points and hard-linked backup files. Ancestor directories
+HKCU registry actions remain impersonated, so an unelevated installing-user token can access its own
+backup files without gaining access to machine backups. A different user checks the protected owner
+record and skips before accessing `UserStore`; no other user's profile is loaded.
+
+Before using backups, each action checks directory and file ownership, rejects unexpected
+write permissions, and rejects reparse points and hard-linked backup files. HKCU files may be owned
+and writable by the recorded user; machine backup files may not. Ancestor directories
 are also checked for permissions that would let an unprivileged user replace the protected path.
 Directory handles remain open without write or delete sharing during the action to prevent path replacement
 or changes to reparse data.
@@ -95,13 +104,22 @@ Existing untrusted directories or contents cause an error; the installer never c
 and then treats them as trusted. An administrator must investigate and recover such existing state
 before retrying. Do not delete original backups merely to bypass the check.
 
-Trusted legacy HKCU snapshots in the backup root are moved into `UserStore`. Registry destinations
+During initial setup, SYSTEM validates legacy administrator-only HKCU snapshots and moves any from
+the backup root into `UserStore`. The saved SID determines ownership when a legacy snapshot exists.
+If the saved identity is missing, the legacy area stays administrator-only and HKCU actions skip.
+Validation and identity selection happen before granting user access. Once the protected owner record
+exists, SYSTEM does not parse, import, or change permissions on HKCU files. An interrupted initial
+permission migration can require administrator recovery rather than trusting partially migrated files.
+Registry destinations
 and service export filenames are validated, and store imports reject keys outside the saved store.
 Uninstall preparation stages `ForceEbpfStack.cleanup.ps1` in the protected backup directory so
-commit can use the same validation after the installed script is removed. Successful commit removes
-the staged script and restored backup files; skipped HKCU backups are retained. HKCU uninstall metadata
-records successful restoration so SYSTEM commit cleanup does not delete a skipped backup.
-Empty protected directories are retained for future installations.
+commit can use the same validation after the installed script is removed. This copy is user-readable,
+but only administrators/SYSTEM can modify it. Separate impersonated commit actions clean up HKCU files;
+the uninstall commit removes original HKCU snapshots only after successful restoration. Skipped HKCU
+backups are retained. Machine commit actions clean up only service/HKLM files and the staged script;
+they never consume user-writable HKCU metadata. SYSTEM removes `UserStore` and its protected owner
+record only if the directory is empty. The application and backup root directories remain for future
+installations.
 Cleanup errors are logged by the custom action without rolling back an otherwise completed uninstall.
 
 Binary links are beside the canonical Windows files: `.ebpf-msi-new` stages replacement,
@@ -128,6 +146,7 @@ flowchart TD
         Stop{"Forced stack replacement?"}
         StandardStop["StopServices"]
         Files["CreateFolders<br/>InstallFiles"]
+        UserAccess["Prepare_eBPF_user_store"]
         Forced{"Existing eBPFCore and FORCE=1?"}
         Backup["Force_eBPF_services_backup<br/>R: Force_eBPF_services_rollback"]
         NetStop["Force_NetEbpfExt_Driver_stop"]
@@ -160,7 +179,7 @@ flowchart TD
 
         Stop -->|No| StandardStop --> Files
         Stop -->|Yes: standard StopServices skipped| Files
-        Files --> Forced
+        Files --> UserAccess --> Forced
         Forced -->|Yes| Backup --> NetStop --> SvcStop --> CoreStop
         CoreStop --> Links --> MachineBackup --> UserBackup --> ClearMachine
         Forced -->|No| ClearMachine
@@ -179,10 +198,11 @@ flowchart TD
     subgraph Commit["Success-only commit actions"]
         CommitForced{"Forced stack replacement?"}
         BinaryCleanup["Force_eBPF_binaries_cleanup"]
+        UserCleanup["Force_eBPF_store_commit_HKCU"]
         StoreCleanup["Force_eBPF_store_commit"]
         ServiceCleanup["Force_eBPF_services_commit"]
         Finished["InstallFinalize completes successfully"]
-        CommitForced -->|Yes| BinaryCleanup --> StoreCleanup --> ServiceCleanup --> Finished
+        CommitForced -->|Yes| BinaryCleanup --> UserCleanup --> StoreCleanup --> ServiceCleanup --> Finished
         CommitForced -->|No: no forced-install commit work| Finished
     end
 
@@ -192,7 +212,8 @@ flowchart TD
 
 If normal work reports a fatal error, execution leaves the success path and MSI runs the rollback
 work accumulated so far; it does **not** enter the commit area.
-The three commit actions execute in this order: binary cleanup, store cleanup, service cleanup.
+The four commit actions execute in this order: binary cleanup, impersonated HKCU cleanup,
+SYSTEM HKLM cleanup, service cleanup.
 Their execution is **after all normal work above**, even though their scheduling entries appear
 much earlier in the MSI sequence.
 
@@ -208,6 +229,7 @@ flowchart TD
     Prep["Immediate preparation"]
 
         FinalRemoval{"Final removal?<br/>NOT UPGRADINGPRODUCTCODE"}
+        UserAccess["Prepare_eBPF_user_store_uninstall"]
         ServiceSnapshot["Force_eBPF_services_uninstall_prepare"]
         MachineSnapshot["Force_eBPF_store_uninstall_prepare_HKLM<br/>R: Force_eBPF_services_uninstall_rollback"]
         UserSnapshot["Force_eBPF_store_uninstall_prepare_HKCU<br/>R: Force_eBPF_store_uninstall_rollback_HKLM"]
@@ -228,7 +250,7 @@ flowchart TD
         Folders["RemoveFolders"]
         NormalSuccess["Normal uninstall succeeded"]
 
-        FinalRemoval -->|Yes| ServiceSnapshot --> MachineSnapshot --> UserSnapshot --> Netsh
+        FinalRemoval -->|Yes| UserAccess --> ServiceSnapshot --> MachineSnapshot --> UserSnapshot --> Netsh
         FinalRemoval -->|No: old-product removal during upgrade| Netsh
         Netsh --> NetStop --> CoreStop --> RemoveCreated
         RemoveCreated -->|Yes| ServiceRemove --> Components
@@ -241,9 +263,10 @@ flowchart TD
 
     subgraph Commit["Success-only commit actions"]
         CleanupRequired{"Final removal?"}
+        UserCleanup["Force_eBPF_store_uninstall_commit_HKCU"]
         ServiceCleanup["Force_eBPF_services_uninstall_commit"]
         Finished["InstallFinalize completes successfully"]
-        CleanupRequired -->|Yes| ServiceCleanup --> Finished
+        CleanupRequired -->|Yes| UserCleanup --> ServiceCleanup --> Finished
         CleanupRequired -->|No: preserve durable backups for newer product| Finished
     end
 
@@ -256,6 +279,7 @@ If normal uninstall work reports a fatal error, MSI follows recovery rather than
 cleanup path. Recovery is not expanded here; it restores the pre-uninstall state using the rollback work
 accumulated so far.
 
-The combined uninstall commit action executes only after normal removal succeeds. Unlike installation
+The impersonated HKCU commit runs before the SYSTEM service/HKLM commit, only after normal removal
+succeeds. Unlike installation
 commit cleanup, final-uninstall cleanup deletes durable original-state backups as well as temporary
 recovery files.
