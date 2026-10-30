@@ -12,16 +12,11 @@
 // .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
 
 #include "bpf_helpers.h"
-#include "ebpf_nethooks.h"
+#include "sample_ext_helpers.h"
 
-// The following line is optional, but is used to verify
-// that the BindMonitor prototype is correct or the compiler
-// would complain when the function is actually defined below.
-bind_hook_t UtilityTest;
-
-SEC("bind")
-bind_action_t
-UtilityTest(bind_md_t* ctx)
+SEC("sample_ext")
+int
+UtilityTest(sample_program_context_t* ctx)
 {
     char test1[] = "test";
     char test2[] = "test";

@@ -6,14 +6,10 @@
 #include "api_test_jit.h"
 #include "bpf/libbpf.h"
 #include "common_tests.h"
-#include "misc_helper.h"
 #include "native_helper.hpp"
 #include "program_helper.h"
 #include "service_helper.h"
 #include "socket_helper.h"
-
-#define _NTDEF_ // UNICODE_STRING is already defined.
-#include <ntsecapi.h>
 
 void
 tailcall_load_test(_In_z_ const char* file_name)
@@ -58,106 +54,21 @@ tailcall_load_test(_In_z_ const char* file_name)
     bpf_object__close(object);
 }
 
-// Tests the following helper functions:
-// 1. bpf_get_current_pid_tgid()
-// 2. bpf_get_current_logon_id()
-// 3. bpf_is_current_admin()
-void
-bpf_user_helpers_test(ebpf_execution_type_t execution_type)
-{
-    struct bpf_object* object = nullptr;
-    uint64_t process_thread_id = get_current_pid_tgid();
-    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
-    native_module_helper_t module_helper;
-    module_helper.initialize("bindmonitor", execution_type);
-    program_load_attach_helper_t _helper;
-    _helper.initialize(
-        module_helper.get_file_name().c_str(), BPF_PROG_TYPE_BIND, "BindMonitor", execution_type, nullptr, 0, hook);
-    object = _helper.get_object();
-
-    perform_socket_bind(0, true);
-
-    // Validate the contents of the audit map.
-    fd_t audit_map_fd = bpf_object__find_map_fd_by_name(object, "audit_map");
-    REQUIRE(audit_map_fd > 0);
-
-    audit_entry_t entry = {0};
-    int result = bpf_map_lookup_elem(audit_map_fd, &process_thread_id, &entry);
-    REQUIRE(result == 0);
-
-    REQUIRE(entry.is_admin == -1);
-
-    REQUIRE(entry.logon_id != 0);
-    SECURITY_LOGON_SESSION_DATA* data = NULL;
-    result = LsaGetLogonSessionData((PLUID)&entry.logon_id, &data);
-    REQUIRE(result == ERROR_SUCCESS);
-
-    LsaFreeReturnBuffer(data);
-}
-
-void
-perform_socket_bind(const uint16_t test_port, bool expect_success = true)
-{
-    WSAData data;
-    int error = WSAStartup(2, &data);
-    if (error != 0) {
-        FAIL("Unable to load Winsock: " << error);
-        return;
-    }
-
-    SOCKET _socket = INVALID_SOCKET;
-    _socket = WSASocket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP, nullptr, 0, 0);
-    REQUIRE(_socket != INVALID_SOCKET);
-    uint32_t ipv6_option = 0;
-    REQUIRE(
-        setsockopt(
-            _socket, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&ipv6_option), sizeof(unsigned long)) ==
-        0);
-    SOCKADDR_STORAGE sock_addr;
-    sock_addr.ss_family = AF_INET6;
-    INETADDR_SETANY((PSOCKADDR)&sock_addr);
-
-    // Perform bind operation.
-    ((PSOCKADDR_IN6)&sock_addr)->sin6_port = htons(test_port);
-    if (expect_success) {
-        REQUIRE(bind(_socket, (PSOCKADDR)&sock_addr, sizeof(sock_addr)) == 0);
-    } else {
-        REQUIRE(bind(_socket, (PSOCKADDR)&sock_addr, sizeof(sock_addr)) != 0);
-    }
-
-    WSACleanup();
-}
-
-int32_t
-get_expected_jit_result(int32_t expected_result)
-{
-#if defined(CONFIG_BPF_JIT_DISABLED)
-    UNREFERENCED_PARAMETER(expected_result);
-    return -ENOTSUP;
-#else
-    return expected_result;
-#endif
-}
-
 #if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("test_ebpf_program_next_previous_jit", "[test_ebpf_program_next_previous]")
 {
     test_program_next_previous("test_sample_ebpf.o", SAMPLE_PROGRAM_COUNT);
-    test_program_next_previous("bindmonitor.o", BIND_MONITOR_PROGRAM_COUNT);
 }
 
 TEST_CASE("test_ebpf_map_next_previous_jit", "[test_ebpf_map_next_previous]")
 {
     test_map_next_previous("test_sample_ebpf.o", SAMPLE_MAP_COUNT);
-    test_map_next_previous("bindmonitor.o", BIND_MONITOR_MAP_COUNT);
 }
 
 TEST_CASE("ringbuf_api_jit", "[test_ringbuf_api][ring_buffer]") { ring_buffer_api_test(EBPF_EXECUTION_JIT); }
 TEST_CASE("divide_by_zero_jit", "[divide_by_zero]") { divide_by_zero_test_km(EBPF_EXECUTION_JIT); }
 
 TEST_CASE("tailcall_load_test_jit", "[tailcall_load_test]") { tailcall_load_test("tail_call_multiple.o"); }
-
-TEST_CASE("bpf_user_helpers_test_jit", "[api_test]") { bpf_user_helpers_test(EBPF_EXECUTION_JIT); }
 #endif
 
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
