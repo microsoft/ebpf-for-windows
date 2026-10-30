@@ -17,8 +17,12 @@ With `FORCE=1` and an existing eBPFCore registration, the MSI:
 The MSI creates backup and rollback files/links to preserve service information, binary links, and
 registry stores; the distinction between these is explained below.
 
-On final uninstall, the saved original service state, binary hard links, and registry stores are used
-to restore the managed eBPF stack to its pre-MSI state. Original-state restoration and backup deletion
+On final uninstall, the saved original service state, binary hard links, and HKLM store are used
+to restore the machine-wide eBPF stack to its pre-MSI state. HKCU restoration is best effort by identity:
+only the saved installing user restores their HKCU store. Another user or SYSTEM skips that restoration
+with a warning, leaves the caller's HKCU unchanged, and retains the original HKCU backup. If no saved
+HKCU identity exists, the caller's store is also left unchanged. Other restoration errors remain fatal.
+Original-state restoration and backup deletion
 are skipped when an older MSI is removed as part of a major upgrade, so the newer version can retain
 those backups.
 
@@ -78,7 +82,9 @@ Registry exports are created only for keys that existed; metadata records absent
 
 The application directory, backup directory, and `UserStore` are created with protected ACLs granting full control only to
 SYSTEM and Administrators. No ordinary-user write access is granted, including for HKCU snapshots.
-HKCU registry actions remain impersonated and retain the same-installing-user requirement.
+HKCU registry actions remain impersonated. They restore only snapshots belonging to the current user;
+they do not load another user's profile. These actions still need filesystem access to the protected
+backup directory; skipping mismatched identities does not address unelevated-token access failures.
 
 Before using any backups, each action checks directory and file ownership, rejects unprivileged
 write permissions, and rejects reparse points and hard-linked backup files. Ancestor directories
@@ -93,7 +99,9 @@ Trusted legacy HKCU snapshots in the backup root are moved into `UserStore`. Reg
 and service export filenames are validated, and store imports reject keys outside the saved store.
 Uninstall preparation stages `ForceEbpfStack.cleanup.ps1` in the protected backup directory so
 commit can use the same validation after the installed script is removed. Successful commit removes
-the staged script and backup files; empty protected directories are retained for future installations.
+the staged script and restored backup files; skipped HKCU backups are retained. HKCU uninstall metadata
+records successful restoration so SYSTEM commit cleanup does not delete a skipped backup.
+Empty protected directories are retained for future installations.
 Cleanup errors are logged by the custom action without rolling back an otherwise completed uninstall.
 
 Binary links are beside the canonical Windows files: `.ebpf-msi-new` stages replacement,

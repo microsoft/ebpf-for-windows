@@ -1510,10 +1510,25 @@ function Read-StoreState
         throw "The eBPF store backup scope does not match '$Scope'."
     }
     Assert-StoreRegistryPath -RegistryPath ([string]$state.RegistryPath) -Paths $Paths
-    if ($Scope -eq "HKCU" -and [string]$state.UserSid -ne (Get-CurrentUserSid)) {
-        throw "The HKCU eBPF store belongs to user SID '$($state.UserSid)', not the current user."
-    }
     return $state
+}
+
+function Test-StoreRestoreUser
+{
+    param([AllowNull()][object]$State)
+
+    if ($Scope -ne "HKCU") {
+        return $true
+    }
+    if ($null -eq $State) {
+        Write-Warning "Skipping HKCU restoration: no saved installing-user identity. The current user's store is unchanged."
+        return $false
+    }
+    if ([string]$State.UserSid -ne (Get-CurrentUserSid)) {
+        Write-Warning "Skipping HKCU restoration: backup belongs to '$($State.UserSid)', not the current user. Retaining the backup."
+        return $false
+    }
+    return $true
 }
 
 function Rollback-StoreTransaction
@@ -1531,8 +1546,8 @@ function Rollback-StoreTransaction
     if ([int]$rollbackState.SchemaVersion -ne 1 -or [string]$rollbackState.Scope -ne $Scope) {
         throw "Invalid $Scope eBPF store rollback transaction."
     }
-    if ($Scope -eq "HKCU" -and [string]$rollbackState.UserSid -ne (Get-CurrentUserSid)) {
-        throw "The HKCU eBPF store rollback transaction belongs to a different user."
+    if (-not (Test-StoreRestoreUser -State $rollbackState)) {
+        return
     }
 
     Assert-StoreRegistryPath -RegistryPath ([string]$rollbackState.RegistryPath) -Paths $paths
@@ -1561,6 +1576,16 @@ function Restore-Store
 
     $paths = Get-StorePaths -StoreScope $Scope
     $state = Read-StoreState -Paths $paths
+    if (-not (Test-StoreRestoreUser -State $state)) {
+        return
+    }
+    $uninstallState = $null
+    if ($Scope -eq "HKCU" -and (Test-Path -LiteralPath $paths.UninstallStateFile -PathType Leaf)) {
+        $uninstallState = Get-Content -LiteralPath $paths.UninstallStateFile -Raw | ConvertFrom-Json
+        if (-not (Test-StoreRestoreUser -State $uninstallState)) {
+            return
+        }
+    }
     if ($null -eq $state) {
         Remove-RegistryTreeIfPresent -RegistryPath $paths.RegistryPath
         return
@@ -1575,6 +1600,10 @@ function Restore-Store
         Remove-RegistryTreeIfPresent -RegistryPath ([string]$state.RegistryPath)
     }
 
+    if ($null -ne $uninstallState) {
+        $uninstallState | Add-Member -NotePropertyName RestoreCompleted -NotePropertyValue $true -Force
+        $uninstallState | ConvertTo-Json | Set-Content -LiteralPath $paths.UninstallStateFile -Encoding UTF8
+    }
 }
 
 function Prepare-StoreRestore
@@ -1588,6 +1617,9 @@ function Prepare-StoreRestore
     if ((Test-Path -LiteralPath $paths.UninstallStateFile) -or
         (Test-Path -LiteralPath $paths.UninstallRegistryFile)) {
         throw "Incomplete $Scope eBPF store uninstall transaction exists in '$StateRoot'."
+    }
+    if ($Scope -eq "HKCU" -and -not (Test-StoreRestoreUser -State (Read-StoreState -Paths $paths))) {
+        return
     }
 
     $providerPath = Get-RegistryProviderPath -RegistryPath $paths.RegistryPath
@@ -1605,6 +1637,7 @@ function Prepare-StoreRestore
         RegistryPath = $paths.RegistryPath
         StoreExisted = $storeExisted
         UserSid = if ($Scope -eq "HKCU") { Get-CurrentUserSid } else { $null }
+        RestoreCompleted = $false
     } | ConvertTo-Json | Set-Content -LiteralPath $paths.UninstallStateFile -Encoding UTF8
 }
 
@@ -1623,8 +1656,8 @@ function Rollback-StoreRestore
     if ([int]$state.SchemaVersion -ne 1 -or [string]$state.Scope -ne $Scope) {
         throw "Invalid pending $Scope eBPF store uninstall transaction."
     }
-    if ($Scope -eq "HKCU" -and [string]$state.UserSid -ne (Get-CurrentUserSid)) {
-        throw "The pending HKCU eBPF store uninstall transaction belongs to a different user."
+    if (-not (Test-StoreRestoreUser -State $state)) {
+        return
     }
 
     Assert-StoreRegistryPath -RegistryPath ([string]$state.RegistryPath) -Paths $paths
@@ -1648,6 +1681,22 @@ function Commit-StoreRestore
     }
 
     $paths = Get-StorePaths -StoreScope $Scope
+    if ($Scope -eq "HKCU") {
+        $uninstallState =
+            if (Test-Path -LiteralPath $paths.UninstallStateFile -PathType Leaf) {
+                Get-Content -LiteralPath $paths.UninstallStateFile -Raw | ConvertFrom-Json
+            } else {
+                $null
+            }
+        if ($null -eq $uninstallState -or
+            $null -eq $uninstallState.PSObject.Properties["RestoreCompleted"] -or
+            -not [bool]$uninstallState.RestoreCompleted) {
+            Write-Warning "HKCU restoration was not completed; retaining the original HKCU backup."
+            Remove-BackupFileIfPresent -Path $paths.UninstallRegistryFile
+            Remove-BackupFileIfPresent -Path $paths.UninstallStateFile
+            return
+        }
+    }
     foreach ($path in @(
         $paths.RegistryFile, $paths.StateFile, $paths.RollbackStateFile, $paths.RollbackRegistryFile,
         $paths.UninstallRegistryFile, $paths.UninstallStateFile)) {
