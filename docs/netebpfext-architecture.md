@@ -1,19 +1,24 @@
-# netebpfext Agent Context
+# netebpfext Architecture
 
-> Agent-only engineering context. This document is intended to save future agents from
-> reconstructing the `netebpfext` architecture and WFP-to-eBPF invocation path.
+`netebpfext.sys` implements eBPF hooks for the sock_addr and sock_ops program types using
+Windows Filtering Platform (WFP) callouts. It also supports the deprecated bind program
+type. The driver translates network events into eBPF program contexts and applies program
+verdicts to WFP classification.
 
 ## Scope
 
-This document describes the checked-out `netebpfext` implementation reviewed at commit
-`2b64664adffc525d72917ab47df1fa834d25e374`.
-
+This overview describes the implemented architecture, lifecycle, and ownership invariants
+reviewed at commit `2b64664adffc525d72917ab47df1fa834d25e374`, not a proposed design.
+Before making changes, verify implementation details against the current source; symbols
+and line references below describe the reviewed revision.
 Only native program invocation is in scope. Other execution modes are intentionally
 omitted.
 
-## Mental model
+For general extension contracts, see [eBPF extensions](eBpfExtensions.md).
 
-`netebpfext.sys` has two independent-facing roles:
+## Architecture overview
+
+`netebpfext.sys` bridges WFP and `ebpfcore` through two roles:
 
 1. **WFP callout driver**
    - Registers kernel callouts at ALE layers.
@@ -28,7 +33,23 @@ omitted.
    - Converts an attached NMR client into a `net_ebpf_extension_hook_client_t`.
    - Uses the client dispatch function supplied by `ebpfcore` to invoke the linked program.
 
-The key data-plane relationship is:
+NMR (Network Module Registrar) connects these providers to `ebpfcore` clients, separating
+program metadata from hook attachment.
+
+```text
+Control path:
+  ebpfcore link -> NMR hook binding -> netebpfext hook provider -> WFP filters
+
+Data path:
+  WFP network event -> netebpfext classify callback -> ebpfcore link -> native eBPF program
+                       <- WFP action              <- program verdict
+```
+
+Matching multi-attach clients share a filter context and WFP filters. Classification
+snapshots clients under the filter-context lock, then invokes programs synchronously
+outside the lock. Rundown protects client lifetime during invocation.
+
+The runtime object relationship is:
 
 ```text
 WFP filter.rawContext
@@ -39,38 +60,25 @@ WFP filter.rawContext
            -> invoke_program (_ebpf_link_instance_invoke)
 ```
 
-## Source map
-
-| File | Responsibility |
-|---|---|
-| [`net_ebpf_ext_drv.c`](../netebpfext/sys/net_ebpf_ext_drv.c) | WDF driver entry, device creation, subsystem startup, unload ordering |
-| [`net_ebpf_ext.c`](../netebpfext/net_ebpf_ext.c) | WFP provider/sublayer/callout registration, filter management, shared filter-context lifetime |
-| [`net_ebpf_ext_prog_info_provider.c`](../netebpfext/net_ebpf_ext_prog_info_provider.c) | Generic NMR program-information provider |
-| [`net_ebpf_ext_hook_provider.c`](../netebpfext/net_ebpf_ext_hook_provider.c) | Generic NMR hook provider, attach/detach, client snapshot, rundown, invocation, stack expansion |
-| [`net_ebpf_ext_program_info.h`](../netebpfext/net_ebpf_ext_program_info.h) | Program type descriptors, context descriptors, helpers, and section definitions |
-| [`net_ebpf_ext_bind.c`](../netebpfext/net_ebpf_ext_bind.c) | Deprecated bind program type, resource-allocation/release classify callbacks |
-| [`net_ebpf_ext_sock_addr.c`](../netebpfext/net_ebpf_ext_sock_addr.c) | `BPF_PROG_TYPE_CGROUP_SOCK_ADDR`, connect/authorization/accept/bind/listen processing |
-| [`net_ebpf_ext_sock_ops.c`](../netebpfext/net_ebpf_ext_sock_ops.c) | `BPF_PROG_TYPE_SOCK_OPS`, flow-established and flow-delete processing |
-| [`net_ebpf_ext_structs.h`](../netebpfext/net_ebpf_ext_structs.h) | Shared provider, client, dispatch, filter, and invocation structures |
-| [`ebpf_link.c`](../libs/execution_context/ebpf_link.c) | NMR hook-provider client and extension dispatch into a linked program |
-| [`ebpf_program.c`](../libs/execution_context/ebpf_program.c) | Native program dispatch and tail-call loop |
-| [`ebpf_nethooks.h`](../include/ebpf_nethooks.h) | Public network program contexts, operations, and verdict contracts |
-| [`netebpfext_unit.cpp`](../tests/netebpfext_unit/netebpfext_unit.cpp) | Provider, invocation, context, and WFP filter-cleanup regression tests |
-
 ## Driver and WFP lifecycle
 
 ### Startup
 
-[`DriverEntry`](../netebpfext/sys/net_ebpf_ext_drv.c#L146) performs:
+Driver startup ([`DriverEntry`](../netebpfext/sys/net_ebpf_ext_drv.c#L146)) performs:
 
 1. Trace initialization.
 2. NX nonpaged-pool opt-in.
 3. WDF driver and control-device creation.
 4. NDIS handle initialization.
-5. [`net_ebpf_extension_initialize_wfp_components`](../netebpfext/net_ebpf_ext.c#L797).
-6. [`net_ebpf_ext_register_providers`](../netebpfext/net_ebpf_ext.c#L1177).
+5. Initialize WFP infrastructure: register the provider, sublayers, and callouts, then
+   create the L2 injection handle
+   ([`net_ebpf_extension_initialize_wfp_components`](../netebpfext/net_ebpf_ext.c#L797)).
+6. Register [eBPF program-information and hook providers](#program-information-and-hook-providers)
+   with NMR ([`net_ebpf_ext_register_providers`](../netebpfext/net_ebpf_ext.c#L1177)).
 
-WFP initialization:
+#### WFP initialization
+
+WFP infrastructure initialization consists of:
 
 1. Opens the WFP engine.
 2. Begins a transaction.
@@ -222,20 +230,22 @@ WFP classify callback
        release filter-context lock
        for each selected client:
          client->invoke_program(client_binding_context, context, verdict)
+           -> _ebpf_link_instance_invoke
+                create 64-byte ebpf_execution_context_state_t
+                enter epoch
+                invoke linked program:
+                  -> ebpf_program_invoke
+                       set runtime state and context descriptor in EBPF_CONTEXT_HEADER
+                       validate native BTF providers
+                       call the bpf2c entry point with context and runtime_context
+                       follow up to 33 tail calls
+                exit epoch
          optional process_verdict(context, verdict)
        release client rundown
-  -> _ebpf_link_instance_invoke
-       create 64-byte ebpf_execution_context_state_t
-       enter epoch
-       invoke linked program
-       exit epoch
-  -> ebpf_program_invoke
-       set runtime state and context descriptor in EBPF_CONTEXT_HEADER
-       validate native BTF providers
-       call the bpf2c entry point with context and runtime_context
-       follow up to 33 tail calls
   -> classify callback translates verdict to WFP action
 ```
+
+Program execution completes before epoch exit and client rundown release.
 
 For a native program, [`ebpf_program_invoke`](../libs/execution_context/ebpf_program.c#L2176)
 loads `code_or_vm.native.code_pointer` and
@@ -255,10 +265,10 @@ sock_addr classify callback, context remains on original WFP stack
 
 expanded stack:
   -> _net_ebpf_extension_invoke_programs_callout
-  -> net_ebpf_extension_hook_invoke_filtered_programs
-  -> _ebpf_link_instance_invoke
-  -> ebpf_program_invoke
-  -> native bpf2c program entry point
+       -> net_ebpf_extension_hook_invoke_filtered_programs
+            -> _ebpf_link_instance_invoke
+                 -> ebpf_program_invoke
+                      -> native bpf2c program entry point
 ```
 
 The deprecated bind and sock-ops classify callbacks invoke the generic dispatcher
@@ -374,3 +384,21 @@ frees the flow context.
 - A sock_addr `original_context` pointer is valid only during synchronous invocation.
 - Redirect-context ownership must survive every error and verdict path.
 - Do not wait, touch pageable code, or allocate paged memory in sock_addr/sock_ops paths.
+
+## Source map
+
+| File | Responsibility |
+|---|---|
+| [`net_ebpf_ext_drv.c`](../netebpfext/sys/net_ebpf_ext_drv.c) | WDF driver entry, device creation, subsystem startup, unload ordering |
+| [`net_ebpf_ext.c`](../netebpfext/net_ebpf_ext.c) | WFP provider/sublayer/callout registration, filter management, shared filter-context lifetime |
+| [`net_ebpf_ext_prog_info_provider.c`](../netebpfext/net_ebpf_ext_prog_info_provider.c) | Generic NMR program-information provider |
+| [`net_ebpf_ext_hook_provider.c`](../netebpfext/net_ebpf_ext_hook_provider.c) | Generic NMR hook provider, attach/detach, client snapshot, rundown, invocation, stack expansion |
+| [`net_ebpf_ext_program_info.h`](../netebpfext/net_ebpf_ext_program_info.h) | Program type descriptors, context descriptors, helpers, and section definitions |
+| [`net_ebpf_ext_bind.c`](../netebpfext/net_ebpf_ext_bind.c) | Deprecated bind program type, resource-allocation/release classify callbacks |
+| [`net_ebpf_ext_sock_addr.c`](../netebpfext/net_ebpf_ext_sock_addr.c) | `BPF_PROG_TYPE_CGROUP_SOCK_ADDR`, connect/authorization/accept/bind/listen processing |
+| [`net_ebpf_ext_sock_ops.c`](../netebpfext/net_ebpf_ext_sock_ops.c) | `BPF_PROG_TYPE_SOCK_OPS`, flow-established and flow-delete processing |
+| [`net_ebpf_ext_structs.h`](../netebpfext/net_ebpf_ext_structs.h) | Shared provider, client, dispatch, filter, and invocation structures |
+| [`ebpf_link.c`](../libs/execution_context/ebpf_link.c) | NMR hook-provider client and extension dispatch into a linked program |
+| [`ebpf_program.c`](../libs/execution_context/ebpf_program.c) | Native program dispatch and tail-call loop |
+| [`ebpf_nethooks.h`](../include/ebpf_nethooks.h) | Public network program contexts, operations, and verdict contracts |
+| [`netebpfext_unit.cpp`](../tests/netebpfext_unit/netebpfext_unit.cpp) | Provider, invocation, context, and WFP filter-cleanup regression tests |

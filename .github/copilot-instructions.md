@@ -97,9 +97,9 @@ See [docs/DevelopmentGuide.md](../docs/DevelopmentGuide.md) for full details. Ke
 
 eBPF extensions are kernel drivers providing hooks/helpers via NMR. See [docs/eBpfExtensions.md](../docs/eBpfExtensions.md).
 
-For detailed agent context on `netebpfext` WFP registration, NMR providers, attach/detach
-lifetime, and classify-to-program invocation flows, see
-[netebpfext-agent-context.md](./netebpfext-agent-context.md).
+Before changing `netebpfext`, read the shared
+[netebpfext architecture](../docs/netebpfext-architecture.md) for WFP registration,
+NMR providers, attach/detach lifetime, and classify-to-program invocation flows.
 
 ## Crash Dump Debugging
 
