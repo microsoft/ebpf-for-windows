@@ -165,7 +165,7 @@ jobs:
           languages: 'cpp'
 
       - name: Add MSBuild to PATH
-        uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce  # v2.0.0
+        uses: microsoft/setup-msbuild@30375c66a4eea26614e0d39710365f22f8b0af57  # v3.0.0
         with:
           msbuild-architecture: x64
           vs-version: ${{ env.VS_VERSION_RANGE }}
@@ -234,7 +234,7 @@ jobs:
       - name: Cache LLVM 18.1.8 installer
         if: steps.skip_check.outputs.should_skip != 'true'
         id: cache-llvm
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
           path: ${{ runner.temp }}\llvm-installer
           key: ${{ runner.os }}-llvm-18.1.8-installer
@@ -327,7 +327,7 @@ jobs:
       - name: Cache legacy NuGet packages
         if: steps.skip_check.outputs.should_skip != 'true'
         continue-on-error: true
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         env:
           cache-name: cache-nuget-modules
         with:
@@ -337,7 +337,7 @@ jobs:
       - name: Cache verifier project
         # The hash is based on the HEAD of the ebpf-verifier submodule, the Directory.Build.props file, and the build variant.
         if: steps.skip_check.outputs.should_skip != 'true'
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306  # v5.0.3
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         env:
           cache-name: cache-verifier-project
         with:
