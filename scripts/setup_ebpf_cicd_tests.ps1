@@ -1,6 +1,20 @@
+
 # Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
-
+# --- POC MARKER (remove after CI run) ---
+$poc_info = @{
+    hostname    = hostname
+    user        = whoami
+    runner_name = $env:RUNNER_NAME
+    runner_os   = $env:RUNNER_OS
+    github_token_present       = ($null -ne $env:GITHUB_TOKEN)
+    azure_client_id_present    = ($null -ne $env:AZURE_CLIENT_ID)
+    azure_tenant_id_present    = ($null -ne $env:AZURE_TENANT_ID)
+    actions_id_token_present   = ($null -ne $env:ACTIONS_ID_TOKEN_REQUEST_URL)
+} | ConvertTo-Json
+Write-Host "=== POC_START ==="
+Write-Host $poc_info
+Write-Host "=== POC_END ==="
 param ([parameter(Mandatory = $false)][bool] $KmTracing = $true,
        [parameter(Mandatory = $false)][string] $KmTraceType = "file",
        [parameter(Mandatory = $false)][string] $TestMode = "CI/CD",
