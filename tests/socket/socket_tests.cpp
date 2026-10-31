@@ -1538,6 +1538,8 @@ bind_helper_functions_validation_test(ADDRESS_FAMILY address_family)
     // returns -1.
     SAFE_REQUIRE(results.set_redirect_context == -1);
 
+    SAFE_REQUIRE(results.socket_cookie > 0);
+
     closesocket(sock);
     printf(
         "Bind helper functions validation test completed successfully for %s\n",
@@ -2880,6 +2882,8 @@ TEST_CASE("listen_helper_functions_validation_tcp_v4", "[sock_addr_tests][helper
     // and returns -1.
     SAFE_REQUIRE(results.set_redirect_context == -1);
 
+    SAFE_REQUIRE(results.socket_cookie > 0);
+
     closesocket(sock);
     printf("Listen helper functions validation test completed successfully for IPv4\n");
 }
@@ -2979,6 +2983,7 @@ TEST_CASE("listen_helper_functions_validation_tcp_v6", "[sock_addr_tests][helper
     SAFE_REQUIRE(results.is_admin >= 0);
     SAFE_REQUIRE(results.is_admin <= 1);
     SAFE_REQUIRE(results.set_redirect_context == -1);
+    SAFE_REQUIRE(results.socket_cookie > 0);
     closesocket(sock);
     printf("Listen helper functions validation test completed successfully for IPv6\n");
 }
