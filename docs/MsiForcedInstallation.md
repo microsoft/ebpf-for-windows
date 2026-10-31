@@ -70,8 +70,6 @@ already deleted recovery data.
 Service and HKLM store metadata reside under `%ProgramFiles%\ebpf-for-windows\MsiBackup`
 (the native 64-bit Program Files directory), even if `INSTALLFOLDER` is customized.
 HKCU snapshots reside in its `UserStore` subdirectory.
-Packages using the previous ProgramData location must be uninstalled with their original installer
-before installing this version; backups are not migrated.
 In the table, `<scope>` is `hklm` or `hkcu`, and `<service>` is eBPFCore, NetEbpfExt, or eBPFSvc.
 
 | State | Metadata | Registry export |
