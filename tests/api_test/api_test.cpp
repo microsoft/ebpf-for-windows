@@ -1959,6 +1959,7 @@ class perf_buffer_test_helper
 // event generation across multiple CPUs without requiring manual polling.
 TEST_CASE("perf_buffer_async_consumer", "[stress][perf_buffer]")
 {
+    // Load bindmonitor_perf_event_array.sys.
     struct bpf_object* object = nullptr;
     fd_t program_fd = ebpf_fd_invalid;
     std::string app_id = "api_test.exe";
@@ -1966,23 +1967,20 @@ TEST_CASE("perf_buffer_async_consumer", "[stress][perf_buffer]")
     CAPTURE(cpu_count);
 
     native_module_helper_t native_helper;
-    native_helper.initialize("test_sample_perf_event_array", EBPF_EXECUTION_NATIVE);
+    native_helper.initialize("bindmonitor_perf_event_array", EBPF_EXECUTION_NATIVE);
 
     REQUIRE(
         program_load_helper(
-            native_helper.get_file_name().c_str(),
-            BPF_PROG_TYPE_SAMPLE,
-            EBPF_EXECUTION_NATIVE,
-            &object,
-            &program_fd) == 0);
+            "bindmonitor_perf_event_array.sys", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd) == 0);
 
     // RAII cleanup for program object. Declared before helper so bpf_object outlives the perf buffer
     // (perf_buffer__free uses map_fd for IOCTLs, and bpf_object__close closes the map fd).
     auto object_cleanup = std::unique_ptr<bpf_object, decltype(&bpf_object__close)>(object, bpf_object__close);
 
-    fd_t test_map_fd = bpf_object__find_map_fd_by_name(object, "test_map");
+    // Get fd of process_map map.
+    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
 
-    uint32_t max_entries = bpf_map__max_entries(bpf_object__find_map_by_name(object, "test_map"));
+    uint32_t max_entries = bpf_map__max_entries(bpf_object__find_map_by_name(object, "process_map"));
     uint32_t max_iterations = static_cast<uint32_t>(10 * (max_entries / app_id.size()));
     CAPTURE(max_entries, max_iterations);
 
@@ -1991,7 +1989,7 @@ TEST_CASE("perf_buffer_async_consumer", "[stress][perf_buffer]")
     auto completion_future = helper.enable_async_completion(max_iterations);
 
     // Create perf buffer in async mode (EBPF_PERFBUF_FLAG_AUTO_CALLBACK).
-    auto* pb = helper.create_perf_buffer(test_map_fd, EBPF_PERFBUF_FLAG_AUTO_CALLBACK);
+    auto* pb = helper.create_perf_buffer(process_map_fd, EBPF_PERFBUF_FLAG_AUTO_CALLBACK);
     REQUIRE(pb != nullptr);
 
     // Trigger perf buffer events from multiple threads across all CPUs.
@@ -2324,21 +2322,21 @@ TEST_CASE("ring_buffer_sync_reopen", "[ring_buffer]")
 TEMPLATE_TEST_CASE("perf_buffer_sync_api", "[perf_buffer]", ENABLED_EXECUTION_TYPES)
 {
     ebpf_execution_type_t execution_type = TestType::value;
-    std::string file_name = _get_program_file_name("test_sample_perf_event_array", execution_type);
+    std::string file_name = _get_program_file_name("bindmonitor_perf_event_array", execution_type);
+    const uint16_t base_test_port = 12400;
     struct bpf_object* object = nullptr;
-    fd_t program_fd = ebpf_fd_invalid;
+    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    program_load_attach_helper_t _helper;
+    _helper.initialize(file_name.c_str(), BPF_PROG_TYPE_BIND, "bind_monitor", execution_type, nullptr, 0, hook);
+    object = _helper.get_object();
 
-    REQUIRE(
-        program_load_helper(file_name.c_str(), BPF_PROG_TYPE_SAMPLE, execution_type, &object, &program_fd) == 0);
-    bpf_object_ptr object_ptr(object);
-
-    fd_t test_map_fd = bpf_object__find_map_fd_by_name(object, "test_map");
-    REQUIRE(test_map_fd > 0);
+    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
+    REQUIRE(process_map_fd > 0);
 
     perf_buffer_test_helper helper(false); // Don't keep records for this test
 
     // Create a synchronous perf buffer.
-    auto pb = helper.create_perf_buffer(test_map_fd);
+    auto pb = helper.create_perf_buffer(process_map_fd);
     REQUIRE(pb != nullptr);
 
     // Test ebpf_perf_buffer_get_wait_handle.
@@ -2351,30 +2349,14 @@ TEMPLATE_TEST_CASE("perf_buffer_sync_api", "[perf_buffer]", ENABLED_EXECUTION_TY
     REQUIRE(cpu_count > 0);
     REQUIRE(buffer_cnt == static_cast<size_t>(cpu_count));
 
-    // Generate event by invoking the sample program via bpf_prog_test_run_opts.
-    std::string app_id = "api_test.exe";
-    auto invoke_program = [&]() {
-        sample_program_context_t ctx{};
-        bpf_test_run_opts opts{};
-        opts.sz = sizeof(opts);
-        opts.ctx_in = &ctx;
-        opts.ctx_size_in = sizeof(ctx);
-        opts.ctx_out = &ctx;
-        opts.ctx_size_out = sizeof(ctx);
-        opts.data_in = app_id.data();
-        opts.data_size_in = static_cast<uint32_t>(app_id.size());
-        opts.data_out = app_id.data();
-        opts.data_size_out = static_cast<uint32_t>(app_id.size());
-        opts.repeat = 1;
-        REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
-    };
-
-    invoke_program();
+    // Generate event to consume by triggering socket bind.
+    perform_socket_bind(base_test_port, true);
 
     // Test 1: Use WaitForSingleObject and consume to verify we can consume after notify.
     DWORD wait_result = WaitForSingleObject(reinterpret_cast<HANDLE>(wait_handle), 5000);
     REQUIRE(wait_result == WAIT_OBJECT_0);
 
+    // The BPF bind monitor may emit multiple perf events per socket bind (e.g. bind + unbind).
     int consume_result = perf_buffer__consume(pb);
     REQUIRE(consume_result > 0);
     REQUIRE(helper.context.event_count > 0);
@@ -2382,7 +2364,7 @@ TEMPLATE_TEST_CASE("perf_buffer_sync_api", "[perf_buffer]", ENABLED_EXECUTION_TY
     // Generate some additional events.
     const uint32_t expected_events = 10;
     for (uint16_t i = 1; i < expected_events; i++) {
-        invoke_program();
+        perform_socket_bind(base_test_port + i, true);
     }
 
     // Test 2: Use poll API until we get all expected events.
