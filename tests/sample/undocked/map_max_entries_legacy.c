@@ -8,7 +8,7 @@
 #include "sample_ext_helpers.h"
 
 SEC("maps")
-struct _ebpf_map_definition_in_file max_entries_map = {
+struct bpf_map_def max_entries_map = {
     .type = BPF_MAP_TYPE_HASH,
     .key_size = sizeof(uint32_t),
     .value_size = sizeof(uint64_t),
