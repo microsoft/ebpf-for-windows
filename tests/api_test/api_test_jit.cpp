@@ -54,6 +54,39 @@ tailcall_load_test(_In_z_ const char* file_name)
     bpf_object__close(object);
 }
 
+void
+perform_socket_bind(const uint16_t test_port, bool expect_success)
+{
+    WSAData data;
+    int error = WSAStartup(2, &data);
+    if (error != 0) {
+        FAIL("Unable to load Winsock: " << error);
+        return;
+    }
+
+    SOCKET _socket = INVALID_SOCKET;
+    _socket = WSASocket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP, nullptr, 0, 0);
+    REQUIRE(_socket != INVALID_SOCKET);
+    uint32_t ipv6_option = 0;
+    REQUIRE(
+        setsockopt(
+            _socket, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&ipv6_option), sizeof(unsigned long)) ==
+        0);
+    SOCKADDR_STORAGE sock_addr;
+    sock_addr.ss_family = AF_INET6;
+    INETADDR_SETANY((PSOCKADDR)&sock_addr);
+
+    // Perform bind operation.
+    ((PSOCKADDR_IN6)&sock_addr)->sin6_port = htons(test_port);
+    if (expect_success) {
+        REQUIRE(bind(_socket, (PSOCKADDR)&sock_addr, sizeof(sock_addr)) == 0);
+    } else {
+        REQUIRE(bind(_socket, (PSOCKADDR)&sock_addr, sizeof(sock_addr)) != 0);
+    }
+
+    WSACleanup();
+}
+
 #if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("test_ebpf_program_next_previous_jit", "[test_ebpf_program_next_previous]")
 {

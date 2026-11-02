@@ -77,9 +77,9 @@ $RequiredFiles = [ordered]@{
     # Launched by ebpf_restart_test_controller.exe
     "ebpf_restart_test_helper.exe"     = "tests\stress\restart_test_helper\ebpf_restart_test_helper.vcxproj"
     # run_driver_tests.psm1: Invoke-CICDStressTests
-    "ebpf_stress_tests_km.exe"         = "tests\stress\km\ebpf_stress_tests_km.vcxproj"
+    "ebpf_stress_tests_km.exe"         = "tests\stress\km\ebpf_stress_tests_km\ebpf_stress_tests_km.vcxproj"
     # run_driver_tests.psm1: Invoke-CICDStressTests
-    "net_ebpf_stress_tests_km.exe"     = "tests\stress\km\net_ebpf_stress_tests_km.vcxproj"
+    "net_ebpf_stress_tests_km.exe"     = "tests\stress\km\net_ebpf_stress_tests_km\net_ebpf_stress_tests_km.vcxproj"
     # install_ebpf.psm1: Install-eBPFComponents
     "export_program_info_sample.exe"   = "undocked\tools\export_program_info_sample\export_program_info_sample.vcxproj"
     # run_driver_tests.psm1: Invoke-CICDTests

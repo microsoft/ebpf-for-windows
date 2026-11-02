@@ -94,10 +94,10 @@
     <ProjectReference Include="..\..\tests\stress\restart_test_helper\ebpf_restart_test_helper.vcxproj">
       <Project>{25725C06-3335-4CBA-AB16-6FE5E51BE842}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\tests\stress\km\net_ebpf_stress_tests_km.vcxproj">
+    <ProjectReference Include="..\..\tests\stress\km\net_ebpf_stress_tests_km\net_ebpf_stress_tests_km.vcxproj">
       <Project>{4F082524-9496-44FA-8CBA-4BC0BDC62568}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\tests\stress\km\ebpf_stress_tests_km.vcxproj">
+    <ProjectReference Include="..\..\tests\stress\km\ebpf_stress_tests_km\ebpf_stress_tests_km.vcxproj">
       <Project>{6C60537C-7B4A-45A6-B65B-74B4BF1B8088}</Project>
     </ProjectReference>
     <!-- eBPF MSI installer. The driver validation setup (scripts\install_ebpf.psm1)
