@@ -148,7 +148,25 @@ switch ($command) {
         foreach ($provider in @('{394f321c-5cf4-404c-aa34-4df1428a7f9c}', '{f2f2ca01-ad02-4a07-9e90-95a2334f3692}')) {
             Invoke-TracingTool logman.exe @('update', 'trace', $traceName, '-p', $provider, '0xffffffffffffffff', '0x4')
         }
-        Invoke-TracingTool logman.exe @('start', $traceName)
+        try {
+            Invoke-TracingTool logman.exe @('start', $traceName)
+        } catch {
+            $startError = $_
+            $isRunning = $false
+            try {
+                $collector = New-Object -ComObject Pla.DataCollectorSet
+                $collector.Query($traceName, $null)
+                # DataCollectorSetStatus.Running is 1.
+                $isRunning = $collector.Status -eq 1
+            } catch {
+                Write-Warning "Unable to query trace session '$traceName': $_"
+            }
+            if ($isRunning) {
+                Write-Output "Trace session '$traceName' is already running."
+            } else {
+                throw $startError
+            }
+        }
     }
     'stop' {
         # An inactive collector can still be deleted.
@@ -179,6 +197,7 @@ switch ($command) {
             }
 
             $bpfStatePath = Join-Path $tracePath 'bpf_state.txt'
+            Set-Content -LiteralPath $bpfStatePath -Value '' -NoNewline -Encoding UTF8
             foreach ($kind in @('prog', 'link', 'map')) {
                 Add-Content -LiteralPath $bpfStatePath -Value "bpftool.exe -p $kind" -Encoding UTF8
                 Invoke-TracingTool $bpftool @('-p', $kind) |
