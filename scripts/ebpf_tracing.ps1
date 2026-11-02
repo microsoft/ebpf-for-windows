@@ -37,6 +37,7 @@ periodic collects WFP and BPF state, commits closed ETLs, and applies retention 
 function Invoke-TracingTool {
     param([string]$FilePath, [string[]]$ArgumentList, [switch]$AllowFailure)
 
+    Get-Command -Name $FilePath -CommandType Application -ErrorAction Stop | Out-Null
     $ErrorActionPreference = 'Continue'
     & $FilePath @ArgumentList
     if ($LASTEXITCODE -ne 0) {
