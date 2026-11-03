@@ -711,6 +711,70 @@ _callgraph_bpf2bpf_test(ebpf_execution_type_t execution_type)
     }
 }
 
+static void
+sample_ring_buffer_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    INITIALIZE_SAMPLE_CONTEXT
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ringbuf_um.dll" : "test_sample_ringbuf.o");
+
+    // Create a list of fake app IDs and set it to event context.
+    std::string fake_app_ids_prefix = "fake_app";
+    std::vector<std::vector<char>> fake_app_ids;
+    for (int i = 0; i < RING_BUFFER_TEST_EVENT_COUNT; i++) {
+        std::string temp = fake_app_ids_prefix + std::to_string(i);
+        std::vector<char> fake_app_id(temp.begin(), temp.end());
+        fake_app_ids.push_back(fake_app_id);
+    }
+
+    bpf_object_ptr unique_object;
+    int program_fd = -1;
+    const char* error_message = nullptr;
+    int result;
+
+    result = ebpf_program_load(
+        file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    fd_t test_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "test_map");
+    REQUIRE(test_map_fd > 0);
+
+    bpf_link_ptr link;
+    REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
+
+    std::function<ebpf_result_t(void*, uint32_t*)> invoke =
+        [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t { return hook.fire(context, result); };
+
+    // Test multiple subscriptions to the same ring buffer map, to ensure that the ring buffer map will continue
+    // to provide notifications to the subscriber.
+    for (int i = 0; i < 3; i++) {
+        ring_buffer_api_test_helper(test_map_fd, fake_app_ids, [&](int i) {
+            std::vector<char> fake_app_id = fake_app_ids[i];
+            fake_app_id.push_back('\0');
+            std::string app_id = fake_app_id.data();
+            uint32_t invoke_result = MAXUINT32;
+            ctx->data_start = (uint8_t*)app_id.c_str();
+            ctx->data_end = (uint8_t*)(app_id.c_str()) + app_id.size();
+            REQUIRE(invoke(reinterpret_cast<void*>(ctx), &invoke_result) == EBPF_SUCCESS);
+            REQUIRE(invoke_result == 0);
+        });
+    }
+
+    hook.detach_and_close_link(&link);
+    bpf_object__close(unique_object.release());
+}
+
 void
 negative_ring_buffer_test(ebpf_execution_type_t execution_type)
 {
@@ -1417,6 +1481,7 @@ DECLARE_NATIVE_TEST("callgraph-bpf2bpf-extension-reload", "[end_to_end]", _callg
 
 DECLARE_ALL_TEST_CASES("sample-tailcall", "[end_to_end]", _sample_tailcall_test);
 
+DECLARE_ALL_TEST_CASES("sample-ringbuf", "[end_to_end]", sample_ring_buffer_test);
 DECLARE_ALL_TEST_CASES("negative_ring_buffer_test", "[end_to_end]", negative_ring_buffer_test);
 DECLARE_ALL_TEST_CASES("utility-helpers", "[end_to_end]", _utility_helper_functions_test);
 DECLARE_ALL_TEST_CASES("map", "[end_to_end]", map_test);
