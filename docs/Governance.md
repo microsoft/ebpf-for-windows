@@ -57,7 +57,7 @@ Minimum Requirements:
 Responsibilities:
 * Run the weekly [triage meetings](https://github.com/microsoft/ebpf-for-windows/discussions/427).
 * If the triage meeting is canceled (e.g., due to a holiday),
-  announce that fact in the [Slack channel](https://cilium.slack.com/messages/ebpf-for-windows)
+  announce that fact in the `#ebpf-for-windows` Slack channel
   and [github discussion thread](https://github.com/microsoft/ebpf-for-windows/discussions/427).
 
 ### Maintainer
