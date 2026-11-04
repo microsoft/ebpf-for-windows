@@ -7,10 +7,10 @@ verdicts to WFP classification.
 
 ## Scope
 
-This overview describes the implemented architecture, lifecycle, and ownership invariants
-reviewed at commit `2b64664adffc525d72917ab47df1fa834d25e374`, not a proposed design.
-Before making changes, verify implementation details against the current source; symbols
-and line references below describe the reviewed revision.
+This overview describes the implemented architecture, lifecycle, and ownership invariants.
+Before making changes, verify implementation details against the current source. Source
+links identify files; use the named symbols to locate implementations rather than relying
+on line numbers.
 Only native program invocation is in scope. Other execution modes are intentionally
 omitted.
 
@@ -28,7 +28,7 @@ For general extension contracts, see [eBPF extensions](eBpfExtensions.md).
    - Applies the program verdict back to WFP.
 2. **eBPF extension**
    - Registers NMR program-information providers that describe supported program types,
-     context layouts, helpers, and section names.
+     context layouts, and helpers.
    - Registers NMR hook providers for supported attach types.
    - Converts an attached NMR client into a `net_ebpf_extension_hook_client_t`.
    - Uses the client dispatch function supplied by `ebpfcore` to invoke the linked program.
@@ -64,7 +64,7 @@ WFP filter.rawContext
 
 ### Startup
 
-Driver startup ([`DriverEntry`](../netebpfext/sys/net_ebpf_ext_drv.c#L146)) performs:
+Driver startup ([`DriverEntry`](../netebpfext/sys/net_ebpf_ext_drv.c)) performs:
 
 1. Trace initialization.
 2. NX nonpaged-pool opt-in.
@@ -72,9 +72,9 @@ Driver startup ([`DriverEntry`](../netebpfext/sys/net_ebpf_ext_drv.c#L146)) perf
 4. NDIS handle initialization.
 5. Initialize WFP infrastructure: register the provider, sublayers, and callouts, then
    create the L2 injection handle
-   ([`net_ebpf_extension_initialize_wfp_components`](../netebpfext/net_ebpf_ext.c#L797)).
+   ([`net_ebpf_extension_initialize_wfp_components`](../netebpfext/net_ebpf_ext.c)).
 6. Register [eBPF program-information and hook providers](#program-information-and-hook-providers)
-   with NMR ([`net_ebpf_ext_register_providers`](../netebpfext/net_ebpf_ext.c#L1177)).
+   with NMR ([`net_ebpf_ext_register_providers`](../netebpfext/net_ebpf_ext.c)).
 
 #### WFP initialization
 
@@ -90,7 +90,7 @@ WFP infrastructure initialization consists of:
 8. Creates the L2 injection handle.
 
 The static callout table in
-[`_net_ebpf_ext_wfp_callout_states`](../netebpfext/net_ebpf_ext.c#L80) maps each callout
+[`_net_ebpf_ext_wfp_callout_states`](../netebpfext/net_ebpf_ext.c) maps each callout
 GUID and WFP layer to its classify, notify, and flow-delete callbacks.
 
 ### Shutdown
@@ -124,10 +124,24 @@ and helper metadata through the NMR registration's `NpiSpecificCharacteristics`,
 `ebpfcore` reads during attachment. The provider's attach callback creates a per-client
 binding context; it does not return program metadata through a dispatch table.
 
+### ELF section mappings
+
+ELF section names are published separately from NMR program-information registration.
+The section tables in
+[`net_ebpf_ext_program_info.h`](../netebpfext/net_ebpf_ext_program_info.h) map names such as
+`cgroup/connect4` and `sockops` to program and attach types.
+[`export_all_section_information`](../tools/export_program_info/export_program_info.cpp)
+writes these mappings to the registry-backed eBPF store through
+[`ebpf_store_update_section_information`](../libs/store_helper/ebpf_store_helper.c).
+User-mode code loads them through
+[`_load_all_section_data_information`](../libs/api_common/windows_platform_common.cpp)
+and `ebpf_store_load_section_information`; they are not carried by the NMR provider.
+
 Section descriptors use
-[`EBPF_PROGRAM_SECTION_INFORMATION_HEADER`](../include/ebpf_windows.h#L153) from
-`ebpf_windows.h`. Keep all three versioned header fields (`version`, `size`, and
-`total_size`); the old two-field section initializer is no longer used.
+[`EBPF_PROGRAM_SECTION_INFORMATION_HEADER`](../include/ebpf_windows.h).
+All three versioned header fields (`version`, `size`, and `total_size`) are required.
+
+### Hook providers and attach scope
 
 Hook providers are per attach type:
 
@@ -136,24 +150,36 @@ Hook providers are per attach type:
   connect authorization, bind, and listen.
 - One sock-ops provider.
 
-Attach capabilities determine how many clients can share a hook:
+Attach limits apply independently to each hook provider (attach type), not across all
+hooks for a program type:
 
 | Hook family | Capability |
 |---|---|
-| Deprecated bind | Single attach |
-| sock_addr connect, connect authorization, bind, and listen | Multi-attach with wildcard |
-| sock_addr recv/accept | Single attach per hook |
-| sock_ops | Single attach per hook |
+| Deprecated bind | One client overall, irrespective of attach parameters (`ATTACH_CAPABILITY_SINGLE_ATTACH`). |
+| sock_addr connect, connect authorization, bind, and listen | Up to 16 clients per matching attach parameter; wildcard and specific-compartment attachments can coexist (`ATTACH_CAPABILITY_MULTI_ATTACH_WITH_WILDCARD`). |
+| sock_addr recv/accept | One client per matching attach parameter; distinct compartments can have separate clients (`ATTACH_CAPABILITY_SINGLE_ATTACH_PER_HOOK`). |
+| sock_ops | One client per matching attach parameter; distinct compartments can have separate clients (`ATTACH_CAPABILITY_SINGLE_ATTACH_PER_HOOK`). |
 
-Multi-attach contexts hold at most 16 clients per matching attach parameter, not 16
-clients across the entire provider. For sock_addr, the attach parameter is a compartment
-ID; omitted parameters or `UNSPECIFIED_COMPARTMENT_ID` select a wildcard.
+For sock_addr and sock_ops, the attach parameter is a compartment ID. Omitted parameters
+or `UNSPECIFIED_COMPARTMENT_ID` create WFP filters without a compartment condition,
+matching all compartments. Matching filter contexts compares the supplied attach data;
+omitted parameters and an explicit unspecified ID are not normalized to the same representation.
+The 16-client multi-attach limit is per matching context, not across the entire provider.
+
+For `ATTACH_CAPABILITY_SINGLE_ATTACH_PER_HOOK`, the current
+[`_net_ebpf_extension_hook_provider_attach_client`](../netebpfext/net_ebpf_ext_hook_provider.c)
+rejects a wildcard-marked attachment if any client is already attached. This check is
+asymmetric: a later specific-compartment attachment can be accepted alongside an existing
+wildcard if its attach data does not match. sock_addr marks both omitted parameters and
+an explicit unspecified ID as wildcard; sock_ops marks only omitted parameters as wildcard
+for this admission check. Thus an explicit unspecified sock_ops ID creates an all-compartment
+filter without taking the wildcard admission branch.
 
 ## Attach, filter creation, detach, and lifetime
 
 ### Attach
 
-[`_net_ebpf_extension_hook_provider_attach_client`](../netebpfext/net_ebpf_ext_hook_provider.c#L409):
+[`_net_ebpf_extension_hook_provider_attach_client`](../netebpfext/net_ebpf_ext_hook_provider.c):
 
 1. Validates NMR client characteristics and attach data.
 2. Allocates a `net_ebpf_extension_hook_client_t`.
@@ -177,7 +203,7 @@ holds a rundown reference on its hook provider.
 
 ### Detach
 
-[`_net_ebpf_extension_hook_provider_detach_client`](../netebpfext/net_ebpf_ext_hook_provider.c#L638):
+[`_net_ebpf_extension_hook_provider_detach_client`](../netebpfext/net_ebpf_ext_hook_provider.c):
 
 1. Runs at `PASSIVE_LEVEL`.
 2. Removes the client under the provider lock.
@@ -247,7 +273,7 @@ WFP classify callback
 
 Program execution completes before epoch exit and client rundown release.
 
-For a native program, [`ebpf_program_invoke`](../libs/execution_context/ebpf_program.c#L2176)
+For a native program, [`ebpf_program_invoke`](../libs/execution_context/ebpf_program.c)
 loads `code_or_vm.native.code_pointer` and
 `code_or_vm.native.code_context.runtime_context`, verifies that BTF-resolved providers
 are ready, and calls the bpf2c entry point. Tail-called native programs are invoked
@@ -274,7 +300,7 @@ expanded stack:
 The deprecated bind and sock-ops classify callbacks invoke the generic dispatcher
 directly and do not currently expand the stack.
 
-Listen now keeps an original-context snapshot on the WFP stack, just like bind and the
+Listen keeps an original-context snapshot on the WFP stack, like bind and the
 two connect callbacks. Stack expansion does not move these contexts or snapshots off
 the original stack.
 
@@ -360,13 +386,16 @@ also return permit; non-redirected proceed verdicts return `FWP_ACTION_CONTINUE`
 
 Flow-established classify:
 
-1. Allocates the complete flow context from `NonPagedPoolNx` (184 bytes on x64).
-2. Copies WFP connection fields into the embedded program context (144 bytes on x64).
+1. Allocates the complete `net_ebpf_extension_sock_ops_wfp_flow_context_t` from
+   `NonPagedPoolNx` (184 bytes on x64), including a 144-byte `net_ebpf_sock_ops_t` wrapper,
+   list linkage, flow parameters, and a filter-context pointer.
+2. Copies WFP connection fields into the wrapper's public `bpf_sock_ops_t` context
+   (64 bytes on x64); the wrapper also holds the private context header, process ID, and flow ID.
 3. Associates the context with the WFP flow.
 4. Invokes the attached program directly.
 5. Links the flow context into the filter-context flow list.
 
-The large program context is already off-stack. Each flow context holds a filter-context
+The complete wrapper and public program context are already off-stack. Each flow context holds a filter-context
 reference. Flow delete unlinks the flow first, invokes the program with the stored heap
 context unless the filter context is deleting, and then releases the reference and
 frees the flow context.
@@ -394,6 +423,9 @@ frees the flow context.
 | [`net_ebpf_ext_prog_info_provider.c`](../netebpfext/net_ebpf_ext_prog_info_provider.c) | Generic NMR program-information provider |
 | [`net_ebpf_ext_hook_provider.c`](../netebpfext/net_ebpf_ext_hook_provider.c) | Generic NMR hook provider, attach/detach, client snapshot, rundown, invocation, stack expansion |
 | [`net_ebpf_ext_program_info.h`](../netebpfext/net_ebpf_ext_program_info.h) | Program type descriptors, context descriptors, helpers, and section definitions |
+| [`export_program_info.cpp`](../tools/export_program_info/export_program_info.cpp) | Exports program information and ELF section mappings to the eBPF store |
+| [`ebpf_store_helper.c`](../libs/store_helper/ebpf_store_helper.c) | Writes program information and section mappings to the registry-backed store |
+| [`windows_platform_common.cpp`](../libs/api_common/windows_platform_common.cpp) | Loads stored program information and ELF section mappings for user-mode use |
 | [`net_ebpf_ext_bind.c`](../netebpfext/net_ebpf_ext_bind.c) | Deprecated bind program type, resource-allocation/release classify callbacks |
 | [`net_ebpf_ext_sock_addr.c`](../netebpfext/net_ebpf_ext_sock_addr.c) | `BPF_PROG_TYPE_CGROUP_SOCK_ADDR`, connect/authorization/accept/bind/listen processing |
 | [`net_ebpf_ext_sock_ops.c`](../netebpfext/net_ebpf_ext_sock_ops.c) | `BPF_PROG_TYPE_SOCK_OPS`, flow-established and flow-delete processing |
