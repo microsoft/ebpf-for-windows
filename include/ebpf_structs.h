@@ -106,7 +106,17 @@ static const char* const _ebpf_pin_type_names[] = {
 typedef uint32_t ebpf_id_t;
 #define EBPF_ID_NONE 0
 
-/// Do not enforce max_entries limit on hash maps. This is a Windows-only flag.
+/**
+ * @brief Disable the max_entries entry-count limit. This is a Windows-only map creation flag.
+ *
+ * Supported only for BPF_MAP_TYPE_HASH, BPF_MAP_TYPE_PERCPU_HASH, BPF_MAP_TYPE_HASH_OF_MAPS, and
+ * BPF_MAP_TYPE_LPM_TRIE. These types enforce max_entries by default; applications relying on their
+ * previous unbounded behavior must explicitly set this flag when creating the map.
+ *
+ * With this flag, max_entries remains a nonzero initial bucket-count hint, not an entry-count bound.
+ * The map can grow beyond it subject to available resources. bpf_map__max_entries() and map information
+ * queries still report the configured max_entries value. Other map types, including LRU maps, reject this flag.
+ */
 #define BPF_F_NO_MAX_ENTRIES (1U << 31)
 
 /**
@@ -117,7 +127,7 @@ typedef struct _ebpf_map_definition_in_memory
     ebpf_map_type_t type; ///< Type of map.
     uint32_t key_size;    ///< Size in bytes of a map key.
     uint32_t value_size;  ///< Size in bytes of a map value.
-    uint32_t max_entries; ///< Maximum number of entries allowed in the map.
+    uint32_t max_entries; ///< Entry-count limit, or initial bucket-count hint with BPF_F_NO_MAX_ENTRIES.
     ebpf_id_t inner_map_id;
     ebpf_pin_type_t pinning;
     uint32_t map_flags; ///< Map flags (e.g., BPF_F_NO_MAX_ENTRIES).
@@ -131,7 +141,7 @@ typedef struct _ebpf_map_definition_in_file
     ebpf_map_type_t type; ///< Type of map.
     uint32_t key_size;    ///< Size in bytes of a map key.
     uint32_t value_size;  ///< Size in bytes of a map value.
-    uint32_t max_entries; ///< Maximum number of entries allowed in the map.
+    uint32_t max_entries; ///< Entry-count limit, or initial bucket-count hint with BPF_F_NO_MAX_ENTRIES.
 
     /** When a map definition is hard coded in an eBPF program, inner_map_idx
      * indicates the 0-based index of which map in the maps section of the ELF
@@ -458,7 +468,7 @@ struct bpf_map_info
     ebpf_map_type_t type;        ///< Type of map.
     uint32_t key_size;           ///< Size in bytes of a map key.
     uint32_t value_size;         ///< Size in bytes of a map value.
-    uint32_t max_entries;        ///< Maximum number of entries allowed in the map.
+    uint32_t max_entries;        ///< Configured entry-count limit; not enforced with BPF_F_NO_MAX_ENTRIES.
     char name[BPF_OBJ_NAME_LEN]; ///< Null-terminated map name.
     uint32_t map_flags;          ///< Map flags.
 
