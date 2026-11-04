@@ -37,7 +37,7 @@ jobs:
       contents: read
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2  # v2.22.2
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43  # v2.22.3
         with:
           egress-policy: audit
 
@@ -56,13 +56,13 @@ jobs:
           gh run download $run_id --dir netperf --pattern ebpf* --repo microsoft/netperf
 
       - name: upload_results_azure_2022_x64
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: Test-Logs-netperf_azure_2022_x64
           path: netperf/ebpf_azure_2022_x64/ebpf.csv
 
       - name: upload_results_lab_2022_x64
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: Test-Logs-netperf_lab_2022_x64
           path: netperf/ebpf_lab_2022_x64/ebpf.csv
@@ -75,7 +75,7 @@ jobs:
       issue_node_id: ${{ steps.create_or_update_issue.outputs.issue_node_id }}
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2  # v2.22.2
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43  # v2.22.3
         with:
           disable-sudo: true
           egress-policy: block
