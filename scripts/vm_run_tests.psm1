@@ -310,7 +310,7 @@ function Run-KernelTests {
     Write-Log "Execute Run-KernelTests"
 
     $scriptBlock = {
-        param($WorkingDirectory, $VerboseLogs, $TestMode, $TestHangTimeout, $UserModeDumpFolder, $Options, $LogFileName, $GranularTracing)
+        param($WorkingDirectory, $VerboseLogs, $TestMode, $TestHangTimeout, $UserModeDumpFolder, $Options, $LogFileName, $GranularTracing, $ExecuteOnHost)
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder, $GranularTracing) -Force -WarningAction SilentlyContinue
         $TestMode = $TestMode.ToLower()
@@ -321,6 +321,7 @@ function Run-KernelTests {
                     -VerboseLogs $VerboseLogs `
                     -ExecuteSystemTests $true `
                     -ProofOfVerification $ProofOfVerification `
+                    -ExecuteOnHost $ExecuteOnHost `
                     2>&1 | Write-Log
             }
             "regression" {
@@ -329,6 +330,7 @@ function Run-KernelTests {
                     -VerboseLogs $VerboseLogs `
                     -ExecuteSystemTests $false `
                     -ProofOfVerification $ProofOfVerification `
+                    -ExecuteOnHost $ExecuteOnHost `
                     2>&1 | Write-Log
             }
             "stress" {
@@ -355,7 +357,7 @@ function Run-KernelTests {
             }
         }
     }
-    $argList = @($script:WorkingDirectory, $VerboseLogs, $script:TestMode, $script:TestHangTimeout, $script:UserModeDumpFolder, $script:Options, $script:LogFileName, $GranularTracing)
+    $argList = @($script:WorkingDirectory, $VerboseLogs, $script:TestMode, $script:TestHangTimeout, $script:UserModeDumpFolder, $script:Options, $script:LogFileName, $GranularTracing, $script:ExecuteOnHost)
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
     Write-Log "Finished Invoke-OnHostOrVM for Run-KernelTests"
 

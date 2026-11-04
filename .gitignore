@@ -63,6 +63,10 @@ pipeline.log
 endortemp/
 artifacts/
 
+# Repo-local portable LLVM installation.
+/llvm/
+/.llvm-install-*/
+
 # Visual Code.
 **/.vscode/**/*
 

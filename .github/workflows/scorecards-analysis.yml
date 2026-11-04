@@ -33,7 +33,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2  # v2.22.2
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43  # v2.22.3
         with:
           disable-sudo: true
           egress-policy: block
@@ -71,7 +71,7 @@ jobs:
       # Upload the results as artifacts (optional).
       - name: "Upload artifact"
         if: github.ref_name == 'main'
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
           name: SARIF file
           path: results.sarif
@@ -80,6 +80,6 @@ jobs:
       # Upload the results to GitHub's code scanning dashboard.
       - name: "Upload to code-scanning"
         if: github.ref_name == 'main'
-        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98  # v4.32.6
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370  # v4.39.1
         with:
           sarif_file: results.sarif

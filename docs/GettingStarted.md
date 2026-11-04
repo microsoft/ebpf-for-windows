@@ -99,6 +99,14 @@ The following steps need to be executed *once* before the first build on a new c
 
       >**Note**: On a machine with multiple Visual Studio versions installed (e.g. VS 2022 and VS 2026), pass `-VisualStudioVersion 2022` (or `2026`) so the CMake generator, platform toolset, and NuGet restore all match the Visual Studio version you build with. Without it, the latest installed Visual Studio is used.
 
+      >**Note**: On a machine with no compatible system LLVM, use the opt-in initializer switch
+      >below to install the pinned Public compiler, resource headers, and formatter under the ignored
+      >repository-local `llvm` directory:
+      >
+      >```powershell
+      >.\scripts\initialize_ebpf_repo.ps1 -InstallPublicClang
+      >```
+
       >**Note**: PackageReference dependencies, including the WDK and EverParse, are restored to NuGet's configured global packages folder (the user-level cache by default) and can be shared by clones and worktrees. The legacy WiX `packages.config` dependency is an exception and is restored to this clone's repository-local `packages` directory. Re-run initialization with the matching `-Architecture` and `-VisualStudioVersion` when switching target architecture or Visual Studio version. Older worktrees may retain unused `packages\Microsoft.Windows.*` or `packages\EverParse.*` directories from previous initialization runs; those specific directories can be removed when no build is running.
 
 > TIP: In case you need to "reset" the repo, without re-cloning it, you can just delete all the folders under the `\external` directory (but keep the files), and then re-run the above script.
