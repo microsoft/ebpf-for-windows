@@ -2000,6 +2000,209 @@ TEST_CASE("sock_addr_listen_invoke", "[netebpfext]")
     REQUIRE(result == FWP_ACTION_BLOCK);
 }
 
+#pragma region cgroup_sock_addr_multi_attach
+
+typedef struct _test_sock_addr_multi_attach_client_context
+{
+    netebpfext_helper_base_client_context_t base;
+    sock_addr_test_action_t action;
+    uint32_t invocation_count;
+    bpf_sock_addr_t observed_context; // Context as seen on entry to the most recent invocation.
+} test_sock_addr_multi_attach_client_context_t;
+
+typedef struct _test_sock_addr_multi_attach_client_context_header
+{
+    EBPF_CONTEXT_HEADER;
+    test_sock_addr_multi_attach_client_context_t context;
+} test_sock_addr_multi_attach_client_context_header_t;
+
+// Records each invocation, then applies the client's configured action. Validation is done by the test body rather
+// than with REQUIRE() here, since a failing REQUIRE() would unwind through the hook provider's invoke loop.
+static _Must_inspect_result_ ebpf_result_t
+netebpfext_unit_invoke_sock_addr_multi_attach_program(
+    _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result)
+{
+    auto client_context = (test_sock_addr_multi_attach_client_context_t*)client_binding_context;
+    auto sock_addr_context = (bpf_sock_addr_t*)context;
+
+    client_context->invocation_count++;
+    client_context->observed_context = *sock_addr_context;
+
+    *result = BPF_SOCK_ADDR_VERDICT_REJECT;
+    switch (client_context->action) {
+    case SOCK_ADDR_TEST_ACTION_PERMIT_SOFT:
+        *result = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+        break;
+    case SOCK_ADDR_TEST_ACTION_PERMIT_HARD:
+        *result = BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
+        break;
+    case SOCK_ADDR_TEST_ACTION_REDIRECT:
+        // Modify the address and port fields. None of the multi-attach hooks under test support rewrite, so the
+        // modification must not be visible to the next program.
+        sock_addr_context->user_ip6[0]++;
+        sock_addr_context->user_port++;
+        sock_addr_context->msg_src_ip6[0]++;
+        sock_addr_context->msg_src_port++;
+        *result = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+        break;
+    case SOCK_ADDR_TEST_ACTION_FAILURE:
+        return EBPF_FAILED;
+    case SOCK_ADDR_TEST_ACTION_INVALID:
+        *result = UINT32_MAX;
+        break;
+    default:
+        break;
+    }
+    return EBPF_SUCCESS;
+}
+
+static bool
+_sock_addr_context_fields_equal(const bpf_sock_addr_t& left, const bpf_sock_addr_t& right)
+{
+    return left.family == right.family && memcmp(left.msg_src_ip6, right.msg_src_ip6, sizeof(left.msg_src_ip6)) == 0 &&
+           left.msg_src_port == right.msg_src_port &&
+           memcmp(left.user_ip6, right.user_ip6, sizeof(left.user_ip6)) == 0 && left.user_port == right.user_port &&
+           left.protocol == right.protocol && left.compartment_id == right.compartment_id &&
+           left.interface_luid == right.interface_luid;
+}
+
+typedef FWP_ACTION_TYPE (netebpf_ext_helper_t::*netebpfext_classify_function_t)(
+    _In_ const fwp_classify_parameters_t* parameters);
+
+// Verifies verdict accumulation, chain termination, and context restoration with two programs attached to the same
+// multi-attach sock_addr hook. The second client attaches after the primary client and is invoked after it.
+TEST_CASE("sock_addr_multi_attach_invoke", "[netebpfext]")
+{
+    const struct
+    {
+        const char* name;
+        bpf_attach_type_t attach_types[2];
+        netebpfext_classify_function_t classify[2];
+    } hooks[] = {
+        {"bind",
+         {BPF_CGROUP_INET4_BIND, BPF_CGROUP_INET6_BIND},
+         {&netebpf_ext_helper_t::test_cgroup_inet4_bind, &netebpf_ext_helper_t::test_cgroup_inet6_bind}},
+        {"listen",
+         {BPF_CGROUP_INET4_LISTEN, BPF_CGROUP_INET6_LISTEN},
+         {&netebpf_ext_helper_t::test_cgroup_inet4_listen, &netebpf_ext_helper_t::test_cgroup_inet6_listen}},
+    };
+
+    const struct
+    {
+        const char* name;
+        sock_addr_test_action_t first_action;
+        sock_addr_test_action_t second_action;
+        FWP_ACTION_TYPE expected_result;
+        uint32_t expected_second_invocation_count;
+    } scenarios[] = {
+        {"Two soft permits",
+         SOCK_ADDR_TEST_ACTION_PERMIT_SOFT,
+         SOCK_ADDR_TEST_ACTION_PERMIT_SOFT,
+         FWP_ACTION_PERMIT,
+         1},
+        {"Second program rejects", SOCK_ADDR_TEST_ACTION_PERMIT_SOFT, SOCK_ADDR_TEST_ACTION_BLOCK, FWP_ACTION_BLOCK, 1},
+        {"First program reject stops the chain",
+         SOCK_ADDR_TEST_ACTION_BLOCK,
+         SOCK_ADDR_TEST_ACTION_PERMIT_SOFT,
+         FWP_ACTION_BLOCK,
+         0},
+        {"Reject overrides prior hard permit",
+         SOCK_ADDR_TEST_ACTION_PERMIT_HARD,
+         SOCK_ADDR_TEST_ACTION_BLOCK,
+         FWP_ACTION_BLOCK,
+         1},
+        {"Unknown verdict is treated as reject",
+         SOCK_ADDR_TEST_ACTION_PERMIT_SOFT,
+         SOCK_ADDR_TEST_ACTION_INVALID,
+         FWP_ACTION_BLOCK,
+         1},
+        {"Invocation failure stops the chain and rejects",
+         SOCK_ADDR_TEST_ACTION_FAILURE,
+         SOCK_ADDR_TEST_ACTION_PERMIT_SOFT,
+         FWP_ACTION_BLOCK,
+         0},
+        {"Context modification does not stop the chain",
+         SOCK_ADDR_TEST_ACTION_REDIRECT,
+         SOCK_ADDR_TEST_ACTION_BLOCK,
+         FWP_ACTION_BLOCK,
+         1},
+        {"Context modification is not visible to the next program",
+         SOCK_ADDR_TEST_ACTION_REDIRECT,
+         SOCK_ADDR_TEST_ACTION_PERMIT_SOFT,
+         FWP_ACTION_PERMIT,
+         1},
+    };
+
+    // Both clients attach with no attach parameters (wildcard), so they share a filter context on each hook.
+    ebpf_extension_data_t npi_specific_characteristics = {
+        .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
+    };
+    std::set<bpf_attach_type_t> attach_types;
+    for (const auto& hook : hooks) {
+        attach_types.insert(std::begin(hook.attach_types), std::end(hook.attach_types));
+    }
+
+    // The client contexts must outlive the helper, which deregisters the clients.
+    test_sock_addr_multi_attach_client_context_header_t first_client_header = {0};
+    test_sock_addr_multi_attach_client_context_header_t second_client_header = {0};
+    test_sock_addr_multi_attach_client_context_t* first_client = &first_client_header.context;
+    test_sock_addr_multi_attach_client_context_t* second_client = &second_client_header.context;
+    first_client->base.desired_attach_types = attach_types;
+    second_client->base.desired_attach_types = attach_types;
+    fwp_classify_parameters_t parameters = {};
+
+    netebpf_ext_helper_t helper(
+        &npi_specific_characteristics,
+        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_multi_attach_program,
+        &first_client->base);
+    helper.require_initialized();
+
+    helper.add_hook_client(&npi_specific_characteristics, &second_client->base);
+    REQUIRE(second_client->base.provider_binding_count == attach_types.size());
+
+    netebpfext_initialize_fwp_classify_parameters(&parameters);
+
+    for (const auto& hook : hooks) {
+        for (const auto classify : hook.classify) {
+            for (const auto& scenario : scenarios) {
+                INFO(hook.name << ": " << scenario.name);
+                CAPTURE((classify == hook.classify[0]) ? "IPv4" : "IPv6");
+                first_client->action = scenario.first_action;
+                first_client->invocation_count = 0;
+                second_client->action = scenario.second_action;
+                second_client->invocation_count = 0;
+
+                REQUIRE((helper.*classify)(&parameters) == scenario.expected_result);
+                REQUIRE(first_client->invocation_count == 1);
+                REQUIRE(second_client->invocation_count == scenario.expected_second_invocation_count);
+                if (scenario.expected_second_invocation_count > 0) {
+                    REQUIRE(_sock_addr_context_fields_equal(
+                        first_client->observed_context, second_client->observed_context));
+                }
+            }
+        }
+    }
+
+    // After the second client detaches, only the primary client is invoked.
+    helper.remove_hook_client(&second_client->base);
+    second_client->action = SOCK_ADDR_TEST_ACTION_BLOCK;
+    for (const auto& hook : hooks) {
+        for (const auto classify : hook.classify) {
+            INFO(hook.name << ": second client detached");
+            CAPTURE((classify == hook.classify[0]) ? "IPv4" : "IPv6");
+            first_client->action = SOCK_ADDR_TEST_ACTION_PERMIT_SOFT;
+            first_client->invocation_count = 0;
+            second_client->invocation_count = 0;
+
+            REQUIRE((helper.*classify)(&parameters) == FWP_ACTION_PERMIT);
+            REQUIRE(first_client->invocation_count == 1);
+            REQUIRE(second_client->invocation_count == 0);
+        }
+    }
+}
+
+#pragma endregion cgroup_sock_addr_multi_attach
+
 TEST_CASE("sock_addr_listen_context", "[netebpfext]")
 {
     netebpf_ext_helper_t helper;
