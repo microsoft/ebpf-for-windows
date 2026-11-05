@@ -290,6 +290,19 @@ TEST_CASE("test_ebpf_multiple_programs_load_native")
     _test_multiple_programs_load(_countof(test_parameters), test_parameters, EBPF_EXECUTION_NATIVE, 0);
 }
 
+TEST_CASE("load_all_sample_programs", "[native_tests]")
+{
+    struct _ebpf_program_load_test_parameters test_parameters[] = {
+        {"multiple_programs.sys", BPF_PROG_TYPE_UNSPEC},
+        {"printk.sys", BPF_PROG_TYPE_UNSPEC},
+        {"printk_legacy.sys", BPF_PROG_TYPE_UNSPEC},
+        {"strings.sys", BPF_PROG_TYPE_UNSPEC},
+        {"tail_call_max_exceed.sys", BPF_PROG_TYPE_UNSPEC},
+        {"utility.sys", BPF_PROG_TYPE_UNSPEC}};
+
+    _test_multiple_programs_load(_countof(test_parameters), test_parameters, EBPF_EXECUTION_NATIVE, 0);
+}
+
 TEST_CASE("test_ebpf_program_next_previous_native", "[test_ebpf_program_next_previous]")
 {
     test_program_next_previous("test_sample_ebpf.sys", SAMPLE_PROGRAM_COUNT);
@@ -1259,17 +1272,17 @@ TEST_CASE("sample_tailcall_max_native_test", "[native_tests]")
         0);
     bpf_object_ptr object_ptr(object);
 
-    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "bind_tail_call_map");
+    fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "sample_tail_call_map");
     REQUIRE(prog_map_fd > 0);
 
-    struct bpf_program* caller = bpf_object__find_program_by_name(object, "bind_test_caller");
+    struct bpf_program* caller = bpf_object__find_program_by_name(object, "sample_test_caller");
     REQUIRE(caller != nullptr);
     program_fd = bpf_program__fd(caller);
     REQUIRE(program_fd > 0);
 
     // Check each tail call program in the map.
     for (int i = 0; i < MAX_TAIL_CALL_PROGS; i++) {
-        std::string program_name{"bind_test_callee"};
+        std::string program_name{"sample_test_callee"};
         program_name += std::to_string(i);
 
         struct bpf_program* program = bpf_object__find_program_by_name(object, program_name.c_str());
@@ -3743,6 +3756,8 @@ TEST_CASE("native_load_retry_after_insufficient_buffers", "[ebpf_api]")
         file_name.c_str(), &count_of_maps, nullptr, &count_of_programs, nullptr);
 
     REQUIRE(result == EBPF_NO_MEMORY);
+    REQUIRE(count_of_programs > 0);
+    REQUIRE(count_of_maps > 0);
 
     std::vector<fd_t> map_fds(count_of_maps, ebpf_fd_invalid);
     std::vector<fd_t> program_fds(count_of_programs, ebpf_fd_invalid);

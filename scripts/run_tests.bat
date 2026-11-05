@@ -19,6 +19,11 @@ export_program_info_sample.exe
 @echo ====================
 .\api_test.exe
 @if ERRORLEVEL 1 goto EOF
+@echo ==========================================
+@echo Executing Network Extension Load Tests.
+@echo ==========================================
+.\netebpfext_load_test.exe
+@if ERRORLEVEL 1 goto EOF
 @echo =================================
 @echo Executing Sample Extension Tests.
 @echo =================================
