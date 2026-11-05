@@ -29,6 +29,7 @@ typedef struct _netebpfext_helper_base_client_context
     class _netebpf_ext_helper* helper;
     void* provider_binding_context;
     std::set<bpf_attach_type_t> desired_attach_types; // Empty list to allow all.
+    size_t provider_binding_count = 0;                // Number of hook providers this client attached to.
 } netebpfext_helper_base_client_context_t;
 
 typedef class _netebpf_ext_helper
@@ -180,6 +181,19 @@ typedef class _netebpf_ext_helper
         }
     }
 
+    // Register an additional hook NPI client that invokes the primary hook client's dispatch function, so that
+    // multiple programs can attach to the same hook. Additional clients are invoked after the primary client when
+    // they share its attach parameters. The client context must remain valid until the client is removed or the
+    // helper is destroyed. Callers should check client_context->provider_binding_count to confirm the attach.
+    void
+    add_hook_client(
+        _In_opt_ const void* npi_specific_characteristics,
+        _Inout_ netebpfext_helper_base_client_context_t* client_context);
+
+    // Deregister an additional hook NPI client, detaching it from all hook providers.
+    void
+    remove_hook_client(_In_ const netebpfext_helper_base_client_context_t* client_context);
+
   private:
     bool trace_initiated = false;
     bool ndis_handle_initialized = false;
@@ -307,10 +321,22 @@ typedef class _netebpf_ext_helper
 
     _ebpf_extension_dispatch_function hook_invoke_function = nullptr;
     netebpfext_helper_base_client_context_t* hook_client_context = nullptr;
-    size_t hook_provider_binding_count = 0;
+    fault_injection_policy_t hook_client_fault_injection_policy = fault_injection_policy_t::suspend;
 
     std::unique_ptr<nmr_client_registration_t> nmr_program_info_client_handle;
     std::unique_ptr<nmr_client_registration_t> nmr_hook_client_handle;
+
+    // Additional hook NPI clients. Each is heap allocated so its characteristics and module id stay at a stable
+    // address for the lifetime of the NMR registration.
+    typedef struct _additional_hook_client
+    {
+        NPI_MODULEID module_id;
+        NPI_CLIENT_CHARACTERISTICS characteristics;
+        const netebpfext_helper_base_client_context_t* client_context;
+        std::unique_ptr<nmr_client_registration_t> registration;
+    } additional_hook_client_t;
+    std::vector<std::unique_ptr<additional_hook_client_t>> additional_hook_clients;
+    unsigned long additional_hook_client_id = 0;
 
 } netebpf_ext_helper_t;
 

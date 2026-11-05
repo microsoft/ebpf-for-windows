@@ -98,6 +98,7 @@ _netebpf_ext_helper::_netebpf_ext_helper(
 {
     _usersim_fault_injection_suspension fault_injection_suspension(
         fault_injection_policy == fault_injection_policy_t::suspend);
+    hook_client_fault_injection_policy = fault_injection_policy;
 
     // Do not use REQUIRE() in this constructor or the destructor will never be called
     // to clean up any state allocated before the REQUIRE.
@@ -151,6 +152,9 @@ _netebpf_ext_helper::~_netebpf_ext_helper()
     constexpr bool suspend_fault_injection = true;
     _usersim_fault_injection_suspension fault_injection_suspension(suspend_fault_injection);
 
+    // Deregister additional hook clients before the primary hook client and the hook providers.
+    additional_hook_clients.clear();
+
     if (nmr_hook_client_handle) {
         nmr_hook_client_handle.reset(nullptr);
     }
@@ -196,10 +200,46 @@ _netebpf_ext_helper::require_initialized() const
         REQUIRE(nmr_hook_client_handle->is_registered());
         REQUIRE(hook_client_context->provider_binding_context != nullptr);
         REQUIRE(
-            hook_provider_binding_count == (hook_client_context->desired_attach_types.empty()
-                                                ? EBPF_COUNT_OF(_expected_hook_providers)
-                                                : hook_client_context->desired_attach_types.size()));
+            hook_client_context->provider_binding_count == (hook_client_context->desired_attach_types.empty()
+                                                                ? EBPF_COUNT_OF(_expected_hook_providers)
+                                                                : hook_client_context->desired_attach_types.size()));
     }
+}
+
+void
+_netebpf_ext_helper::add_hook_client(
+    _In_opt_ const void* npi_specific_characteristics, _Inout_ netebpfext_helper_base_client_context_t* client_context)
+{
+    _usersim_fault_injection_suspension fault_injection_suspension(
+        hook_client_fault_injection_policy == fault_injection_policy_t::suspend);
+
+    // Do not use REQUIRE() here; this helper is also built into the netebpfext fuzzer. Callers check
+    // client_context->provider_binding_count instead.
+    if (hook_invoke_function == nullptr) {
+        return;
+    }
+
+    auto additional_hook_client = std::make_unique<additional_hook_client_t>();
+    additional_hook_client->module_id = module_id;
+    additional_hook_client->module_id.Guid.Data1 += ++additional_hook_client_id;
+    additional_hook_client->characteristics = hook_client;
+    additional_hook_client->characteristics.ClientRegistrationInstance.ModuleId = &additional_hook_client->module_id;
+    additional_hook_client->characteristics.ClientRegistrationInstance.NpiSpecificCharacteristics =
+        npi_specific_characteristics;
+    additional_hook_client->client_context = client_context;
+    client_context->helper = this;
+    additional_hook_client->registration =
+        std::make_unique<nmr_client_registration_t>(&additional_hook_client->characteristics, client_context);
+    additional_hook_clients.push_back(std::move(additional_hook_client));
+}
+
+void
+_netebpf_ext_helper::remove_hook_client(_In_ const netebpfext_helper_base_client_context_t* client_context)
+{
+    // Destroying the registration deregisters the client and waits for it to detach from all hook providers.
+    std::erase_if(additional_hook_clients, [client_context](const auto& additional_hook_client) {
+        return additional_hook_client->client_context == client_context;
+    });
 }
 
 std::vector<GUID>
@@ -295,7 +335,7 @@ _netebpf_ext_helper::_hook_client_attach_provider(
     if (NT_SUCCESS(status)) {
         // No synchronization is required here because usersim NMR executes pending attach actions serially in
         // perform_bind().
-        base_client_context->helper->hook_provider_binding_count++;
+        base_client_context->provider_binding_count++;
     }
     return status;
 }
