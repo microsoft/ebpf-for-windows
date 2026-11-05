@@ -5,6 +5,7 @@
 
 #include "ebpf_program_types.h"
 #include "ebpf_shared_framework.h"
+#include "ebpf_store_helper.h"
 
 extern "C"
 {
@@ -25,4 +26,4 @@ int
 export_global_helper_information();
 
 uint32_t
-clear_ebpf_store();
+clear_ebpf_store(ebpf_store_key_t root_key = nullptr);

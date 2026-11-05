@@ -43,3 +43,8 @@ ebpf_store_clear(_In_ const ebpf_store_key_t root_key_path);
  */
 ebpf_result_t
 ebpf_store_delete_global_helper_information(_In_ ebpf_helper_function_prototype_t* helper_info);
+
+// Unlike the two-hive helper, this reports access failures for the selected root.
+ebpf_result_t
+ebpf_store_delete_global_helper_information_from_root(
+    ebpf_store_key_t root_store_key, _In_ ebpf_helper_function_prototype_t* helper_info);

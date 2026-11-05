@@ -15,7 +15,7 @@ With `FORCE=1` and an existing eBPFCore registration, the MSI:
 5. Configures and starts the drivers, and configures and requests startup of eBPFSvc.
 
 The MSI saves one original backup set for both failed-install recovery and final uninstall.
-Only uninstall creates additional, temporary recovery snapshots.
+Uninstall and repair create additional, temporary recovery snapshots.
 
 On final uninstall, the saved original service state, binary hard links, and HKLM store are used
 to restore the machine-wide eBPF stack to its pre-MSI state. HKCU restoration is best effort by identity:
@@ -25,7 +25,14 @@ HKCU identity exists, the caller's store is also left unchanged. Other restorati
 The same ownership check gates HKCU backup, clear, and population during installation: a different user
 does not change their HKCU store while another user's backup area is retained.
 
-### One original backup, plus temporary uninstall undo
+For an ordinary installation with no original store snapshot, uninstall uses
+`export_program_info.exe --clear --hive HKLM` and, for the recorded installing user, `--hive HKCU`.
+These commands remove the tool's known program, section, and global-helper entries, not the entire
+eBPF registry tree. Unrelated extension metadata is retained, and each command modifies only its
+selected hive. The existing `--clear` command without `--hive` continues to process both hives.
+Temporary uninstall snapshots still allow rollback of this selective cleanup.
+
+### One original backup, plus temporary maintenance undo
 
 The supported version-change workflow is uninstall, then install; in-place upgrades are disallowed.
 **Original backups** preserve the inbox stack before forced installation. A failed install restores
@@ -42,6 +49,19 @@ leave data that an administrator must investigate before retrying.
 For example, with original stack **A** replaced by MSI stack **B**, successful uninstall restores **A**.
 If uninstall fails after partially restoring **A**, these temporary snapshots and the MSI binaries
 recover **B**. They do not replace the original backup of **A**.
+
+**Repair snapshots** preserve surviving canonical links and service state after `InstallFiles` has
+restored missing MSI payload files. Repair recreates a missing eBPFSvc registration, using the
+Program Files executable for ordinary installations and the canonical Windows path for forced ones.
+Existing service registrations are left unchanged. On forced installations, repair stops the stack,
+relinks canonical paths to the current MSI files, and restarts services that were running when the
+repair snapshot was taken. Standard MSI service actions handle eBPFSvc stop/start.
+
+Repair does not replace or discard original inbox backups. Failed repair restores the previous
+canonical links (including previously absent paths) and removes an eBPFSvc registration created by
+that repair; MSI rolls back its payload changes. Successful repair removes only temporary repair
+artifacts, so final uninstall can still restore the original stack. Stale repair artifacts or an
+incomplete original binary backup set require recovery before retrying.
 
 ### Requirements and recovery details
 
@@ -78,6 +98,7 @@ In the table, `<scope>` is `hklm` or `hkcu`, and `<service>` is eBPFCore, NetEbp
 | Uninstall store undo | `ebpf-store-<scope>.uninstall.json` | `ebpf-store-<scope>.uninstall.reg` |
 | Original services | `ebpf-services.original.json` | `<service>.original.reg` |
 | Uninstall service undo | `ebpf-services.uninstall-rollback.json` | `<service>.uninstall-rollback.reg` |
+| Repair undo | `ebpf-repair.json` | `<service>.repair.reg` |
 
 Registry exports are created only for keys that existed; metadata records absent keys.
 
@@ -125,6 +146,7 @@ Cleanup errors are logged by the custom action without rolling back an otherwise
 
 Binary links are beside the canonical Windows files: `.ebpf-msi-new` stages replacement,
 and `.ebpf-msi-backup` preserves original state for both failed-install recovery and final uninstall.
+During repair, `.ebpf-msi-repair` temporarily preserves each surviving canonical binary.
 They are hard links to binaries, not JSON or registry exports. A partial set of the six original
 binary backup links is rejected rather than restored incompletely.
 
@@ -260,3 +282,19 @@ accumulated so far.
 The impersonated HKCU commit runs before the SYSTEM service/HKLM commit, only after normal removal
 succeeds. It deletes restored original-state backups and temporary uninstall recovery files;
 skipped HKCU backups remain.
+
+## 3. Repair execution flow
+
+Repair actions run only for an installed product with `REINSTALL` set and no `REMOVE` property.
+The installed helper is available before repair preparation, even if it was initially missing.
+
+```mermaid
+flowchart TD
+    Stop["StopServices"] --> Files["InstallFiles"]
+    Files --> Prepare["Prepare_eBPF_repair"]
+    Prepare --> Repair["Repair_eBPF_stack<br/>R: Rollback_eBPF_repair"]
+    Repair --> Start["StartServices"]
+    Start --> Publish["Standard MSI registration and publication"]
+    Publish --> Commit["Commit_eBPF_repair<br/>Success only"]
+    Commit --> Finish["InstallFinalize completes"]
+```

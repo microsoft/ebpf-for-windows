@@ -116,6 +116,26 @@ extern "C"
     ebpf_result_t
     ebpf_store_delete_section_information(_In_ const ebpf_program_section_info_t* section_info);
 
+    /**
+     * @brief Delete program information from one registry root without modifying the other hive.
+     * @param[in] root_key Registry root to modify.
+     * @param[in] program_info Program information identifying the entry.
+     * @returns Status of the operation.
+     */
+    ebpf_result_t
+    ebpf_store_delete_program_information_from_root(
+        ebpf_store_key_t root_key, _In_ const ebpf_program_info_t* program_info);
+
+    /**
+     * @brief Delete section information from one registry root without modifying the other hive.
+     * @param[in] root_key Registry root to modify.
+     * @param[in] section_info Section information identifying the entry.
+     * @returns Status of the operation.
+     */
+    ebpf_result_t
+    ebpf_store_delete_section_information_from_root(
+        ebpf_store_key_t root_key, _In_ const ebpf_program_section_info_t* section_info);
+
 #ifdef __cplusplus
 }
 #endif

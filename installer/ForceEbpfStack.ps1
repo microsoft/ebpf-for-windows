@@ -7,6 +7,10 @@ param(
     [ValidateSet(
         "Install",
         "BackupLinks",
+        "PrepareRepair",
+        "Repair",
+        "RollbackRepair",
+        "CommitRepair",
         "Rollback",
         "InstallEbpfSvc",
         "BackupServices",
@@ -553,14 +557,35 @@ function Invoke-NativeCommand
         [string]$FilePath,
 
         [Parameter(Mandatory = $true)]
+        [AllowEmptyString()]
         [string[]]$ArgumentList,
 
         [Parameter(Mandatory = $true)]
         [string]$FailureMessage)
 
-    & $FilePath @ArgumentList | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw "$FailureMessage (exit code $LASTEXITCODE)"
+    # Encode for the Windows native argv parser, bypassing Windows PowerShell's lossy argument marshalling.
+    $encoded = foreach ($argument in $ArgumentList) {
+        '"' + [regex]::Replace([regex]::Replace($argument, '(\\*)"', '$1$1\"'), '(\\+)$', '$1$1') + '"'
+    }
+    $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
+    $startInfo.FileName = $FilePath
+    $startInfo.Arguments = $encoded -join " "
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+    $process = [System.Diagnostics.Process]::Start($startInfo)
+    try {
+        $stdout = $process.StandardOutput.ReadToEndAsync()
+        $stderr = $process.StandardError.ReadToEndAsync()
+        $process.WaitForExit()
+        $output = $stdout.GetAwaiter().GetResult()
+        $errorOutput = $stderr.GetAwaiter().GetResult()
+        if ($process.ExitCode -ne 0) {
+            throw "$FailureMessage (exit code $($process.ExitCode))`n$output`n$errorOutput"
+        }
+    } finally {
+        $process.Dispose()
     }
 }
 
@@ -862,6 +887,182 @@ function Restore-MsiLinks
             Restore-FileAcl -Path $originalPath -Acl $originalAcl
         }
     }
+}
+
+function Remove-RepairFiles
+{
+    Invoke-ForAllMappings {
+        param($mapping)
+
+        $backup = $mapping.Link + ".ebpf-msi-repair"
+        if (Test-Path -LiteralPath $backup) {
+            $acl = Get-RestorableFileAcl -Path $backup
+            $restorePaths = @($mapping.Link, $mapping.Source) | Where-Object {
+                (Test-Path -LiteralPath $_) -and (Test-SameFile -FirstPath $_ -SecondPath $backup)
+            }
+            try {
+                Enable-SystemFileAccess -Path $backup
+                Remove-Item -LiteralPath $backup -Force
+            } finally {
+                foreach ($path in $restorePaths) {
+                    if (Test-Path -LiteralPath $path) {
+                        Restore-FileAcl -Path $path -Acl $acl
+                    }
+                }
+            }
+        }
+    }
+    Remove-ServiceStateFiles -FileSuffix "repair"
+    Remove-BackupFileIfPresent -Path (Join-Path $StateRoot "ebpf-repair.json")
+}
+
+function Prepare-Repair
+{
+    $journal = Join-Path $StateRoot "ebpf-repair.json"
+    $stale = @(Get-ChildItem -LiteralPath $StateRoot -Filter "*.repair.reg")
+    if ((Test-Path -LiteralPath $journal) -or $stale.Count -ne 0 -or
+        @($mappings | Where-Object { Test-Path -LiteralPath ($_.Link + ".ebpf-msi-repair") }).Count -ne 0) {
+        throw "An incomplete eBPF repair requires recovery before retrying."
+    }
+    $forced = Test-Path -LiteralPath (Get-ServicePaths).StateFile
+    if ($forced -and (Get-BackupCount) -ne $mappings.Count) {
+        throw "Repair requires a complete original binary backup set."
+    }
+    if (-not $forced -and (Get-BackupCount) -ne 0) {
+        throw "Binary backups exist without the original service snapshot."
+    }
+    $present = @()
+    try {
+        if ($forced) {
+            Read-ServiceState -Path (Get-ServicePaths).StateFile | Out-Null
+            foreach ($mapping in $mappings) {
+                if (-not (Test-Path -LiteralPath $mapping.Source -PathType Leaf)) {
+                    throw "Repaired MSI binary is missing: $($mapping.Source)"
+                }
+                if (Test-Path -LiteralPath ($mapping.Link + ".ebpf-msi-new")) {
+                    throw "Stale binary staging data requires recovery: $($mapping.Link)"
+                }
+                $exists = Test-Path -LiteralPath $mapping.Link -PathType Leaf
+                $present += $exists
+                if ($exists) {
+                    if (Test-SameFile -FirstPath $mapping.Link -SecondPath ($mapping.Link + ".ebpf-msi-backup")) {
+                        throw "The original binary has already been restored: $($mapping.Link)"
+                    }
+                    $acl = Get-RestorableFileAcl -Path $mapping.Link
+                    try {
+                        Enable-SystemFileAccess -Path $mapping.Link
+                        New-Item -ItemType HardLink -Path ($mapping.Link + ".ebpf-msi-repair") -Target $mapping.Link |
+                            Out-Null
+                    } finally {
+                        Restore-FileAcl -Path $mapping.Link -Acl $acl
+                    }
+                }
+            }
+        }
+        Save-CurrentServices -StateFile $journal -FileSuffix "repair"
+        $state = Read-ServiceState -Path $journal
+        $state | Add-Member -NotePropertyName Forced -NotePropertyValue $forced
+        $state | Add-Member -NotePropertyName LinksPresent -NotePropertyValue $present
+        $state | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $journal -Encoding UTF8
+    } catch {
+        Remove-RepairFiles
+        throw
+    }
+}
+
+function Repair-Stack
+{
+    $state = Read-ServiceState -Path (Join-Path $StateRoot "ebpf-repair.json")
+    if ($null -eq $state) {
+        throw "The eBPF repair snapshot is missing."
+    }
+    if ([bool]$state.Forced) {
+        for ($index = $ServiceNames.Count - 1; $index -ge 0; $index--) {
+            Stop-ServiceIfPresent -Name $ServiceNames[$index]
+        }
+        foreach ($mapping in $mappings) {
+            if ((Test-Path -LiteralPath $mapping.Link) -and
+                (Test-SameFile -FirstPath $mapping.Link -SecondPath $mapping.Source)) {
+                continue
+            }
+            $replacement = $mapping.Link + ".ebpf-msi-new"
+            $saved = $mapping.Link + ".ebpf-msi-repair"
+            $acl = if (Test-Path -LiteralPath $saved) { Get-RestorableFileAcl -Path $saved } else { $null }
+            try {
+                New-Item -ItemType HardLink -Path $replacement -Target $mapping.Source | Out-Null
+                if (Test-Path -LiteralPath $mapping.Link) {
+                    Enable-SystemFileAccess -Path $mapping.Link
+                    Remove-Item -LiteralPath $mapping.Link -Force
+                }
+                Move-Item -LiteralPath $replacement -Destination $mapping.Link
+            } finally {
+                if ($null -ne $acl) {
+                    Restore-FileAcl -Path $saved -Acl $acl
+                }
+            }
+        }
+    }
+    if ($null -eq (Get-Service -Name "eBPFSvc" -ErrorAction SilentlyContinue)) {
+        $UseCanonicalServicePath = [bool]$state.Forced
+        Install-MsiEbpfService
+    }
+    if ([bool]$state.Forced) {
+        foreach ($service in @($state.Services)) {
+            if ([bool]$service.WasRunning) {
+                Start-Service -Name $service.Name
+            }
+        }
+    }
+}
+
+function Rollback-Repair
+{
+    $journal = Join-Path $StateRoot "ebpf-repair.json"
+    $state = Read-ServiceState -Path $journal
+    if ($null -eq $state) {
+        return
+    }
+    if ([bool]$state.Forced) {
+        for ($index = $ServiceNames.Count - 1; $index -ge 0; $index--) {
+            Stop-ServiceIfPresent -Name $ServiceNames[$index]
+        }
+        if (@($state.LinksPresent).Count -ne $mappings.Count) {
+            throw "Invalid binary repair snapshot."
+        }
+        Invoke-ForAllMappings {
+            param($mapping)
+
+            $index = [Array]::IndexOf($mappings, $mapping)
+            $saved = $mapping.Link + ".ebpf-msi-repair"
+            if ([bool]$state.LinksPresent[$index]) {
+                if (Test-Path -LiteralPath $saved) {
+                    $acl = Get-RestorableFileAcl -Path $saved
+                    try {
+                        Enable-SystemFileAccess -Path $saved
+                        if (Test-Path -LiteralPath $mapping.Link) {
+                            Remove-Item -LiteralPath $mapping.Link -Force
+                        }
+                        Move-Item -LiteralPath $saved -Destination $mapping.Link
+                    } finally {
+                        $path = if (Test-Path -LiteralPath $saved) { $saved } else { $mapping.Link }
+                        Restore-FileAcl -Path $path -Acl $acl
+                    }
+                }
+            } else {
+                Remove-BackupFileIfPresent -Path $mapping.Link
+            }
+            Remove-BackupFileIfPresent -Path ($mapping.Link + ".ebpf-msi-new")
+        }
+    }
+    # Existing service configuration is never changed by repair; only undo a newly created service.
+    foreach ($service in @($state.Services)) {
+        if ($service.Name -eq "eBPFSvc" -and -not [bool]$service.Existed) {
+            Remove-ServiceIfPresent -Name $service.Name
+        } elseif ([bool]$state.Forced -and [bool]$service.WasRunning) {
+            Start-Service -Name $service.Name
+        }
+    }
+    Remove-RepairFiles
 }
 
 function Get-UserStoreOwner
@@ -1351,7 +1552,7 @@ function Read-ServiceState
     foreach ($serviceState in @($state.Services)) {
         if ([bool]$serviceState.Existed) {
             $registryFileName = [string]$serviceState.RegistryFile
-            $expectedFiles = @("original", "uninstall-rollback") |
+            $expectedFiles = @("original", "uninstall-rollback", "repair") |
                 ForEach-Object { "$($serviceState.Name).$_.reg" }
             if ($registryFileName -notin $expectedFiles -or
                 -not (Test-Path -LiteralPath (Join-Path $StateRoot $registryFileName) -PathType Leaf)) {
@@ -1618,8 +1819,7 @@ function Test-StoreRestoreUser
         return $true
     }
     if ($null -eq $State) {
-        Write-Warning "Skipping HKCU restoration: no saved installing-user identity. The current user's store is unchanged."
-        return $false
+        return (Get-UserStoreOwner) -eq (Get-CurrentUserSid)
     }
     if ([string]$State.UserSid -ne (Get-CurrentUserSid)) {
         Write-Warning "Skipping HKCU restoration: backup belongs to '$($State.UserSid)', not the current user. Retaining the backup."
@@ -1664,11 +1864,10 @@ function Restore-Store
         }
     }
     if ($null -eq $state) {
-        Remove-RegistryTreeIfPresent -RegistryPath $paths.RegistryPath
-        return
-    }
-
-    if ([bool]$state.StoreExisted) {
+        Invoke-NativeCommand -FilePath (Join-Path $InstallRoot "export_program_info.exe") `
+            -ArgumentList @("--clear", "--hive", $Scope) `
+            -FailureMessage "Failed to remove MSI-owned $Scope eBPF metadata"
+    } elseif ([bool]$state.StoreExisted) {
         if (-not (Test-Path -LiteralPath $paths.RegistryFile -PathType Leaf)) {
             throw "The saved $Scope eBPF store file is missing: $($paths.RegistryFile)"
         }
@@ -1783,7 +1982,7 @@ function Commit-StoreRestore
 $backupLock = $null
 $userStoreLock = $null
 try {
-    if ($Action -match "(Services|Store)$" -or $Action -eq "CommitRestoreAll") {
+    if ($Action -match "(Services|Store|Repair)$" -or $Action -eq "CommitRestoreAll") {
         $StateRoot = [System.IO.Path]::GetFullPath($StateRoot)
         $userStoreAction = $Scope -eq "HKCU"
         $backupLock = [EbpfMsi.NativeSecurity]::LockBackupDirectory($StateRoot, $userStoreAction)
@@ -1797,6 +1996,18 @@ try {
         }
     }
     switch ($Action) {
+        "PrepareRepair" {
+            Prepare-Repair
+        }
+        "Repair" {
+            Repair-Stack
+        }
+        "RollbackRepair" {
+            Rollback-Repair
+        }
+        "CommitRepair" {
+            Remove-RepairFiles
+        }
         "BackupLinks" {
             Backup-OriginalLinks
         }

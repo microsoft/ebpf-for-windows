@@ -73,6 +73,11 @@ SPDX-License-Identifier: MIT
 
 			<!--Install sequence-->
 			<Custom Action="Prepare_eBPF_user_store" After="InstallFiles">NOT Installed</Custom>
+			<!-- Repair snapshots the surviving canonical links after MSI restores its payload files. -->
+			<Custom Action="Prepare_eBPF_repair" After="InstallFiles">Installed AND NOT REMOVE AND REINSTALL</Custom>
+			<Custom Action="Rollback_eBPF_repair" After="Prepare_eBPF_repair">Installed AND NOT REMOVE AND REINSTALL</Custom>
+			<Custom Action="Repair_eBPF_stack" After="Rollback_eBPF_repair">Installed AND NOT REMOVE AND REINSTALL</Custom>
+			<Custom Action="Commit_eBPF_repair" Before="InstallFinalize">Installed AND NOT REMOVE AND REINSTALL</Custom>
 			<!-- Backups do not change live state. Register undo only after each backup succeeds. -->
 			<Custom Action="Force_eBPF_services_backup" After="Prepare_eBPF_user_store">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
 			<Custom Action="Force_eBPF_services_rollback" After="Force_eBPF_services_backup">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
@@ -202,6 +207,15 @@ SPDX-License-Identifier: MIT
 			</Component>
 		</ComponentGroup>
 
+		<!--Repair service registration and forced-install canonical links-->
+		<SetProperty Id="Prepare_eBPF_repair" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action PrepareRepair" Before="Prepare_eBPF_repair" Sequence="execute"/>
+		<CustomAction Id="Prepare_eBPF_repair" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
+		<SetProperty Id="Rollback_eBPF_repair" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action RollbackRepair" Before="Rollback_eBPF_repair" Sequence="execute"/>
+		<CustomAction Id="Rollback_eBPF_repair" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="check" Impersonate="no"/>
+		<SetProperty Id="Repair_eBPF_stack" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action Repair" Before="Repair_eBPF_stack" Sequence="execute"/>
+		<CustomAction Id="Repair_eBPF_stack" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
+		<SetProperty Id="Commit_eBPF_repair" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action CommitRepair" Before="Commit_eBPF_repair" Sequence="execute"/>
+		<CustomAction Id="Commit_eBPF_repair" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="commit" Return="ignore" Impersonate="no"/>
 		<!--Clear/Setup the eBPF store-->
 		<SetProperty Id="Prepare_eBPF_user_store" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action PrepareUserStore -InstallingUserSid &quot;[UserSID]&quot;" Before="Prepare_eBPF_user_store" Sequence="execute"/>
 		<CustomAction Id="Prepare_eBPF_user_store" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>

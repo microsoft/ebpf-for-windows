@@ -706,8 +706,8 @@ ebpf_store_update_program_information_array(
     return result;
 }
 
-static ebpf_result_t
-_ebpf_store_delete_program_information(ebpf_store_key_t root_key, _In_ const ebpf_program_info_t* program_info)
+ebpf_result_t
+ebpf_store_delete_program_information_from_root(ebpf_store_key_t root_key, _In_ const ebpf_program_info_t* program_info)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_store_key_t provider_key = NULL;
@@ -751,14 +751,14 @@ ebpf_store_delete_program_information(_In_ const ebpf_program_info_t* program_in
     ebpf_result_t result = EBPF_SUCCESS;
 
     // First delete from HKCU root key.
-    result = _ebpf_store_delete_program_information(ebpf_store_hkcu_root_key, program_info);
+    result = ebpf_store_delete_program_information_from_root(ebpf_store_hkcu_root_key, program_info);
     if (!IS_SUCCESS(result)) {
         return result;
     }
 
     // Next delete from HKLM root key. It possible that the user does not have permission to delete from the HKLM root
     // key. Suppress error in that case.
-    result = _ebpf_store_delete_program_information(ebpf_store_hklm_root_key, program_info);
+    result = ebpf_store_delete_program_information_from_root(ebpf_store_hklm_root_key, program_info);
     if (result == EBPF_ACCESS_DENIED) {
         result = EBPF_SUCCESS;
     }
@@ -766,8 +766,9 @@ ebpf_store_delete_program_information(_In_ const ebpf_program_info_t* program_in
     return result;
 }
 
-static ebpf_result_t
-_ebpf_store_delete_section_information(ebpf_store_key_t root_key, _In_ const ebpf_program_section_info_t* section_info)
+ebpf_result_t
+ebpf_store_delete_section_information_from_root(
+    ebpf_store_key_t root_key, _In_ const ebpf_program_section_info_t* section_info)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_store_key_t provider_key = NULL;
@@ -803,14 +804,14 @@ ebpf_store_delete_section_information(_In_ const ebpf_program_section_info_t* se
     ebpf_result_t result = EBPF_SUCCESS;
 
     // First delete from HKCU root key.
-    result = _ebpf_store_delete_section_information(ebpf_store_hkcu_root_key, section_info);
+    result = ebpf_store_delete_section_information_from_root(ebpf_store_hkcu_root_key, section_info);
     if (!IS_SUCCESS(result)) {
         return result;
     }
 
     // Next delete from HKLM root key. It possible that the user does not have permission to delete from the HKLM root
     // key. Suppress error in that case.
-    result = _ebpf_store_delete_section_information(ebpf_store_hklm_root_key, section_info);
+    result = ebpf_store_delete_section_information_from_root(ebpf_store_hklm_root_key, section_info);
     if (result == EBPF_ACCESS_DENIED) {
         result = EBPF_SUCCESS;
     }
