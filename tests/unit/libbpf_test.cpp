@@ -4772,14 +4772,14 @@ TEST_CASE("sample_tail_call_max_exceed", "[libbpf]")
     REQUIRE(bpf_object__load(object) == 0);
 
     // Get the map used to store the next program to call.
-    struct bpf_map* map = bpf_object__find_map_by_name(object, "bind_tail_call_map");
+    struct bpf_map* map = bpf_object__find_map_by_name(object, "sample_tail_call_map");
     REQUIRE(map != nullptr);
 
     // Get the fd of the prog array map.
     fd_t map_fd = bpf_map__fd(map);
     REQUIRE(map_fd > 0);
 
-    std::string first_program_name{"bind_test_caller"};
+    std::string first_program_name{"sample_test_caller"};
     struct bpf_program* first_program = bpf_object__find_program_by_name(object, first_program_name.c_str());
     REQUIRE(first_program != nullptr);
 
