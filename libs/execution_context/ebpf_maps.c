@@ -958,7 +958,8 @@ _check_value_type(_In_ const ebpf_core_map_t* outer_map, _In_ const ebpf_core_ob
         (value_map->ebpf_map_definition.type == object_map->inner_template_map_definition.type) &&
         (value_map->ebpf_map_definition.key_size == object_map->inner_template_map_definition.key_size) &&
         (value_map->ebpf_map_definition.value_size == object_map->inner_template_map_definition.value_size) &&
-        (value_map->ebpf_map_definition.max_entries == object_map->inner_template_map_definition.max_entries);
+        (value_map->ebpf_map_definition.max_entries == object_map->inner_template_map_definition.max_entries) &&
+        (value_map->ebpf_map_definition.map_flags == object_map->inner_template_map_definition.map_flags);
 
     return allowed;
 }

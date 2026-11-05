@@ -1071,6 +1071,52 @@ TEST_CASE("libbpf map_no_max_entries_flag", "[libbpf]")
     REQUIRE(array_fd < 0);
 }
 
+TEST_CASE("libbpf inner map flag compatibility", "[libbpf][map_no_max_entries]")
+{
+    const auto outer_type = GENERATE(BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_HASH_OF_MAPS);
+    const uint32_t template_flags = GENERATE(0U, BPF_F_NO_MAX_ENTRIES);
+    CAPTURE(outer_type, template_flags);
+
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    bpf_map_create_opts inner_opts = {sizeof(inner_opts)};
+    inner_opts.map_flags = template_flags;
+    int template_fd = bpf_map_create(BPF_MAP_TYPE_HASH, "template", sizeof(uint32_t), sizeof(uint64_t), 2, &inner_opts);
+    REQUIRE(template_fd >= 0);
+
+    inner_opts.map_flags = template_flags ^ BPF_F_NO_MAX_ENTRIES;
+    int mismatched_fd =
+        bpf_map_create(BPF_MAP_TYPE_HASH, "mismatched", sizeof(uint32_t), sizeof(uint64_t), 2, &inner_opts);
+    REQUIRE(mismatched_fd >= 0);
+
+    bpf_map_create_opts outer_opts = {sizeof(outer_opts)};
+    outer_opts.inner_map_fd = template_fd;
+    int outer_fd = bpf_map_create(outer_type, "outer", sizeof(uint32_t), sizeof(uint32_t), 2, &outer_opts);
+    REQUIRE(outer_fd >= 0);
+
+    uint32_t key = 0;
+    REQUIRE(bpf_map_update_elem(outer_fd, &key, &mismatched_fd, BPF_ANY) < 0);
+    REQUIRE(bpf_map_update_elem(outer_fd, &key, &template_fd, BPF_ANY) == 0);
+
+    bpf_map_info template_info = {};
+    uint32_t info_size = sizeof(template_info);
+    REQUIRE(bpf_obj_get_info_by_fd(template_fd, &template_info, &info_size) == 0);
+    uint32_t inner_id = 0;
+    REQUIRE(bpf_map_lookup_elem(outer_fd, &key, &inner_id) == 0);
+    REQUIRE(inner_id == template_info.id);
+
+    // A rejected replacement must leave the previously inserted map unchanged.
+    REQUIRE(bpf_map_update_elem(outer_fd, &key, &mismatched_fd, BPF_EXIST) < 0);
+    REQUIRE(bpf_map_lookup_elem(outer_fd, &key, &inner_id) == 0);
+    REQUIRE(inner_id == template_info.id);
+    REQUIRE(bpf_map_update_elem(outer_fd, &key, &template_fd, BPF_EXIST) == 0);
+
+    Platform::_close(outer_fd);
+    Platform::_close(mismatched_fd);
+    Platform::_close(template_fd);
+}
+
 TEST_CASE("libbpf create queue", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
