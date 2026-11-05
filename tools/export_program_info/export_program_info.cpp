@@ -67,7 +67,7 @@ export_global_helper_information()
 }
 
 uint32_t
-clear_ebpf_store()
+clear_ebpf_store(ebpf_store_key_t root_key)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_result_t return_result = EBPF_SUCCESS;
@@ -75,7 +75,8 @@ clear_ebpf_store()
     std::cout << "Clearing eBPF store (docked)" << std::endl;
     for (const auto& section : _section_information) {
         for (size_t i = 0; i < section.section_info_count; i++) {
-            result = ebpf_store_delete_section_information(section.section_info + i);
+            result = root_key ? ebpf_store_delete_section_information_from_root(root_key, section.section_info + i)
+                              : ebpf_store_delete_section_information(section.section_info + i);
             if (result != EBPF_SUCCESS && result != EBPF_FILE_NOT_FOUND) {
                 std::cout << "Failed to delete section information" << std::endl;
                 return_result = result;
@@ -83,14 +84,17 @@ clear_ebpf_store()
         }
     }
     for (const auto& program : _program_information_array) {
-        result = ebpf_store_delete_program_information(program);
+        result = root_key ? ebpf_store_delete_program_information_from_root(root_key, program)
+                          : ebpf_store_delete_program_information(program);
         if (result != EBPF_SUCCESS && result != EBPF_FILE_NOT_FOUND) {
             std::cout << "Failed to delete program information" << std::endl;
             return_result = result;
         }
     }
     for (size_t i = 0; i < ebpf_core_helper_functions_count; i++) {
-        result = ebpf_store_delete_global_helper_information(ebpf_core_helper_function_prototype + i);
+        result = root_key ? ebpf_store_delete_global_helper_information_from_root(
+                                root_key, ebpf_core_helper_function_prototype + i)
+                          : ebpf_store_delete_global_helper_information(ebpf_core_helper_function_prototype + i);
         if (result != EBPF_SUCCESS && result != EBPF_FILE_NOT_FOUND) {
             std::cout << "Failed to delete global helper information" << std::endl;
             return_result = result;
@@ -103,5 +107,5 @@ clear_ebpf_store()
 void
 print_help(_In_z_ const char* file_name)
 {
-    std::cerr << "Usage: " << file_name << " [--clear]" << std::endl;
+    std::cerr << "Usage: " << file_name << " [--clear [--hive HKLM|HKCU]]" << std::endl;
 }
