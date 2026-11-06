@@ -20,53 +20,26 @@ Uninstall and repair create additional, temporary recovery snapshots.
 On final uninstall, the saved original service state, binary hard links, and HKLM store are used
 to restore the machine-wide eBPF stack to its pre-MSI state. HKCU restoration is best effort by identity:
 only the saved installing user restores their HKCU store. Another user or SYSTEM skips that restoration
-with a warning, leaves the caller's HKCU unchanged, and retains the original HKCU backup. If no saved
-HKCU identity exists, the caller's store is also left unchanged. Other restoration errors remain fatal.
-The same ownership check gates HKCU backup, clear, and population during installation: a different user
-does not change their HKCU store while another user's backup area is retained.
-
-For an ordinary installation with no original store snapshot, uninstall uses
-the existing `export_program_info.exe --clear` command to remove known program, section, and
-global-helper entries while retaining unrelated extension metadata. The machine action runs as SYSTEM;
-the user action runs only as the recorded installing user. Each invocation attempts both HKCU and HKLM
-under its caller's permissions, so cleanup is not hive-isolated. HKCU refers to the caller's hive,
-including SYSTEM's own hive for the machine action. Rollback snapshots cover each action's designated
-store, not additional hives the exporter may also change.
-
-### One original backup, plus temporary maintenance undo
-
-One original backup restores the pre-MSI stack after failed installation or final uninstall;
-successful installation retains it. Temporary uninstall and repair snapshots recover the MSI stack
-if maintenance fails, without replacing the originals. After `InstallFiles`, repair recreates missing
-eBPFSvc registration and reconnects forced-install canonical links to the current payload; existing
-registrations remain unchanged. Failed repair restores prior links and removes any service it created;
-successful repair deletes only its temporary snapshots. Backup actions reject stale data, clean up
-their own partial work, and register rollback only after success. Interrupted recovery requires
-administrator investigation before retrying.
-
-### Requirements and recovery details
-
-Version changes require uninstalling first; in-place upgrades are disallowed. New installations reject
-NetEbpfExt or eBPFSvc registrations without eBPFCore, even with `FORCE=1`; maintenance remains allowed.
-Forced replacement requires six canonical binaries and an `INSTALLFOLDER` on the Windows volume with
-NTFS hard-link support. It captures running states before stopping services and stages replacements
-before changing canonical paths. Original file ACLs are restored; replacement files retain MSI ACLs.
-Service restoration preserves dependencies and defaults an absent `ServiceSidType` to `none`.
-Forced repair stops the stack before relinking and restarts previously running services; standard MSI
-actions handle eBPFSvc stop/start. Binary rollback attempts every mapping even if one fails.
-Success-only cleanup errors are logged without triggering rollback.
+with a warning, leaves the caller's HKCU unchanged, and retains the original HKCU backup.
 
 ### Backup filenames
 
 Machine metadata lives in native `%ProgramFiles%\ebpf-for-windows\MsiBackup`, regardless of
-`INSTALLFOLDER`; HKCU metadata lives in `UserStore` beneath it. Store snapshots use
-`ebpf-store-<scope>.json` and `.reg` (`hklm` or `hkcu`), with `.uninstall` inserted before the extension
-for uninstall undo. Service snapshots use `ebpf-services.original.json` or
-`ebpf-services.uninstall-rollback.json`, paired with `<service>.original.reg` or
-`<service>.uninstall-rollback.reg`; repair uses `ebpf-repair.json` and `<service>.repair.reg`.
-Registry exports exist only for keys that were present. Beside canonical Windows binaries,
-`.ebpf-msi-backup` preserves originals, `.ebpf-msi-new` stages replacements, and `.ebpf-msi-repair`
-holds repair undo links. Incomplete original binary backup sets are rejected.
+`INSTALLFOLDER`; HKCU metadata lives in `UserStore` beneath it. Binary links sit beside the canonical
+Windows binaries. Below, `<scope>` is `hklm` or `hkcu`, `<service>` is eBPFCore, NetEbpfExt, or eBPFSvc,
+and `<binary>` is the canonical binary filename. Registry exports exist only for keys that were present.
+Incomplete original binary backup sets are rejected.
+
+| Purpose | Filenames |
+|---|---|
+| Original store | `ebpf-store-<scope>.json`<br/>`ebpf-store-<scope>.reg` |
+| Uninstall store undo | `ebpf-store-<scope>.uninstall.json`<br/>`ebpf-store-<scope>.uninstall.reg` |
+| Original services | `ebpf-services.original.json`<br/>`<service>.original.reg` |
+| Uninstall service undo | `ebpf-services.uninstall-rollback.json`<br/>`<service>.uninstall-rollback.reg` |
+| Repair undo | `ebpf-repair.json`<br/>`<service>.repair.reg` |
+| Original binary | `<binary>.ebpf-msi-backup` |
+| Staged replacement | `<binary>.ebpf-msi-new` |
+| Binary repair undo | `<binary>.ebpf-msi-repair` |
 
 ### Backup directory protection
 
