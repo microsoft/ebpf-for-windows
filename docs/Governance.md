@@ -85,7 +85,7 @@ In addition to having Maintainer privileges and responsibilities,
 a release manager is also responsible for generating releases in github.
 The release manager for this project must be a Microsoft full time employee in order to build Microsoft-signed binaries that Windows will load.
 
-Personnel: @Alan-Jowett @LakshK98 @matthewige @mikeagun @saxena-anurag @shankarseal
+Personnel: @kumarvin123 @LakshK98 @mikeagun @nmlud21 @saxena-anurag @shankarseal
 
 Minimum Requirements:
 * Consistently participates in weekly [triage meetings](https://github.com/microsoft/ebpf-for-windows/discussions/427)
@@ -121,11 +121,13 @@ Responsibilities:
 ## Project Milestones
 
 eBPF for Windows uses monthly milestones in the format `YYMM`. So, e.g., the milestone for June, 2024 will be called 2406.
-At any given month, the project will have two `YYMM` milestones, for the current and next month,
+At any given month, the project will have two **`YYMM` milestones**, for the current and next month,
 along with the `Future` and `Backlog` milestones.
-The [Future milestone](https://github.com/microsoft/ebpf-for-windows/milestone/78) is the default for most new bugs that will get triaged.
+
+The [**Future milestone**](https://github.com/microsoft/ebpf-for-windows/milestone/78) is the default for most new bugs that will get triaged.
 At the end of a monthly milestone, issues from `Future` can be moved to a milestone associated with a `YYMM`.
-The [`Backlog` milestone](https://github.com/microsoft/ebpf-for-windows/milestone/6) exists for issues that have no planned timeframe associaed.
+
+The [**Backlog milestone**](https://github.com/microsoft/ebpf-for-windows/milestone/6) exists for issues that have no planned timeframe associaed.
 
 ## Issues Triage
 
