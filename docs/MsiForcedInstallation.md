@@ -34,121 +34,51 @@ Temporary uninstall snapshots still allow rollback of this selective cleanup.
 
 ### One original backup, plus temporary maintenance undo
 
-The supported version-change workflow is uninstall, then install; in-place upgrades are disallowed.
-**Original backups** preserve the inbox stack before forced installation. A failed install restores
-that same backup and removes it after recovery. A successful install retains it until final uninstall.
-There is no second initial-install snapshot and no install-time backup cleanup commit.
-
-Each backup action rejects existing backup/staging data rather than reusing or overwriting it.
-MSI registers that action's rollback only after the backup succeeds, before changing the live state.
-A rejected backup therefore cannot cause rollback to consume a snapshot from an earlier attempt.
-Partial backup failures clean up only their newly created files; interrupted or failed recovery may
-leave data that an administrator must investigate before retrying.
-
-**Uninstall rollback snapshots** preserve the current MSI service and registry state before removal.
-For example, with original stack **A** replaced by MSI stack **B**, successful uninstall restores **A**.
-If uninstall fails after partially restoring **A**, these temporary snapshots and the MSI binaries
-recover **B**. They do not replace the original backup of **A**.
-
-**Repair snapshots** preserve surviving canonical links and service state after `InstallFiles` has
-restored missing MSI payload files. Repair recreates a missing eBPFSvc registration, using the
-Program Files executable for ordinary installations and the canonical Windows path for forced ones.
-Existing service registrations are left unchanged. On forced installations, repair stops the stack,
-relinks canonical paths to the current MSI files, and restarts services that were running when the
-repair snapshot was taken. Standard MSI service actions handle eBPFSvc stop/start.
-
-Repair does not replace or discard original inbox backups. Failed repair restores the previous
-canonical links (including previously absent paths) and removes an eBPFSvc registration created by
-that repair; MSI rolls back its payload changes. Successful repair removes only temporary repair
-artifacts, so final uninstall can still restore the original stack. Stale repair artifacts or an
-incomplete original binary backup set require recovery before retrying.
+One original backup restores the pre-MSI stack after failed installation or final uninstall;
+successful installation retains it. Temporary uninstall and repair snapshots recover the MSI stack
+if maintenance fails, without replacing the originals. After `InstallFiles`, repair recreates missing
+eBPFSvc registration and reconnects forced-install canonical links to the current payload; existing
+registrations remain unchanged. Failed repair restores prior links and removes any service it created;
+successful repair deletes only its temporary snapshots. Backup actions reject stale data, clean up
+their own partial work, and register rollback only after success. Interrupted recovery requires
+administrator investigation before retrying.
 
 ### Requirements and recovery details
 
-New installations are rejected if NetEbpfExt's or eBPFSvc's `ImagePath` is detected without an eBPFCore `ImagePath`,
-even with `FORCE=1`. Maintenance and uninstall remain allowed.
-
-Forced replacement uses NTFS hard links for six binaries under `System32` and `System32\drivers`,
-and updates service registrations to those canonical Windows paths. `INSTALLFOLDER` must be on the
-same volume as Windows and support hard links. Missing canonical binaries, failure to stop a service,
-or failure to stage replacement links aborts replacement before any canonical link is changed.
-
-The standard MSI service-stop action is skipped for forced stack replacement so the custom chain can
-capture running states before stopping services. Normal installation, maintenance, and uninstall
-retain standard service stopping. The installer temporarily grants access to protected originals and
-restores their ACLs through the original backup links; distinct replacement files retain their MSI-installed ACLs.
-Service restoration preserves service and load-order-group dependencies and restores an absent
-`ServiceSidType` to its default, `none`. Uninstall rollback stops restored services before relinking
-the MSI binaries. Missing canonical links are recreated from the MSI files while retaining original
-backups; a failure on one mapping does not prevent recovery attempts on the others.
-
-Success-only cleanup failures are logged but do not trigger rollback after other cleanup actions have
-already deleted recovery data.
+Version changes require uninstalling first; in-place upgrades are disallowed. New installations reject
+NetEbpfExt or eBPFSvc registrations without eBPFCore, even with `FORCE=1`; maintenance remains allowed.
+Forced replacement requires six canonical binaries and an `INSTALLFOLDER` on the Windows volume with
+NTFS hard-link support. It captures running states before stopping services and stages replacements
+before changing canonical paths. Original file ACLs are restored; replacement files retain MSI ACLs.
+Service restoration preserves dependencies and defaults an absent `ServiceSidType` to `none`.
+Forced repair stops the stack before relinking and restarts previously running services; standard MSI
+actions handle eBPFSvc stop/start. Binary rollback attempts every mapping even if one fails.
+Success-only cleanup errors are logged without triggering rollback.
 
 ### Backup filenames
 
-Service and HKLM store metadata reside under `%ProgramFiles%\ebpf-for-windows\MsiBackup`
-(the native 64-bit Program Files directory), even if `INSTALLFOLDER` is customized.
-HKCU snapshots reside in its `UserStore` subdirectory.
-In the table, `<scope>` is `hklm` or `hkcu`, and `<service>` is eBPFCore, NetEbpfExt, or eBPFSvc.
-
-| State | Metadata | Registry export |
-|---|---|---|
-| Original store | `ebpf-store-<scope>.json` | `ebpf-store-<scope>.reg` |
-| Uninstall store undo | `ebpf-store-<scope>.uninstall.json` | `ebpf-store-<scope>.uninstall.reg` |
-| Original services | `ebpf-services.original.json` | `<service>.original.reg` |
-| Uninstall service undo | `ebpf-services.uninstall-rollback.json` | `<service>.uninstall-rollback.reg` |
-| Repair undo | `ebpf-repair.json` | `<service>.repair.reg` |
-
-Registry exports are created only for keys that existed; metadata records absent keys.
+Machine metadata lives in native `%ProgramFiles%\ebpf-for-windows\MsiBackup`, regardless of
+`INSTALLFOLDER`; HKCU metadata lives in `UserStore` beneath it. Store snapshots use
+`ebpf-store-<scope>.json` and `.reg` (`hklm` or `hkcu`), with `.uninstall` inserted before the extension
+for uninstall undo. Service snapshots use `ebpf-services.original.json` or
+`ebpf-services.uninstall-rollback.json`, paired with `<service>.original.reg` or
+`<service>.uninstall-rollback.reg`; repair uses `ebpf-repair.json` and `<service>.repair.reg`.
+Registry exports exist only for keys that were present. Beside canonical Windows binaries,
+`.ebpf-msi-backup` preserves originals, `.ebpf-msi-new` stages replacements, and `.ebpf-msi-repair`
+holds repair undo links. Incomplete original binary backup sets are rejected.
 
 ### Backup directory protection
 
-SYSTEM prepares the backup directories before any HKCU action. The application directory, machine
-backup directory, and machine backup files inherit Program Files permissions instead of receiving
-custom ACLs. Ordinary users may read machine backups but cannot modify them; administrators and
-SYSTEM retain write access. Existing application-directory permissions are not rewritten.
-Only the HKCU area and its owner record receive explicit ACLs.
-The protected `hkcu-owner.sid` record is readable by users and writable only by administrators/SYSTEM.
-It identifies the one installing user allowed to create and modify files in `UserStore`.
-That user cannot rename, delete, change permissions on, or create subdirectories inside `UserStore`.
-Full control over the directory remains with SYSTEM and Administrators.
-
-HKCU registry actions remain impersonated, so an unelevated installing-user token can access its own
-backup files without gaining write access to machine backups. A different user checks the protected owner
-record and skips before accessing `UserStore`; no other user's profile is loaded.
-
-Before using backups, each action checks directory and file ownership, rejects unexpected
-write permissions, and rejects reparse points and hard-linked backup files. HKCU files may be owned
-and writable by the recorded user; machine backup files may not. Ancestor directories
-are also checked for permissions that would let an unprivileged user replace the protected path.
-Directory handles remain open without write or delete sharing during the action to prevent path replacement
-or changes to reparse data.
-Existing untrusted directories or contents cause an error; the installer never changes their ACLs
-and then treats them as trusted. An administrator must investigate and recover such existing state
-before retrying. Do not delete original backups merely to bypass the check.
-
-During initial setup, SYSTEM prepares `UserStore` and records the installing user's SID before
-granting that user access. Once the protected owner record
-exists, SYSTEM does not parse, import, or change permissions on HKCU files. An interrupted initial
-permission setup can require administrator recovery rather than trusting partially configured files.
-Registry destinations
-and service export filenames are validated, and store imports reject keys outside the saved store.
-Uninstall preparation stages `ForceEbpfStack.cleanup.ps1` in the protected backup directory so
-commit can use the same validation after the installed script is removed. This copy is user-readable,
-but only administrators/SYSTEM can modify it. Separate impersonated commit actions clean up HKCU files;
-the uninstall commit removes original HKCU snapshots only after successful restoration. Skipped HKCU
-backups are retained. Machine commit actions clean up only service/HKLM files and the staged script;
-they never consume user-writable HKCU metadata. SYSTEM removes `UserStore` and its protected owner
-record only if the directory is empty. The application and backup root directories remain for future
-installations.
-Cleanup errors are logged by the custom action without rolling back an otherwise completed uninstall.
-
-Binary links are beside the canonical Windows files: `.ebpf-msi-new` stages replacement,
-and `.ebpf-msi-backup` preserves original state for both failed-install recovery and final uninstall.
-During repair, `.ebpf-msi-repair` temporarily preserves each surviving canonical binary.
-They are hard links to binaries, not JSON or registry exports. A partial set of the six original
-binary backup links is rejected rather than restored incompletely.
+Machine backups inherit Program Files permissions: ordinary users can read but not modify them.
+Only `UserStore` and its protected owner marker receive custom ACLs. The installing user can create,
+modify, and delete backup files, but cannot rename, delete, or change permissions on `UserStore` itself
+or create subdirectories. SYSTEM stages the owner marker, grants user access, then finalizes
+`hkcu-owner.sid`. HKCU actions run as that user; other identities skip them without loading another
+profile. Metadata access validates ownership, permissions, paths, and imports, rejects reparse points
+and hard-linked metadata files, and locks directories against replacement. Untrusted state requires
+investigation, not deleting backups to bypass checks. A protected `ForceEbpfStack.cleanup.ps1` supports
+uninstall commit after payload removal. HKCU cleanup stays impersonated; skipped backups remain,
+and SYSTEM removes `UserStore` and its owner marker only when empty.
 
 ## 1. Install execution flow
 
