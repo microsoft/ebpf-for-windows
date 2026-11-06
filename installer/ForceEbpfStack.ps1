@@ -303,42 +303,40 @@ namespace EbpfMsi
             }
         }
 
-        public static IDisposable LockBackupDirectory(string path, bool userAction = false)
+        public static void ValidateBackupDirectory(string path, bool userAction = false)
         {
-            path = path.TrimEnd('\\');
+            path = System.IO.Path.GetFullPath(path).TrimEnd('\\');
             string parent = System.IO.Path.GetDirectoryName(path);
-            string boundary = System.IO.Path.GetDirectoryName(parent);
-            if (String.IsNullOrEmpty(boundary)) {
+            if (String.IsNullOrEmpty(parent) || String.IsNullOrEmpty(System.IO.Path.GetDirectoryName(parent))) {
                 throw new System.IO.IOException("Backup path must have a protected application parent.");
             }
+            string programFiles = System.IO.Path.GetFullPath(
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles)).TrimEnd('\\');
             System.Collections.Generic.List<string> directories = new System.Collections.Generic.List<string>();
-            for (string current = path; current != null; current = System.IO.Path.GetDirectoryName(current)) {
+            // Program Files is the trusted boundary; overrides elsewhere still validate every ancestor.
+            for (string current = path;
+                current != null && !String.Equals(current, programFiles, StringComparison.OrdinalIgnoreCase);
+                current = System.IO.Path.GetDirectoryName(current)) {
                 directories.Add(current);
             }
             directories.Reverse();
-            BackupDirectoryLock guard = new BackupDirectoryLock();
-            try {
-                foreach (string directory in directories) {
-                    bool managed = directory == parent || directory == path;
-                    if (managed && !userAction) {
-                        System.IO.Directory.CreateDirectory(directory);
-                    }
-                    guard.Handles.Add(OpenBackupPath(directory, true, !managed));
+            foreach (string directory in directories) {
+                bool managed = directory == parent || directory == path;
+                if (managed && !userAction) {
+                    System.IO.Directory.CreateDirectory(directory);
                 }
-                string userStore = System.IO.Path.Combine(path, "UserStore");
-                if (!userAction) {
-                    foreach (string file in System.IO.Directory.GetFileSystemEntries(path)) {
-                        if (String.Equals(file, userStore, StringComparison.OrdinalIgnoreCase)) {
-                            continue;
-                        }
-                        IntPtr handle = OpenBackupPath(file, false, false);
-                        CloseHandle(handle);
+                IntPtr handle = OpenBackupPath(directory, true, !managed);
+                CloseHandle(handle);
+            }
+            string userStore = System.IO.Path.Combine(path, "UserStore");
+            if (!userAction) {
+                foreach (string file in System.IO.Directory.GetFileSystemEntries(path)) {
+                    if (String.Equals(file, userStore, StringComparison.OrdinalIgnoreCase)) {
+                        continue;
                     }
+                    IntPtr handle = OpenBackupPath(file, false, false);
+                    CloseHandle(handle);
                 }
-                return guard;
-            } catch {
-                guard.Dispose();
-                throw;
             }
         }
 
@@ -1979,13 +1977,12 @@ function Commit-StoreRestore
     }
 }
 
-$backupLock = $null
 $userStoreLock = $null
 try {
     if ($Action -match "(Services|Store|Repair)$" -or $Action -eq "CommitRestoreAll") {
         $StateRoot = [System.IO.Path]::GetFullPath($StateRoot)
         $userStoreAction = $Scope -eq "HKCU"
-        $backupLock = [EbpfMsi.NativeSecurity]::LockBackupDirectory($StateRoot, $userStoreAction)
+        [EbpfMsi.NativeSecurity]::ValidateBackupDirectory($StateRoot, $userStoreAction)
         if ($userStoreAction) {
             $owner = Get-UserStoreOwner
             if ($null -eq $owner -or $owner -ne (Get-CurrentUserSid)) {
@@ -2192,8 +2189,5 @@ try {
 } finally {
     if ($null -ne $userStoreLock) {
         $userStoreLock.Dispose()
-    }
-    if ($null -ne $backupLock) {
-        $backupLock.Dispose()
     }
 }

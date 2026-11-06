@@ -74,9 +74,11 @@ Only `UserStore` and its protected owner marker receive custom ACLs. The install
 modify, and delete backup files, but cannot rename, delete, or change permissions on `UserStore` itself
 or create subdirectories. SYSTEM stages the owner marker, grants user access, then finalizes
 `hkcu-owner.sid`. HKCU actions run as that user; other identities skip them without loading another
-profile. Metadata access validates ownership, permissions, paths, and imports, rejects reparse points
-and hard-linked metadata files, and locks directories against replacement. Untrusted state requires
-investigation, not deleting backups to bypass checks. A protected `ForceEbpfStack.cleanup.ps1` supports
+profile. Metadata access validates ownership, permissions, paths, and imports, rejecting reparse points
+and hard-linked metadata files. Machine-directory checks stop below native Program Files and close
+handles after validation; explicit `-StateRoot` overrides outside it retain full ancestor checks.
+Only `UserStore` retains action-duration directory locking. Untrusted state requires investigation,
+not deleting backups to bypass checks. A protected `ForceEbpfStack.cleanup.ps1` supports
 uninstall commit after payload removal. HKCU cleanup stays impersonated; skipped backups remain,
 and SYSTEM removes `UserStore` and its owner marker only when empty.
 
