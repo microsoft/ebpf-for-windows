@@ -47,7 +47,7 @@ A triage driver can also manage issues and pull requests,
 including assigning them to others and assigning labels and milestones.
 This corresponds to the "Triage" role in github.
 
-Personnel: @mingxr
+Personnel: @shankarseal
 
 Minimum Requirements:
 * Consistently participates in weekly triage meetings
@@ -123,9 +123,9 @@ Responsibilities:
 eBPF for Windows uses monthly milestones in the format `YYMM`. So, e.g., the milestone for June, 2024 will be called 2406.
 At any given month, the project will have two `YYMM` milestones, for the current and next month,
 along with the `Future` and `Backlog` milestones.
-The [Future milestone](https://github.com/microsoft/ebpf-for-windows/milestone/78) is the default for most untriaged bugs.
+The [Future milestone](https://github.com/microsoft/ebpf-for-windows/milestone/78) is the default for most new bugs that will get triaged.
 At the end of a monthly milestone, issues from `Future` can be moved to a milestone associated with a `YYMM`.
-The `Backlog` milestone exists for backlog issues.
+The [`Backlog` milestone](https://github.com/microsoft/ebpf-for-windows/milestone/6) exists for issues that have no planned timeframe associaed.
 
 ## Issues Triage
 
@@ -140,18 +140,16 @@ To help prioritize issues, the triage drivers and maintainers MUST use *GitHub P
 #### Urgent:
 This priority represents the highest priority and is reserved for critical issues that are causing catastrophic impact
 to customers or blocking development altogether. Urgent priority issues MUST be set to the current `YYMM` milestone.
-Only these critical issues are assigned directly to the current milestone during triage; other issues are scheduled
-through [milestone planning](#planning-for-a-milestone).
 #### High:
 This priority should ONLY be applied to bugs or features with quantifiable business impact. Quantifiable business impact
-may include number of users, business blocked, or deployment blocked. Bugs with only qualitative impact (descriptions
-without numbers) will be ranked lower than quantifiable Urgent or High priority bugs.
-High priority issues are assigned to the `Future` milestone until selected during milestone planning.
+may include number of users, business blocked, or deployment blocked.
+High priority issues are assigned to the `Future` milestone until selected during [milestone planning](#planning-for-a-milestone).
 #### Medium:
-This priority is used for the next level of priority.
-Medium priority issues are assigned to the `Future` milestone until selected during milestone planning.
+This priority is used for the next level of priority. Bugs with only qualitative impact (descriptions
+without numbers) will be ranked at this level, lower than the High priority bugs.
+Medium priority issues are assigned to the `Future` milestone until selected during during [milestone planning](#planning-for-a-milestone).
 #### Low:
-This priority is used for low priority issues. Low priority issues can be assigned to the `Future` or `Backlog` milestone.
+This priority is used for low priority issues. Low priority issues can be assigned to the `Backlog` milestone.
 
 ## Closing Active Issues
 
@@ -169,7 +167,7 @@ In the first triage meeting of the month, leftover open issues from the previous
 will move to the current `YYMM` milestone. Maintainers will then bring issues from `Future` into the current
 `YYMM` milestone, subject to the remaining contributor capacity.
 High priority issues take precedence over Medium priority issues. Within the same priority, older issues take
-precedence over newer issues.
+precedence over newer issues. Maintainers may use their discretion to select issues based on other relevant factors as deemed important for the project.
 
 Maintainers need to ensure that the number of issues in a monthly milestone reflects the capacity of the contributors
 actively working on the project. At the end of each triage meeting, the
