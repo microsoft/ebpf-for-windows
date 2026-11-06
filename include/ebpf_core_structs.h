@@ -17,9 +17,20 @@
 /**
  * @brief eBPF Map Information
  */
+typedef struct _ebpf_map_info_definition
+{
+    ebpf_map_type_t type;
+    uint32_t key_size;
+    uint32_t value_size;
+    uint32_t max_entries;
+    ebpf_id_t inner_map_id;
+    ebpf_pin_type_t pinning;
+} ebpf_map_info_definition_t;
+
 typedef struct _ebpf_map_info
 {
-    ebpf_map_definition_in_memory_t definition;
+    // This definition must remain ABI-compatible with clients built before map_flags was added.
+    ebpf_map_info_definition_t definition;
     _Field_z_ char* pin_path;
 } ebpf_map_info_t;
 
