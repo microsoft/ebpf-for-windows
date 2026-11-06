@@ -42,6 +42,7 @@ $BinariesToCopy = @(
     "ebpfnetsh.pdb",
     "ebpfsvc.exe",
     "ebpfsvc.pdb",
+    "ebpf_tracing.ps1",
     "netebpfext.pdb",
     "netebpfext.sys",
     "api_test.exe",
