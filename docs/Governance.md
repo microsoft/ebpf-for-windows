@@ -127,7 +127,7 @@ along with the `Future` and `Backlog` milestones.
 The [**Future milestone**](https://github.com/microsoft/ebpf-for-windows/milestone/78) is the default for most new bugs that will get triaged.
 At the end of a monthly milestone, issues from `Future` can be moved to a milestone associated with a `YYMM`.
 
-The [**Backlog milestone**](https://github.com/microsoft/ebpf-for-windows/milestone/6) exists for issues that have no planned timeframe associaed.
+The [**Backlog milestone**](https://github.com/microsoft/ebpf-for-windows/milestone/6) exists for issues that have no planned timeframe associated.
 
 ## Issues Triage
 
@@ -149,7 +149,7 @@ High priority issues are assigned to the `Future` milestone until selected durin
 #### Medium:
 This priority is used for the next level of priority. Bugs with only qualitative impact (descriptions
 without numbers) will be ranked at this level, lower than the High priority bugs.
-Medium priority issues are assigned to the `Future` milestone until selected during during [milestone planning](#planning-for-a-milestone).
+Medium priority issues are assigned to the `Future` milestone until selected during [milestone planning](#planning-for-a-milestone).
 #### Low:
 This priority is used for low priority issues. Low priority issues can be assigned to the `Backlog` milestone.
 
