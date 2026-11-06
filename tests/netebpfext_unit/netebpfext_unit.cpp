@@ -11,9 +11,18 @@
 #include "watchdog.h"
 
 #include <chrono>
+#include <condition_variable>
+#include <exception>
+#include <functional>
+#include <future>
+#include <iostream>
 #include <map>
+#include <mutex>
+#include <random>
 #include <stop_token>
 #include <thread>
+#include <type_traits>
+#include <vector>
 
 CATCH_REGISTER_LISTENER(_watchdog)
 CATCH_REGISTER_LISTENER(cxplat_passed_test_log)
@@ -1485,7 +1494,6 @@ _Must_inspect_result_ ebpf_result_t
 netebpfext_unit_invoke_sock_ops_program(
     _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result)
 {
-    UNREFERENCED_PARAMETER(context);
     ebpf_result_t return_result = EBPF_SUCCESS;
     auto client_context = (test_sock_ops_client_context_t*)client_binding_context;
     int action = client_context->sock_ops_action;
@@ -1518,7 +1526,7 @@ TEST_CASE("sock_ops_invoke", "[netebpfext]")
     ebpf_extension_data_t npi_specific_characteristics = {
         .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
     };
-    test_sock_ops_client_context_header_t client_context_header = {0};
+    test_sock_ops_client_context_header_t client_context_header = {};
     test_sock_ops_client_context_t* client_context = &client_context_header.context;
     fwp_classify_parameters_t parameters = {};
 
@@ -1532,21 +1540,163 @@ TEST_CASE("sock_ops_invoke", "[netebpfext]")
 
     // Do some operations that return success.
     client_context->sock_ops_action = 0;
+    uint64_t flow_id = 0;
 
-    FWP_ACTION_TYPE result = helper.test_sock_ops_v4(&parameters, nullptr);
+    FWP_ACTION_TYPE result = helper.test_sock_ops_v4(&parameters, &flow_id);
     REQUIRE(result == FWP_ACTION_PERMIT);
+    helper.test_sock_ops_v4_remove_flow_context(flow_id);
 
-    result = helper.test_sock_ops_v6(&parameters, nullptr);
+    flow_id = 0;
+    result = helper.test_sock_ops_v6(&parameters, &flow_id);
     REQUIRE(result == FWP_ACTION_PERMIT);
+    helper.test_sock_ops_v6_remove_flow_context(flow_id);
 
     // Do some operations that return failure.
     client_context->sock_ops_action = -1;
 
-    result = helper.test_sock_ops_v4(&parameters, nullptr);
+    flow_id = 0;
+    result = helper.test_sock_ops_v4(&parameters, &flow_id);
     REQUIRE(result == FWP_ACTION_BLOCK);
+    helper.test_sock_ops_v4_remove_flow_context(flow_id);
 
-    result = helper.test_sock_ops_v6(&parameters, nullptr);
+    flow_id = 0;
+    result = helper.test_sock_ops_v6(&parameters, &flow_id);
     REQUIRE(result == FWP_ACTION_BLOCK);
+    helper.test_sock_ops_v6_remove_flow_context(flow_id);
+}
+
+using sock_ops_v4_params = std::integral_constant<ADDRESS_FAMILY, AF_INET>;
+using sock_ops_v6_params = std::integral_constant<ADDRESS_FAMILY, AF_INET6>;
+
+// Exercise IPv4 and IPv6 SOCK_OPS flow lifetimes by concurrently classifying and deleting flows, then detaching the
+// client while both operations continue to race with filter-context cleanup.
+TEMPLATE_TEST_CASE("sock_ops_race", "[sock_ops_race]", sock_ops_v4_params, sock_ops_v6_params)
+{
+    constexpr bool use_v6 = TestType::value == AF_INET6;
+    constexpr size_t iteration_count = 5;
+    constexpr auto iteration_duration = std::chrono::seconds(6);
+    constexpr auto detach_delay = iteration_duration / 2;
+
+    for (size_t iteration = 0; iteration < iteration_count; iteration++) {
+        ebpf_extension_data_t npi_specific_characteristics = {
+            .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
+        };
+        test_sock_ops_client_context_header_t client_context_header = {};
+        test_sock_ops_client_context_t* client_context = &client_context_header.context;
+        fwp_classify_parameters_t parameters = {};
+        std::atomic<size_t> failure_count = 0;
+        std::atomic<bool> detach_started = false;
+        bool stop_deleting = false;
+        std::condition_variable active_flow_available;
+        std::mutex active_flow_lock;
+        std::vector<uint64_t> active_flow_ids;
+
+        netebpf_ext_helper_t helper(
+            &npi_specific_characteristics,
+            (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_ops_program,
+            (netebpfext_helper_base_client_context_t*)client_context);
+        helper.require_initialized();
+
+        netebpfext_initialize_fwp_classify_parameters(&parameters);
+        client_context->sock_ops_action = SOCK_OPS_TEST_ACTION_PERMIT;
+
+        const auto end_time = std::chrono::steady_clock::now() + iteration_duration;
+        auto classify_future = std::async(std::launch::async, [&]() {
+            // Use a per-thread random-number generator to vary the delay between simulated flow creations.
+            std::mt19937 generator{std::random_device{}()};
+            std::uniform_int_distribution<uint32_t> delay_in_milliseconds(0, 10);
+
+            while (std::chrono::steady_clock::now() < end_time) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(delay_in_milliseconds(generator)));
+
+                uint64_t flow_id = 0;
+                FWP_ACTION_TYPE result = use_v6 ? helper.test_sock_ops_v6(&parameters, &flow_id)
+                                                : helper.test_sock_ops_v4(&parameters, &flow_id);
+                if ((result == FWP_ACTION_CALLOUT_UNKNOWN) && detach_started) {
+                    continue;
+                }
+                if ((result != FWP_ACTION_PERMIT) || (flow_id == 0)) {
+                    failure_count++;
+                    continue;
+                }
+
+                {
+                    std::lock_guard<std::mutex> lock(active_flow_lock);
+                    active_flow_ids.push_back(flow_id);
+                }
+                active_flow_available.notify_one();
+            }
+        });
+
+        auto remove_future = std::async(std::launch::async, [&]() {
+            // Use a separate generator to independently vary flow deletion timing and select an active flow without
+            // bias.
+            std::mt19937 generator{std::random_device{}()};
+            std::uniform_int_distribution<uint32_t> delay_in_milliseconds(0, 10);
+
+            for (;;) {
+                uint64_t flow_id;
+
+                {
+                    std::unique_lock<std::mutex> lock(active_flow_lock);
+                    active_flow_available.wait(lock, [&]() { return stop_deleting || !active_flow_ids.empty(); });
+                    if (stop_deleting) {
+                        break;
+                    }
+
+                    // Select any currently active flow with equal probability.
+                    std::uniform_int_distribution<size_t> flow_index(0, active_flow_ids.size() - 1);
+                    size_t index = flow_index(generator);
+                    flow_id = active_flow_ids[index];
+                    active_flow_ids[index] = active_flow_ids.back();
+                    active_flow_ids.pop_back();
+                }
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(delay_in_milliseconds(generator)));
+
+                if (use_v6) {
+                    helper.test_sock_ops_v6_remove_flow_context(flow_id);
+                } else {
+                    helper.test_sock_ops_v4_remove_flow_context(flow_id);
+                }
+            }
+        });
+
+        std::this_thread::sleep_for(detach_delay);
+        detach_started = true;
+        helper.detach_hook_client();
+
+        std::exception_ptr classify_exception;
+        try {
+            classify_future.get();
+        } catch (...) {
+            classify_exception = std::current_exception();
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(active_flow_lock);
+            stop_deleting = true;
+        }
+        active_flow_available.notify_one();
+
+        std::exception_ptr remove_exception;
+        try {
+            remove_future.get();
+        } catch (...) {
+            remove_exception = std::current_exception();
+        }
+
+        if (classify_exception) {
+            std::rethrow_exception(classify_exception);
+        }
+        if (remove_exception) {
+            std::rethrow_exception(remove_exception);
+        }
+
+        REQUIRE(failure_count == 0);
+        std::cout << "sock_ops_race " << (use_v6 ? "IPv6" : "IPv4") << " test iteration " << iteration + 1 << " of "
+                  << iteration_count << " completed" << std::endl;
+    }
 }
 
 TEST_CASE("sock_ops_context", "[netebpfext]")
@@ -1694,7 +1844,7 @@ TEST_CASE("sock_ops_invoke_concurrent1", "[netebpfext_concurrent]")
     ebpf_extension_data_t npi_specific_characteristics = {
         .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
     };
-    test_sock_ops_client_context_header_t client_context_header = {0};
+    test_sock_ops_client_context_header_t client_context_header = {};
     test_sock_ops_client_context_t* client_context = &client_context_header.context;
     fwp_classify_parameters_t parameters = {};
     std::atomic<size_t> failure_count = 0;
@@ -1740,7 +1890,7 @@ TEST_CASE("sock_ops_invoke_concurrent2", "[netebpfext_concurrent]")
     ebpf_extension_data_t npi_specific_characteristics = {
         .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
     };
-    test_sock_ops_client_context_header_t client_context_header = {0};
+    test_sock_ops_client_context_header_t client_context_header = {};
     test_sock_ops_client_context_t* client_context = &client_context_header.context;
     std::vector<fwp_classify_parameters_t> parameters;
     std::atomic<size_t> failure_count = 0;
