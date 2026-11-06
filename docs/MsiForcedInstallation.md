@@ -26,11 +26,12 @@ The same ownership check gates HKCU backup, clear, and population during install
 does not change their HKCU store while another user's backup area is retained.
 
 For an ordinary installation with no original store snapshot, uninstall uses
-`export_program_info.exe --clear --hive HKLM` and, for the recorded installing user, `--hive HKCU`.
-These commands remove the tool's known program, section, and global-helper entries, not the entire
-eBPF registry tree. Unrelated extension metadata is retained, and each command modifies only its
-selected hive. The existing `--clear` command without `--hive` continues to process both hives.
-Temporary uninstall snapshots still allow rollback of this selective cleanup.
+the existing `export_program_info.exe --clear` command to remove known program, section, and
+global-helper entries while retaining unrelated extension metadata. The machine action runs as SYSTEM;
+the user action runs only as the recorded installing user. Each invocation attempts both HKCU and HKLM
+under its caller's permissions, so cleanup is not hive-isolated. HKCU refers to the caller's hive,
+including SYSTEM's own hive for the machine action. Rollback snapshots cover each action's designated
+store, not additional hives the exporter may also change.
 
 ### One original backup, plus temporary maintenance undo
 

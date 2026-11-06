@@ -1863,8 +1863,8 @@ function Restore-Store
     }
     if ($null -eq $state) {
         Invoke-NativeCommand -FilePath (Join-Path $InstallRoot "export_program_info.exe") `
-            -ArgumentList @("--clear", "--hive", $Scope) `
-            -FailureMessage "Failed to remove MSI-owned $Scope eBPF metadata"
+            -ArgumentList @("--clear") `
+            -FailureMessage "Failed to remove MSI-owned eBPF metadata"
     } elseif ([bool]$state.StoreExisted) {
         if (-not (Test-Path -LiteralPath $paths.RegistryFile -PathType Leaf)) {
             throw "The saved $Scope eBPF store file is missing: $($paths.RegistryFile)"

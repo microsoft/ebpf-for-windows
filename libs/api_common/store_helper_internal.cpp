@@ -1088,8 +1088,8 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
-ebpf_store_delete_global_helper_information_from_root(
+static ebpf_result_t
+_ebpf_store_delete_global_helper_information(
     ebpf_store_key_t root_store_key, _In_ ebpf_helper_function_prototype_t* helper_info)
 {
     ebpf_result_t result = EBPF_SUCCESS;
@@ -1153,14 +1153,14 @@ ebpf_store_delete_global_helper_information(_In_ ebpf_helper_function_prototype_
     EBPF_LOG_ENTRY();
 
     // First delete from HKCU root key.
-    result = ebpf_store_delete_global_helper_information_from_root(root_registry_key_current_user, helper_info);
+    result = _ebpf_store_delete_global_helper_information(root_registry_key_current_user, helper_info);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
 
     // Next delete from HKLM root key. It possible that the user does not have permission to the HKLM root key.
     // Suppress error in that case.
-    result = ebpf_store_delete_global_helper_information_from_root(root_registry_key_local_machine, helper_info);
+    result = _ebpf_store_delete_global_helper_information(root_registry_key_local_machine, helper_info);
     if (result == EBPF_ACCESS_DENIED) {
         result = EBPF_SUCCESS;
     }
