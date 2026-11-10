@@ -15,7 +15,7 @@ extern "C"
         uint64_t zero_marker[2];
         ebpf_native_module_header_t header;
         ebpf_native_map_definition_t definition;
-        const char* name;
+        _Null_terminated_ const char* name;
     } ebpf_native_map_entry_legacy_t;
 
 #define EBPF_NATIVE_MAP_ENTRY_LEGACY_SIZE EBPF_SIZE_INCLUDING_FIELD(ebpf_native_map_entry_legacy_t, name)

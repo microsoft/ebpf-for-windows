@@ -174,7 +174,10 @@ typedef struct _section_offset_to_map
 
 static uint32_t
 _get_uint_value_for_btf_map(
-    const libbtf::btf_type_data& btf_data, libbtf::btf_type_id id, const char* member_name, uint32_t default_value)
+    const libbtf::btf_type_data& btf_data,
+    libbtf::btf_type_id id,
+    const std::string& member_name,
+    uint32_t default_value)
 {
     auto map_struct = btf_data.get_kind_type<libbtf::btf_kind_struct>(id);
     for (const auto& member : map_struct.members) {
