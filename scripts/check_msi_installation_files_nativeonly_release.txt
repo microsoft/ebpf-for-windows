@@ -21,3 +21,4 @@ C:\Program Files\ebpf-for-windows\ForceEbpfStack.ps1
 C:\Program Files\ebpf-for-windows\JIT\ebpfsvc.exe
 C:\Program Files\ebpf-for-windows\JIT\EbpfSvc.pdb
 C:\Program Files\ebpf-for-windows\LICENSE.txt
+C:\Program Files\ebpf-for-windows\MsiBackup\hkcu-owner.sid
