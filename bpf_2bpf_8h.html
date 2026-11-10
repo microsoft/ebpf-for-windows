@@ -316,13 +316,14 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Create a new map. </p>
+<p>HASH, PERCPU_HASH, HASH_OF_MAPS, and LPM_TRIE maps enforce max_entries by default. To retain their previous unbounded behavior, set opts-&gt;map_flags to BPF_F_NO_MAX_ENTRIES. This Windows-only flag removes the entry-count bound; see BPF_F_NO_MAX_ENTRIES for details.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">map_type</td><td>Type of outer map to create. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">map_name</td><td>Optionally, the name to use for the map. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">key_size</td><td>Size in bytes of keys. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">value_size</td><td>Size in bytes of values. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">max_entries</td><td>Maximum number of entries in the map. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">max_entries</td><td>Entry-count limit, or initial bucket-count hint with BPF_F_NO_MAX_ENTRIES. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">opts</td><td>Structure of options using which a map gets created.</td></tr>
   </table>
   </dd>

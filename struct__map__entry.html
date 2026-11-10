@@ -86,22 +86,24 @@ Data Fields</h2></td></tr>
 <tr class="separator:a3fab073816cef5df4049165687d8390a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8faff3d5025d7292942309a538e680a1" id="r_a8faff3d5025d7292942309a538e680a1"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__structs_8h.html#aad26cd2213fd7fc727eaba471841fa62">ebpf_native_module_header_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__map__entry.html#a8faff3d5025d7292942309a538e680a1">header</a></td></tr>
 <tr class="separator:a8faff3d5025d7292942309a538e680a1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a31187c769688bcf5b135c31b2fee8b97" id="r_a31187c769688bcf5b135c31b2fee8b97"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__structs_8h.html#ab8db12973e5e476b352a3a3c7470a635">ebpf_map_definition_in_file_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__map__entry.html#a31187c769688bcf5b135c31b2fee8b97">definition</a></td></tr>
-<tr class="separator:a31187c769688bcf5b135c31b2fee8b97"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7ad56c05bce46a4c3edaec3179545e5f" id="r_a7ad56c05bce46a4c3edaec3179545e5f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="bpf2c_8h.html#a408c09592131e28967a142d71f23ed19">ebpf_native_map_definition_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__map__entry.html#a7ad56c05bce46a4c3edaec3179545e5f">definition</a></td></tr>
+<tr class="separator:a7ad56c05bce46a4c3edaec3179545e5f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9b2c00fca7e13af746057d80389477a5" id="r_a9b2c00fca7e13af746057d80389477a5"><td class="memItemLeft" align="right" valign="top">const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__map__entry.html#a9b2c00fca7e13af746057d80389477a5">name</a></td></tr>
 <tr class="separator:a9b2c00fca7e13af746057d80389477a5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a34639bb2188dd85a25bdd4205ad6ef79" id="r_a34639bb2188dd85a25bdd4205ad6ef79"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__map__entry.html#a34639bb2188dd85a25bdd4205ad6ef79">map_flags</a></td></tr>
+<tr class="separator:a34639bb2188dd85a25bdd4205ad6ef79"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Map entry. This structure contains the address of the map and the map definition. The address is written into the entry during load time. The map definition is used to initialize the map when the program is loaded. </p>
 </div><h2 class="groupheader">Field Documentation</h2>
-<a id="a31187c769688bcf5b135c31b2fee8b97" name="a31187c769688bcf5b135c31b2fee8b97"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a31187c769688bcf5b135c31b2fee8b97">&#9670;&#160;</a></span>definition</h2>
+<a id="a7ad56c05bce46a4c3edaec3179545e5f" name="a7ad56c05bce46a4c3edaec3179545e5f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7ad56c05bce46a4c3edaec3179545e5f">&#9670;&#160;</a></span>definition</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="ebpf__structs_8h.html#ab8db12973e5e476b352a3a3c7470a635">ebpf_map_definition_in_file_t</a> _map_entry::definition</td>
+          <td class="memname"><a class="el" href="bpf2c_8h.html#a408c09592131e28967a142d71f23ed19">ebpf_native_map_definition_t</a> _map_entry::definition</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -116,6 +118,20 @@ Data Fields</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname"><a class="el" href="ebpf__structs_8h.html#aad26cd2213fd7fc727eaba471841fa62">ebpf_native_module_header_t</a> _map_entry::header</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a34639bb2188dd85a25bdd4205ad6ef79" name="a34639bb2188dd85a25bdd4205ad6ef79"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a34639bb2188dd85a25bdd4205ad6ef79">&#9670;&#160;</a></span>map_flags</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint32_t _map_entry::map_flags</td>
         </tr>
       </table>
 </div><div class="memdoc">

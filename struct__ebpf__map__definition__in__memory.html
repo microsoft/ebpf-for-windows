@@ -92,12 +92,15 @@ Data Fields</h2></td></tr>
 <tr class="memdesc:af02753f2ddb2f223ea384e6af82fb807"><td class="mdescLeft">&#160;</td><td class="mdescRight">Size in bytes of a map value.  <br /></td></tr>
 <tr class="separator:af02753f2ddb2f223ea384e6af82fb807"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7adf106f9e4bb08e7333afead721794f" id="r_a7adf106f9e4bb08e7333afead721794f"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__map__definition__in__memory.html#a7adf106f9e4bb08e7333afead721794f">max_entries</a></td></tr>
-<tr class="memdesc:a7adf106f9e4bb08e7333afead721794f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Maximum number of entries allowed in the map.  <br /></td></tr>
+<tr class="memdesc:a7adf106f9e4bb08e7333afead721794f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Entry-count limit, or initial bucket-count hint with BPF_F_NO_MAX_ENTRIES.  <br /></td></tr>
 <tr class="separator:a7adf106f9e4bb08e7333afead721794f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3b8e470365252209c395e43a6f6268e5" id="r_a3b8e470365252209c395e43a6f6268e5"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__structs_8h.html#aa03abb9b99ca6cfa2fa19f2fb8140df8">ebpf_id_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__map__definition__in__memory.html#a3b8e470365252209c395e43a6f6268e5">inner_map_id</a></td></tr>
 <tr class="separator:a3b8e470365252209c395e43a6f6268e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abce0e9b68a1c98b41d1f86044cf9c377" id="r_abce0e9b68a1c98b41d1f86044cf9c377"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__structs_8h.html#a87b463e49129922011bdd5bbb1134282">ebpf_pin_type_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__map__definition__in__memory.html#abce0e9b68a1c98b41d1f86044cf9c377">pinning</a></td></tr>
 <tr class="separator:abce0e9b68a1c98b41d1f86044cf9c377"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aab235b52dbb7c452e7b903dfbd921410" id="r_aab235b52dbb7c452e7b903dfbd921410"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__map__definition__in__memory.html#aab235b52dbb7c452e7b903dfbd921410">map_flags</a></td></tr>
+<tr class="memdesc:aab235b52dbb7c452e7b903dfbd921410"><td class="mdescLeft">&#160;</td><td class="mdescRight">Map flags (e.g., BPF_F_NO_MAX_ENTRIES).  <br /></td></tr>
+<tr class="separator:aab235b52dbb7c452e7b903dfbd921410"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>eBPF Map Definition as it is stored in memory. </p>
@@ -132,6 +135,22 @@ Data Fields</h2></td></tr>
 
 </div>
 </div>
+<a id="aab235b52dbb7c452e7b903dfbd921410" name="aab235b52dbb7c452e7b903dfbd921410"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aab235b52dbb7c452e7b903dfbd921410">&#9670;&#160;</a></span>map_flags</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint32_t _ebpf_map_definition_in_memory::map_flags</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Map flags (e.g., BPF_F_NO_MAX_ENTRIES). </p>
+
+</div>
+</div>
 <a id="a7adf106f9e4bb08e7333afead721794f" name="a7adf106f9e4bb08e7333afead721794f"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a7adf106f9e4bb08e7333afead721794f">&#9670;&#160;</a></span>max_entries</h2>
 
@@ -144,7 +163,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Maximum number of entries allowed in the map. </p>
+<p>Entry-count limit, or initial bucket-count hint with BPF_F_NO_MAX_ENTRIES. </p>
 
 </div>
 </div>

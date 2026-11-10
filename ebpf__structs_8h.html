@@ -116,6 +116,9 @@ Macros</h2></td></tr>
 <tr class="separator:a3d725e8dd7f9c991a42b3b3a84711769"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a388fd28300caec17017c2fc514a162a6" id="r_a388fd28300caec17017c2fc514a162a6"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a388fd28300caec17017c2fc514a162a6">EBPF_ID_NONE</a>&#160;&#160;&#160;0</td></tr>
 <tr class="separator:a388fd28300caec17017c2fc514a162a6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7ea6cb14c50f3d68fe97aecc45c79754" id="r_a7ea6cb14c50f3d68fe97aecc45c79754"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a7ea6cb14c50f3d68fe97aecc45c79754">BPF_F_NO_MAX_ENTRIES</a>&#160;&#160;&#160;(1U &lt;&lt; 31)</td></tr>
+<tr class="memdesc:a7ea6cb14c50f3d68fe97aecc45c79754"><td class="mdescLeft">&#160;</td><td class="mdescRight">Disable the max_entries entry-count limit. This is a Windows-only map creation flag.  <br /></td></tr>
+<tr class="separator:a7ea6cb14c50f3d68fe97aecc45c79754"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6895b7ffe1198b667b8d71b08b82b4a2" id="r_a6895b7ffe1198b667b8d71b08b82b4a2"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a6895b7ffe1198b667b8d71b08b82b4a2">XDP_FLAGS_REPLACE</a>&#160;&#160;&#160;0x01</td></tr>
 <tr class="separator:a6895b7ffe1198b667b8d71b08b82b4a2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abc5e07d826c22d4c2b46fd1fb5a2e93e" id="r_abc5e07d826c22d4c2b46fd1fb5a2e93e"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#abc5e07d826c22d4c2b46fd1fb5a2e93e">BPF_OBJ_NAME_LEN</a>&#160;&#160;&#160;64</td></tr>
@@ -345,6 +348,24 @@ Enumerations</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+
+</div>
+</div>
+<a id="a7ea6cb14c50f3d68fe97aecc45c79754" name="a7ea6cb14c50f3d68fe97aecc45c79754"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7ea6cb14c50f3d68fe97aecc45c79754">&#9670;&#160;</a></span>BPF_F_NO_MAX_ENTRIES</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define BPF_F_NO_MAX_ENTRIES&#160;&#160;&#160;(1U &lt;&lt; 31)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Disable the max_entries entry-count limit. This is a Windows-only map creation flag. </p>
+<p>Supported only for BPF_MAP_TYPE_HASH, BPF_MAP_TYPE_PERCPU_HASH, BPF_MAP_TYPE_HASH_OF_MAPS, and BPF_MAP_TYPE_LPM_TRIE. These types enforce max_entries by default; applications relying on their previous unbounded behavior must explicitly set this flag when creating the map.</p>
+<p>With this flag, max_entries remains a nonzero initial bucket-count hint, not an entry-count bound. The map can grow beyond it subject to available resources. <a class="el" href="libbpf_8h.html#ac09c986a4dae582956613fec4bb87c2b" title="Get the configured max_entries value for a given map.">bpf_map__max_entries()</a> and map information queries still report the configured max_entries value. Other map types, including LRU maps, reject this flag. </p>
 
 </div>
 </div>

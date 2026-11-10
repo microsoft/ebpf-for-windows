@@ -160,8 +160,8 @@ Functions</h2></td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">map_type</td><td>Type of map to create. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">key_size</td><td>Size in bytes of keys. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">value_size</td><td>Size in bytes of values. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">max_entries</td><td>Maximum number of entries in the map. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">map_flags</td><td>Flags (currently 0).</td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">max_entries</td><td>Entry-count limit, or initial bucket-count hint with BPF_F_NO_MAX_ENTRIES. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">map_flags</td><td>Map creation flags. See BPF_F_NO_MAX_ENTRIES for supported types and behavior.</td></tr>
   </table>
   </dd>
 </dl>
@@ -234,8 +234,8 @@ Functions</h2></td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">name</td><td>Optionally, the name to use for the map. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">key_size</td><td>Size in bytes of keys. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">inner_map_fd</td><td>File descriptor of the inner map template. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">max_entries</td><td>Maximum number of entries in the map. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">map_flags</td><td>Flags (currently 0).</td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">max_entries</td><td>Entry-count limit, or initial bucket-count hint with BPF_F_NO_MAX_ENTRIES. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">map_flags</td><td>Map creation flags. BPF_F_NO_MAX_ENTRIES is supported for HASH_OF_MAPS only.</td></tr>
   </table>
   </dd>
 </dl>

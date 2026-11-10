@@ -8,7 +8,7 @@ var searchData=
   ['data_5fsize_5fin_5',['data_size_in',['../struct__ebpf__test__run__options.html#ac11b0f06eba305be13ee11bc3cc1091c',1,'_ebpf_test_run_options::data_size_in'],['../structsys__bpf__prog__run__attr__t.html#a32ae72498e2c86e5d0b61ce6cc6b15fc',1,'sys_bpf_prog_run_attr_t::data_size_in']]],
   ['data_5fsize_5fout_6',['data_size_out',['../struct__ebpf__test__run__options.html#aefa49115e0e0b6d29c56001e8fc2cefb',1,'_ebpf_test_run_options::data_size_out'],['../structsys__bpf__prog__run__attr__t.html#af41b3456e07059c8abf402c1a336a21a',1,'sys_bpf_prog_run_attr_t::data_size_out']]],
   ['default_5fcompartment_5fid_7',['DEFAULT_COMPARTMENT_ID',['../net_2ip_8h.html#a48cf1ca8aa994514b74cd86dcad59dbc',1,'ip.h']]],
-  ['definition_8',['definition',['../struct__map__entry.html#a31187c769688bcf5b135c31b2fee8b97',1,'_map_entry::definition'],['../struct__ebpf__map__info.html#a21e7aa731086c040ff1f1977b86b80fb',1,'_ebpf_map_info::definition']]],
+  ['definition_8',['definition',['../struct__map__entry.html#a7ad56c05bce46a4c3edaec3179545e5f',1,'_map_entry::definition'],['../struct__ebpf__map__info.html#a2b1323019f69ec57dde510c648f45433',1,'_ebpf_map_info::definition']]],
   ['deprecated_20list_9',['Deprecated List',['../deprecated.html',1,'']]],
   ['dest_10',['dest',['../structtcphdr.html#a17be797aab557d501e27898ae010188b',1,'tcphdr']]],
   ['destination_11',['Destination',['../struct___e_t_h_e_r_n_e_t___h_e_a_d_e_r.html#a86a29bdb64ac5ceb5097a05742cb68d8',1,'_ETHERNET_HEADER']]],
