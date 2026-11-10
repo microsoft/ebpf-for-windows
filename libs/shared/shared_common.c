@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "bpf2c.h"
+#include "ebpf_native_structs.h"
 #include "ebpf_program_types.h"
 #include "ebpf_serialize.h"
 #include "ebpf_shared_framework.h"
@@ -107,8 +108,9 @@ size_t _ebpf_native_helper_function_entry_supported_size[] = {EBPF_NATIVE_HELPER
 #define EBPF_NATIVE_HELPER_FUNCTION_DATA_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(helper_function_data_t, tail_call)
 size_t _ebpf_native_helper_function_data_supported_size[] = {EBPF_NATIVE_HELPER_FUNCTION_DATA_SIZE_0};
 
-#define EBPF_NATIVE_MAP_ENTRY_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(map_entry_t, name)
-size_t _ebpf_native_map_entry_supported_size[] = {EBPF_NATIVE_MAP_ENTRY_SIZE_0};
+#define EBPF_NATIVE_MAP_ENTRY_SIZE_0 EBPF_NATIVE_MAP_ENTRY_LEGACY_SIZE
+#define EBPF_NATIVE_MAP_ENTRY_SIZE_1 EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_SIZE
+size_t _ebpf_native_map_entry_supported_size[] = {EBPF_NATIVE_MAP_ENTRY_SIZE_0, EBPF_NATIVE_MAP_ENTRY_SIZE_1};
 
 #define EBPF_NATIVE_MAP_DATA_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(map_data_t, address)
 #define EBPF_NATIVE_MAP_DATA_SIZE_1 EBPF_SIZE_INCLUDING_FIELD(map_data_t, array_data)
@@ -217,8 +219,7 @@ _ebpf_validate_extension_object_header(
 
     return (
         (header->version == _supported_ebpf_extension_version[object_type]) &&
-        (_ebpf_is_size_supported(supported_sizes, count, header->size)) &&
-        (header->total_size >= header->size));
+        (_ebpf_is_size_supported(supported_sizes, count, header->size)) && (header->total_size >= header->size));
 }
 
 #ifndef GUID_NULL
@@ -391,6 +392,33 @@ ebpf_validate_object_header_native_map_entry(_In_ const ebpf_extension_header_t*
     return (
         (native_map_entry_header != NULL) &&
         _ebpf_validate_extension_object_header(EBPF_NATIVE_MAP_ENTRY, native_map_entry_header));
+}
+
+_Success_(return) bool ebpf_native_map_entry_to_current(_Out_opt_ map_entry_t* destination, _In_opt_ const void* source)
+{
+    const ebpf_native_map_entry_legacy_t* legacy_entry = (const ebpf_native_map_entry_legacy_t*)source;
+
+    if (destination == NULL || source == NULL || !ebpf_validate_object_header_native_map_entry(&legacy_entry->header)) {
+        return false;
+    }
+
+    memset(destination, 0, sizeof(*destination));
+    switch (legacy_entry->header.size) {
+    case EBPF_NATIVE_MAP_ENTRY_LEGACY_SIZE:
+        destination->zero_marker[0] = legacy_entry->zero_marker[0];
+        destination->zero_marker[1] = legacy_entry->zero_marker[1];
+        destination->definition = legacy_entry->definition;
+        destination->name = legacy_entry->name;
+        break;
+    case EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_SIZE:
+        memcpy(destination, source, legacy_entry->header.size);
+        break;
+    default:
+        return false;
+    }
+
+    destination->header = (ebpf_native_module_header_t)EBPF_NATIVE_MAP_ENTRY_HEADER;
+    return true;
 }
 
 bool
