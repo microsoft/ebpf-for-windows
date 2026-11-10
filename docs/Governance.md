@@ -47,7 +47,7 @@ A triage driver can also manage issues and pull requests,
 including assigning them to others and assigning labels and milestones.
 This corresponds to the "Triage" role in github.
 
-Personnel: @mingxr
+Personnel: @shankarseal
 
 Minimum Requirements:
 * Consistently participates in weekly triage meetings
@@ -57,8 +57,7 @@ Minimum Requirements:
 Responsibilities:
 * Run the weekly [triage meetings](https://github.com/microsoft/ebpf-for-windows/discussions/427).
 * If the triage meeting is canceled (e.g., due to a holiday),
-  announce that fact in the [Slack channel](https://cilium.slack.com/messages/ebpf-for-windows)
-  and [github discussion thread](https://github.com/microsoft/ebpf-for-windows/discussions/427).
+  announce that fact in the [github discussion thread](https://github.com/microsoft/ebpf-for-windows/discussions/427).
 
 ### Maintainer
 
@@ -86,7 +85,7 @@ In addition to having Maintainer privileges and responsibilities,
 a release manager is also responsible for generating releases in github.
 The release manager for this project must be a Microsoft full time employee in order to build Microsoft-signed binaries that Windows will load.
 
-Personnel: @Alan-Jowett @LakshK98 @matthewige @mikeagun @saxena-anurag @shankarseal
+Personnel: @kumarvin123 @LakshK98 @mikeagun @nmlud21 @saxena-anurag @shankarseal
 
 Minimum Requirements:
 * Consistently participates in weekly [triage meetings](https://github.com/microsoft/ebpf-for-windows/discussions/427)
@@ -122,22 +121,37 @@ Responsibilities:
 ## Project Milestones
 
 eBPF for Windows uses monthly milestones in the format `YYMM`. So, e.g., the milestone for June, 2024 will be called 2406.
-At any time, there will be one current milestone (for the current month) and one or more future milestones, in the project.
-A `Backlog` milestone exists for backlog issues.
-In the weekly triage meetings, new issues should be added to a milestone following guidelines in the
-[Prioritizing Issues](Governance.md#prioritizing-issues) section.
+At any given month, the project will have two **`YYMM` milestones**, for the current and next month,
+along with the `Future` and `Backlog` milestones.
 
-## Prioritizing Issues
+The [**Future milestone**](https://github.com/microsoft/ebpf-for-windows/milestone/78) is the default for most new bugs that will get triaged.
+At the end of a monthly milestone, issues from `Future` can be moved to a milestone associated with a `YYMM`.
+
+The [**Backlog milestone**](https://github.com/microsoft/ebpf-for-windows/milestone/6) exists for issues that have no planned timeframe associated.
+
+## Issues Triage
+
+Maintainers triage new issues in the weekly Monday
+[issues triage meeting](https://github.com/microsoft/ebpf-for-windows/discussions/427)
+and assign them to milestones following the [issue priority guidelines](#prioritizing-issues) below.
+Maintainers may change an issue's priority as business priorities change.
+
+### Prioritizing Issues
 
 To help prioritize issues, the triage drivers and maintainers MUST use *GitHub Priority fields* to prioritize issues as follows:
-### Urgent:
-This priority represents the highest priority. This category is reserved for issues that are causing catastrophic impact to customers or blocking development altogether. Urgent priority issues MUST be set to the *current milestone*.
-### High:
-This priority should ONLY be applied to bugs or features with quantifiable business impact. Quantifiable business impact may include number of users, business blocked, or deployment blocked. Bugs with only qualitative impact (descriptions without numbers) will be ranked lower than quantifiable Urgent or High priority bugs. Urgent or High priority issues MUST be set to the *current milestone*.
-### Medium:
-This priority is used for the next level of priority. Medium priority issues will be set to future milestones.
-### Low:
-This priority is used for low priority issues. Low priority issues can be set to future milestones beyond 3 months or the `Backlog` milestone.
+#### Urgent:
+This priority represents the highest priority and is reserved for critical issues that are causing catastrophic impact
+to customers or blocking development altogether. Urgent priority issues MUST be set to the current `YYMM` milestone.
+#### High:
+This priority should ONLY be applied to bugs or features with quantifiable business impact. Quantifiable business impact
+may include number of users, business blocked, or deployment blocked.
+High priority issues are assigned to the `Future` milestone until selected during [milestone planning](#planning-for-a-milestone).
+#### Medium:
+This priority is used for the next level of priority. Bugs with only qualitative impact (descriptions
+without numbers) will be ranked at this level, lower than the High priority bugs.
+Medium priority issues are assigned to the `Future` milestone until selected during [milestone planning](#planning-for-a-milestone).
+#### Low:
+This priority is used for low priority issues. Low priority issues can be assigned to the `Backlog` milestone.
 
 ## Closing Active Issues
 
@@ -149,36 +163,31 @@ This priority is used for low priority issues. Low priority issues can be set to
  to Low priority, and putting a label of "Help Wanted, Backlog" is preferred. Closing an issue as "*Won't Fix*" is appropriate when it is decided that
  the proposal is (or no longer is) a good idea to be done at all.
 
-## Milestone Issues Limit
-Triage managers need to ensure that the number of issues in a milestone does not exceed the capacity of the contributors
+## Planning for a Milestone
+
+In the first triage meeting of the month, leftover open issues from the previous `YYMM` milestone
+will move to the current `YYMM` milestone. Maintainers will then bring issues from `Future` into the current
+`YYMM` milestone, subject to the remaining contributor capacity.
+High priority issues take precedence over Medium priority issues. Within the same priority, older issues take
+precedence over newer issues. Maintainers may use their discretion to select issues based on other relevant factors as deemed important for the project.
+
+Maintainers need to ensure that the number of issues in a monthly milestone reflects the capacity of the contributors
 actively working on the project. At the end of each triage meeting, the
 [Project Milestones](https://github.com/microsoft/ebpf-for-windows/milestones)
-should be checked to see if there aren't too many issues added to any given milestone.
-The issues limit for a given milestone will depend on number of contributors working on them,
-the complexities of the issues and other relevant factors as deemed important by the triage drivers.
-As a rule of thumb, the number of issues in a milestone should not exceed 3 times the number of active contributors.
-Assuming 6 - 7 active contributors, there should be no more than 20 issues per milestone.
+should be checked to avoid overcommitting the monthly milestones.
+Capacity depends on the number of active contributors, the complexity of the issues, and other relevant factors
+as deemed important by the maintainers.
+As a rule of thumb, plan for roughly 2 issues per active contributor per month.
+For example, 5 active contributors would have capacity for roughly 10 issues per monthly milestone.
+This capacity guideline applies to `YYMM` milestones, not `Future` or `Backlog`.
 
-**Note:** This limit is irrespective of the issue state. Closing out an issue, does not "add room" for more issues into the milestone.
-
-Medium priority or Low priority issues must be added to the first milestone that has not reached its limit.
-Urgent or High priority issues can only be added to the current milestone (`N`). If adding a new Urgent or High priority issue exceeds the milestone limit,
-one or more open issues must be moved to the future milestones. Open Medium priority and Low priority issues in the current milestone
-must be the first candidates for moving. If all the open issues in the current milestone are Urgent or High priority, the triage drivers
-must *downgrade* one or more of them to Medium priority and move them to the next (`N+1`) milestone.
-
-If all existing milestones have exceeded their limit issues, a new milestone must be created to accommodate new issues.
+**Note:** Capacity includes both open and closed issues. Closing an issue does not "add room" for more issues in the milestone.
 
 ## Closing a Milestone
-In the first triage meeting of a month, the previous milestone (`N`) must be closed.
 
-Ideally, all issues should be addressed by the end of the designated milestones. However, if that does not happen for any reason,
-triage drivers or administrators must move all overdue issues that do not have an active pull request to a future milestone as follows:
-  - Urgent or High priority issues can be moved to the *next* (`N+1`) milestone. This must be done in a triage meeting, after discussing with all maintainers.
-  - Medium priority issues can be moved to any of the future milestones.
-  - Low priority issues can be moved to future or `Backlog` milestones.
+In the first triage meeting of a month, the previous `YYMM` milestone must be closed after moving its leftover open
+issues to the current `YYMM` milestone as described in [Planning for a Milestone](#planning-for-a-milestone).
 
-Moving issues to future milestones should not exceed the per milestone issues limit.
 If any issue has been moved two times already, then the issue must be re-triaged for setting the appropriate priority and/or the milestone.
 
 ## Reviewing Pull Requests
