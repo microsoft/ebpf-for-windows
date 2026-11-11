@@ -38,8 +38,8 @@ struct bpf_create_map_attr
  * @param[in] map_type Type of map to create.
  * @param[in] key_size Size in bytes of keys.
  * @param[in] value_size Size in bytes of values.
- * @param[in] max_entries Maximum number of entries in the map.
- * @param[in] map_flags Flags (currently 0).
+ * @param[in] max_entries Entry-count limit, or initial bucket-count hint with BPF_F_NO_MAX_ENTRIES.
+ * @param[in] map_flags Map creation flags. See BPF_F_NO_MAX_ENTRIES for supported types and behavior.
  *
  * @returns A new file descriptor that refers to the map.
  * The caller should call _close() on the fd to close this when done.
@@ -60,8 +60,8 @@ bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size, int max
  * @param[in] name Optionally, the name to use for the map.
  * @param[in] key_size Size in bytes of keys.
  * @param[in] inner_map_fd File descriptor of the inner map template.
- * @param[in] max_entries Maximum number of entries in the map.
- * @param[in] map_flags Flags (currently 0).
+ * @param[in] max_entries Entry-count limit, or initial bucket-count hint with BPF_F_NO_MAX_ENTRIES.
+ * @param[in] map_flags Map creation flags. BPF_F_NO_MAX_ENTRIES is supported for HASH_OF_MAPS only.
  *
  * @returns A new file descriptor that refers to the map.
  * The caller should call _close() on the fd to close this when done.
