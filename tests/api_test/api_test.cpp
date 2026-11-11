@@ -3,6 +3,8 @@
 
 #define CATCH_CONFIG_RUNNER
 
+#include <winsock2.h>
+
 #include "../sample/ext/common/sample_ext_helper.h"
 #include "api_internal.h"
 #include "api_test.h"
@@ -23,7 +25,6 @@
 #include "socket_helper.h"
 #include "watchdog.h"
 
-#include <winsock2.h>
 #include <ws2tcpip.h>
 #include <algorithm>
 #include <chrono>
