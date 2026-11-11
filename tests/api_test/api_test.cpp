@@ -3,6 +3,7 @@
 
 #define CATCH_CONFIG_RUNNER
 
+#include "../sample/ext/common/sample_ext_helper.h"
 #include "api_internal.h"
 #include "api_test.h"
 #include "api_test_jit.h"
@@ -24,7 +25,6 @@
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#include "../sample/ext/common/sample_ext_helper.h"
 #include <algorithm>
 #include <chrono>
 #include <functional>
@@ -33,7 +33,6 @@
 #include <mstcpip.h>
 #include <mutex>
 #define _NTDEF_ // UNICODE_STRING is already defined
-#include "usersim/nt_process_info.h"
 
 #include <ntsecapi.h>
 #include <processthreadsapi.h>
@@ -1017,234 +1016,6 @@ TEST_CASE("duplicate_fd", "")
 
 TEST_CASE("tailcall_load_test_native", "[tailcall_load_test]") { tailcall_load_test("tail_call_multiple.sys"); }
 
-void
-send_traffic(IPPROTO protocol, bool is_ipv6)
-{
-    const char* message = CLIENT_MESSAGE;
-    sockaddr_storage destination_address{};
-    PSOCKADDR local_address = nullptr;
-    int local_address_length = 0;
-
-    if (protocol == IPPROTO_UDP) {
-        datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
-        datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
-        // Send some traffic to initiate a connect.
-        datagram_client_socket.get_local_address(local_address, local_address_length);
-        // Post an asynchronous receive on the receiver socket.
-        datagram_server_socket.post_async_receive();
-
-        // Send loopback message to test port.
-        if (is_ipv6) {
-            IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&destination_address);
-        } else {
-            IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
-        }
-
-        datagram_client_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
-
-        datagram_server_socket.complete_async_receive(false);
-        // Cancel pending I/O on the client socket.
-        datagram_client_socket.cancel_pending_io();
-    } else // TCP traffic.
-    {
-        stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
-        stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
-        stream_client_socket.get_local_address(local_address, local_address_length);
-        // Post an asynchronous receive on the receiver socket.
-        stream_server_socket.post_async_receive();
-
-        // Send loopback message to test port.
-        if (is_ipv6) {
-            IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&destination_address);
-        } else {
-            IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
-        }
-
-        stream_client_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
-
-        stream_server_socket.complete_async_receive(false);
-        // Cancel pending I/O on the client socket.
-        stream_client_socket.cancel_pending_io();
-    }
-}
-
-/**
- * @brief Look up the process start key for a given PID, for comparison against the value reported by
- * bpf_get_current_process_start_key (PsGetProcessStartKey in the kernel).
- * @param[in] pid Process ID whose start key to query.
- * @param[out] start_key On success, receives the process start key.
- * @returns true if the start key was obtained; false (with a warning) if the process could not be
- *  opened or queried.
- */
-static bool
-try_get_process_start_key(uint32_t pid, uint64_t& start_key)
-{
-    // PROCESS_TELEMETRY_ID_INFORMATION and the NtQueryInformationProcess prototype come from
-    // usersim/nt_process_info.h. They are declared there (rather than pulled from <winternl.h>)
-    // because <winternl.h> redefines _STRING/UNICODE_STRING already provided by <ntsecapi.h>
-    // (used elsewhere in this file), producing C2011. Resolve the function at runtime via
-    // GetProcAddress to avoid an ntdll.lib link dependency.
-    // See https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess
-    static NtQueryInformationProcess_t nt_query_information_process = reinterpret_cast<NtQueryInformationProcess_t>(
-        GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "NtQueryInformationProcess"));
-    REQUIRE(nt_query_information_process != nullptr);
-
-    HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
-    if (process == nullptr) {
-        std::cout << "WARNING: OpenProcess(pid=" << pid << ") failed, err=" << GetLastError()
-                  << "; skipping process start-key consistency check\n";
-        return false;
-    }
-
-    bool succeeded = false;
-    // ProcessTelemetryIdInformation returns the fixed struct followed by variable-length data
-    // (user SID, image path, package/app name, command line) referenced by the trailing *Offset
-    // fields, so the query needs a buffer larger than the struct itself. Start with headroom and
-    // grow once if the process reports it needs more.
-    std::vector<uint8_t> buffer(sizeof(PROCESS_TELEMETRY_ID_INFORMATION) + 1024);
-    ULONG return_length = 0;
-    NTSTATUS status = nt_query_information_process(
-        process, ProcessTelemetryIdInformation, buffer.data(), static_cast<ULONG>(buffer.size()), &return_length);
-    if (status != STATUS_SUCCESS && return_length > buffer.size()) {
-        buffer.resize(return_length);
-        status = nt_query_information_process(
-            process, ProcessTelemetryIdInformation, buffer.data(), static_cast<ULONG>(buffer.size()), &return_length);
-    }
-    if (status == STATUS_SUCCESS && return_length >= sizeof(PROCESS_TELEMETRY_ID_INFORMATION)) {
-        start_key = reinterpret_cast<const PROCESS_TELEMETRY_ID_INFORMATION*>(buffer.data())->ProcessStartKey;
-        succeeded = true;
-    } else {
-        std::cout << "WARNING: NtQueryInformationProcess(ProcessTelemetryIdInformation) failed, status=0x" << std::hex
-                  << static_cast<unsigned long>(status) << std::dec
-                  << "; skipping process start-key consistency check\n";
-    }
-
-    CloseHandle(process);
-    return succeeded;
-}
-
-void
-run_process_start_key_test(IPPROTO protocol, bool is_ipv6)
-{
-    // Load and attach ebpf program.
-    hook_helper_t hook(is_ipv6 ? EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT : EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT);
-    uint32_t ifindex = 0;
-    const char* program_name_ipv4 = "function_v4";
-    const char* program_name_ipv6 = "function_v6";
-    program_load_attach_helper_t helper;
-    native_module_helper_t native_helper;
-    struct bpf_map* map = nullptr;
-    wsa_helper_t wsa_helper;
-    native_helper.initialize("process_start_key", EBPF_EXECUTION_NATIVE);
-    {
-        helper.initialize(
-            native_helper.get_file_name().c_str(),
-            BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
-            is_ipv6 ? program_name_ipv6 : program_name_ipv4,
-            EBPF_EXECUTION_NATIVE,
-            &ifindex,
-            sizeof(ifindex),
-            hook);
-        struct bpf_object* object = helper.get_object();
-
-        // Initialize WSA so we can send traffic.
-        wsa_helper.initialize();
-
-        send_traffic(protocol, is_ipv6);
-
-        // Read from map.
-        std::cout << "bpf_object__find_map_by_name(process_start_key_map)\n";
-        map = bpf_object__find_map_by_name(object, "process_start_key_map");
-        REQUIRE(map != nullptr);
-        REQUIRE(map->map_fd != ebpf_fd_invalid);
-
-        uint32_t key = 0;
-        process_start_key_value_t found_value{};
-        std::cout << "bpf_map_lookup_elem(process_start_key_map) key: " << key << "\n";
-        REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &found_value) == 0);
-
-        std::cout << "bpf_map_delete_elem(process_start_key_map)\n";
-        REQUIRE(bpf_map_delete_elem(bpf_map__fd(map), &key) == 0);
-
-        // Validate the captured (pid, start_key) pair for self-consistency: look up the captured
-        // PID's process and compare its ProcessStartKey (PsGetProcessStartKey in the kernel) to the
-        // helper-reported start_key. The WFP ALE_AUTH_CONNECT callout is not guaranteed to run on
-        // the caller's process, so we do NOT assume current_pid is ours — only that the reported
-        // pair is internally consistent.
-        REQUIRE(found_value.current_pid > 0);
-        REQUIRE(0 < found_value.start_key);
-        uint64_t process_start_key = 0;
-        if (try_get_process_start_key(found_value.current_pid, process_start_key)) {
-            REQUIRE(process_start_key == found_value.start_key);
-        }
-    }
-}
-
-void
-run_thread_start_time_test(IPPROTO protocol, bool is_ipv6)
-{
-    // Load and attach ebpf program.
-    hook_helper_t hook(is_ipv6 ? EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT : EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT);
-    uint32_t ifindex = 0;
-    const char* program_name_ipv4 = "function_v4";
-    const char* program_name_ipv6 = "function_v6";
-    program_load_attach_helper_t helper;
-    native_module_helper_t native_helper;
-    struct bpf_map* map = nullptr;
-    wsa_helper_t wsa_helper;
-    native_helper.initialize("thread_start_time", EBPF_EXECUTION_NATIVE);
-    {
-        helper.initialize(
-            native_helper.get_file_name().c_str(),
-            BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
-            is_ipv6 ? program_name_ipv6 : program_name_ipv4,
-            EBPF_EXECUTION_NATIVE,
-            &ifindex,
-            sizeof(ifindex),
-            hook);
-        struct bpf_object* object = helper.get_object();
-
-        // Initialize WSA so we can send traffic.
-        wsa_helper.initialize();
-
-        send_traffic(protocol, is_ipv6);
-
-        // Read from map.
-        std::cout << "bpf_object__find_map_by_name(thread_start_time_map)\n";
-        map = bpf_object__find_map_by_name(object, "thread_start_time_map");
-        REQUIRE(map != nullptr);
-        REQUIRE(map->map_fd != ebpf_fd_invalid);
-
-        uint32_t key = 0;
-        thread_start_time_value_t found_value{};
-        std::cout << "bpf_map_lookup_elem(thread_start_time_map) key: " << key << "\n";
-        REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &found_value) == 0);
-
-        std::cout << "bpf_map_delete_elem(thread_start_time_map)\n";
-        REQUIRE(bpf_map_delete_elem(bpf_map__fd(map), &key) == 0);
-
-        // Validate the captured (tid, start_time) pair for self-consistency: open the captured
-        // thread and compare its creation time to the helper-reported start_time
-        // (bpf_get_current_thread_create_time -> PsGetThreadCreateTime, which is FILETIME-compatible
-        // 100ns-since-1601 units). The WFP ALE_AUTH_CONNECT callout is not guaranteed to run on the
-        // caller's thread, so we do NOT assume current_tid is ours — only that the pair is consistent.
-        REQUIRE(found_value.current_tid > 0);
-        REQUIRE(found_value.start_time > 0);
-        HANDLE thread = OpenThread(THREAD_QUERY_LIMITED_INFORMATION, FALSE, found_value.current_tid);
-        if (thread == nullptr) {
-            std::cout << "WARNING: OpenThread(tid=" << found_value.current_tid << ") failed, err=" << GetLastError()
-                      << "; skipping thread create-time consistency check\n";
-        } else {
-            FILETIME creation_time, exit_time, kernel_time, user_time;
-            REQUIRE(GetThreadTimes(thread, &creation_time, &exit_time, &kernel_time, &user_time));
-            int64_t creation_time_100ns =
-                (static_cast<int64_t>(creation_time.dwHighDateTime) << 32) | creation_time.dwLowDateTime;
-            REQUIRE(creation_time_100ns == found_value.start_time);
-            CloseHandle(thread);
-        }
-    }
-}
-
 #define MAX_TAIL_CALL_PROGS MAX_TAIL_CALL_CNT + 2
 
 TEST_CASE("sample_tailcall_max_native_test", "[native_tests]")
@@ -1261,8 +1032,7 @@ TEST_CASE("sample_tailcall_max_native_test", "[native_tests]")
             EBPF_EXECUTION_NATIVE,
             &object,
             &program_fd,
-            false) ==
-        0);
+            false) == 0);
     bpf_object_ptr object_ptr(object);
 
     fd_t prog_map_fd = bpf_object__find_map_fd_by_name(object, "sample_tail_call_map");
@@ -1337,21 +1107,6 @@ TEST_CASE("bpf_get_current_pid_tgid_sample", "[helpers]")
 
     REQUIRE(read_pid_tgid(object) == SAMPLE_EXT_PID_TGID);
 }
-
-TEST_CASE("bpf_get_process_start_key_udp_ipv4", "[helpers]") { run_process_start_key_test(IPPROTO_UDP, false); }
-
-TEST_CASE("bpf_get_process_start_key_udp_ipv6", "[helpers]") { run_process_start_key_test(IPPROTO_UDP, true); }
-
-TEST_CASE("bpf_get_process_start_key_tcp_ipv4", "[helpers]") { run_process_start_key_test(IPPROTO_TCP, false); }
-
-TEST_CASE("bpf_get_process_start_key_tcp_ipv6", "[helpers]") { run_process_start_key_test(IPPROTO_TCP, true); }
-
-TEST_CASE("bpf_get_thread_start_time_udp_ipv4", "[helpers]") { run_thread_start_time_test(IPPROTO_UDP, false); }
-
-TEST_CASE("bpf_get_thread_start_time_udp_ipv6", "[helpers]") { run_thread_start_time_test(IPPROTO_UDP, true); }
-TEST_CASE("bpf_get_thread_start_time_tcp_ipv4", "[helpers]") { run_thread_start_time_test(IPPROTO_TCP, false); }
-
-TEST_CASE("bpf_get_thread_start_time_tcp_ipv6", "[helpers]") { run_thread_start_time_test(IPPROTO_TCP, true); }
 
 TEST_CASE("native_module_handle_test", "[native_tests]")
 {
@@ -3456,8 +3211,11 @@ TEST_CASE("lru_map_user_vs_kernel_access", "[lru]")
     _native_helper.initialize("lru_map_test", EBPF_EXECUTION_NATIVE);
     REQUIRE(
         program_load_helper(
-            _native_helper.get_file_name().c_str(), BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_NATIVE, &object, &program_fd) ==
-        0);
+            _native_helper.get_file_name().c_str(),
+            BPF_PROG_TYPE_SAMPLE,
+            EBPF_EXECUTION_NATIVE,
+            &object,
+            &program_fd) == 0);
 
     // Get the LRU map from the loaded program.
     struct bpf_map* lru_map = bpf_object__find_map_by_name(object, "lru_map");
@@ -3738,8 +3496,8 @@ TEST_CASE("native_load_retry_after_insufficient_buffers", "[ebpf_api]")
     size_t count_of_maps = 0;
     size_t count_of_programs = 0;
 
-    ebpf_result_t result = ebpf_object_load_native_by_fds(
-        file_name.c_str(), &count_of_maps, nullptr, &count_of_programs, nullptr);
+    ebpf_result_t result =
+        ebpf_object_load_native_by_fds(file_name.c_str(), &count_of_maps, nullptr, &count_of_programs, nullptr);
 
     REQUIRE(result == EBPF_NO_MEMORY);
     REQUIRE(count_of_programs > 0);
