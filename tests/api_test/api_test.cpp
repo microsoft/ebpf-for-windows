@@ -24,6 +24,7 @@
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include "../sample/ext/common/sample_ext_helper.h"
 #include <algorithm>
 #include <chrono>
 #include <functional>
@@ -84,6 +85,9 @@ static service_install_helper
 
 static service_install_helper
     _ebpf_extension_driver_helper(EBPF_EXTENSION_DRIVER_NAME, EBPF_EXTENSION_DRIVER_BINARY_NAME, SERVICE_KERNEL_DRIVER);
+
+static service_install_helper
+    _sample_extension_driver_helper(SAMPLE_EBPF_EXT_NAME_W, L"sample_ebpf_ext.sys", SERVICE_KERNEL_DRIVER);
 
 using jit_t = std::integral_constant<ebpf_execution_type_t, EBPF_EXECUTION_JIT>;
 using native_t = std::integral_constant<ebpf_execution_type_t, EBPF_EXECUTION_NATIVE>;
@@ -351,32 +355,21 @@ divide_by_zero_test_km(ebpf_execution_type_t execution_type)
 {
     native_module_helper_t module_helper;
     module_helper.initialize("divide_by_zero", execution_type);
-
-    struct bpf_object* object = nullptr;
-    fd_t program_fd = ebpf_fd_invalid;
-    REQUIRE(
-        program_load_helper(
-            module_helper.get_file_name().c_str(),
-            BPF_PROG_TYPE_SAMPLE,
-            execution_type,
-            &object,
-            &program_fd) == 0);
-    bpf_object_ptr object_ptr(object);
-
-    bpf_program* program = bpf_object__find_program_by_name(object, "divide_by_zero");
-    REQUIRE(program != nullptr);
-    program_fd = bpf_program__fd(program);
-    REQUIRE(program_fd > 0);
-
-    sample_program_context_t context{};
-    bpf_test_run_opts opts{};
-    opts.sz = sizeof(opts);
-    opts.repeat = 1;
-    opts.ctx_in = &context;
-    opts.ctx_size_in = sizeof(context);
-    opts.ctx_out = &context;
-    opts.ctx_size_out = sizeof(context);
-    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+    hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
+    program_load_attach_helper_t helper;
+    helper.initialize(
+        module_helper.get_file_name().c_str(),
+        BPF_PROG_TYPE_SAMPLE,
+        "divide_by_zero",
+        execution_type,
+        nullptr,
+        0,
+        hook);
+    _sample_extension_helper extension;
+    REQUIRE(extension.initialize());
+    std::vector<char> input_buffer(1);
+    std::vector<char> output_buffer(1);
+    REQUIRE(extension.invoke(input_buffer, output_buffer));
 
     // If we don't bug-check, the test passed.
 }
@@ -2904,13 +2897,9 @@ TEST_CASE("Test program order", "[native_tests]")
     REQUIRE(
         program_load_helper(
             "multiple_programs.sys", BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_NATIVE, &object, &program_fd) == 0);
+    bpf_object_ptr object_ptr(object);
 
-    // Get all 4 programs in the native object, and invoke them using bpf_prog_test_run.
-    //
-    // If there is a mismatch in the sorting order of bpf2c and ebpfapi, the 4 eBPF programs
-    // in this object file will be initialized with wrong handles. That will cause wrong programs
-    // to be invoked when bpf_prog_test_run is called. Since each program returns a different value,
-    // we can validate that the correct / expected program was invoked by checking the return value.
+    // Verify that each program handle invokes the expected program.
     for (uint32_t i = 0; i < program_count; i++) {
         bpf_test_run_opts opts = {};
         sample_program_context_t ctx = {};
@@ -2921,7 +2910,7 @@ TEST_CASE("Test program order", "[native_tests]")
         REQUIRE(program_fd > 0);
 
         std::string app_id = "api_test.exe";
-
+        opts.sz = sizeof(opts);
         opts.ctx_in = &ctx;
         opts.ctx_size_in = sizeof(ctx);
         opts.ctx_out = &ctx;
@@ -2935,9 +2924,6 @@ TEST_CASE("Test program order", "[native_tests]")
         REQUIRE(result == 0);
         REQUIRE(opts.retval == (i + 1));
     }
-
-    // Clean up.
-    bpf_object__close(object);
 }
 
 /**
