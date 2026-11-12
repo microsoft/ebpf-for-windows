@@ -251,7 +251,7 @@ _initialize_test_globals()
 
     // Load and attach the programs.
     native_module_helper_t helper;
-    helper.initialize("cgroup_sock_addr2");
+    helper.initialize("cgroup_sock_addr2", EBPF_EXECUTION_ANY, true);
     _globals.bpf_object.reset(bpf_object__open(helper.get_file_name().c_str()));
     SAFE_REQUIRE(_globals.bpf_object.get() != nullptr);
     SAFE_REQUIRE(bpf_object__load(_globals.bpf_object.get()) == 0);
