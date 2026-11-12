@@ -4,15 +4,15 @@
 
 **Status: design proposal, not an implemented feature.**
 
+In this document, "thread" means an OS thread, not a logical task or fiber.
+
 Namespaces provide logical isolation of BPF objects (programs, maps, links).
 Each namespace is identified by a GUID, with `GUID_NULL` representing the
-default namespace. An application selects a namespace **per OS thread** through
+default namespace. An application selects a namespace **per thread** through
 the shipped `ebpfapi.dll`. Selecting A on one thread does not change another
 thread's selection.
 
-This revises the process-wide model in
-[microsoft/ebpf-for-windows#4424](https://github.com/microsoft/ebpf-for-windows/pull/4424).
-Each newly initialized SDK thread starts in `GUID_NULL`, independently of its
+Each newly initialized thread starts in `GUID_NULL`, independently of its
 creator. Threads or applications intentionally using the same GUID share a
 partition. Applications not using namespace APIs continue to use the default
 namespace without changing existing `bpf_*` signatures.
@@ -41,14 +41,14 @@ security boundary.
 |----|-------------|
 | R1 | Each BPF object SHALL be associated with exactly one immutable namespace GUID at creation, before its ID becomes discoverable. |
 | R2 | The default namespace SHALL be the null GUID (`GUID_NULL`). |
-| R3 | Object ID enumeration and open-by-ID SHALL only return objects matching the selected namespace of the calling SDK thread. IDs SHALL remain globally unique. |
+| R3 | Object ID enumeration and open-by-ID SHALL only return objects matching the calling thread's selected namespace. IDs SHALL remain globally unique. |
 | R4 | Pin lookup, insertion, deletion, and enumeration SHALL be relative to the calling thread's selected GUID. |
 | R5 | The same pin path string MAY exist in multiple namespaces without conflict. |
 | R6 | Existing handles to BPF objects SHALL remain valid after a namespace switch. |
 | R7 | A namespace switch SHALL NOT modify existing objects; it only affects subsequent operations. |
 | R8 | Namespace management SHALL require the same privileges as other eBPF management operations. |
 | R9 | Applications not using namespace APIs SHALL operate in the default namespace with no code changes. |
-| R10 | Selection SHALL be per OS thread in the application's loaded `ebpfapi.dll`, not process-wide, task-local, or fiber-local. New threads SHALL start in `GUID_NULL`, without inheritance. |
+| R10 | Selection SHALL be per thread in the application's loaded `ebpfapi.dll`, not task-local or fiber-local. New threads SHALL start in `GUID_NULL`, without inheritance. |
 | R11 | Explicit SET SHALL update the thread's synchronous control file through an authorized IOCTL before committing the selected GUID to namespace TLS. Failure SHALL preserve the previous committed selection. |
 | R12 | Closing a cached synchronous control handle SHALL NOT clear namespace TLS. A replacement handle SHALL be bound to the remembered non-default GUID before namespace-dependent work; binding failure SHALL fail that work without default-namespace fallback. |
 | R13 | The kernel SHALL capture request scope from the request's control FILE_OBJECT, not a PID/TID namespace registry or process/thread notifications. |
@@ -60,7 +60,7 @@ security boundary.
 
 ### ebpf_set_thread_namespace
 
-Sets the namespace for the calling OS thread.
+Sets the namespace for the calling thread.
 
 ```c
 ebpf_result_t ebpf_set_thread_namespace(_In_ const GUID* namespace_guid);
@@ -68,9 +68,9 @@ ebpf_result_t ebpf_set_thread_namespace(_In_ const GUID* namespace_guid);
 
 | Aspect | Behavior |
 |--------|----------|
-| Scope | Calling OS thread in the process's loaded `ebpfapi.dll`; other threads are unchanged. |
+| Scope | Calling thread in the process's loaded `ebpfapi.dll`; other threads are unchanged. |
 | Persistence | Until explicit SET/reset or the thread/DLL lifetime ends; survives supported sync-handle close/recreation. |
-| Default | `GUID_NULL` on each newly initialized SDK thread. |
+| Default | `GUID_NULL` on each newly initialized thread. |
 | Reset | Pass the address of `GUID_NULL`; a NULL pointer is invalid, not a reset. |
 | Commit point | Terminal SET IOCTL success, followed by a non-failing TLS commit. |
 | Repeated/default SET | Still sends the authorized IOCTL, even for the same GUID or `GUID_NULL`. |
@@ -78,9 +78,6 @@ ebpf_result_t ebpf_set_thread_namespace(_In_ const GUID* namespace_guid);
 | Effect on new objects | Creation uses the calling thread's captured selection. |
 | Effect on discovery | ID and pin discovery uses the selected GUID. |
 | Failure | Return the error; retain the previous committed logical selection. |
-
-This name replaces the experimental process-scoped setter. There is no
-parallel process-wide namespace mode.
 
 ### ebpf_get_thread_namespace
 
@@ -225,7 +222,7 @@ pin bookkeeping without introducing new wrapper thread-safety guarantees.
 
 ## Application Responsibilities
 
-Select on the OS thread actually performing namespace-dependent work, check
+Select on the thread actually performing namespace-dependent work, check
 success, and reset that same worker before returning it to a shared pool:
 
 ```text
@@ -259,7 +256,7 @@ T1: select A -> synchronous work -> reset -> await/yield
 T2: select A -> synchronous work -> reset -> return
 ```
 
-A final reset on T2 cannot reset T1. Fibers sharing an OS thread share its TLS.
+A final reset on T2 cannot reset T1. Fibers sharing a thread share its TLS.
 Application callback creation/discovery follows the same select/reset rule;
 ordinary held-object operations and existing eBPF async operations do not
 need automatic namespace propagation. The SDK remains responsible for correct
