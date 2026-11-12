@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['windows_0',['eBPF for Windows',['../index.html',1,'']]]
+  ['introduction_0',['Introduction',['../index.html#intro',1,'']]]
 ];

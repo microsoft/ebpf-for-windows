@@ -153,7 +153,7 @@ var searchData=
   ['ebpf_5fget_5fprogram_5ftype_5fname_150',['ebpf_get_program_type_name',['../ebpf__api_8h.html#ad0492f9fef258b0f8da725568dd9f26f',1,'ebpf_api.h']]],
   ['ebpf_5fglobal_5fhelpers_5fregistry_5fkey_151',['EBPF_GLOBAL_HELPERS_REGISTRY_KEY',['../ebpf__windows_8h.html#a1d3a289fa099408926314d75808bfff7',1,'ebpf_windows.h']]],
   ['ebpf_5fhandle_5finvalid_152',['ebpf_handle_invalid',['../ebpf__core__structs_8h.html#a0584fa3dd32523977315bcbc05af2b97',1,'ebpf_core_structs.h']]],
-  ['ebpf_5fhandle_5ft_153',['ebpf_handle_t',['../ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35',1,'ebpf_handle_t:&#160;ebpf_api.h'],['../ebpf__core__structs_8h.html#abb41989791fe081530c8719049ad1c35',1,'ebpf_handle_t:&#160;ebpf_core_structs.h']]],
+  ['ebpf_5fhandle_5ft_153',['ebpf_handle_t',['../ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35',1,'ebpf_api.h']]],
   ['ebpf_5fhelper_5fdata_5fprototype_154',['EBPF_HELPER_DATA_PROTOTYPE',['../ebpf__windows_8h.html#a798cdca2441a827d972f206a001e56ca',1,'ebpf_windows.h']]],
   ['ebpf_5fhelper_5fdata_5freallocate_5fpacket_155',['EBPF_HELPER_DATA_REALLOCATE_PACKET',['../ebpf__windows_8h.html#a85782af38d42ae5ea62773961a751979',1,'ebpf_windows.h']]],
   ['ebpf_5fhelper_5ffunction_5faddresses_5fcurrent_5fversion_156',['EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION',['../ebpf__windows_8h.html#a3810ad251c9e7cb87124f192f28e4636',1,'ebpf_windows.h']]],
@@ -338,7 +338,7 @@ var searchData=
   ['ebpf_5fprogram_5fdata_5ft_335',['ebpf_program_data_t',['../ebpf__program__types_8h.html#a28e774e1c41a3b613b24765200af83e5',1,'ebpf_program_types.h']]],
   ['ebpf_5fprogram_5fdetach_336',['ebpf_program_detach',['../ebpf__api_8h.html#a883ed5f50a08b56842a8cb47641dc3af',1,'ebpf_api.h']]],
   ['ebpf_5fprogram_5finfo_5fextension_5fiid_337',['EBPF_PROGRAM_INFO_EXTENSION_IID',['../ebpf__extension__uuids_8h.html#ac98f7be2f127a3e32795d2921616d931',1,'ebpf_extension_uuids.h']]],
-  ['ebpf_5fprogram_5finfo_5ft_338',['ebpf_program_info_t',['../ebpf__program__types_8h.html#af4c03ef813e8625b8c4c869eea6e7a43',1,'ebpf_program_info_t:&#160;ebpf_program_types.h'],['../ebpf__api_8h.html#af4c03ef813e8625b8c4c869eea6e7a43',1,'ebpf_program_info_t:&#160;ebpf_api.h']]],
+  ['ebpf_5fprogram_5finfo_5ft_338',['ebpf_program_info_t',['../ebpf__api_8h.html#af4c03ef813e8625b8c4c869eea6e7a43',1,'ebpf_program_info_t:&#160;ebpf_api.h'],['../ebpf__program__types_8h.html#af4c03ef813e8625b8c4c869eea6e7a43',1,'ebpf_program_info_t:&#160;ebpf_program_types.h']]],
   ['ebpf_5fprogram_5finformation_5fcurrent_5fversion_339',['EBPF_PROGRAM_INFORMATION_CURRENT_VERSION',['../ebpf__windows_8h.html#ace71bbed24a94bcf15ea1fbe399943b8',1,'ebpf_windows.h']]],
   ['ebpf_5fprogram_5finformation_5fcurrent_5fversion_5fsize_340',['EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_SIZE',['../ebpf__windows_8h.html#a4d6325f492dba0751e9b11d96951d32c',1,'ebpf_windows.h']]],
   ['ebpf_5fprogram_5finformation_5fcurrent_5fversion_5ftotal_5fsize_341',['EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_TOTAL_SIZE',['../ebpf__windows_8h.html#a2484a6ccc5e8e78d605e79db272ec618',1,'ebpf_windows.h']]],
@@ -452,5 +452,5 @@ var searchData=
   ['ethernet_5ftype_5fipv4_449',['ETHERNET_TYPE_IPV4',['../net_2if__ether_8h.html#a70a0def48ee0a3cb7717425a27eddec2',1,'if_ether.h']]],
   ['ethernet_5ftype_5fipv6_450',['ETHERNET_TYPE_IPV6',['../net_2if__ether_8h.html#aa875742ef8f9160fd0ce0cccbcc5905a',1,'if_ether.h']]],
   ['ethhdr_451',['ethhdr',['../net_2if__ether_8h.html#a4282cf4a78f4312984092cb422fa453f',1,'if_ether.h']]],
-  ['expected_5fattach_5ftype_452',['expected_attach_type',['../structsys__bpf__prog__load__attr__t.html#a6a373aee06c7abc98317991196c0b360',1,'sys_bpf_prog_load_attr_t::expected_attach_type'],['../struct__ebpf__api__program__info.html#a721d3638f5c3cdf6ec4a6ccc383fa403',1,'_ebpf_api_program_info::expected_attach_type'],['../structbpf__load__program__attr.html#a51fa3bedac316d17bdbfd4039ecf41c2',1,'bpf_load_program_attr::expected_attach_type'],['../struct__program__entry.html#a8bec8c2bc3d2b71f16ca3bfe06dd24ef',1,'_program_entry::expected_attach_type']]]
+  ['expected_5fattach_5ftype_452',['expected_attach_type',['../structbpf__load__program__attr.html#a51fa3bedac316d17bdbfd4039ecf41c2',1,'bpf_load_program_attr::expected_attach_type'],['../struct__program__entry.html#a8bec8c2bc3d2b71f16ca3bfe06dd24ef',1,'_program_entry::expected_attach_type'],['../struct__ebpf__api__program__info.html#a721d3638f5c3cdf6ec4a6ccc383fa403',1,'_ebpf_api_program_info::expected_attach_type'],['../structsys__bpf__prog__load__attr__t.html#a6a373aee06c7abc98317991196c0b360',1,'sys_bpf_prog_load_attr_t::expected_attach_type']]]
 ];

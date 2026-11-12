@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['list_0',['Deprecated List',['../deprecated.html',1,'']]]
+  ['for_20windows_0',['eBPF for Windows',['../index.html',1,'']]]
 ];

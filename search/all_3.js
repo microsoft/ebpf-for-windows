@@ -1,7 +1,7 @@
 var searchData=
 [
   ['capabilities_0',['capabilities',['../struct__ebpf__program__data.html#af2cf546ca772740805b9de319dfbdd02',1,'_ebpf_program_data']]],
-  ['cgroup_1',['cgroup',['../structbpf__link__info.html#aea7b0904fad33c9c964bc3fd64fa957f',1,'bpf_link_info']]],
+  ['cgroup_1',['cgroup',['../structbpf__link__info.html#a1c2f20dae9212debf3529a1ea91d3214',1,'bpf_link_info']]],
   ['cgroup_5fid_2',['cgroup_id',['../structbpf__link__info.html#ad66b0b07e46ad978e62d1e3bfc02e728',1,'bpf_link_info']]],
   ['check_3',['check',['../struct___i_p_v4___h_e_a_d_e_r.html#a6d0acc3223002b5266c59d523b3839be',1,'_IPV4_HEADER::check'],['../structtcphdr.html#a98865601cdba2004bf90a58c9b508320',1,'tcphdr::check']]],
   ['checksum_4',['checksum',['../struct_u_d_p___h_e_a_d_e_r__.html#ab091c38f659ae770593e5d44f998a04c',1,'UDP_HEADER_']]],
@@ -20,7 +20,7 @@ var searchData=
   ['count_17',['count',['../struct__map__initial__values.html#a7c7fc27cf923fb1d50475681e06090c4',1,'_map_initial_values::count'],['../struct__ebpf__extension__dispatch__table.html#aeb5455c4f909769f25087007161b2b89',1,'_ebpf_extension_dispatch_table::count'],['../struct__ebpf__extension__program__dispatch__table.html#adaaacf58e77eb63d69f9cbd4123c452c',1,'_ebpf_extension_program_dispatch_table::count'],['../struct__ebpf__execution__context__state.html#a38e30a2a676c443ba774e467a649b6a4',1,'_ebpf_execution_context_state::count']]],
   ['count_5fof_5fglobal_5fhelpers_18',['count_of_global_helpers',['../struct__ebpf__program__info.html#a9d05f0c59dc1b574f135332d055d2cfa',1,'_ebpf_program_info']]],
   ['count_5fof_5fprogram_5ftype_5fspecific_5fhelpers_19',['count_of_program_type_specific_helpers',['../struct__ebpf__program__info.html#a814e4733081f56a11fccc56cb44bf5b9',1,'_ebpf_program_info']]],
-  ['cpu_20',['cpu',['../struct__ebpf__execution__context__state.html#ad823d3311d507be84d54ff13d1a62492',1,'_ebpf_execution_context_state::cpu'],['../structsys__bpf__prog__run__attr__t.html#afd7fa8c2ae9a7a9255f66aa3ccd3f436',1,'sys_bpf_prog_run_attr_t::cpu'],['../struct__ebpf__test__run__options.html#ab30a06f0333a06e914f42778c8e05400',1,'_ebpf_test_run_options::cpu']]],
+  ['cpu_20',['cpu',['../struct__ebpf__test__run__options.html#ab30a06f0333a06e914f42778c8e05400',1,'_ebpf_test_run_options::cpu'],['../struct__ebpf__execution__context__state.html#ad823d3311d507be84d54ff13d1a62492',1,'_ebpf_execution_context_state::cpu'],['../structsys__bpf__prog__run__attr__t.html#afd7fa8c2ae9a7a9255f66aa3ccd3f436',1,'sys_bpf_prog_run_attr_t::cpu']]],
   ['created_5fby_5fuid_21',['created_by_uid',['../structsys__bpf__prog__info__t.html#a47ae536fbf486546abce153e6deb7364',1,'sys_bpf_prog_info_t']]],
   ['ctx_5fin_22',['ctx_in',['../structsys__bpf__prog__run__attr__t.html#a2048a3bfebd27fd06bf20475184e8660',1,'sys_bpf_prog_run_attr_t']]],
   ['ctx_5fout_23',['ctx_out',['../structsys__bpf__prog__run__attr__t.html#a35cba13168cee56480bbbaaa479b69fc',1,'sys_bpf_prog_run_attr_t']]],
