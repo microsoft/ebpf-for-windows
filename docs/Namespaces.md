@@ -2,93 +2,356 @@
 
 ## Overview
 
-Namespaces provide logical isolation of BPF objects (programs, maps, links) between applications. Each namespace is identified by a GUID, with the null GUID (`GUID_NULL`) representing the default namespace. Applications that do not explicitly set a namespace operate in the default namespace, ensuring full backward compatibility.
+**Status: design proposal, not an implemented feature.**
+
+Namespaces provide logical isolation of BPF objects (programs, maps, links).
+Each namespace is identified by a GUID, with `GUID_NULL` representing the
+default namespace. An application selects a namespace **per OS thread** through
+the shipped `ebpfapi.dll`. Selecting A on one thread does not change another
+thread's selection.
+
+This revises the process-wide model in
+[microsoft/ebpf-for-windows#4424](https://github.com/microsoft/ebpf-for-windows/pull/4424).
+Each newly initialized SDK thread starts in `GUID_NULL`, independently of its
+creator. Threads or applications intentionally using the same GUID share a
+partition. Applications not using namespace APIs continue to use the default
+namespace without changing existing `bpf_*` signatures.
+
+The implementation scope is native loading/execution and its map, program,
+link, ID, and pin-management operations. JIT/interpreter namespace integration
+is not required; unrelated execution-mode functionality is not removed.
+Native image signature/hash authorization remains required.
 
 ## Use Cases
 
-1. **Multi-tenant isolation**: Multiple security products can deploy BPF programs on the same system without ID or pin path collisions.
-2. **Testing isolation**: Test suites can run in a dedicated namespace without interfering with production BPF objects.
-3. **Application partitioning**: An application can ensure its BPF objects are not visible to or affected by other applications.
+1. **Multi-tenant isolation**: Multiple products can use separate discovery
+   partitions and the same pin paths without naming conflicts. Object IDs
+   remain globally unique.
+2. **Testing isolation**: Test workers can select a dedicated namespace instead
+   of discovering or modifying production objects through default discovery.
+3. **Application partitioning**: Dedicated threads, or explicitly bound jobs,
+   can manage separate partitions within one application.
+
+These are cooperative management scenarios, not a hostile-administrator
+security boundary.
 
 ## Requirements
 
 | ID | Requirement |
 |----|-------------|
-| R1 | Each BPF object SHALL be associated with exactly one namespace GUID at creation time. |
+| R1 | Each BPF object SHALL be associated with exactly one immutable namespace GUID at creation, before its ID becomes discoverable. |
 | R2 | The default namespace SHALL be the null GUID (`GUID_NULL`). |
-| R3 | Object ID lookups SHALL only return objects whose namespace matches the caller's current namespace. |
-| R4 | Pin path lookups SHALL only return objects whose namespace matches the caller's current namespace. |
+| R3 | Object ID enumeration and open-by-ID SHALL only return objects matching the selected namespace of the calling SDK thread. IDs SHALL remain globally unique. |
+| R4 | Pin lookup, insertion, deletion, and enumeration SHALL be relative to the calling thread's selected GUID. |
 | R5 | The same pin path string MAY exist in multiple namespaces without conflict. |
 | R6 | Existing handles to BPF objects SHALL remain valid after a namespace switch. |
 | R7 | A namespace switch SHALL NOT modify existing objects; it only affects subsequent operations. |
 | R8 | Namespace management SHALL require the same privileges as other eBPF management operations. |
 | R9 | Applications not using namespace APIs SHALL operate in the default namespace with no code changes. |
+| R10 | Selection SHALL be per OS thread in the application's loaded `ebpfapi.dll`, not process-wide, task-local, or fiber-local. New threads SHALL start in `GUID_NULL`, without inheritance. |
+| R11 | Explicit SET SHALL update the thread's synchronous control file through an authorized IOCTL before committing the selected GUID to namespace TLS. Failure SHALL preserve the previous committed selection. |
+| R12 | Closing a cached synchronous control handle SHALL NOT clear namespace TLS. A replacement handle SHALL be bound to the remembered non-default GUID before namespace-dependent work; binding failure SHALL fail that work without default-namespace fallback. |
+| R13 | The kernel SHALL capture request scope from the request's control FILE_OBJECT, not a PID/TID namespace registry or process/thread notifications. |
+| R14 | New relationships between namespace-owned objects SHALL enforce matching immutable owner GUIDs. Existing ordinary handle-based access SHALL NOT depend on the caller's current selection. |
+| R15 | Existing shared async handles and namespace-neutral async operations SHALL remain unchanged. Thread SET/rebinding SHALL NOT retag the async handle. |
+| R16 | Applications SHALL explicitly reset a namespace-using worker before returning it to a shared pool and handle reset failures. Task/fiber scheduling and namespace propagation SHALL remain application responsibilities. |
 
 ## API Specification
 
-### ebpf_set_namespace
+### ebpf_set_thread_namespace
 
-Sets the current namespace for the calling process.
+Sets the namespace for the calling OS thread.
 
 ```c
-ebpf_result_t ebpf_set_namespace(_In_ const GUID* namespace_guid);
+ebpf_result_t ebpf_set_thread_namespace(_In_ const GUID* namespace_guid);
 ```
 
 | Aspect | Behavior |
 |--------|----------|
-| Scope | Per-process (all threads share the namespace) |
-| Persistence | Until changed or process exits |
-| Default | Null GUID if never called |
-| Effect on existing objects | None—existing handles remain valid |
-| Effect on new objects | Created in the new namespace |
-| Effect on lookups | Only objects in the new namespace are visible |
+| Scope | Calling OS thread in the process's loaded `ebpfapi.dll`; other threads are unchanged. |
+| Persistence | Until explicit SET/reset or the thread/DLL lifetime ends; survives supported sync-handle close/recreation. |
+| Default | `GUID_NULL` on each newly initialized SDK thread. |
+| Reset | Pass the address of `GUID_NULL`; a NULL pointer is invalid, not a reset. |
+| Commit point | Terminal SET IOCTL success, followed by a non-failing TLS commit. |
+| Repeated/default SET | Still sends the authorized IOCTL, even for the same GUID or `GUID_NULL`. |
+| Effect on existing objects | None; their GUIDs and ordinary handle-based access remain unchanged. |
+| Effect on new objects | Creation uses the calling thread's captured selection. |
+| Effect on discovery | ID and pin discovery uses the selected GUID. |
+| Failure | Return the error; retain the previous committed logical selection. |
+
+This name replaces the experimental process-scoped setter. There is no
+parallel process-wide namespace mode.
+
+### ebpf_get_thread_namespace
+
+Queries and validates the calling thread's current namespace.
+
+```c
+ebpf_result_t ebpf_get_thread_namespace(_Out_ GUID* namespace_guid);
+```
+
+The getter uses the thread's bound synchronous control file and the matching
+GET IOCTL, with normal management authorization and reply validation.
+On failure, the output remains unchanged. It does not silently adopt a
+different file GUID into TLS or substitute the default namespace.
+
+The target is the updated DLL and driver together. New-DLL/older-driver
+support, capability negotiation, legacy emulation, and fallback matrices are
+not part of this proposal. Normal protocol validation and error propagation
+remain required; an unsuccessful IOCTL is never successful namespace selection.
 
 ### Namespace-Aware APIs
 
-The following APIs implicitly use the caller's current namespace:
+Existing API signatures do not gain GUID parameters. Classification depends
+on the operation, not just whether an API accepts an fd or object pointer.
 
-| Category | APIs |
+| Category | Examples and behavior |
 |----------|------|
-| Object lookup | `ebpf_object_reference_by_id`, `ebpf_object_reference_next_object`, `ebpf_object_get_next_id` |
-| Pinning | `ebpf_pinning_table_insert`, `ebpf_pinning_table_find`, `ebpf_pinning_table_delete`, `ebpf_pinning_table_enumerate_entries`, `ebpf_pinning_table_get_next_path` |
+| Creation/loading | Map creation, native object loading, and program attachment use the selected GUID. Attachment creates a new link even if it takes an existing program fd. |
+| ID discovery | `bpf_map_get_next_id`, `bpf_prog_get_next_id`, `bpf_link_get_next_id`, and corresponding open-by-ID APIs are namespace-filtered. |
+| Pinning | `bpf_obj_get`, `bpf_obj_pin`, map/program/link pin/unpin, pinned-map information, and pin-path enumeration are namespace-relative. Cached pin state such as `bpf_map__is_pinned` must be namespace-qualified. |
+| Implicit link discovery | Program detach by attach parameters and XDP query/detach/replacement search links in the selected namespace. |
+| Existing-object operations | Map data access, info-by-fd, direct link-fd detach, program test-run, fd close/duplicate, and ring/perf consumers do not select targets by the ambient GUID. Owner-compatibility checks still apply to graph updates. |
+| Local/file metadata | Local wrapper iteration/name lookup, object-file parsing, file program enumeration, verifier diagnostics, type/provider metadata, and path-text canonicalization are not kernel namespace discovery. |
 
 ## Behavior Specification
 
-1. **Namespace assignment**: When a BPF object is created, it inherits the caller's current namespace GUID.
-2. **Lookup isolation**: ID and pin path lookups compare the caller's namespace against the object's namespace; mismatches return "not found."
-3. **Handle semantics**: Once a handle is obtained, it references the object directly regardless of subsequent namespace switches.
-4. **Implicit namespaces**: Namespaces are not explicitly created or deleted. A namespace exists as long as objects with that GUID exist.
-5. **Cross-namespace access**: Not supported via lookup APIs. Direct handle passing between processes is unaffected.
+1. **Namespace assignment**: Copy the admitted request's GUID into each new
+   map/program/link before ID publication. Later SET/reset does not move it.
+2. **Discovery**: Filter ID enumeration/open and pin operations by the captured
+   GUID. Foreign objects are not found; hidden entries do not terminate ID
+   enumeration. Path keys include GUID and canonical path.
+3. **Handle semantics**: A held handle/fd references its object directly across
+   namespace switches and permitted cross-thread/process handle passing.
+   This does not allow creating a foreign-owner link, pin, or object graph.
+4. **Implicit namespaces**: No explicit namespace create/delete operation is
+   needed. Pinned/referenced objects outlive creator selection/thread lifetime
+   under existing object-reference rules.
+5. **Request consistency**: Capture a stable GUID for each admitted request.
+   A synchronous multi-request load/pin transaction and its rollback retain
+   their original binding; changing another thread's selection cannot retag it.
+6. **Reset semantics**: SET(`GUID_NULL`) changes future scope, not object
+   lifetime. It does not close fds, delete objects, or remove pins. Path cleanup
+   of an A pin must run while selected into A.
+
+## Implementation Model
+
+### Where selection is stored
+
+```text
+Thread T1: namespace TLS A -> sync HANDLE H1 -> FILE_OBJECT context A
+Thread T2: namespace TLS B -> sync HANDLE H2 -> FILE_OBJECT context B
+
+Shared async HANDLE HA -> existing namespace-neutral operations, unchanged
+```
+
+`ebpfapi.dll` stores the last successful selection in constant-initialized TLS,
+separate from verifier/cache and transport cleanup. Keep the existing
+per-thread, non-overlapped synchronous control handle; there is no shared
+blocking sync handle or per-thread async-handle conversion.
+
+The driver keeps the effective GUID in WDF-managed control FILE_OBJECT
+context, initialized to `GUID_NULL`. Retrieve it from the request's file
+object and capture it before dispatch. Preserve existing BPF-object bindings
+on file objects when adding this context. Kernel state follows file lifetime; no
+namespace process/thread notification or PID/TID selection table is needed.
+
+Independent raw device opens are independent file sessions starting in
+`GUID_NULL`; they do not inherit SDK TLS. Duplicated handles refer to the same
+file session, not a separate current-thread namespace slot. Supported
+application usage is through the shipped `ebpfapi.dll`; internal static API
+libraries and multiple embedded SDK copies are not application support
+requirements.
+
+### Explicit SET and replacement-handle binding
+
+```text
+Explicit SET(A):
+  obtain/open this thread's sync control handle H
+  send authorized SET IOCTL(A) on H
+  driver stores A in H's FILE_OBJECT context
+  observe terminal success
+  commit A to this thread's namespace TLS
+
+Later sync-handle recreation:
+  remembered TLS remains A
+  open candidate H2, initially GUID_NULL
+  if TLS is non-default, send authorized internal SET(A) directly on H2
+  only after successful binding, publish/use H2 for creation/discovery
+```
+
+A fresh default file needs no restoration SET when TLS is `GUID_NULL`; this
+optimization does not skip an explicit user SET/default-reset request.
+Internal binding must target the candidate handle directly, without recursive
+public SET/default-getter calls.
+
+On failed binding, close the unpublished candidate and fail the original
+namespace-dependent operation. On ambiguous SET acknowledgement, retire the
+possibly modified transport and retain the last committed TLS GUID. Do not
+silently continue in a default or unknown namespace. A remembered GUID is
+intent, not authority to bypass the current effective caller's permissions.
+
+Verifier/cache cleanup can close a synchronous handle, including via retained
+ELF diagnostic APIs. It must not clear namespace TLS or the binding needed by
+an active synchronous transaction. Ordinary native loading does not require
+the runtime ELF/JIT/interpreter verification path.
+
+### Existing async operations
+
+Leave async submission, completion, result/cancellation, rearm, buffer consumer
+advance, and the shared async handle unchanged:
+
+| Operation | Why namespace-neutral |
+|-----------|-----------------------|
+| `MAP_ASYNC_QUERY` | Uses an already-held map handle. |
+| `PROGRAM_TEST_RUN` | Uses an already-held program handle. |
+| `EPOCH_SYNCHRONIZE` | Infrastructure synchronization, without namespace discovery. |
+
+Do not set the shared async handle's GUID, add private async sessions, async
+namespace propagation/classification machinery, or refactor async ownership
+for this feature. Future namespace-sensitive async extensions require a
+separate design. Existing request queue/cancellation correctness remains
+required; namespace neutrality does not waive normal driver correctness.
+
+### Existing lifecycle and synchronization
+
+Normal thread cleanup and existing DLL/handle cleanup remain unchanged.
+Do not add an all-thread sync-handle cleanup registry, new shutdown API, or
+general unload recovery to fix pre-existing behavior. After full DLL reload,
+new namespace TLS starts in `GUID_NULL`; applications select again as needed.
+Existing shared-wrapper synchronization/lifetime duties are not changed by
+per-thread selection. Preserve internal synchronization and namespace-correct
+pin bookkeeping without introducing new wrapper thread-safety guarantees.
+
+## Application Responsibilities
+
+Select on the OS thread actually performing namespace-dependent work, check
+success, and reset that same worker before returning it to a shared pool:
+
+```text
+Worker W: SET(A) succeeds -> work in A -> SET(GUID_NULL) succeeds -> return
+```
+
+Otherwise the namespace **leaks into later jobs on that worker**:
+
+```text
+Worker W: SET(A) -> job ends without reset
+Worker W: later default/unbound job -> still uses A for creation/discovery
+```
+
+This is ambient selection carryover, not a memory leak or object ownership
+transfer. Closing/recreating the sync handle is not reset: the remembered A
+will be rebound.
+
+Applications must attempt/check reset on supported success, error,
+early-return, handled-exception, and cooperative-cancellation paths. A failed
+reset preserves the previous committed selection and must not be reported
+as a clean/default worker. Handle work and cleanup failures separately.
+The SDK does not recognize job boundaries, reset automatically, or require
+a new scoped-helper API.
+
+Namespace selection is not task-local, fiber-local, or `.NET AsyncLocal`.
+Carry the GUID as work data; reset before yielding/returning the worker and
+select/check again before a resumed segment needs namespace-dependent work:
+
+```text
+T1: select A -> synchronous work -> reset -> await/yield
+T2: select A -> synchronous work -> reset -> return
+```
+
+A final reset on T2 cannot reset T1. Fibers sharing an OS thread share its TLS.
+Application callback creation/discovery follows the same select/reset rule;
+ordinary held-object operations and existing eBPF async operations do not
+need automatic namespace propagation. The SDK remains responsible for correct
+per-thread binding and checked sync-handle recreation.
+
+A dedicated worker can retain A for its dedicated lifetime, but must reset
+before returning to a shared pool or default role. Selecting A on the main
+thread does not initialize workers into A. Reuse a stable application GUID
+when later sessions must rediscover surviving pins.
 
 ## Acceptance Criteria
 
 | ID | Criterion |
 |----|-----------|
-| AC1 | An application in namespace A cannot enumerate or open by ID any object created in namespace B. |
-| AC2 | An application in namespace A cannot find by pin path any object pinned in namespace B. |
-| AC3 | Two applications can pin objects at the same path in different namespaces without error. |
-| AC4 | After calling `ebpf_set_namespace`, newly created objects have the new namespace GUID. |
-| AC5 | After calling `ebpf_set_namespace`, existing handles continue to work. |
-| AC6 | An application that never calls `ebpf_set_namespace` operates identically to pre-namespace behavior. |
-| AC7 | Unprivileged callers receive an access denied error when calling `ebpf_set_namespace`. |
+| AC1 | T1 selecting A cannot enumerate/open B objects by ID; T2 selecting B remains independent. Enumeration skips hidden entries and IDs remain globally unique. |
+| AC2 | A cannot discover B pins by path or pin enumeration. |
+| AC3 | The same canonical pin path can identify separate A/B objects without conflict; unpin affects only the selected partition. |
+| AC4 | After successful `ebpf_set_thread_namespace`, newly created maps/programs/links use the new GUID. Other threads and existing objects do not change. |
+| AC5 | Existing handles continue ordinary permitted operations after SET/reset and across threads; foreign-owner graph/pin/link creation remains rejected. |
+| AC6 | Default-only applications retain existing behavior with the updated DLL/driver pair. New workers start null, without inheriting their creator's GUID. |
+| AC7 | Management privilege checks apply to SET, GET, and internal rebinding, including explicit same/default SET; unauthorized calls fail. |
+| AC8 | Failed SET preserves committed TLS; failed GET leaves output unchanged. Malformed/failed replies never produce false success or default fallback. |
+| AC9 | Supported sync-handle recreation preserves logical selection and restores non-default A before creation/discovery. A failed rebind has no default-namespace side effects. |
+| AC10 | Explicit SET uses IOCTL-before-TLS ordering; internal restore does not recursively enter the public getter/setter. |
+| AC11 | Admitted synchronous native load/pin sequences and rollback keep their binding through supported cache reset and concurrent SET on another thread. |
+| AC12 | An application-owned worker fixture selects/resets correctly on all supported exits and reports reset failure. A negative fixture omitting reset demonstrates A carrying into the next job, even after handle recreation. |
+| AC13 | Controlled task/fiber fixtures demonstrate explicit application select/reset without SDK task/fiber propagation. |
+| AC14 | Existing async test-run, notifications, cancellation/rearm and buffer operations remain correct while threads select/reset A/B/default. The shared async handle is not retagged. |
+| AC15 | Local wrapper/file metadata queries remain selection-neutral; cached pin-state queries remain namespace-qualified. |
+| AC16 | Native loading, auto-pin reuse, failure rollback, immutable-owner restrictions and native image authorization remain correct. |
+| AC17 | Quiescent DLL reload initializes new namespace TLS to null without requiring repairs to existing handle-cleanup behavior; surviving objects keep their GUIDs. |
+
+### Validation coverage
+
+These are tests required for implementation, not executed results from this
+documentation change. Use NativeOnly unit fixtures and isolated real-driver
+fixtures. Usersim tests do not establish actual Windows FILE_OBJECT, token,
+or KMDF request-lifecycle behavior.
+
+| Test layer | Required scenarios |
+|------------|--------------------|
+| Unit: TLS and IOCTL routing | Explicit SET/GET success/failure, invalid pointers/replies, default/idempotent SET authorization, IOCTL-before-TLS commit, ambiguous responses, direct candidate binding, no recursion/default fallback. |
+| Unit: creation/discovery | Immutable owner before publication, GUID-filtered IDs including gaps/deletion, same-path A/B pins, namespace-qualified cached pin state, attach creation versus direct-link detach and implicit detach discovery. |
+| Unit: transactions and graph rules | Native creation/reuse/rollback failures, retained binding during cache retirement, independent thread SET, held-object data/info/bind operations and immutable-owner relationship rejection. |
+| Unit: application fixtures | New-thread default, worker reset on success/error and reset failure, negative carryover, task/fiber migration without automatic propagation. |
+| Driver: independent files/threads | Two same-process threads selecting A/B, same-GUID sharing across applications, raw file defaults, duplicate-file semantics, ID/pin/link isolation, handle validity and file context lifetime. |
+| Driver: permission/failure paths | Effective-subject authorization, denied SET/GET/rebind, handle recreation, no unintended default object creation, protocol/endpoint validation, correct queued cancellation and terminal completion. |
+| Regression | Existing native loading/data/async/buffer behavior, ordinary default-only APIs, object lifetime and quiescent reload semantics; no new cleanup-hardening or older-driver interoperability matrix. |
 
 ## Security Considerations
 
-- Namespaces provide **logical isolation**, not security isolation. Existing ACLs and privilege checks still apply.
-- `ebpf_set_namespace` requires administrative privileges.
-- Namespace matching narrows lookup scope but does not bypass permission checks.
+- Namespaces provide **logical isolation**, not security isolation. Existing
+  ACLs, device access policy, effective-subject checks and native image
+  authorization still apply.
+- SET/GET and internal non-default rebinding require the existing eBPF
+  management privileges. TLS is not an authorization token.
+- An authorized administrator knowing A's GUID can deliberately select A.
+  Namespace matching is not a new secret-based access-control boundary.
+- Shared-address-space code can pass held handles; selection does not revoke
+  them. Cross-owner graph checks remain separate.
+- ACL-based per-object delegation and break-glass/global enumeration are not
+  introduced by this GUID namespace proposal.
 
 ## Tooling
 
 ### netsh
 
-```
+The proposed commands remain:
+
+```text
 netsh ebpf set namespace {GUID}
 netsh ebpf show namespace
 ```
 
-Namespace GUIDs are application-defined. Administrators should consult application documentation for the appropriate GUID.
+Their selection is on the executing netsh thread through `ebpfapi.dll`, not
+machine-wide or persistent across separate command processes. Namespace-aware
+follow-up commands must run on that same selected thread in the same netsh
+session. If tooling dispatches work to another thread, it must explicitly
+select/reset there under the application rules above.
+
+Running SET in one netsh process does not configure another process, bpftool,
+or an application's worker. Reset with the same SET syntax and the all-zero
+GUID (`{00000000-0000-0000-0000-000000000000}`); no implicit job-boundary reset
+is promised. These commands are proposed tooling behavior, not a claim that
+main already implements them.
+
+Namespace GUIDs are application-defined. Administrators should consult
+application documentation for the appropriate stable GUID.
 
 ### bpftool
 
-bpftool always operates in the default namespace to maintain Linux CLI compatibility. Use netsh for namespace-aware operations.
+bpftool continues to operate in the default namespace to maintain Linux CLI
+compatibility. A netsh selection does not change its namespace. Use a
+namespace-aware SDK application or a correctly bound netsh session for
+namespace-specific management.
