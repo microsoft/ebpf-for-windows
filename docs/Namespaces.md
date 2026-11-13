@@ -103,121 +103,12 @@ on the operation, not just whether an API accepts an fd or object pointer.
 2. **Discovery**: ID and pin-path discovery returns only objects in the calling
    thread's selected namespace. Enumeration skips objects in other namespaces
    rather than ending.
-3. **Handle semantics**: A held handle/fd references its object directly across
-   namespace switches and permitted cross-thread/process handle passing.
-   This does not allow creating a foreign-owner link, pin, or object graph.
-4. **Implicit namespaces**: No explicit namespace create/delete operation is
-   needed. Pinned/referenced objects outlive creator selection/thread lifetime
-   under existing object-reference rules.
-5. **Request consistency**: Capture a stable GUID for each admitted request.
-   A synchronous multi-request load/pin transaction and its rollback retain
-   their original binding; changing another thread's selection cannot retag it.
-6. **Reset semantics**: SET(`GUID_NULL`) changes future scope, not object
-   lifetime. It does not close fds, delete objects, or remove pins. Path cleanup
-   of an A pin must run while selected into A.
-
-## Implementation Model
-
-### Where selection is stored
-
-```text
-Thread T1: namespace TLS A -> sync HANDLE H1 -> FILE_OBJECT context A
-Thread T2: namespace TLS B -> sync HANDLE H2 -> FILE_OBJECT context B
-
-Shared async HANDLE HA -> existing namespace-neutral operations, unchanged
-```
-
-`ebpfapi.dll` stores the last successful selection in constant-initialized TLS,
-separate from verifier/cache and transport cleanup. Keep the existing
-per-thread, non-overlapped synchronous control handle; there is no shared
-blocking sync handle or per-thread async-handle conversion.
-
-The driver keeps the effective GUID in WDF-managed control FILE_OBJECT
-context, initialized to `GUID_NULL`. Retrieve it from the request's file
-object and capture it before dispatch. Preserve existing BPF-object bindings
-on file objects when adding this context. Kernel state follows file lifetime; no
-namespace process/thread notification or PID/TID selection table is needed.
-
-Object creation copies the captured request GUID into the new map/program/link
-before publishing its ID.
-
-The pinning table uses a composite key of namespace GUID and canonical pin
-path, allowing the same path to exist in different namespaces.
-
-Raw device opens create separate file sessions starting in
-`GUID_NULL`; they do not inherit SDK TLS. Duplicated handles refer to the same
-file session, not a separate current-thread namespace slot. Internal static API
-libraries are not supported application interfaces; support for multiple
-embedded SDK copies is out of scope.
-
-### Explicit SET and replacement-handle binding
-
-```text
-Explicit SET(A):
-  obtain/open this thread's sync control handle H
-  send authorized SET IOCTL(A) on H
-  driver stores A in H's FILE_OBJECT context
-  observe terminal success
-  commit A to this thread's namespace TLS (non-failing)
-
-Later sync-handle recreation:
-  remembered TLS remains A
-  open candidate H2, initially GUID_NULL
-  if TLS is non-default, send authorized internal SET(A) directly on H2
-  only after successful binding, publish/use H2 for creation/discovery
-```
-
-Every explicit SET sends an authorized IOCTL, even for the same GUID or
-`GUID_NULL`. A fresh file needs no restoration SET when TLS is `GUID_NULL`;
-this optimization applies only to internal rebinding.
-Internal binding must target the candidate handle directly, without recursive
-public SET/default-getter calls.
-
-On failed binding, close the unpublished candidate and fail the original
-namespace-dependent operation. On ambiguous SET acknowledgement, retire the
-possibly modified transport and retain the last committed TLS GUID. Do not
-silently continue in a default or unknown namespace. A remembered GUID is
-intent, not authority to bypass the current effective caller's permissions.
-
-Verifier/cache cleanup can close a synchronous handle, including via retained
-ELF diagnostic APIs. It must not clear namespace TLS or the binding needed by
-an active synchronous transaction. Ordinary native loading does not require
-the runtime ELF/JIT/interpreter verification path.
-
-### GET validation
-
-GET uses the thread's bound synchronous control file. The driver authorizes
-the GET IOCTL, and the SDK validates the reply and expected GUID before
-returning it. On failure, leave the output and committed namespace TLS
-unchanged; do not adopt a different file GUID or substitute the default
-namespace.
-
-### Existing async operations
-
-Leave async submission, completion, result/cancellation, rearm, buffer consumer
-advance, and the shared async handle unchanged:
-
-| Operation | Why namespace-neutral |
-|-----------|-----------------------|
-| `MAP_ASYNC_QUERY` | Uses an already-held map handle. |
-| `PROGRAM_TEST_RUN` | Uses an already-held program handle. |
-| `EPOCH_SYNCHRONIZE` | Infrastructure synchronization, without namespace discovery. |
-
-Do not set the shared async handle's GUID, add private async sessions, async
-namespace propagation/classification machinery, or refactor async ownership
-for this feature. Future namespace-sensitive async extensions require a
-separate design. Existing request queue/cancellation correctness remains
-required; namespace neutrality does not waive normal driver correctness.
-
-### Existing lifecycle and synchronization
-
-Normal thread cleanup and existing DLL/handle cleanup remain unchanged.
-Do not add an all-thread sync-handle cleanup registry, new shutdown API, or
-general unload recovery to fix pre-existing behavior. After full DLL reload,
-new namespace TLS starts in `GUID_NULL`; applications select again as needed.
-Existing shared-wrapper synchronization/lifetime duties are not changed by
-per-thread selection. Preserve internal synchronization and namespace-correct
-pin bookkeeping without introducing new wrapper thread-safety guarantees.
+3. **Handle semantics**: Existing handles/fds remain valid after namespace
+   changes and can be passed between threads or processes where permitted.
+   Objects cannot be connected across namespaces or pinned outside their own
+   namespace.
+4. **Implicit namespaces**: Namespaces are not explicitly created or deleted.
+   A namespace exists as long as objects with that GUID exist.
 
 ## Application Responsibilities
 
@@ -245,6 +136,10 @@ reset preserves the previous committed selection and must not be reported
 as a clean/default worker. Handle work and cleanup failures separately.
 The SDK does not reset a worker's namespace automatically or require a new
 scoped-helper API.
+
+To remove a pin by path, select the namespace containing that pin before
+unpinning it. For example, remove namespace A's pins while A is selected,
+then reset the worker.
 
 Namespace selection is not task-local, fiber-local, or `.NET AsyncLocal`.
 Carry the GUID as work data; reset before yielding/returning the worker and
