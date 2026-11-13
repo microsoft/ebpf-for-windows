@@ -74,21 +74,12 @@ ebpf_result_t ebpf_set_thread_namespace(_In_ const GUID* namespace_guid);
 
 ### ebpf_get_thread_namespace
 
-Queries and validates the calling thread's current namespace.
+Returns the calling thread's selected namespace GUID. On failure, returns an
+error and leaves the output unchanged.
 
 ```c
 ebpf_result_t ebpf_get_thread_namespace(_Out_ GUID* namespace_guid);
 ```
-
-The getter uses the thread's bound synchronous control file and the matching
-GET IOCTL, with normal management authorization and reply validation.
-On failure, the output remains unchanged. It does not silently adopt a
-different file GUID into TLS or substitute the default namespace.
-
-The target is the updated DLL and driver together. New-DLL/older-driver
-support, capability negotiation, legacy emulation, and fallback matrices are
-not part of this proposal. Normal protocol validation and error propagation
-remain required; an unsuccessful IOCTL is never successful namespace selection.
 
 ### Namespace-Aware APIs
 
@@ -106,11 +97,12 @@ on the operation, not just whether an API accepts an fd or object pointer.
 
 ## Behavior Specification
 
-1. **Namespace assignment**: Copy the admitted request's GUID into each new
-   map/program/link before ID publication. Later SET/reset does not move it.
-2. **Discovery**: Filter ID enumeration/open and pin operations by the captured
-   GUID. Foreign objects are not found; hidden entries do not terminate ID
-   enumeration. Path keys include GUID and canonical path.
+1. **Namespace assignment**: Each new BPF object is assigned the calling
+   thread's selected namespace GUID at creation. Its namespace does not change
+   afterward.
+2. **Discovery**: ID and pin-path discovery returns only objects in the calling
+   thread's selected namespace. Enumeration skips objects in other namespaces
+   rather than ending.
 3. **Handle semantics**: A held handle/fd references its object directly across
    namespace switches and permitted cross-thread/process handle passing.
    This does not allow creating a foreign-owner link, pin, or object graph.
@@ -145,6 +137,12 @@ context, initialized to `GUID_NULL`. Retrieve it from the request's file
 object and capture it before dispatch. Preserve existing BPF-object bindings
 on file objects when adding this context. Kernel state follows file lifetime; no
 namespace process/thread notification or PID/TID selection table is needed.
+
+Object creation copies the captured request GUID into the new map/program/link
+before publishing its ID.
+
+The pinning table uses a composite key of namespace GUID and canonical pin
+path, allowing the same path to exist in different namespaces.
 
 Raw device opens create separate file sessions starting in
 `GUID_NULL`; they do not inherit SDK TLS. Duplicated handles refer to the same
@@ -185,6 +183,14 @@ Verifier/cache cleanup can close a synchronous handle, including via retained
 ELF diagnostic APIs. It must not clear namespace TLS or the binding needed by
 an active synchronous transaction. Ordinary native loading does not require
 the runtime ELF/JIT/interpreter verification path.
+
+### GET validation
+
+GET uses the thread's bound synchronous control file. The driver authorizes
+the GET IOCTL, and the SDK validates the reply and expected GUID before
+returning it. On failure, leave the output and committed namespace TLS
+unchanged; do not adopt a different file GUID or substitute the default
+namespace.
 
 ### Existing async operations
 
