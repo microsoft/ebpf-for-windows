@@ -49,12 +49,9 @@ security boundary.
 | R8 | Namespace management SHALL require the same privileges as other eBPF management operations. |
 | R9 | Applications not using namespace APIs SHALL operate in the default namespace with no code changes. |
 | R10 | Selection SHALL be per thread in the application's loaded `ebpfapi.dll`, not task-local or fiber-local. New threads SHALL start in `GUID_NULL`, without inheritance. |
-| R11 | Explicit SET SHALL update the thread's synchronous control file through an authorized IOCTL before committing the selected GUID to namespace TLS. Failure SHALL preserve the previous committed selection. |
-| R12 | Closing a cached synchronous control handle SHALL NOT clear namespace TLS. A replacement handle SHALL be bound to the remembered non-default GUID before namespace-dependent work; binding failure SHALL fail that work without default-namespace fallback. |
-| R13 | The kernel SHALL capture request scope from the request's control FILE_OBJECT, not a PID/TID namespace registry or process/thread notifications. |
-| R14 | New relationships between namespace-owned objects SHALL enforce matching immutable owner GUIDs. Existing ordinary handle-based access SHALL NOT depend on the caller's current selection. |
-| R15 | Existing shared async handles and namespace-neutral async operations SHALL remain unchanged. Thread SET/rebinding SHALL NOT retag the async handle. |
-| R16 | Applications SHALL explicitly reset a namespace-using worker before returning it to a shared pool and handle reset failures. Task/fiber scheduling and namespace propagation SHALL remain application responsibilities. |
+| R11 | A successful namespace change SHALL apply to subsequent namespace-dependent operations on the calling thread. A failed change SHALL preserve its previous selection. |
+| R14 | New object relationships SHALL connect only objects in the same namespace. Existing ordinary handle-based access SHALL NOT depend on the caller's selected namespace. |
+| R15 | Existing handle-based asynchronous operations SHALL remain independent of the caller's selected namespace. |
 
 ## API Specification
 
@@ -69,7 +66,7 @@ ebpf_result_t ebpf_set_thread_namespace(_In_ const GUID* namespace_guid);
 | Aspect | Behavior |
 |--------|----------|
 | Scope | Calling thread in the process's loaded `ebpfapi.dll`; other threads are unchanged. |
-| Persistence | Until explicit SET/reset or the thread/DLL lifetime ends; survives supported sync-handle close/recreation. |
+| Persistence | Selection remains effective until successfully changed or the thread/DLL lifetime ends. |
 | Default | `GUID_NULL` on each newly initialized thread. |
 | Reset | Pass the address of `GUID_NULL`; a NULL pointer is invalid, not a reset. |
 | Commit point | Terminal SET IOCTL success, followed by a non-failing TLS commit. |
