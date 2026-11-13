@@ -2,7 +2,7 @@
 
 ## Overview
 
-In this document, "thread" means an OS thread, not a logical task or fiber.
+In this document, "thread" means an OS thread, not a logical task.
 
 Namespaces provide logical isolation of BPF objects (programs, maps, links).
 Each namespace is identified by a GUID, with `GUID_NULL` representing the
@@ -128,12 +128,11 @@ namespace. Check reset errors separately from work errors: a failed reset
 preserves the previous selection and must not be treated as a successful return
 to the default namespace.
 
-Selection is not inherited by new threads and does not follow async
-continuations. For callbacks or work spanning `await`, select on the executing
-thread and reset before yielding or returning. Select again before resumed
-work needs namespace-dependent APIs. Fibers sharing a thread also share its
-namespace selection. Existing handle-based data access and namespace-neutral
-async operations do not require reselection.
+New threads start in `GUID_NULL`. A callback or code after `await` may run on a
+different thread with a different namespace. Before namespace-aware work,
+select the intended namespace on the thread running it, and reset before
+yielding or returning the worker to its pool. Existing handle-based data access
+and namespace-neutral async operations need no reselection.
 
 A dedicated worker may retain its selection, but must reset before returning
 to a shared pool or default role. Remove pins by path while their namespace
@@ -182,31 +181,20 @@ failure-injection cases remain in the separate implementation test plan.
 
 ### netsh
 
-The proposed commands remain:
+Existing commands accept an optional `namespace={GUID}` argument, scoped to
+that command. If omitted, they use the thread's selected namespace
+(`GUID_NULL` by default).
 
 ```text
+netsh ebpf add program filename=<file> namespace={GUID}
+netsh ebpf show programs namespace={GUID}
 netsh ebpf set namespace {GUID}
 netsh ebpf show namespace
 ```
 
-Their selection is on the executing netsh thread, not
-machine-wide or persistent across separate command processes. Namespace-aware
-follow-up commands must run on that same selected thread in the same netsh
-session. If tooling dispatches work to another thread, it must explicitly
-select/reset there under the application rules above.
-
-Running SET in one netsh process does not configure another process, bpftool,
-or an application's worker. Reset with the same SET syntax and the all-zero
-GUID (`{00000000-0000-0000-0000-000000000000}`). Reset must be explicit.
-These commands are proposed tooling behavior, not a claim that main already
-implements them.
-
-Namespace GUIDs are application-defined. Administrators should consult
-application documentation for the appropriate stable GUID.
+`set namespace` selects the namespace for the current thread in the netsh
+session only. Use the all-zero GUID to reset.
 
 ### bpftool
 
-bpftool continues to operate in the default namespace to maintain Linux CLI
-compatibility. A netsh selection does not change its namespace. Use a
-namespace-aware SDK application or a correctly bound netsh session for
-namespace-specific management.
+bpftool always operates in the default namespace to maintain Linux CLI compatibility. Use netsh for namespace-aware operations.
