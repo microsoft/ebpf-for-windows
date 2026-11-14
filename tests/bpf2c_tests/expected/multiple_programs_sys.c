@@ -185,9 +185,9 @@ _get_global_variable_sections(
     *count = 0;
 }
 
-static GUID program1_program_type_guid = {0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
-static GUID program1_attach_type_guid = {0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
-#pragma code_seg(push, "bind_4")
+static GUID program1_program_type_guid = {0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+static GUID program1_attach_type_guid = {0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+#pragma code_seg(push, "sample~3")
 static uint64_t
 program1(void* context, const program_runtime_context_t* runtime_context)
 #line 28 "sample/multiple_programs.c"
@@ -221,9 +221,9 @@ program1(void* context, const program_runtime_context_t* runtime_context)
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
 
-static GUID program2_program_type_guid = {0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
-static GUID program2_attach_type_guid = {0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
-#pragma code_seg(push, "bind_3")
+static GUID program2_program_type_guid = {0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+static GUID program2_attach_type_guid = {0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+#pragma code_seg(push, "sample~2")
 static uint64_t
 program2(void* context, const program_runtime_context_t* runtime_context)
 #line 35 "sample/multiple_programs.c"
@@ -257,9 +257,9 @@ program2(void* context, const program_runtime_context_t* runtime_context)
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
 
-static GUID program3_program_type_guid = {0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
-static GUID program3_attach_type_guid = {0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
-#pragma code_seg(push, "bind_2")
+static GUID program3_program_type_guid = {0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+static GUID program3_attach_type_guid = {0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+#pragma code_seg(push, "sample~4")
 static uint64_t
 program3(void* context, const program_runtime_context_t* runtime_context)
 #line 21 "sample/multiple_programs.c"
@@ -293,9 +293,9 @@ program3(void* context, const program_runtime_context_t* runtime_context)
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
 
-static GUID program4_program_type_guid = {0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
-static GUID program4_attach_type_guid = {0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
-#pragma code_seg(push, "bind_1")
+static GUID program4_program_type_guid = {0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+static GUID program4_attach_type_guid = {0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+#pragma code_seg(push, "sample~1")
 static uint64_t
 program4(void* context, const program_runtime_context_t* runtime_context)
 #line 42 "sample/multiple_programs.c"
@@ -335,8 +335,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         program1,
-        "bind_4",
-        "bind_4",
+        "sample~3",
+        "sample_ext/4",
         "program1",
         NULL,
         0,
@@ -350,8 +350,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         program2,
-        "bind_3",
-        "bind_3",
+        "sample~2",
+        "sample_ext/3",
         "program2",
         NULL,
         0,
@@ -365,8 +365,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         program3,
-        "bind_2",
-        "bind_2",
+        "sample~4",
+        "sample_ext/2",
         "program3",
         NULL,
         0,
@@ -380,8 +380,8 @@ static program_entry_t _programs[] = {
         0,
         {1, 154, 160}, // Version header.
         program4,
-        "bind_1",
-        "bind_1",
+        "sample~1",
+        "sample_ext/1",
         "program4",
         NULL,
         0,
