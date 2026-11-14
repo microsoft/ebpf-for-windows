@@ -25,6 +25,7 @@
 #include "watchdog.h"
 
 #include <chrono>
+#include <functional>
 #include <future>
 #include <ifdef.h>
 #include <iostream>
@@ -878,12 +879,9 @@ using udp_v6_params =
 #define ALL_CONNECTION_TEST_PARAMS tcp_v4_params, tcp_v6_params, udp_v4_params, udp_v6_params
 
 // ---------------------------------------------------------------------------
-// Hook descriptor helpers for multi-program bind test scenarios.
-//
-// These reduce boilerplate in multi-program test cases without hiding the
-// important parts (expected verdicts, expected results). Each test case still
-// explicitly declares its connection_test_case -- these helpers just produce
-// the repetitive hook-specific pieces.
+// Bind-specific helpers for the multi-program bind tests that do not yet use
+// the shared sock_addr multi-attach scenarios below. These helpers are removed
+// once those tests are converted.
 // ---------------------------------------------------------------------------
 
 /**
@@ -920,6 +918,155 @@ sock_addr_bind_wfp_layer(ADDRESS_FAMILY family)
 {
     return (family == AF_INET) ? FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4 : FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V6;
 }
+
+// ---------------------------------------------------------------------------
+// Shared helpers for sock_addr multi-attach test scenarios.
+//
+// A hook descriptor holds the hook-specific pieces (program, verdict map, WFP
+// layer, and how a denial is observed), and a scenario holds the
+// hook-independent pieces (program count, per-program verdicts, attach/detach
+// steps, and the expected outcome). Each test case pairs one hook with one
+// scenario, so hooks that share the same multi-attach verdict accumulation can
+// run the same scenarios.
+// ---------------------------------------------------------------------------
+
+/**
+ * @brief Per-address-family pieces of a sock_addr hook under multi-attach test.
+ */
+struct sock_addr_multi_attach_hook_family
+{
+    std::string_view program_name{}; ///< Program name in the hook's object file.
+    bpf_attach_type attach_type{};   ///< Attach type for the program.
+    const GUID* wfp_layer{nullptr};  ///< WFP layer used for WFP block filters.
+};
+
+/**
+ * @brief Hook-specific pieces of the shared sock_addr multi-attach tests.
+ */
+struct sock_addr_multi_attach_hook
+{
+    std::string_view object_file{}; ///< Object file loaded once per attached program.
+    sock_addr_multi_attach_hook_family ipv4{};
+    sock_addr_multi_attach_hook_family ipv6{};
+    /// Sets the hook's verdict policy.
+    std::function<void(program_policy_spec& policy, uint32_t verdict)> set_verdict{};
+    /// Adds hook-specific denial expectations.
+    std::function<void(connection_test_params& test)> expect_denied{};
+
+    const sock_addr_multi_attach_hook_family&
+    family(ADDRESS_FAMILY address_family) const
+    {
+        return (address_family == AF_INET) ? ipv4 : ipv6;
+    }
+};
+
+/**
+ * @brief One step of a multi-attach scenario, applied in order to the same attached programs.
+ *
+ * verdicts has one entry per program, indexed by the program's original module index (including after
+ * a detach), so a detached program keeps its slot as std::nullopt.
+ */
+struct sock_addr_multi_attach_step
+{
+    std::string_view description{};
+    bool allowed{false};                   ///< Whether the operation is expected to be allowed.
+    std::vector<attachment_step> before{}; ///< Attachment changes applied before the step.
+    /// Verdict per program; nullopt leaves the program's map unchanged.
+    std::vector<std::optional<uint32_t>> verdicts{};
+};
+
+/**
+ * @brief A hook-independent multi-attach scenario.
+ */
+struct sock_addr_multi_attach_scenario
+{
+    size_t program_count{0};
+    bool wfp_block{false}; ///< Add a WFP block filter for the test port at the hook's WFP layer.
+    std::vector<sock_addr_multi_attach_step> steps{};
+};
+
+/**
+ * @brief Create a module_spec for one program attached to a sock_addr hook.
+ *
+ * Each call produces an independent module that, when loaded by the framework,
+ * creates a uniquely-named .sys copy with its own maps.
+ */
+static module_spec
+sock_addr_multi_attach_module(
+    const sock_addr_multi_attach_hook& hook,
+    ADDRESS_FAMILY family,
+    attach_method_t attach_method = attach_method_t::ebpf_program_attach,
+    std::optional<uint32_t> compartment_id = std::nullopt)
+{
+    const sock_addr_multi_attach_hook_family& hook_family = hook.family(family);
+    return {
+        .object_file = hook.object_file,
+        .programs{
+            {.program_name = hook_family.program_name,
+             .attach_type = hook_family.attach_type,
+             .attach_method = attach_method,
+             .compartment_id = compartment_id}},
+    };
+}
+
+/**
+ * @brief Run a multi-attach scenario against a sock_addr hook.
+ *
+ * Loads and attaches scenario.program_count independent copies of the hook's program,
+ * optionally adds a WFP block filter, and runs each scenario step as a connection test step.
+ *
+ * @tparam TestType TEMPLATE_TEST_CASE type tuple of (address_family, protocol).
+ */
+template <typename TestType>
+static void
+run_sock_addr_multi_attach_scenario(
+    const sock_addr_multi_attach_hook& hook, const sock_addr_multi_attach_scenario& scenario)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+
+    connection_test_case test_case{.address_family = family, .protocol = protocol};
+    for (size_t i = 0; i < scenario.program_count; i++) {
+        test_case.modules.emplace_back(sock_addr_multi_attach_module(hook, family));
+    }
+    if (scenario.wfp_block) {
+        test_case.wfp_filters.push_back({
+            .layer = *hook.family(family).wfp_layer,
+            .local_port = static_cast<uint16_t>(SOCKET_TEST_PORT),
+        });
+    }
+
+    for (const auto& step : scenario.steps) {
+        REQUIRE(step.verdicts.size() == scenario.program_count);
+        connection_test_params test{.description = step.description, .before = step.before};
+        test.expected_result = step.allowed ? connection_test_result::allow : connection_test_result::block;
+        if (!step.allowed) {
+            hook.expect_denied(test);
+        }
+        for (size_t i = 0; i < step.verdicts.size(); i++) {
+            if (step.verdicts[i].has_value()) {
+                program_policy_spec policy{.target = {.module_index = i}};
+                hook.set_verdict(policy, *step.verdicts[i]);
+                test.program_policies.push_back(policy);
+            }
+        }
+        test_case.tests.push_back(std::move(test));
+    }
+
+    execute_connection_test(test_case);
+}
+
+// Hook descriptor for the sock_addr-aligned bind hook (cgroup/bind4 / cgroup/bind6).
+static const sock_addr_multi_attach_hook _sock_addr_bind_multi_attach_hook = {
+    .object_file = "cgroup_sock_addr_bind",
+    .ipv4 = {"authorize_bind4", BPF_CGROUP_INET4_BIND, &FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4},
+    .ipv6 = {"authorize_bind6", BPF_CGROUP_INET6_BIND, &FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V6},
+    .set_verdict =
+        [](program_policy_spec& policy, uint32_t verdict) {
+            policy.sock_addr_bind_verdict = static_cast<ebpf_sock_addr_verdict_t>(verdict);
+        },
+    .expect_denied = [](connection_test_params& test) { test.expected_server_bind_error = WSAEACCES; },
+};
 
 TEST_CASE("connection_test_attach_all", "[attach]")
 {
@@ -1563,25 +1710,19 @@ TEST_CASE("bind_helper_functions_validation_tcp_v6", "[bind_tests][helper_valida
 // instances of cgroup_sock_addr_bind, each with its own bind_verdict_map.
 // ===========================================================================
 
-// Two programs both return PROCEED_SOFT -> accumulated verdict is PROCEED_SOFT -> bind allowed.
+// Two programs both return PROCEED_SOFT -> accumulated verdict is PROCEED_SOFT -> allowed.
+static const sock_addr_multi_attach_scenario _sock_addr_multi_attach_all_soft = {
+    .program_count = 2,
+    .steps{{
+        .description = "Two soft permits allow the operation",
+        .allowed = true,
+        .verdicts{BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+    }},
+};
+
 TEMPLATE_TEST_CASE("sock_addr_bind_multi_all_soft", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
 {
-    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
-    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
-    execute_connection_test({
-        .name = "sock_addr_bind_multi_all_soft",
-        .address_family = family,
-        .protocol = protocol,
-        .modules{sock_addr_bind_module(family), sock_addr_bind_module(family)},
-        .tests{{
-            .description = "Two soft permits allow bind",
-            .expected_result = connection_test_result::allow,
-            .program_policies{
-                sock_addr_bind_verdict(0, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
-                sock_addr_bind_verdict(1, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
-            },
-        }},
-    });
+    run_sock_addr_multi_attach_scenario<TestType>(_sock_addr_bind_multi_attach_hook, _sock_addr_multi_attach_all_soft);
 }
 
 // First program PROCEED_SOFT, second program REJECT -> accumulated verdict is REJECT -> bind denied.
@@ -1648,29 +1789,21 @@ TEMPLATE_TEST_CASE("sock_addr_bind_multi_soft_hard_mix", "[bind_tests][multi_att
     });
 }
 
-// Multi-program with WFP block: both programs return PROCEED_SOFT -> WFP block overrides -> bind denied.
+// Multi-program with WFP block: both programs return PROCEED_SOFT -> WFP block overrides -> denied.
+static const sock_addr_multi_attach_scenario _sock_addr_multi_attach_soft_blocked_by_wfp = {
+    .program_count = 2,
+    .wfp_block = true,
+    .steps{{
+        .description = "Two soft permits cannot override WFP block",
+        .allowed = false,
+        .verdicts{BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+    }},
+};
+
 TEMPLATE_TEST_CASE("sock_addr_bind_multi_soft_blocked_by_wfp", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
 {
-    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
-    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
-    execute_connection_test({
-        .name = "sock_addr_bind_multi_soft_blocked_by_wfp",
-        .address_family = family,
-        .protocol = protocol,
-        .modules{sock_addr_bind_module(family), sock_addr_bind_module(family)},
-        .wfp_filters{{
-            .layer = sock_addr_bind_wfp_layer(family),
-            .local_port = static_cast<uint16_t>(SOCKET_TEST_PORT),
-        }},
-        .tests{{
-            .description = "Two soft permits cannot override WFP block",
-            .expected_server_bind_error = WSAEACCES,
-            .program_policies{
-                sock_addr_bind_verdict(0, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
-                sock_addr_bind_verdict(1, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
-            },
-        }},
-    });
+    run_sock_addr_multi_attach_scenario<TestType>(
+        _sock_addr_bind_multi_attach_hook, _sock_addr_multi_attach_soft_blocked_by_wfp);
 }
 
 // Multi-program with WFP block: one PROCEED_HARD -> hard permit overrides WFP -> bind allowed.
@@ -1699,42 +1832,30 @@ TEMPLATE_TEST_CASE("sock_addr_bind_multi_hard_overrides_wfp", "[bind_tests][mult
 }
 
 // Detach middle program: start with 3 programs (PROCEED_SOFT, REJECT, PROCEED_SOFT). The middle program's REJECT
-// should deny bind. After detaching the middle program, only the two PROCEED_SOFT programs remain and bind
-// should succeed.
+// should deny the operation. After detaching the middle program, only the two PROCEED_SOFT programs remain and the
+// operation should succeed.
+static const sock_addr_multi_attach_scenario _sock_addr_multi_attach_detach_middle = {
+    .program_count = 3,
+    .steps{
+        {
+            .description = "With middle program rejecting, the operation is denied",
+            .allowed = false,
+            .verdicts{
+                BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, BPF_SOCK_ADDR_VERDICT_REJECT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+        },
+        {
+            .description = "After detaching middle program, the operation is allowed",
+            .allowed = true,
+            .before{{.action = attachment_action::do_detach, .target = {.module_index = 1}}},
+            .verdicts{BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, std::nullopt, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+        },
+    },
+};
+
 TEMPLATE_TEST_CASE("sock_addr_bind_multi_detach_middle", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
 {
-    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
-    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
-    execute_connection_test({
-        .name = "sock_addr_bind_multi_detach_middle",
-        .address_family = family,
-        .protocol = protocol,
-        .modules{
-            sock_addr_bind_module(family),
-            sock_addr_bind_module(family),
-            sock_addr_bind_module(family),
-        },
-        .tests{
-            {
-                .description = "With middle program rejecting, bind is denied",
-                .expected_server_bind_error = WSAEACCES,
-                .program_policies{
-                    sock_addr_bind_verdict(0, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
-                    sock_addr_bind_verdict(1, BPF_SOCK_ADDR_VERDICT_REJECT),
-                    sock_addr_bind_verdict(2, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
-                },
-            },
-            {
-                .description = "After detaching middle program, bind succeeds",
-                .expected_result = connection_test_result::allow,
-                .before{{.action = attachment_action::do_detach, .target = {.module_index = 1}}},
-                .program_policies{
-                    sock_addr_bind_verdict(0, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
-                    sock_addr_bind_verdict(2, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
-                },
-            },
-        },
-    });
+    run_sock_addr_multi_attach_scenario<TestType>(
+        _sock_addr_bind_multi_attach_hook, _sock_addr_multi_attach_detach_middle);
 }
 
 // Detach and reattach: start with 2 programs (both PROCEED_SOFT -> allow). Detach program 1, change its
