@@ -27,11 +27,8 @@ Native image signature/hash authorization remains required.
    remain globally unique.
 2. **Testing isolation**: Test workers can select a dedicated namespace instead
    of discovering or modifying production objects through default discovery.
-3. **Application partitioning**: Dedicated threads can manage separate
-   partitions within one application.
-
-These are cooperative management scenarios, not a hostile-administrator
-security boundary.
+3. **Application partitioning**: Applications or their components can manage
+   their BPF objects in separate namespaces.
 
 ## Requirements
 
