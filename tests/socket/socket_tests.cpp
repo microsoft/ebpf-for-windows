@@ -3383,34 +3383,6 @@ TEMPLATE_TEST_CASE("connection_test_listen_hard_permit", "[sock_addr_tests]", tc
 // multi-attach tests above.
 // ---------------------------------------------------------------------------
 
-/**
- * @brief Create a module_spec for the sock_addr-aligned listen hook.
- */
-static module_spec
-sock_addr_listen_module(
-    ADDRESS_FAMILY family,
-    attach_method_t attach_method = attach_method_t::ebpf_program_attach,
-    std::optional<uint32_t> compartment_id = std::nullopt)
-{
-    return {
-        .object_file = "cgroup_sock_addr",
-        .programs{
-            {.program_name = (family == AF_INET) ? "authorize_listen4" : "authorize_listen6",
-             .attach_type = (family == AF_INET) ? BPF_CGROUP_INET4_LISTEN : BPF_CGROUP_INET6_LISTEN,
-             .attach_method = attach_method,
-             .compartment_id = compartment_id}},
-    };
-}
-
-/**
- * @brief Create a program_policy_spec that sets a listen verdict for a specific module.
- */
-static program_policy_spec
-sock_addr_listen_verdict(size_t module_index, uint32_t verdict)
-{
-    return {.target = {.module_index = module_index}, .listen_verdict = verdict};
-}
-
 // Hook descriptor for the sock_addr-aligned listen hook (cgroup/listen4 / cgroup/listen6).
 static const sock_addr_multi_attach_hook _sock_addr_listen_multi_attach_hook = {
     .object_file = "cgroup_sock_addr",
@@ -3554,21 +3526,34 @@ TEMPLATE_TEST_CASE(
 // ALE_AUTH_LISTEN_V6 and cannot exercise BPF_CGROUP_INET4_LISTEN.
 // ---------------------------------------------------------------------------
 
-struct listen_filter_scope_scenario
+struct sock_addr_multi_attach_scope_scenario
 {
-    const char* name;
-    ebpf_sock_addr_verdict_t specific_verdicts[2];
-    ebpf_sock_addr_verdict_t wildcard_verdicts[2];
-    int expected_error;
+    const char* name{nullptr};
+    ebpf_sock_addr_verdict_t specific_verdicts[2]{};
+    ebpf_sock_addr_verdict_t wildcard_verdicts[2]{};
+    bool allowed{false};
 };
 
-template <size_t scenario_count>
+/**
+ * @brief Run wildcard and compartment-specific scope scenarios against a sock_addr hook.
+ *
+ * Attaches two programs to DEFAULT_COMPARTMENT_ID and two with the wildcard compartment ID, in the
+ * requested order, then runs each scenario as a connection test step.
+ *
+ * The bind wildcard/specific tests intentionally keep their own runner, which also exercises
+ * both dual-stack and family-specific sockets.
+ *
+ * @tparam TestType TEMPLATE_TEST_CASE type tuple of (address_family, protocol).
+ */
+template <typename TestType, size_t scenario_count>
 static void
-test_listen_multi_attach_wildcard_and_specific(
-    ADDRESS_FAMILY address_family,
+run_sock_addr_multi_attach_scope_scenarios(
+    const sock_addr_multi_attach_hook& hook,
     bool attach_wildcard_first,
-    const listen_filter_scope_scenario (&scenarios)[scenario_count])
+    const sock_addr_multi_attach_scope_scenario (&scenarios)[scenario_count])
 {
+    constexpr ADDRESS_FAMILY address_family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
     constexpr uint32_t program_count_per_group = 2;
     constexpr uint32_t program_count = program_count_per_group * 2;
 
@@ -3581,7 +3566,7 @@ test_listen_multi_attach_wildcard_and_specific(
         const uint32_t compartment_id = specific ? DEFAULT_COMPARTMENT_ID : UNSPECIFIED_COMPARTMENT_ID;
         for (uint32_t i = 0; i < program_count_per_group; i++) {
             modules.emplace_back(
-                sock_addr_listen_module(address_family, attach_method_t::bpf_prog_attach, compartment_id));
+                sock_addr_multi_attach_module(hook, address_family, attach_method_t::bpf_prog_attach, compartment_id));
             is_specific.emplace_back(specific);
         }
     };
@@ -3598,10 +3583,9 @@ test_listen_multi_attach_wildcard_and_specific(
     tests.reserve(scenario_count);
     for (const auto& scenario : scenarios) {
         connection_test_params test{.description = scenario.name};
-        if (scenario.expected_error == 0) {
-            test.expected_result = connection_test_result::allow;
-        } else {
-            test.expected_listen_error = scenario.expected_error;
+        test.expected_result = scenario.allowed ? connection_test_result::allow : connection_test_result::block;
+        if (!scenario.allowed) {
+            hook.expect_denied(test);
         }
 
         uint32_t specific_index = 0;
@@ -3609,15 +3593,16 @@ test_listen_multi_attach_wildcard_and_specific(
         for (uint32_t i = 0; i < program_count; i++) {
             const ebpf_sock_addr_verdict_t verdict = is_specific[i] ? scenario.specific_verdicts[specific_index++]
                                                                     : scenario.wildcard_verdicts[wildcard_index++];
-            test.program_policies.emplace_back(sock_addr_listen_verdict(i, verdict));
+            program_policy_spec policy{.target = {.module_index = i}};
+            hook.set_verdict(policy, verdict);
+            test.program_policies.emplace_back(policy);
         }
         tests.emplace_back(std::move(test));
     }
 
     execute_connection_test({
-        .name = "sock_addr_listen_multi_wildcard_and_specific",
         .address_family = address_family,
-        .protocol = IPPROTO_TCP,
+        .protocol = protocol,
         .modules = std::move(modules),
         .tests = std::move(tests),
     });
@@ -3627,24 +3612,29 @@ test_listen_multi_attach_wildcard_and_specific(
 TEMPLATE_TEST_CASE(
     "sock_addr_listen_multi_specific_reject", "[sock_addr_tests][multi_attach]", tcp_v4_params, tcp_v6_params)
 {
-    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
-    const listen_filter_scope_scenario scenarios[] = {
+    const sock_addr_multi_attach_scope_scenario scenarios[] = {
         {
             "Specific reject overrides wildcard hard permit",
             {BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, BPF_SOCK_ADDR_VERDICT_REJECT},
             {BPF_SOCK_ADDR_VERDICT_PROCEED_HARD, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
-            WSAEACCES,
+            false,
         },
         {
             "Specific reject overrides wildcard soft permits",
             {BPF_SOCK_ADDR_VERDICT_REJECT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
             {BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
-            WSAEACCES,
+            false,
         },
     };
 
-    SECTION("specific attached first") { test_listen_multi_attach_wildcard_and_specific(family, false, scenarios); }
-    SECTION("wildcard attached first") { test_listen_multi_attach_wildcard_and_specific(family, true, scenarios); }
+    SECTION("specific attached first")
+    {
+        run_sock_addr_multi_attach_scope_scenarios<TestType>(_sock_addr_listen_multi_attach_hook, false, scenarios);
+    }
+    SECTION("wildcard attached first")
+    {
+        run_sock_addr_multi_attach_scope_scenarios<TestType>(_sock_addr_listen_multi_attach_hook, true, scenarios);
+    }
 }
 
 // A matching wildcard reject is expected to override compartment-specific soft permits in either attach order.
@@ -3652,18 +3642,23 @@ TEMPLATE_TEST_CASE(
 TEMPLATE_TEST_CASE(
     "sock_addr_listen_multi_wildcard_reject", "[sock_addr_tests][multi_attach][!mayfail]", tcp_v4_params, tcp_v6_params)
 {
-    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
-    const listen_filter_scope_scenario scenarios[] = {
+    const sock_addr_multi_attach_scope_scenario scenarios[] = {
         {
             "Wildcard reject overrides specific soft permits",
             {BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
             {BPF_SOCK_ADDR_VERDICT_REJECT, BPF_SOCK_ADDR_VERDICT_REJECT},
-            WSAEACCES,
+            false,
         },
     };
 
-    SECTION("specific attached first") { test_listen_multi_attach_wildcard_and_specific(family, false, scenarios); }
-    SECTION("wildcard attached first") { test_listen_multi_attach_wildcard_and_specific(family, true, scenarios); }
+    SECTION("specific attached first")
+    {
+        run_sock_addr_multi_attach_scope_scenarios<TestType>(_sock_addr_listen_multi_attach_hook, false, scenarios);
+    }
+    SECTION("wildcard attached first")
+    {
+        run_sock_addr_multi_attach_scope_scenarios<TestType>(_sock_addr_listen_multi_attach_hook, true, scenarios);
+    }
 }
 
 // A compartment-specific hard permit can revoke write rights before the wildcard filter runs.
@@ -3674,18 +3669,23 @@ TEMPLATE_TEST_CASE(
     tcp_v4_params,
     tcp_v6_params)
 {
-    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
-    const listen_filter_scope_scenario scenarios[] = {
+    const sock_addr_multi_attach_scope_scenario scenarios[] = {
         {
             "Wildcard reject overrides specific hard permit",
             {BPF_SOCK_ADDR_VERDICT_PROCEED_HARD, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
             {BPF_SOCK_ADDR_VERDICT_REJECT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
-            WSAEACCES,
+            false,
         },
     };
 
-    SECTION("specific attached first") { test_listen_multi_attach_wildcard_and_specific(family, false, scenarios); }
-    SECTION("wildcard attached first") { test_listen_multi_attach_wildcard_and_specific(family, true, scenarios); }
+    SECTION("specific attached first")
+    {
+        run_sock_addr_multi_attach_scope_scenarios<TestType>(_sock_addr_listen_multi_attach_hook, false, scenarios);
+    }
+    SECTION("wildcard attached first")
+    {
+        run_sock_addr_multi_attach_scope_scenarios<TestType>(_sock_addr_listen_multi_attach_hook, true, scenarios);
+    }
 }
 
 TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
