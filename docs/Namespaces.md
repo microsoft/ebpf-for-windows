@@ -2,11 +2,9 @@
 
 ## Overview
 
-In this document, "thread" means an OS thread, not a logical task.
-
 Namespaces provide logical isolation of BPF objects (programs, maps, links).
 Each namespace is identified by a GUID, with `GUID_NULL` representing the
-default namespace. An application selects a namespace **per thread** through
+default namespace. An application selects a namespace **per OS thread** through
 the shipped `ebpfapi.dll`. Selecting A on one thread does not change another
 thread's selection.
 
@@ -58,6 +56,12 @@ Sets the namespace for the calling thread.
 ebpf_result_t ebpf_set_thread_namespace(_In_ const GUID* namespace_guid);
 ```
 
+**Parameter:** `namespace_guid` points to the namespace GUID to select. Pass
+the address of `GUID_NULL` to reset. A NULL pointer is invalid.
+
+**Returns:** An `ebpf_result_t` result code: `EBPF_SUCCESS` on success, or an
+error code on failure. Failure leaves the previous selection unchanged.
+
 | Aspect | Behavior |
 |--------|----------|
 | Scope | Calling thread; other threads are unchanged. |
@@ -71,12 +75,17 @@ ebpf_result_t ebpf_set_thread_namespace(_In_ const GUID* namespace_guid);
 
 ### ebpf_get_thread_namespace
 
-Returns the calling thread's selected namespace GUID. On failure, returns an
-error and leaves the output unchanged.
+Gets the calling thread's selected namespace GUID.
 
 ```c
 ebpf_result_t ebpf_get_thread_namespace(_Out_ GUID* namespace_guid);
 ```
+
+**Parameter:** `namespace_guid` points to the GUID that receives the calling
+thread's selected namespace on success. A NULL pointer is invalid.
+
+**Returns:** An `ebpf_result_t` result code: `EBPF_SUCCESS` on success, or an
+error code on failure. Failure leaves the output unchanged.
 
 ### Namespace-Aware APIs
 
@@ -89,7 +98,7 @@ on the operation, not just whether an API accepts an fd or object pointer.
 | ID discovery | `bpf_map_get_next_id`, `bpf_prog_get_next_id`, `bpf_link_get_next_id`, and corresponding open-by-ID APIs are namespace-filtered. |
 | Pinning | `bpf_obj_get`, `bpf_obj_pin`, map/program/link pin/unpin, pinned-map information, and pin-path enumeration are namespace-relative. |
 | Implicit link discovery | Program detach by attach parameters and XDP query/detach/replacement search links in the selected namespace. |
-| Existing-object operations | Map data access, info-by-fd, direct link-fd detach, program test-run, fd close/duplicate, and ring/perf consumers do not select targets by the ambient GUID. Owner-compatibility checks still apply to graph updates. |
+| Existing-handle/fd operations | Map data access, info-by-fd, direct link-fd detach, program test-run, fd close/duplicate, and ring/perf consumers do not select targets by the ambient GUID. Owner-compatibility checks still apply to graph updates. |
 | Local/file metadata | Local wrapper queries, including `bpf_map__is_pinned()`, iteration/name lookup, object-file parsing, file program enumeration, verifier diagnostics, type/provider metadata, and path-text canonicalization do not depend on namespace selection. |
 
 ## Behavior Specification
@@ -112,27 +121,28 @@ on the operation, not just whether an API accepts an fd or object pointer.
 Call `ebpf_set_thread_namespace()` on the thread performing namespace-dependent
 work. Check the result; if selection fails, do not proceed with that work.
 
-Before returning a worker to a shared pool, reset its namespace by passing
-the address of `GUID_NULL` to the setter. Perform this reset on success,
-failure, early return, handled exceptions, and cooperative cancellation.
+Namespace selection remains on a worker until explicitly changed. If subsequent
+work expects the default namespace, reset the worker to `GUID_NULL` before
+returning it to the pool, whether the current work succeeds or fails. Check the
+reset result; failure leaves the previous selection unchanged.
 
 ```text
 Select namespace -> perform work -> reset to GUID_NULL -> return to pool
 ```
 
-Without an explicit reset, subsequent work on that thread retains the previous
-namespace. Check reset errors separately from work errors: a failed reset
-preserves the previous selection and must not be treated as a successful return
-to the default namespace.
+Handle reset errors separately from work errors. Alternatively, a pool can
+explicitly select the intended namespace before each task's namespace-dependent
+work, including selecting `GUID_NULL` for default-namespace work.
 
-New threads start in `GUID_NULL`. A callback or code after `await` may run on a
-different thread with a different namespace. Before namespace-aware work,
-select the intended namespace on the thread running it, and reset before
-yielding or returning the worker to its pool. Existing handle-based data access
-and namespace-neutral async operations need no reselection.
+New threads start in `GUID_NULL`. Asynchronous work may resume on a different
+thread with a different namespace. Callbacks may also run on another thread.
+Before namespace-aware work, select the intended namespace on the thread
+running it. Follow the pool's namespace policy before pausing the work or
+returning the worker. Existing handle-based data access and namespace-neutral
+async operations need no reselection.
 
-A dedicated worker may retain its selection, but must reset before returning
-to a shared pool or default role. Remove pins by path while their namespace
+A dedicated worker may retain its selection until it takes on work that needs
+a different namespace. Remove pins by path while their namespace
 is selected, before resetting the worker. Use a stable GUID to rediscover
 surviving pins after an application restart.
 
