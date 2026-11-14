@@ -1725,68 +1725,53 @@ TEMPLATE_TEST_CASE("sock_addr_bind_multi_all_soft", "[bind_tests][multi_attach]"
     run_sock_addr_multi_attach_scenario<TestType>(_sock_addr_bind_multi_attach_hook, _sock_addr_multi_attach_all_soft);
 }
 
-// First program PROCEED_SOFT, second program REJECT -> accumulated verdict is REJECT -> bind denied.
+// First program PROCEED_SOFT, second program REJECT -> accumulated verdict is REJECT -> denied.
+static const sock_addr_multi_attach_scenario _sock_addr_multi_attach_second_rejects = {
+    .program_count = 2,
+    .steps{{
+        .description = "Second program rejects after first soft permit",
+        .allowed = false,
+        .verdicts{BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, BPF_SOCK_ADDR_VERDICT_REJECT},
+    }},
+};
+
 TEMPLATE_TEST_CASE("sock_addr_bind_multi_second_rejects", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
 {
-    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
-    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
-    execute_connection_test({
-        .name = "sock_addr_bind_multi_second_rejects",
-        .address_family = family,
-        .protocol = protocol,
-        .modules{sock_addr_bind_module(family), sock_addr_bind_module(family)},
-        .tests{{
-            .description = "Second program rejects after first soft permit",
-            .expected_server_bind_error = WSAEACCES,
-            .program_policies{
-                sock_addr_bind_verdict(0, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
-                sock_addr_bind_verdict(1, BPF_SOCK_ADDR_VERDICT_REJECT),
-            },
-        }},
-    });
+    run_sock_addr_multi_attach_scenario<TestType>(
+        _sock_addr_bind_multi_attach_hook, _sock_addr_multi_attach_second_rejects);
 }
 
-// First program REJECT -> short-circuit, second program never contributes -> bind denied.
+// First program REJECT -> short-circuit, second program never contributes -> denied.
 // Verifies that a leading REJECT terminates the accumulation loop.
+static const sock_addr_multi_attach_scenario _sock_addr_multi_attach_first_rejects = {
+    .program_count = 2,
+    .steps{{
+        .description = "First program rejects, short-circuits accumulation",
+        .allowed = false,
+        .verdicts{BPF_SOCK_ADDR_VERDICT_REJECT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+    }},
+};
+
 TEMPLATE_TEST_CASE("sock_addr_bind_multi_first_rejects", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
 {
-    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
-    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
-    execute_connection_test({
-        .name = "sock_addr_bind_multi_first_rejects",
-        .address_family = family,
-        .protocol = protocol,
-        .modules{sock_addr_bind_module(family), sock_addr_bind_module(family)},
-        .tests{{
-            .description = "First program rejects, short-circuits accumulation",
-            .expected_server_bind_error = WSAEACCES,
-            .program_policies{
-                sock_addr_bind_verdict(0, BPF_SOCK_ADDR_VERDICT_REJECT),
-                sock_addr_bind_verdict(1, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
-            },
-        }},
-    });
+    run_sock_addr_multi_attach_scenario<TestType>(
+        _sock_addr_bind_multi_attach_hook, _sock_addr_multi_attach_first_rejects);
 }
 
-// Mix of PROCEED_SOFT + PROCEED_HARD -> accumulated verdict is PROCEED_HARD (higher priority) -> bind allowed.
+// Mix of PROCEED_SOFT + PROCEED_HARD -> accumulated verdict is PROCEED_HARD (higher priority) -> allowed.
+static const sock_addr_multi_attach_scenario _sock_addr_multi_attach_soft_hard_mix = {
+    .program_count = 2,
+    .steps{{
+        .description = "Soft and hard permits allow the operation",
+        .allowed = true,
+        .verdicts{BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, BPF_SOCK_ADDR_VERDICT_PROCEED_HARD},
+    }},
+};
+
 TEMPLATE_TEST_CASE("sock_addr_bind_multi_soft_hard_mix", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
 {
-    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
-    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
-    execute_connection_test({
-        .name = "sock_addr_bind_multi_soft_hard_mix",
-        .address_family = family,
-        .protocol = protocol,
-        .modules{sock_addr_bind_module(family), sock_addr_bind_module(family)},
-        .tests{{
-            .description = "Soft + hard mix yields hard permit",
-            .expected_result = connection_test_result::allow,
-            .program_policies{
-                sock_addr_bind_verdict(0, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
-                sock_addr_bind_verdict(1, BPF_SOCK_ADDR_VERDICT_PROCEED_HARD),
-            },
-        }},
-    });
+    run_sock_addr_multi_attach_scenario<TestType>(
+        _sock_addr_bind_multi_attach_hook, _sock_addr_multi_attach_soft_hard_mix);
 }
 
 // Multi-program with WFP block: both programs return PROCEED_SOFT -> WFP block overrides -> denied.
@@ -1806,29 +1791,21 @@ TEMPLATE_TEST_CASE("sock_addr_bind_multi_soft_blocked_by_wfp", "[bind_tests][mul
         _sock_addr_bind_multi_attach_hook, _sock_addr_multi_attach_soft_blocked_by_wfp);
 }
 
-// Multi-program with WFP block: one PROCEED_HARD -> hard permit overrides WFP -> bind allowed.
+// Multi-program with WFP block: one PROCEED_HARD -> hard permit overrides WFP -> allowed.
+static const sock_addr_multi_attach_scenario _sock_addr_multi_attach_hard_overrides_wfp = {
+    .program_count = 2,
+    .wfp_block = true,
+    .steps{{
+        .description = "Hard permit from second program overrides WFP block",
+        .allowed = true,
+        .verdicts{BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, BPF_SOCK_ADDR_VERDICT_PROCEED_HARD},
+    }},
+};
+
 TEMPLATE_TEST_CASE("sock_addr_bind_multi_hard_overrides_wfp", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
 {
-    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
-    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
-    execute_connection_test({
-        .name = "sock_addr_bind_multi_hard_overrides_wfp",
-        .address_family = family,
-        .protocol = protocol,
-        .modules{sock_addr_bind_module(family), sock_addr_bind_module(family)},
-        .wfp_filters{{
-            .layer = sock_addr_bind_wfp_layer(family),
-            .local_port = static_cast<uint16_t>(SOCKET_TEST_PORT),
-        }},
-        .tests{{
-            .description = "Hard permit from one program overrides WFP block",
-            .expected_result = connection_test_result::allow,
-            .program_policies{
-                sock_addr_bind_verdict(0, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
-                sock_addr_bind_verdict(1, BPF_SOCK_ADDR_VERDICT_PROCEED_HARD),
-            },
-        }},
-    });
+    run_sock_addr_multi_attach_scenario<TestType>(
+        _sock_addr_bind_multi_attach_hook, _sock_addr_multi_attach_hard_overrides_wfp);
 }
 
 // Detach middle program: start with 3 programs (PROCEED_SOFT, REJECT, PROCEED_SOFT). The middle program's REJECT
@@ -1920,73 +1897,55 @@ TEMPLATE_TEST_CASE("sock_addr_bind_multi_three_soft", "[bind_tests][multi_attach
     });
 }
 
-// PROCEED_HARD first, PROCEED_SOFT second, with WFP block -> PROCEED_HARD wins, bind allowed.
+// PROCEED_HARD first, PROCEED_SOFT second, with WFP block -> PROCEED_HARD wins, allowed.
 // Validates that HARD is accumulated regardless of program ordering (not just last-wins).
+static const sock_addr_multi_attach_scenario _sock_addr_multi_attach_hard_first_overrides_wfp = {
+    .program_count = 2,
+    .wfp_block = true,
+    .steps{{
+        .description = "Hard permit first, soft second, WFP block allows the operation",
+        .allowed = true,
+        .verdicts{BPF_SOCK_ADDR_VERDICT_PROCEED_HARD, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+    }},
+};
+
 TEMPLATE_TEST_CASE(
     "sock_addr_bind_multi_hard_first_overrides_wfp", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
 {
-    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
-    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
-    execute_connection_test({
-        .name = "sock_addr_bind_multi_hard_first_overrides_wfp",
-        .address_family = family,
-        .protocol = protocol,
-        .modules{sock_addr_bind_module(family), sock_addr_bind_module(family)},
-        .wfp_filters{{
-            .layer = sock_addr_bind_wfp_layer(family),
-            .local_port = static_cast<uint16_t>(SOCKET_TEST_PORT),
-        }},
-        .tests{{
-            .description = "Hard permit first, soft second, WFP block -> bind allowed",
-            .expected_result = connection_test_result::allow,
-            .program_policies{
-                sock_addr_bind_verdict(0, BPF_SOCK_ADDR_VERDICT_PROCEED_HARD),
-                sock_addr_bind_verdict(1, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
-            },
-        }},
-    });
+    run_sock_addr_multi_attach_scenario<TestType>(
+        _sock_addr_bind_multi_attach_hook, _sock_addr_multi_attach_hard_first_overrides_wfp);
 }
 
 // REJECT + PROCEED_HARD -> REJECT wins (higher priority). Validates that PROCEED_HARD cannot override REJECT.
+static const sock_addr_multi_attach_scenario _sock_addr_multi_attach_reject_beats_hard = {
+    .program_count = 2,
+    .steps{{
+        .description = "Reject from first program overrides hard permit from second",
+        .allowed = false,
+        .verdicts{BPF_SOCK_ADDR_VERDICT_REJECT, BPF_SOCK_ADDR_VERDICT_PROCEED_HARD},
+    }},
+};
+
 TEMPLATE_TEST_CASE("sock_addr_bind_multi_reject_beats_hard", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
 {
-    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
-    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
-    execute_connection_test({
-        .name = "sock_addr_bind_multi_reject_beats_hard",
-        .address_family = family,
-        .protocol = protocol,
-        .modules{sock_addr_bind_module(family), sock_addr_bind_module(family)},
-        .tests{{
-            .description = "Reject from first program overrides hard permit from second",
-            .expected_server_bind_error = WSAEACCES,
-            .program_policies{
-                sock_addr_bind_verdict(0, BPF_SOCK_ADDR_VERDICT_REJECT),
-                sock_addr_bind_verdict(1, BPF_SOCK_ADDR_VERDICT_PROCEED_HARD),
-            },
-        }},
-    });
+    run_sock_addr_multi_attach_scenario<TestType>(
+        _sock_addr_bind_multi_attach_hook, _sock_addr_multi_attach_reject_beats_hard);
 }
 
 // PROCEED_HARD + REJECT (reversed) -> REJECT wins. Tests that REJECT short-circuits even after PROCEED_HARD.
+static const sock_addr_multi_attach_scenario _sock_addr_multi_attach_hard_then_reject = {
+    .program_count = 2,
+    .steps{{
+        .description = "Hard permit followed by reject denies the operation",
+        .allowed = false,
+        .verdicts{BPF_SOCK_ADDR_VERDICT_PROCEED_HARD, BPF_SOCK_ADDR_VERDICT_REJECT},
+    }},
+};
+
 TEMPLATE_TEST_CASE("sock_addr_bind_multi_hard_then_reject", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
 {
-    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
-    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
-    execute_connection_test({
-        .name = "sock_addr_bind_multi_hard_then_reject",
-        .address_family = family,
-        .protocol = protocol,
-        .modules{sock_addr_bind_module(family), sock_addr_bind_module(family)},
-        .tests{{
-            .description = "Hard permit then reject -> reject wins",
-            .expected_server_bind_error = WSAEACCES,
-            .program_policies{
-                sock_addr_bind_verdict(0, BPF_SOCK_ADDR_VERDICT_PROCEED_HARD),
-                sock_addr_bind_verdict(1, BPF_SOCK_ADDR_VERDICT_REJECT),
-            },
-        }},
-    });
+    run_sock_addr_multi_attach_scenario<TestType>(
+        _sock_addr_bind_multi_attach_hook, _sock_addr_multi_attach_hard_then_reject);
 }
 
 // Third program is decisive: two PROCEED_SOFT then one REJECT -> bind denied.
