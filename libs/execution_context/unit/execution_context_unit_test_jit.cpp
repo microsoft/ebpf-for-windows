@@ -13,6 +13,8 @@
 #include "hook_helper.h"
 #include "test_helper.hpp"
 
+static const GUID _test_default_namespace_id{};
+
 _ebpf_async_wrapper::_ebpf_async_wrapper()
 {
     _event = CreateEvent(nullptr, false, false, nullptr);
@@ -87,7 +89,7 @@ create_various_objects(std::vector<ebpf_handle_t>& program_handles, std::map<std
             {reinterpret_cast<uint8_t*>(file.data()), file.size()},
             EBPF_CODE_NONE};
         ebpf_handle_t handle;
-        REQUIRE(ebpf_program_create_and_initialize(&params, &handle) == EBPF_SUCCESS);
+        REQUIRE(ebpf_program_create_and_initialize(&_test_default_namespace_id, &params, &handle) == EBPF_SUCCESS);
         program_handles.push_back(handle);
     }
     for (const auto& [name, def] : _map_definitions) {
@@ -97,7 +99,8 @@ create_various_objects(std::vector<ebpf_handle_t>& program_handles, std::map<std
         if (def.inner_map_id != 0) {
             inner_handle = map_handles.begin()->second;
         }
-        REQUIRE(ebpf_core_create_map(&utf8_name, &def, inner_handle, &handle) == EBPF_SUCCESS);
+        REQUIRE(
+            ebpf_core_create_map(&_test_default_namespace_id, &utf8_name, &def, inner_handle, &handle) == EBPF_SUCCESS);
         map_handles.insert({name, handle});
     }
 }
@@ -265,7 +268,7 @@ test_program_context()
     program_ptr program;
     {
         ebpf_program_t* local_program = nullptr;
-        REQUIRE(ebpf_program_create(&program_parameters, &local_program) == EBPF_SUCCESS);
+        REQUIRE(ebpf_program_create(&_test_default_namespace_id, &program_parameters, &local_program) == EBPF_SUCCESS);
         program.reset(local_program);
     }
 
@@ -275,7 +278,9 @@ test_program_context()
         ebpf_map_t* local_map;
         cxplat_utf8_string_t map_name = {0};
         REQUIRE(
-            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+            ebpf_map_create(
+                &_test_default_namespace_id, &map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
+            EBPF_SUCCESS);
         map.reset(local_map);
     }
 
@@ -395,7 +400,9 @@ test_program_context()
         single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_SAMPLE);
         REQUIRE(hook.initialize() == EBPF_SUCCESS);
         ebpf_link_t* local_link = nullptr;
-        REQUIRE(ebpf_link_create(EBPF_ATTACH_TYPE_SAMPLE, nullptr, 0, &local_link) == EBPF_SUCCESS);
+        REQUIRE(
+            ebpf_link_create(&_test_default_namespace_id, EBPF_ATTACH_TYPE_SAMPLE, nullptr, 0, &local_link) ==
+            EBPF_SUCCESS);
         link.reset(local_link);
         REQUIRE(ebpf_link_attach_program(link.get(), program.get()) == EBPF_EXTENSION_FAILED_TO_LOAD);
     }
@@ -405,7 +412,9 @@ test_program_context()
         single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_BIND);
         REQUIRE(hook.initialize() == EBPF_SUCCESS);
         ebpf_link_t* local_link = nullptr;
-        REQUIRE(ebpf_link_create(EBPF_ATTACH_TYPE_SAMPLE, nullptr, 0, &local_link) == EBPF_SUCCESS);
+        REQUIRE(
+            ebpf_link_create(&_test_default_namespace_id, EBPF_ATTACH_TYPE_SAMPLE, nullptr, 0, &local_link) ==
+            EBPF_SUCCESS);
         link.reset(local_link);
         REQUIRE(ebpf_link_attach_program(link.get(), program.get()) == EBPF_EXTENSION_FAILED_TO_LOAD);
     }
@@ -415,7 +424,9 @@ test_program_context()
         single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
         REQUIRE(hook.initialize() == EBPF_SUCCESS);
         ebpf_link_t* local_link = nullptr;
-        REQUIRE(ebpf_link_create(EBPF_ATTACH_TYPE_SAMPLE, nullptr, 0, &local_link) == EBPF_SUCCESS);
+        REQUIRE(
+            ebpf_link_create(&_test_default_namespace_id, EBPF_ATTACH_TYPE_SAMPLE, nullptr, 0, &local_link) ==
+            EBPF_SUCCESS);
         link.reset(local_link);
 
         // Attach should succeed.
@@ -453,7 +464,7 @@ TEST_CASE("program_test_run_repeat_count_zero", "[execution_context][negative]")
     program_ptr program;
     {
         ebpf_program_t* local_program = nullptr;
-        REQUIRE(ebpf_program_create(&program_parameters, &local_program) == EBPF_SUCCESS);
+        REQUIRE(ebpf_program_create(&_test_default_namespace_id, &program_parameters, &local_program) == EBPF_SUCCESS);
         program.reset(local_program);
     }
 

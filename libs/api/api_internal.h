@@ -12,6 +12,29 @@
 
 struct bpf_object;
 
+// Nesting only counts library operations; the kernel always captures its own request context.
+class ebpf_api_namespace_guard
+{
+  public:
+    ebpf_api_namespace_guard();
+    ~ebpf_api_namespace_guard() noexcept;
+    ebpf_api_namespace_guard(const ebpf_api_namespace_guard&) = delete;
+    ebpf_api_namespace_guard&
+    operator=(const ebpf_api_namespace_guard&) = delete;
+};
+
+ebpf_result_t
+ebpf_get_namespace_for_pin(_Out_ GUID* namespace_id) noexcept;
+
+ebpf_result_t
+ebpf_object_pin_with_cookie(fd_t fd, _In_z_ const char* path, _Out_ uint64_t* cookie) noexcept;
+
+ebpf_result_t
+ebpf_object_unpin_if_matches(fd_t expected_fd, _In_z_ const char* path, uint64_t cookie) noexcept;
+
+void
+ebpf_object_unpin_if_matches_cleanup(fd_t expected_fd, _In_z_ const char* path, uint64_t cookie) noexcept;
+
 typedef struct _ebpf_map_subscription ebpf_map_subscription_t;
 
 // Forward declaration for ring buffer callback function type.
@@ -31,6 +54,7 @@ typedef struct bpf_program
     fd_t fd;
     bool autoload;
     bool pinned;
+    uint64_t pin_cookie;
     const char* log_buffer;
     uint32_t log_buffer_size;
     uint64_t flags;
@@ -61,6 +85,8 @@ typedef struct bpf_map
     ebpf_map_definition_in_memory_t map_definition;
     char* pin_path;
     bool pinned;
+    GUID pinned_namespace;
+    uint64_t pin_cookie;
     // Whether this map is newly created or reused
     // from an existing map.
     bool reused;
@@ -69,6 +95,7 @@ typedef struct bpf_map
 typedef struct bpf_link
 {
     char* pin_path;
+    GUID pinned_namespace;
     ebpf_handle_t handle;
     fd_t fd;
     bool disconnected;

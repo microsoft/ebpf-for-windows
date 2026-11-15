@@ -9,7 +9,29 @@
 #include "ebpf_shared_framework.h"
 #include "ebpf_tracelog.h"
 
+#if defined(EBPF_RUNTIME_TEST_INSTRUMENTATION)
+#include "ebpf_object_test.h"
+#endif
+
 #include <intrin.h>
+
+#if defined(EBPF_RUNTIME_TEST_INSTRUMENTATION)
+static ebpf_object_test_callback_t _ebpf_object_test_callback;
+static void* _ebpf_object_test_context;
+
+void
+ebpf_object_test_set_callback(_In_opt_ ebpf_object_test_callback_t callback, _Inout_opt_ void* context)
+{
+    _ebpf_object_test_callback = callback;
+    _ebpf_object_test_context = context;
+}
+
+bool
+ebpf_object_test_invoke(ebpf_object_test_point_t point, _In_opt_ const ebpf_core_object_t* object)
+{
+    return _ebpf_object_test_callback != NULL && _ebpf_object_test_callback(point, object, _ebpf_object_test_context);
+}
+#endif
 
 static const uint32_t _ebpf_object_marker = 'eobj';
 
@@ -189,6 +211,7 @@ _ebpf_object_epoch_free(_Inout_ void* context)
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_object_initialize(
+    _In_ const GUID* namespace_id,
     _Inout_ ebpf_core_object_t* object,
     ebpf_object_type_t object_type,
     _In_ ebpf_free_object_t free_object,
@@ -200,6 +223,10 @@ ebpf_object_initialize(
 {
     ebpf_result_t result;
 
+    if (namespace_id == NULL) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
     EBPF_LOG_MESSAGE_POINTER_ENUM(
         EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_BASE, "eBPF object initialized", object, object_type);
     object->base.marker = _ebpf_object_marker;
@@ -207,6 +234,7 @@ ebpf_object_initialize(
     object->base.acquire_reference = ebpf_object_acquire_reference;
     object->base.release_reference = ebpf_object_release_reference;
     object->type = object_type;
+    object->namespace_id = *namespace_id;
     object->free_object = free_object;
     object->notify_reference_count_zeroed = notify_reference_count_zeroed;
     object->notify_user_reference_count_zeroed = notify_user_reference_count_zeroed;
@@ -225,6 +253,10 @@ ebpf_object_initialize(
     _update_reference_history(object, EBPF_OBJECT_CREATE, file_id, line);
 
     ebpf_id_entry_t entry = {.type = object_type, .object = object};
+
+#if defined(EBPF_RUNTIME_TEST_INSTRUMENTATION)
+    (void)ebpf_object_test_invoke(EBPF_OBJECT_TEST_BEFORE_PUBLICATION, object);
+#endif
 
     // Use EBPF_HASH_TABLE_OPERATION_INSERT so that it fails if the key already exists.
     result = ebpf_hash_table_update(
@@ -292,6 +324,10 @@ _ebpf_object_try_acquire_reference(_Inout_ ebpf_base_object_t* object, uint32_t 
     if (object->marker != _ebpf_object_marker) {
         __fastfail(FAST_FAIL_INVALID_ARG);
     }
+
+#if defined(EBPF_RUNTIME_TEST_INSTRUMENTATION)
+    (void)ebpf_object_test_invoke(EBPF_OBJECT_TEST_BEFORE_TRY_REFERENCE, (ebpf_core_object_t*)object);
+#endif
 
     for (;;) {
         int64_t new_ref_count = object->reference_count;
@@ -368,13 +404,21 @@ ebpf_duplicate_utf8_string(_Out_ cxplat_utf8_string_t* destination, _In_ const c
     return ebpf_result_from_cxplat_status(status);
 }
 
+typedef struct _ebpf_object_filter
+{
+    ebpf_object_type_t object_type;
+    const GUID* namespace_id;
+} ebpf_object_filter_t;
+
 static bool
 _ebpf_object_match_object_type(_In_ void* filter_context, _In_ const uint8_t* key, _In_ const uint8_t* value)
 {
-    ebpf_object_type_t* object_type = (ebpf_object_type_t*)filter_context;
+    const ebpf_object_filter_t* filter = (const ebpf_object_filter_t*)filter_context;
     ebpf_id_entry_t* entry = (ebpf_id_entry_t*)value;
+    ebpf_core_object_t* object = entry->object;
     UNREFERENCED_PARAMETER(key);
-    return (entry->type == *object_type);
+    return object != NULL && object->base.reference_count > 0 && entry->type == filter->object_type &&
+           memcmp(&object->namespace_id, filter->namespace_id, sizeof(GUID)) == 0;
 }
 
 static int
@@ -392,30 +436,33 @@ _ebpf_object_id_sort(_In_ const uint8_t* key1, _In_ const uint8_t* key2)
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_object_get_next_id(ebpf_id_t start_id, ebpf_object_type_t object_type, _Out_ ebpf_id_t* next_id)
+ebpf_object_get_next_id(
+    _In_ const GUID* namespace_id, ebpf_id_t start_id, ebpf_object_type_t object_type, _Out_ ebpf_id_t* next_id)
 {
+    if (namespace_id == NULL) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
     // TODO: https://github.com/microsoft/ebpf-for-windows/issues/2985
     // Switch this to a data structure that supports sorted iteration.
     ebpf_id_entry_t* entry = NULL;
+    ebpf_object_filter_t filter = {.object_type = object_type, .namespace_id = namespace_id};
     ebpf_result_t result = ebpf_hash_table_next_key_and_value_sorted(
         _ebpf_id_table,
         start_id ? (const uint8_t*)&start_id : NULL,
         _ebpf_object_id_sort,
-        &object_type,
+        &filter,
         _ebpf_object_match_object_type,
         (uint8_t*)next_id,
         (uint8_t**)&entry);
-    if (result != EBPF_SUCCESS) {
-        return EBPF_NO_MORE_KEYS;
-    } else {
-        return EBPF_SUCCESS;
-    }
+    return result;
 }
 
-void
-ebpf_object_reference_next_object(
+static void
+_ebpf_object_reference_next_object(
     _In_opt_ const ebpf_core_object_t* previous_object,
     ebpf_object_type_t object_type,
+    _In_opt_ const GUID* namespace_id,
     _Outptr_result_maybenull_ ebpf_core_object_t** next_object,
     uint32_t file_id,
     uint32_t line)
@@ -450,6 +497,10 @@ ebpf_object_reference_next_object(
             continue;
         }
 
+        if (namespace_id != NULL && memcmp(&object->namespace_id, namespace_id, sizeof(GUID)) != 0) {
+            continue;
+        }
+
         // Try to acquire a reference on the object.
         if (!_ebpf_object_try_acquire_reference(&object->base, file_id, line)) {
             continue;
@@ -465,13 +516,50 @@ ebpf_object_reference_next_object(
     }
 }
 
+void
+ebpf_object_reference_next_object(
+    _In_ const GUID* namespace_id,
+    _In_opt_ const ebpf_core_object_t* previous_object,
+    ebpf_object_type_t object_type,
+    _Outptr_result_maybenull_ ebpf_core_object_t** next_object,
+    uint32_t file_id,
+    uint32_t line)
+{
+    if (namespace_id == NULL) {
+        *next_object = NULL;
+        return;
+    }
+    _ebpf_object_reference_next_object(previous_object, object_type, namespace_id, next_object, file_id, line);
+}
+
+void
+ebpf_object_reference_next_object_for_teardown(
+    _In_opt_ const ebpf_core_object_t* previous_object,
+    ebpf_object_type_t object_type,
+    _Outptr_result_maybenull_ ebpf_core_object_t** next_object,
+    uint32_t file_id,
+    uint32_t line)
+{
+    _ebpf_object_reference_next_object(previous_object, object_type, NULL, next_object, file_id, line);
+}
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_object_reference_by_id(
-    ebpf_id_t id, ebpf_object_type_t object_type, _Outptr_ ebpf_core_object_t** object, uint32_t file_id, uint32_t line)
+    _In_ const GUID* namespace_id,
+    ebpf_id_t id,
+    ebpf_object_type_t object_type,
+    _Outptr_ ebpf_core_object_t** object,
+    uint32_t file_id,
+    uint32_t line)
 {
     ebpf_result_t result;
     ebpf_id_entry_t* entry = NULL;
     ebpf_core_object_t* found_object = NULL;
+    *object = NULL;
+
+    if (namespace_id == NULL) {
+        return EBPF_INVALID_ARGUMENT;
+    }
 
     result = ebpf_hash_table_find(_ebpf_id_table, (const uint8_t*)&id, (uint8_t**)&entry);
     if (result != EBPF_SUCCESS) {
@@ -486,7 +574,7 @@ ebpf_object_reference_by_id(
     }
 
     // Skip entries that are not of the requested type.
-    if (entry->type != object_type) {
+    if (entry->type != object_type || memcmp(&found_object->namespace_id, namespace_id, sizeof(GUID)) != 0) {
         result = EBPF_KEY_NOT_FOUND;
         goto Done;
     }

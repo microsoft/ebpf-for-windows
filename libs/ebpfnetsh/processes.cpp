@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #define EBPF_DEVICE_NAME L"\\Device\\EbpfIoDevice"
+#include "namespaces.h"
 #include "processes.h"
 
 #include <iomanip>
@@ -200,6 +201,7 @@ handle_ebpf_show_processes(
     IN LPCVOID data,
     OUT BOOL* done)
 {
+    EBPF_NETSH_NAMESPACE_OVERRIDE(handle_ebpf_show_processes);
     UNREFERENCED_PARAMETER(argv);
     UNREFERENCED_PARAMETER(current_index);
     UNREFERENCED_PARAMETER(argc);

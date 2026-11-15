@@ -3,11 +3,15 @@
 #pragma once
 
 #include "ebpf_api.h"
+#include "namespaces.h"
 
 #include <iostream>
 
 std::string
 down_cast_from_wstring(const std::wstring& wide_string);
+
+bool
+parse_uint32(_In_z_ const wchar_t* text, _Out_ uint32_t& value);
 
 /**
  * @brief Parse input string (depicting either interface name, alias, or index) and convert to interface index.

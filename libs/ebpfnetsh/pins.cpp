@@ -4,6 +4,7 @@
 #include "bpf/bpf.h"
 #include "ebpf_api.h"
 #include "ebpf_windows.h"
+#include "namespaces.h"
 #include "pins.h"
 #include "platform.h"
 #include "tokens.h"
@@ -26,6 +27,7 @@ handle_ebpf_show_pins(
     IN LPCVOID data,
     OUT BOOL* done)
 {
+    EBPF_NETSH_NAMESPACE_OVERRIDE(handle_ebpf_show_pins);
     UNREFERENCED_PARAMETER(argv);
     UNREFERENCED_PARAMETER(current_index);
     UNREFERENCED_PARAMETER(argc);

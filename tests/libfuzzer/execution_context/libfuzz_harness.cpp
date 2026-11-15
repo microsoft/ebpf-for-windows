@@ -4,13 +4,14 @@
 #include "ebpf_core.h"
 #include "ebpf_handle.h"
 #include "ebpf_program.h"
-#include "spec/vm_isa.hpp"
 #include "helpers.h"
 #include "libfuzzer.h"
 #include "platform.h"
+#include "spec/vm_isa.hpp"
 
 #include <chrono>
 #include <condition_variable>
+#include <cstdlib>
 #include <ebpf_epoch.h>
 #include <filesystem>
 #include <map>
@@ -18,6 +19,10 @@
 #include <vector>
 
 using namespace prevail;
+
+static const GUID _namespace_fuzz_default = {};
+static const GUID _namespace_fuzz_a = {0x11111111, 0x2222, 0x3333, {1, 2, 3, 4, 5, 6, 7, 8}};
+static const GUID _namespace_fuzz_b = {0xeeeeeeee, 0xdddd, 0xcccc, {8, 7, 6, 5, 4, 3, 2, 1}};
 
 extern "C"
 {
@@ -327,8 +332,9 @@ class fuzz_wrapper_global_state
 class fuzz_wrapper
 {
   public:
-    fuzz_wrapper()
+    explicit fuzz_wrapper(bool scoped_fixtures)
     {
+        ebpf_request_context_t context = {};
         for (const auto& type : _program_types) {
             std::string name = "program name";
             std::string file = "file name";
@@ -341,7 +347,7 @@ class fuzz_wrapper
                 {reinterpret_cast<uint8_t*>(file.data()), file.size()},
                 EBPF_CODE_EBPF};
             ebpf_handle_t handle;
-            if (ebpf_program_create_and_initialize(&params, &handle) == EBPF_SUCCESS) {
+            if (ebpf_program_create_and_initialize(&context.namespace_id, &params, &handle) == EBPF_SUCCESS) {
                 handles.push_back(handle);
             } else {
                 throw std::runtime_error("create of program failed");
@@ -375,7 +381,8 @@ class fuzz_wrapper
                 inner_map_handle = map_to_handle[BPF_MAP_TYPE_HASH];
             }
 
-            if (ebpf_core_create_map(&utf8_name, &modified_def, inner_map_handle, &handle) == EBPF_SUCCESS) {
+            if (ebpf_core_create_map(&context.namespace_id, &utf8_name, &modified_def, inner_map_handle, &handle) ==
+                EBPF_SUCCESS) {
                 handles.push_back(handle);
             } else {
                 throw std::runtime_error("create of map " + name + " failed");
@@ -426,6 +433,7 @@ class fuzz_wrapper
             request->program_handle = handles[i];
 
             if (ebpf_core_invoke_protocol_handler(
+                    &context,
                     EBPF_OPERATION_LINK_PROGRAM,
                     request_buffer.data(),
                     static_cast<uint16_t>(request_buffer.size()),
@@ -437,6 +445,23 @@ class fuzz_wrapper
             }
 
             handles.push_back(reply->link_handle);
+        }
+
+        if (scoped_fixtures) {
+            cxplat_utf8_string_t map_name = CXPLAT_UTF8_STRING_FROM_CONST_STRING("ns_fuzz");
+            cxplat_utf8_string_t path = CXPLAT_UTF8_STRING_FROM_CONST_STRING("/fuzz/namespace/shared");
+            ebpf_map_definition_in_memory_t definition{BPF_MAP_TYPE_HASH, 4, 8, 2};
+            for (const GUID* namespace_id : {&_namespace_fuzz_a, &_namespace_fuzz_b}) {
+                ebpf_handle_t handle;
+                if (ebpf_core_create_map(namespace_id, &map_name, &definition, ebpf_handle_invalid, &handle) !=
+                    EBPF_SUCCESS) {
+                    throw std::runtime_error("namespace map fixture creation failed");
+                }
+                handles.push_back(handle);
+                if (ebpf_core_update_pinning(namespace_id, handle, &path) != EBPF_SUCCESS) {
+                    throw std::runtime_error("namespace pin fixture creation failed");
+                }
+            }
         }
     }
     ~fuzz_wrapper()
@@ -459,7 +484,30 @@ std::unique_ptr<fuzz_wrapper_global_state> _fuzz_wrapper_global_state;
 void
 fuzz_ioctl(std::vector<uint8_t>& random_buffer)
 {
-    fuzz_wrapper fuzz_state;
+    const bool scoped_fixtures = random_buffer.size() >= 3 && random_buffer[0] == 0x4e && random_buffer[1] == 0x53;
+    uint8_t selector = 0;
+    if (scoped_fixtures) {
+        selector = random_buffer[2] % 3;
+        random_buffer.erase(random_buffer.begin(), random_buffer.begin() + 3);
+    }
+    fuzz_wrapper fuzz_state(scoped_fixtures);
+    const GUID* selected_namespace = selector == 1   ? &_namespace_fuzz_a
+                                     : selector == 2 ? &_namespace_fuzz_b
+                                                     : &_namespace_fuzz_default;
+    ebpf_namespace_state_t file_state;
+    ebpf_namespace_state_initialize(&file_state);
+    struct file_state_cleanup
+    {
+        ebpf_namespace_state_t* state;
+        ~file_state_cleanup() { ebpf_namespace_state_destroy(state); }
+    } cleanup{&file_state};
+    if (ebpf_namespace_state_set(&file_state, selected_namespace) != EBPF_SUCCESS) {
+        throw std::runtime_error("namespace selection failed");
+    }
+    ebpf_request_context_t context = {};
+    if (ebpf_namespace_state_capture(&file_state, &context) != EBPF_SUCCESS) {
+        throw std::runtime_error("namespace capture failed");
+    }
     bool async = false;
     bool privileged = false;
     std::vector<uint8_t> request;
@@ -537,6 +585,7 @@ fuzz_ioctl(std::vector<uint8_t>& random_buffer)
 
     // Intentionally ignoring minimum_request_size and minimum_reply_size.
     result = ebpf_core_invoke_protocol_handler(
+        &context,
         operation_id,
         random_buffer.data(),
         static_cast<uint16_t>(random_buffer.size()),
@@ -544,6 +593,20 @@ fuzz_ioctl(std::vector<uint8_t>& random_buffer)
         static_cast<uint16_t>(reply.size()),
         async ? &async : nullptr,
         async ? &fuzz_async_completion : nullptr);
+
+    ebpf_request_context_t after = {};
+    if (ebpf_namespace_state_capture(&file_state, &after) != EBPF_SUCCESS) {
+        std::abort();
+    }
+    const GUID* expected_namespace = &context.namespace_id;
+    if (operation_id == EBPF_OPERATION_SET_NAMESPACE && result == EBPF_SUCCESS) {
+        expected_namespace =
+            &reinterpret_cast<const ebpf_operation_set_namespace_request_t*>(random_buffer.data())->namespace_id;
+    }
+    if (memcmp(&after.namespace_id, expected_namespace, sizeof(GUID)) != 0) {
+        // A rejected message must never change the file selection.
+        std::abort();
+    }
 
     if ((result == EBPF_PENDING) && async) {
         {

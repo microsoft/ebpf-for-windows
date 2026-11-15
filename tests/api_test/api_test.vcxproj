@@ -177,8 +177,17 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="api_test_jit.h" />
+    <ClCompile Include="thread_namespace_tests.cpp" />
     <ClInclude Include="header.h" />
     <ClInclude Include="rpc_client.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ItemGroup>
+    <CopyFileToFolders Include="thread_namespace_dll_lifetime.ps1">
+      <DeploymentContent>true</DeploymentContent>
+    </CopyFileToFolders>
+  </ItemGroup>
+  <Target Name="CopyThreadNamespaceLifetimeFixture" AfterTargets="Build">
+    <Copy SourceFiles="$(ProjectDir)thread_namespace_dll_lifetime.ps1" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

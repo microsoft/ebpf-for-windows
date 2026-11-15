@@ -21,6 +21,8 @@
 #include <optional>
 #include <set>
 
+static const GUID _test_default_namespace_id{};
+
 extern "C"
 {
     // program context descriptor helpers
@@ -119,6 +121,11 @@ _test_crud_operations(ebpf_map_type_t map_type)
         ebpf_assert((false, "Unsupported map type"));
         return;
     }
+    std::optional<scoped_cpu_affinity> lru_affinity;
+    if (map_type == BPF_MAP_TYPE_LRU_HASH) {
+        // Equal approximate timestamps make eviction order partition-local after CPU migration.
+        lru_affinity.emplace(0);
+    }
     std::optional<emulate_dpc_t> dpc;
     if (run_at_dpc) {
         dpc = {emulate_dpc_t(1)};
@@ -130,7 +137,9 @@ _test_crud_operations(ebpf_map_type_t map_type)
         ebpf_map_t* local_map;
         cxplat_utf8_string_t map_name = {0};
         REQUIRE(
-            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+            ebpf_map_create(
+                &_test_default_namespace_id, &map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
+            EBPF_SUCCESS);
         map.reset(local_map);
     }
     std::vector<uint8_t> value(ebpf_map_get_definition(map.get())->value_size);
@@ -348,7 +357,9 @@ TEST_CASE("map_no_max_entries_flag", "[execution_context]")
         ebpf_map_t* local_map;
         cxplat_utf8_string_t map_name = {0};
         REQUIRE(
-            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+            ebpf_map_create(
+                &_test_default_namespace_id, &map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
+            EBPF_SUCCESS);
         map.reset(local_map);
     }
     std::vector<uint8_t> value(ebpf_map_get_definition(map.get())->value_size);
@@ -403,7 +414,8 @@ TEST_CASE("map_no_max_entries_flag_invalid_for_array", "[execution_context][nega
     ebpf_map_t* local_map;
     cxplat_utf8_string_t map_name = {0};
     REQUIRE(
-        ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
+        ebpf_map_create(
+            &_test_default_namespace_id, &map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
         EBPF_INVALID_ARGUMENT);
 }
 
@@ -418,7 +430,8 @@ TEST_CASE("map_invalid_flags_rejected", "[execution_context][negative]")
     ebpf_map_t* local_map;
     cxplat_utf8_string_t map_name = {0};
     REQUIRE(
-        ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
+        ebpf_map_create(
+            &_test_default_namespace_id, &map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
         EBPF_INVALID_ARGUMENT);
 }
 
@@ -483,7 +496,9 @@ TEST_CASE("map_create_invalid", "[execution_context][negative]")
         ebpf_handle_t handle;
         ebpf_handle_t inner_handle = ebpf_handle_invalid;
         CAPTURE(name);
-        REQUIRE(ebpf_core_create_map(&utf8_name, &def, inner_handle, &handle) == EBPF_INVALID_ARGUMENT);
+        REQUIRE(
+            ebpf_core_create_map(&_test_default_namespace_id, &utf8_name, &def, inner_handle, &handle) ==
+            EBPF_INVALID_ARGUMENT);
     }
 }
 
@@ -555,7 +570,9 @@ TEST_CASE("map_crud_operations_lpm_trie_32", "[execution_context]")
         ebpf_map_t* local_map;
         cxplat_utf8_string_t map_name = {0};
         REQUIRE(
-            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+            ebpf_map_create(
+                &_test_default_namespace_id, &map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
+            EBPF_SUCCESS);
         map.reset(local_map);
     }
 
@@ -676,7 +693,9 @@ TEST_CASE("map_lpm_trie_no_max_entries_flag", "[execution_context]")
         ebpf_map_t* local_map;
         cxplat_utf8_string_t map_name = {0};
         REQUIRE(
-            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+            ebpf_map_create(
+                &_test_default_namespace_id, &map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
+            EBPF_SUCCESS);
         map.reset(local_map);
     }
 
@@ -724,7 +743,9 @@ TEST_CASE("map_crud_operations_lpm_trie_32", "[execution_context][negative]")
         ebpf_map_t* local_map;
         cxplat_utf8_string_t map_name = {0};
         REQUIRE(
-            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+            ebpf_map_create(
+                &_test_default_namespace_id, &map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
+            EBPF_SUCCESS);
         map.reset(local_map);
     }
 
@@ -917,7 +938,9 @@ TEST_CASE("map_crud_operations_lpm_trie_128", "[execution_context]")
         ebpf_map_t* local_map;
         cxplat_utf8_string_t map_name = {0};
         REQUIRE(
-            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+            ebpf_map_create(
+                &_test_default_namespace_id, &map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
+            EBPF_SUCCESS);
         map.reset(local_map);
     }
 
@@ -1055,7 +1078,9 @@ TEST_CASE("map_crud_operations_queue", "[execution_context]")
         ebpf_map_t* local_map;
         cxplat_utf8_string_t map_name = {0};
         REQUIRE(
-            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+            ebpf_map_create(
+                &_test_default_namespace_id, &map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
+            EBPF_SUCCESS);
         map.reset(local_map);
     }
     uint32_t return_value = MAXUINT32;
@@ -1140,7 +1165,9 @@ TEST_CASE("map_crud_operations_stack", "[execution_context]")
         ebpf_map_t* local_map;
         cxplat_utf8_string_t map_name = {0};
         REQUIRE(
-            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+            ebpf_map_create(
+                &_test_default_namespace_id, &map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
+            EBPF_SUCCESS);
         map.reset(local_map);
     }
     uint32_t return_value = MAXUINT32;
@@ -1316,12 +1343,14 @@ TEST_CASE("name size", "[execution_context]")
     const ebpf_program_parameters_t program_parameters{
         EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND, oversize_name, section_name};
     ebpf_program_t* local_program = nullptr;
-    REQUIRE(ebpf_program_create(&program_parameters, &local_program) == EBPF_INVALID_ARGUMENT);
+    REQUIRE(
+        ebpf_program_create(&_test_default_namespace_id, &program_parameters, &local_program) == EBPF_INVALID_ARGUMENT);
 
     ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_HASH, sizeof(uint32_t), sizeof(uint64_t), 10};
     ebpf_map_t* local_map;
     REQUIRE(
-        ebpf_map_create(&oversize_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
+        ebpf_map_create(
+            &_test_default_namespace_id, &oversize_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
         EBPF_INVALID_ARGUMENT);
 }
 
@@ -1357,7 +1386,9 @@ TEST_CASE("ring_buffer_async_query", "[execution_context][ring_buffer]")
         ebpf_map_t* local_map;
         cxplat_utf8_string_t map_name = {0};
         REQUIRE(
-            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+            ebpf_map_create(
+                &_test_default_namespace_id, &map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
+            EBPF_SUCCESS);
         map.reset(local_map);
     }
 
@@ -1414,7 +1445,9 @@ TEST_CASE("ring_buffer_sync_query", "[execution_context][ring_buffer]")
         ebpf_map_t* local_map;
         cxplat_utf8_string_t map_name = {0};
         REQUIRE(
-            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+            ebpf_map_create(
+                &_test_default_namespace_id, &map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
+            EBPF_SUCCESS);
         map.reset(local_map);
     }
 
@@ -1457,7 +1490,9 @@ TEST_CASE("perf_event_array_unsupported_ops", "[execution_context][perf_event_ar
         ebpf_map_t* local_map;
         cxplat_utf8_string_t map_name = {0};
         REQUIRE(
-            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+            ebpf_map_create(
+                &_test_default_namespace_id, &map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
+            EBPF_SUCCESS);
         map.reset(local_map);
     }
 
@@ -1507,7 +1542,9 @@ TEST_CASE("perf_event_array_map_unmap_remap", "[execution_context][perf_event_ar
         ebpf_map_t* local_map;
         cxplat_utf8_string_t map_name = {0};
         REQUIRE(
-            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+            ebpf_map_create(
+                &_test_default_namespace_id, &map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
+            EBPF_SUCCESS);
         map.reset(local_map);
     }
 
@@ -1567,7 +1604,9 @@ TEST_CASE("ring_buffer_map_unmap_remap", "[execution_context][ring_buffer]")
         ebpf_map_t* local_map;
         cxplat_utf8_string_t map_name = {0};
         REQUIRE(
-            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+            ebpf_map_create(
+                &_test_default_namespace_id, &map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
+            EBPF_SUCCESS);
         map.reset(local_map);
     }
 
@@ -1624,7 +1663,9 @@ TEST_CASE("ring_buffer_get_user_mapping_handle", "[execution_context][ring_buffe
         ebpf_map_t* local_map;
         cxplat_utf8_string_t map_name = {0};
         REQUIRE(
-            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+            ebpf_map_create(
+                &_test_default_namespace_id, &map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
+            EBPF_SUCCESS);
         map.reset(local_map);
     }
 
@@ -1729,7 +1770,9 @@ TEST_CASE("perf_event_array_output", "[execution_context][perf_event_array]")
         ebpf_map_t* local_map;
         cxplat_utf8_string_t map_name = {0};
         REQUIRE(
-            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+            ebpf_map_create(
+                &_test_default_namespace_id, &map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
+            EBPF_SUCCESS);
         map.reset(local_map);
     }
     uint32_t cpu_id = 0;
@@ -1795,7 +1838,9 @@ TEST_CASE("perf_event_array_output_percpu", "[execution_context][perf_event_arra
         ebpf_map_t* local_map;
         cxplat_utf8_string_t map_name = {0};
         REQUIRE(
-            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+            ebpf_map_create(
+                &_test_default_namespace_id, &map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
+            EBPF_SUCCESS);
         map.reset(local_map);
     }
 
@@ -1903,7 +1948,9 @@ TEST_CASE("perf_event_array_output_capture", "[execution_context][perf_event_arr
         ebpf_map_t* local_map;
         cxplat_utf8_string_t map_name = {0};
         REQUIRE(
-            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+            ebpf_map_create(
+                &_test_default_namespace_id, &map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
+            EBPF_SUCCESS);
         map.reset(local_map);
     }
     uint32_t cpu_id = 0;
@@ -2049,7 +2096,9 @@ TEST_CASE("perf_event_array_async_query", "[execution_context][perf_event_array]
         ebpf_map_t* local_map;
         cxplat_utf8_string_t map_name = {0};
         REQUIRE(
-            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+            ebpf_map_create(
+                &_test_default_namespace_id, &map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
+            EBPF_SUCCESS);
         map.reset(local_map);
     }
 
@@ -2191,7 +2240,9 @@ TEST_CASE("perf_event_array_sync_query", "[execution_context][perf_event_array]"
         ebpf_map_t* local_map;
         cxplat_utf8_string_t map_name = {0};
         REQUIRE(
-            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+            ebpf_map_create(
+                &_test_default_namespace_id, &map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
+            EBPF_SUCCESS);
         map.reset(local_map);
     }
 
@@ -2313,7 +2364,9 @@ TEST_CASE("perf_event_array_oob_index", "[execution_context][perf_event_array]")
         ebpf_map_t* local_map;
         cxplat_utf8_string_t map_name = {0};
         REQUIRE(
-            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+            ebpf_map_create(
+                &_test_default_namespace_id, &map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) ==
+            EBPF_SUCCESS);
         map.reset(local_map);
     }
 
@@ -2705,10 +2758,12 @@ TEST_CASE("EBPF_OPERATION_GET_PINNED_OBJECT short header", "[execution_context][
     header->id = EBPF_OPERATION_GET_PINNED_OBJECT;
     header->length = 4; // Less than sizeof(ebpf_operation_header_t).
 
+    ebpf_request_context_t context = {};
     auto completion = [](void*, size_t, ebpf_result_t) {};
 
     REQUIRE(
         ebpf_core_invoke_protocol_handler(
+            &context,
             EBPF_OPERATION_GET_PINNED_OBJECT,
             request_ptr,
             static_cast<uint16_t>(request_size),
@@ -2825,10 +2880,12 @@ TEST_CASE("EBPF_OPERATION_LOAD_NATIVE_MODULE short header", "[execution_context]
     header->id = EBPF_OPERATION_LOAD_NATIVE_MODULE;
     header->length = 12; // Less than sizeof(ebpf_operation_load_native_module_request_t).
 
+    ebpf_request_context_t context = {};
     auto completion = [](void*, size_t, ebpf_result_t) {};
 
     REQUIRE(
         ebpf_core_invoke_protocol_handler(
+            &context,
             EBPF_OPERATION_LOAD_NATIVE_MODULE,
             request_ptr,
             static_cast<uint16_t>(request_size),
@@ -2873,7 +2930,7 @@ test_register_provider(
     {
         ebpf_program_t* local_program = nullptr;
         REQUIRE(
-            ebpf_program_create(&program_parameters, &local_program) ==
+            ebpf_program_create(&_test_default_namespace_id, &program_parameters, &local_program) ==
             (expected_to_succeed ? EBPF_SUCCESS : EBPF_EXTENSION_FAILED_TO_LOAD));
         program.reset(local_program);
         if (expected_to_succeed) {

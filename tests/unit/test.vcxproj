@@ -215,6 +215,8 @@
   <ItemGroup>
     <ClCompile Include="..\..\libs\execution_context\unit\execution_context_unit_test.cpp" />
     <ClCompile Include="..\..\libs\execution_context\unit\execution_context_unit_test_jit.cpp" />
+    <ClCompile Include="..\..\libs\execution_context\unit\namespace_objects_unit_test.cpp" />
+    <ClCompile Include="..\..\libs\execution_context\unit\namespace_native_unit_test.cpp" />
     <ClCompile Include="..\..\libs\runtime\unit\platform_unit_test.cpp" />
     <ClCompile Include="..\..\libs\thunk\mock\mock.cpp" />
     <ClCompile Include="..\end_to_end\end_to_end.cpp" />
@@ -225,6 +227,9 @@
     <ClCompile Include="ebpfcore_test.cpp" />
     <ClCompile Include="export_program_info_test.cpp" />
     <ClCompile Include="libbpf_test.cpp" />
+    <ClCompile Include="..\api_test\thread_namespace_tests.cpp">
+      <PreprocessorDefinitions>EBPF_NAMESPACE_UNIT_TEST;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
     <ClCompile Include="libbpf_test_jit.cpp" />
   </ItemGroup>
   <ItemGroup>

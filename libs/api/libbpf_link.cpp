@@ -10,6 +10,7 @@
 struct bpf_link*
 bpf_link__open(const char* path)
 {
+    ebpf_api_namespace_guard namespace_guard;
     struct bpf_link* link = nullptr;
     fd_t link_fd;
     ebpf_result_t result;
@@ -36,6 +37,12 @@ bpf_link__open(const char* path)
         return nullptr;
     }
     link->disconnected = false;
+    result = ebpf_get_namespace_for_pin(&link->pinned_namespace);
+    if (result != EBPF_SUCCESS) {
+        ebpf_link_close(link);
+        libbpf_result_err(result);
+        return nullptr;
+    }
 
     return link;
 }
@@ -43,21 +50,30 @@ bpf_link__open(const char* path)
 int
 bpf_link__pin(struct bpf_link* link, const char* path)
 {
+    ebpf_api_namespace_guard namespace_guard;
     ebpf_result_t result;
+    GUID namespace_id;
+    result = ebpf_get_namespace_for_pin(&namespace_id);
+    if (result != EBPF_SUCCESS) {
+        return libbpf_result_err(result);
+    }
 
-    if (link->pin_path) {
+    if (link->pin_path && IsEqualGUID(link->pinned_namespace, namespace_id)) {
         return libbpf_err(-EBUSY);
     }
 
-    link->pin_path = cxplat_duplicate_string(path);
-    if (!link->pin_path) {
+    char* pin_path = cxplat_duplicate_string(path);
+    if (!pin_path) {
         return libbpf_err(-ENOMEM);
     }
 
-    result = ebpf_object_pin(link->fd, link->pin_path);
+    result = ebpf_object_pin(link->fd, pin_path);
     if (result != EBPF_SUCCESS) {
+        ebpf_free(pin_path);
+    } else {
         ebpf_free(link->pin_path);
-        link->pin_path = nullptr;
+        link->pin_path = pin_path;
+        link->pinned_namespace = namespace_id;
     }
 
     return libbpf_result_err(result);
@@ -66,7 +82,13 @@ bpf_link__pin(struct bpf_link* link, const char* path)
 int
 bpf_link__unpin(struct bpf_link* link)
 {
+    ebpf_api_namespace_guard namespace_guard;
     ebpf_result_t result;
+    GUID namespace_id;
+    result = ebpf_get_namespace_for_pin(&namespace_id);
+    if (result != EBPF_SUCCESS) {
+        return libbpf_result_err(result);
+    }
 
     if (!link->pin_path) {
         return libbpf_err(-ENOENT);
@@ -77,8 +99,10 @@ bpf_link__unpin(struct bpf_link* link)
         return libbpf_result_err(result);
     }
 
-    ebpf_free(link->pin_path);
-    link->pin_path = nullptr;
+    if (IsEqualGUID(link->pinned_namespace, namespace_id)) {
+        ebpf_free(link->pin_path);
+        link->pin_path = nullptr;
+    }
     return 0;
 }
 

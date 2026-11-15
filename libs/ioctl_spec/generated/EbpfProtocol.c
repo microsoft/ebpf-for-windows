@@ -5935,6 +5935,815 @@ ValidateGenericBody(
 }
 
 static inline uint64_t
+ValidateGuidBody(
+    uint16_t MessageLength,
+    uint8_t *Ctxt,
+    void (*Err)(
+        EverParseString x0,
+        EverParseString x1,
+        EverParseString x2,
+        uint8_t *x3,
+        uint8_t *x4,
+        uint64_t x5),
+    uint8_t *Input,
+    uint64_t InputLength,
+    uint64_t StartPosition)
+{
+    uint64_t positionAfternone = StartPosition;
+    uint64_t positionAfterGuidBody;
+    if (EverParseIsError(positionAfternone))
+    {
+        positionAfterGuidBody = positionAfternone;
+    }
+    else
+    {
+        BOOLEAN
+        noneConstraintIsOk =
+            MessageLength ==
+            (uint16_t)(EBPFPROTOCOL____HEADER_SIZE + (uint8_t)16U);
+        uint64_t positionAfternone1 =
+            EverParseCheckConstraintOk(noneConstraintIsOk, positionAfternone);
+        if (EverParseIsError(positionAfternone1))
+        {
+            positionAfterGuidBody = positionAfternone1;
+        }
+        else
+        {
+            /* Validating field Guid */
+            BOOLEAN
+            hasEnoughBytes = (uint64_t)(uint32_t)(uint8_t)16U <=
+                             (InputLength - positionAfternone1);
+            uint64_t positionAfterGuidBody0;
+            if (!hasEnoughBytes)
+            {
+                positionAfterGuidBody0 = EverParseSetValidatorErrorPos(
+                    EVERPARSE_VALIDATOR_ERROR_NOT_ENOUGH_DATA,
+                    positionAfternone1);
+            }
+            else
+            {
+                uint8_t *truncatedInput = Input;
+                uint64_t truncatedInputLength =
+                    positionAfternone1 + (uint64_t)(uint32_t)(uint8_t)16U;
+                uint64_t result = positionAfternone1;
+                while (TRUE)
+                {
+                    uint64_t position = *&result;
+                    BOOLEAN ite;
+                    if (!((uint64_t)1U <= (truncatedInputLength - position)))
+                    {
+                        ite = TRUE;
+                    }
+                    else
+                    {
+                        /* Checking that we have enough space for a UINT8, i.e.,
+                         * 1 byte */
+                        BOOLEAN hasBytes =
+                            (uint64_t)1U <= (truncatedInputLength - position);
+                        uint64_t positionAfterGuidBody;
+                        if (hasBytes)
+                        {
+                            positionAfterGuidBody = position + (uint64_t)1U;
+                        }
+                        else
+                        {
+                            positionAfterGuidBody =
+                                EverParseSetValidatorErrorPos(
+                                    EVERPARSE_VALIDATOR_ERROR_NOT_ENOUGH_DATA,
+                                    position);
+                        }
+                        uint64_t res;
+                        if (EverParseIsSuccess(positionAfterGuidBody))
+                        {
+                            res = positionAfterGuidBody;
+                        }
+                        else
+                        {
+                            Err("_GUID_BODY",
+                                "Guid.element",
+                                EverParseErrorReasonOfResult(
+                                    positionAfterGuidBody),
+                                Ctxt,
+                                truncatedInput,
+                                position);
+                            res = positionAfterGuidBody;
+                        }
+                        uint64_t result1 = res;
+                        result = result1;
+                        ite = EverParseIsError(result1);
+                    }
+                    if (ite)
+                    {
+                        break;
+                    }
+                }
+                uint64_t res = result;
+                positionAfterGuidBody0 = res;
+            }
+            if (EverParseIsSuccess(positionAfterGuidBody0))
+            {
+                positionAfterGuidBody = positionAfterGuidBody0;
+            }
+            else
+            {
+                Err("_GUID_BODY",
+                    "Guid",
+                    EverParseErrorReasonOfResult(positionAfterGuidBody0),
+                    Ctxt,
+                    Input,
+                    positionAfternone1);
+                positionAfterGuidBody = positionAfterGuidBody0;
+            }
+        }
+    }
+    if (EverParseIsSuccess(positionAfterGuidBody))
+    {
+        return positionAfterGuidBody;
+    }
+    Err("_GUID_BODY",
+        "none",
+        EverParseErrorReasonOfResult(positionAfterGuidBody),
+        Ctxt,
+        Input,
+        StartPosition);
+    return positionAfterGuidBody;
+}
+
+static inline uint64_t
+ValidateGetNamespaceBody(
+    uint16_t MessageLength,
+    uint8_t *Ctxt,
+    void (*Err)(
+        EverParseString x0,
+        EverParseString x1,
+        EverParseString x2,
+        uint8_t *x3,
+        uint8_t *x4,
+        uint64_t x5),
+    uint8_t *Input,
+    uint64_t InputLength,
+    uint64_t StartPosition)
+{
+    uint64_t positionAfternone = StartPosition;
+    uint64_t positionAfterGetNamespaceBody;
+    if (EverParseIsError(positionAfternone))
+    {
+        positionAfterGetNamespaceBody = positionAfternone;
+    }
+    else
+    {
+        BOOLEAN noneConstraintIsOk =
+            MessageLength == (uint16_t)EBPFPROTOCOL____HEADER_SIZE;
+        uint64_t positionAfternone1 =
+            EverParseCheckConstraintOk(noneConstraintIsOk, positionAfternone);
+        if (EverParseIsError(positionAfternone1))
+        {
+            positionAfterGetNamespaceBody = positionAfternone1;
+        }
+        else
+        {
+            /* Validating field Rest */
+            BOOLEAN
+            hasEnoughBytes =
+                (uint64_t)(uint32_t)(
+                    MessageLength - (uint16_t)EBPFPROTOCOL____HEADER_SIZE) <=
+                (InputLength - positionAfternone1);
+            uint64_t positionAfterGetNamespaceBody0;
+            if (!hasEnoughBytes)
+            {
+                positionAfterGetNamespaceBody0 = EverParseSetValidatorErrorPos(
+                    EVERPARSE_VALIDATOR_ERROR_NOT_ENOUGH_DATA,
+                    positionAfternone1);
+            }
+            else
+            {
+                uint8_t *truncatedInput = Input;
+                uint64_t truncatedInputLength =
+                    positionAfternone1 +
+                    (uint64_t)(uint32_t)(
+                        MessageLength - (uint16_t)EBPFPROTOCOL____HEADER_SIZE);
+                uint64_t result = positionAfternone1;
+                while (TRUE)
+                {
+                    uint64_t position = *&result;
+                    BOOLEAN ite;
+                    if (!((uint64_t)1U <= (truncatedInputLength - position)))
+                    {
+                        ite = TRUE;
+                    }
+                    else
+                    {
+                        /* Checking that we have enough space for a UINT8, i.e.,
+                         * 1 byte */
+                        BOOLEAN hasBytes =
+                            (uint64_t)1U <= (truncatedInputLength - position);
+                        uint64_t positionAfterGetNamespaceBody;
+                        if (hasBytes)
+                        {
+                            positionAfterGetNamespaceBody =
+                                position + (uint64_t)1U;
+                        }
+                        else
+                        {
+                            positionAfterGetNamespaceBody =
+                                EverParseSetValidatorErrorPos(
+                                    EVERPARSE_VALIDATOR_ERROR_NOT_ENOUGH_DATA,
+                                    position);
+                        }
+                        uint64_t res;
+                        if (EverParseIsSuccess(positionAfterGetNamespaceBody))
+                        {
+                            res = positionAfterGetNamespaceBody;
+                        }
+                        else
+                        {
+                            Err("_GET_NAMESPACE_BODY",
+                                "Rest.element",
+                                EverParseErrorReasonOfResult(
+                                    positionAfterGetNamespaceBody),
+                                Ctxt,
+                                truncatedInput,
+                                position);
+                            res = positionAfterGetNamespaceBody;
+                        }
+                        uint64_t result1 = res;
+                        result = result1;
+                        ite = EverParseIsError(result1);
+                    }
+                    if (ite)
+                    {
+                        break;
+                    }
+                }
+                uint64_t res = result;
+                positionAfterGetNamespaceBody0 = res;
+            }
+            if (EverParseIsSuccess(positionAfterGetNamespaceBody0))
+            {
+                positionAfterGetNamespaceBody = positionAfterGetNamespaceBody0;
+            }
+            else
+            {
+                Err("_GET_NAMESPACE_BODY",
+                    "Rest",
+                    EverParseErrorReasonOfResult(
+                        positionAfterGetNamespaceBody0),
+                    Ctxt,
+                    Input,
+                    positionAfternone1);
+                positionAfterGetNamespaceBody = positionAfterGetNamespaceBody0;
+            }
+        }
+    }
+    if (EverParseIsSuccess(positionAfterGetNamespaceBody))
+    {
+        return positionAfterGetNamespaceBody;
+    }
+    Err("_GET_NAMESPACE_BODY",
+        "none",
+        EverParseErrorReasonOfResult(positionAfterGetNamespaceBody),
+        Ctxt,
+        Input,
+        StartPosition);
+    return positionAfterGetNamespaceBody;
+}
+
+static inline uint64_t
+ValidateDeletePinReceiptBody(
+    uint16_t MessageLength,
+    uint8_t *Ctxt,
+    void (*Err)(
+        EverParseString x0,
+        EverParseString x1,
+        EverParseString x2,
+        uint8_t *x3,
+        uint8_t *x4,
+        uint64_t x5),
+    uint8_t *Input,
+    uint64_t InputLength,
+    uint64_t StartPosition)
+{
+    uint64_t positionAfternone = StartPosition;
+    uint64_t positionAfterDeletePinReceiptBody;
+    if (EverParseIsError(positionAfternone))
+    {
+        positionAfterDeletePinReceiptBody = positionAfternone;
+    }
+    else
+    {
+        BOOLEAN noneConstraintIsOk = MessageLength > (uint16_t)(uint8_t)24U;
+        uint64_t positionAfternone1 =
+            EverParseCheckConstraintOk(noneConstraintIsOk, positionAfternone);
+        if (EverParseIsError(positionAfternone1))
+        {
+            positionAfterDeletePinReceiptBody = positionAfternone1;
+        }
+        else
+        {
+            /* Validating field Handle */
+            BOOLEAN
+            hasEnoughBytes0 = (uint64_t)(uint32_t)(uint8_t)8U <=
+                              (InputLength - positionAfternone1);
+            uint64_t positionAfterDeletePinReceiptBody0;
+            if (!hasEnoughBytes0)
+            {
+                positionAfterDeletePinReceiptBody0 =
+                    EverParseSetValidatorErrorPos(
+                        EVERPARSE_VALIDATOR_ERROR_NOT_ENOUGH_DATA,
+                        positionAfternone1);
+            }
+            else
+            {
+                uint8_t *truncatedInput = Input;
+                uint64_t truncatedInputLength =
+                    positionAfternone1 + (uint64_t)(uint32_t)(uint8_t)8U;
+                uint64_t result = positionAfternone1;
+                while (TRUE)
+                {
+                    uint64_t position = *&result;
+                    BOOLEAN ite;
+                    if (!((uint64_t)1U <= (truncatedInputLength - position)))
+                    {
+                        ite = TRUE;
+                    }
+                    else
+                    {
+                        /* Checking that we have enough space for a UINT8, i.e.,
+                         * 1 byte */
+                        BOOLEAN hasBytes =
+                            (uint64_t)1U <= (truncatedInputLength - position);
+                        uint64_t positionAfterDeletePinReceiptBody;
+                        if (hasBytes)
+                        {
+                            positionAfterDeletePinReceiptBody =
+                                position + (uint64_t)1U;
+                        }
+                        else
+                        {
+                            positionAfterDeletePinReceiptBody =
+                                EverParseSetValidatorErrorPos(
+                                    EVERPARSE_VALIDATOR_ERROR_NOT_ENOUGH_DATA,
+                                    position);
+                        }
+                        uint64_t res;
+                        if (EverParseIsSuccess(
+                                positionAfterDeletePinReceiptBody))
+                        {
+                            res = positionAfterDeletePinReceiptBody;
+                        }
+                        else
+                        {
+                            Err("_DELETE_PIN_RECEIPT_BODY",
+                                "Handle.element",
+                                EverParseErrorReasonOfResult(
+                                    positionAfterDeletePinReceiptBody),
+                                Ctxt,
+                                truncatedInput,
+                                position);
+                            res = positionAfterDeletePinReceiptBody;
+                        }
+                        uint64_t result1 = res;
+                        result = result1;
+                        ite = EverParseIsError(result1);
+                    }
+                    if (ite)
+                    {
+                        break;
+                    }
+                }
+                uint64_t res = result;
+                positionAfterDeletePinReceiptBody0 = res;
+            }
+            uint64_t positionAfterHandle;
+            if (EverParseIsSuccess(positionAfterDeletePinReceiptBody0))
+            {
+                positionAfterHandle = positionAfterDeletePinReceiptBody0;
+            }
+            else
+            {
+                Err("_DELETE_PIN_RECEIPT_BODY",
+                    "Handle",
+                    EverParseErrorReasonOfResult(
+                        positionAfterDeletePinReceiptBody0),
+                    Ctxt,
+                    Input,
+                    positionAfternone1);
+                positionAfterHandle = positionAfterDeletePinReceiptBody0;
+            }
+            if (EverParseIsError(positionAfterHandle))
+            {
+                positionAfterDeletePinReceiptBody = positionAfterHandle;
+            }
+            else
+            {
+                /* Checking that we have enough space for a UINT64, i.e., 8
+                 * bytes */
+                BOOLEAN hasBytes0 =
+                    (uint64_t)8U <= (InputLength - positionAfterHandle);
+                uint64_t positionAfternone2;
+                if (hasBytes0)
+                {
+                    positionAfternone2 = positionAfterHandle + (uint64_t)8U;
+                }
+                else
+                {
+                    positionAfternone2 = EverParseSetValidatorErrorPos(
+                        EVERPARSE_VALIDATOR_ERROR_NOT_ENOUGH_DATA,
+                        positionAfterHandle);
+                }
+                uint64_t positionAfterDeletePinReceiptBody0;
+                if (EverParseIsError(positionAfternone2))
+                {
+                    positionAfterDeletePinReceiptBody0 = positionAfternone2;
+                }
+                else
+                {
+                    uint64_t none1 =
+                        Load64Le(Input + (uint32_t)positionAfterHandle);
+                    BOOLEAN noneConstraintIsOk1 =
+                        none1 != (uint64_t)(uint8_t)0U;
+                    uint64_t positionAfternone3 = EverParseCheckConstraintOk(
+                        noneConstraintIsOk1, positionAfternone2);
+                    if (EverParseIsError(positionAfternone3))
+                    {
+                        positionAfterDeletePinReceiptBody0 = positionAfternone3;
+                    }
+                    else
+                    {
+                        /* Validating field Path */
+                        BOOLEAN
+                        hasEnoughBytes =
+                            (uint64_t)(uint32_t)(
+                                MessageLength - (uint16_t)(uint8_t)24U) <=
+                            (InputLength - positionAfternone3);
+                        uint64_t positionAfterDeletePinReceiptBody;
+                        if (!hasEnoughBytes)
+                        {
+                            positionAfterDeletePinReceiptBody =
+                                EverParseSetValidatorErrorPos(
+                                    EVERPARSE_VALIDATOR_ERROR_NOT_ENOUGH_DATA,
+                                    positionAfternone3);
+                        }
+                        else
+                        {
+                            uint8_t *truncatedInput = Input;
+                            uint64_t truncatedInputLength =
+                                positionAfternone3 +
+                                (uint64_t)(uint32_t)(
+                                    MessageLength - (uint16_t)(uint8_t)24U);
+                            uint64_t result = positionAfternone3;
+                            while (TRUE)
+                            {
+                                uint64_t position = *&result;
+                                BOOLEAN ite;
+                                if (!((uint64_t)1U <=
+                                      (truncatedInputLength - position)))
+                                {
+                                    ite = TRUE;
+                                }
+                                else
+                                {
+                                    /* Checking that we have enough space for a
+                                     * UINT8, i.e., 1 byte */
+                                    BOOLEAN hasBytes =
+                                        (uint64_t)1U <=
+                                        (truncatedInputLength - position);
+                                    uint64_t positionAfterDeletePinReceiptBody;
+                                    if (hasBytes)
+                                    {
+                                        positionAfterDeletePinReceiptBody =
+                                            position + (uint64_t)1U;
+                                    }
+                                    else
+                                    {
+                                        positionAfterDeletePinReceiptBody =
+                                            EverParseSetValidatorErrorPos(
+                                                EVERPARSE_VALIDATOR_ERROR_NOT_ENOUGH_DATA,
+                                                position);
+                                    }
+                                    uint64_t res;
+                                    if (EverParseIsSuccess(
+                                            positionAfterDeletePinReceiptBody))
+                                    {
+                                        res = positionAfterDeletePinReceiptBody;
+                                    }
+                                    else
+                                    {
+                                        Err("_DELETE_PIN_RECEIPT_BODY",
+                                            "Path.element",
+                                            EverParseErrorReasonOfResult(
+                                                positionAfterDeletePinReceiptBody),
+                                            Ctxt,
+                                            truncatedInput,
+                                            position);
+                                        res = positionAfterDeletePinReceiptBody;
+                                    }
+                                    uint64_t result1 = res;
+                                    result = result1;
+                                    ite = EverParseIsError(result1);
+                                }
+                                if (ite)
+                                {
+                                    break;
+                                }
+                            }
+                            uint64_t res = result;
+                            positionAfterDeletePinReceiptBody = res;
+                        }
+                        if (EverParseIsSuccess(
+                                positionAfterDeletePinReceiptBody))
+                        {
+                            positionAfterDeletePinReceiptBody0 =
+                                positionAfterDeletePinReceiptBody;
+                        }
+                        else
+                        {
+                            Err("_DELETE_PIN_RECEIPT_BODY",
+                                "Path",
+                                EverParseErrorReasonOfResult(
+                                    positionAfterDeletePinReceiptBody),
+                                Ctxt,
+                                Input,
+                                positionAfternone3);
+                            positionAfterDeletePinReceiptBody0 =
+                                positionAfterDeletePinReceiptBody;
+                        }
+                    }
+                }
+                if (EverParseIsSuccess(positionAfterDeletePinReceiptBody0))
+                {
+                    positionAfterDeletePinReceiptBody =
+                        positionAfterDeletePinReceiptBody0;
+                }
+                else
+                {
+                    Err("_DELETE_PIN_RECEIPT_BODY",
+                        "none",
+                        EverParseErrorReasonOfResult(
+                            positionAfterDeletePinReceiptBody0),
+                        Ctxt,
+                        Input,
+                        positionAfterHandle);
+                    positionAfterDeletePinReceiptBody =
+                        positionAfterDeletePinReceiptBody0;
+                }
+            }
+        }
+    }
+    if (EverParseIsSuccess(positionAfterDeletePinReceiptBody))
+    {
+        return positionAfterDeletePinReceiptBody;
+    }
+    Err("_DELETE_PIN_RECEIPT_BODY",
+        "none",
+        EverParseErrorReasonOfResult(positionAfterDeletePinReceiptBody),
+        Ctxt,
+        Input,
+        StartPosition);
+    return positionAfterDeletePinReceiptBody;
+}
+
+static inline uint64_t
+ValidateLoadNativeProgramsBody(
+    uint16_t MessageLength,
+    uint8_t *Ctxt,
+    void (*Err)(
+        EverParseString x0,
+        EverParseString x1,
+        EverParseString x2,
+        uint8_t *x3,
+        uint8_t *x4,
+        uint64_t x5),
+    uint8_t *Input,
+    uint64_t InputLength,
+    uint64_t StartPosition)
+{
+    uint64_t positionAfternone = StartPosition;
+    uint64_t positionAfterLoadNativeProgramsBody;
+    if (EverParseIsError(positionAfternone))
+    {
+        positionAfterLoadNativeProgramsBody = positionAfternone;
+    }
+    else
+    {
+        BOOLEAN noneConstraintIsOk = MessageLength >= (uint16_t)(uint8_t)24U;
+        uint64_t positionAfternone1 =
+            EverParseCheckConstraintOk(noneConstraintIsOk, positionAfternone);
+        if (EverParseIsError(positionAfternone1))
+        {
+            positionAfterLoadNativeProgramsBody = positionAfternone1;
+        }
+        else
+        {
+            /* Validating field Guid */
+            BOOLEAN
+            hasEnoughBytes0 = (uint64_t)(uint32_t)(uint8_t)16U <=
+                              (InputLength - positionAfternone1);
+            uint64_t positionAfterLoadNativeProgramsBody0;
+            if (!hasEnoughBytes0)
+            {
+                positionAfterLoadNativeProgramsBody0 =
+                    EverParseSetValidatorErrorPos(
+                        EVERPARSE_VALIDATOR_ERROR_NOT_ENOUGH_DATA,
+                        positionAfternone1);
+            }
+            else
+            {
+                uint8_t *truncatedInput = Input;
+                uint64_t truncatedInputLength =
+                    positionAfternone1 + (uint64_t)(uint32_t)(uint8_t)16U;
+                uint64_t result = positionAfternone1;
+                while (TRUE)
+                {
+                    uint64_t position = *&result;
+                    BOOLEAN ite;
+                    if (!((uint64_t)1U <= (truncatedInputLength - position)))
+                    {
+                        ite = TRUE;
+                    }
+                    else
+                    {
+                        /* Checking that we have enough space for a UINT8, i.e.,
+                         * 1 byte */
+                        BOOLEAN hasBytes =
+                            (uint64_t)1U <= (truncatedInputLength - position);
+                        uint64_t positionAfterLoadNativeProgramsBody;
+                        if (hasBytes)
+                        {
+                            positionAfterLoadNativeProgramsBody =
+                                position + (uint64_t)1U;
+                        }
+                        else
+                        {
+                            positionAfterLoadNativeProgramsBody =
+                                EverParseSetValidatorErrorPos(
+                                    EVERPARSE_VALIDATOR_ERROR_NOT_ENOUGH_DATA,
+                                    position);
+                        }
+                        uint64_t res;
+                        if (EverParseIsSuccess(
+                                positionAfterLoadNativeProgramsBody))
+                        {
+                            res = positionAfterLoadNativeProgramsBody;
+                        }
+                        else
+                        {
+                            Err("_LOAD_NATIVE_PROGRAMS_BODY",
+                                "Guid.element",
+                                EverParseErrorReasonOfResult(
+                                    positionAfterLoadNativeProgramsBody),
+                                Ctxt,
+                                truncatedInput,
+                                position);
+                            res = positionAfterLoadNativeProgramsBody;
+                        }
+                        uint64_t result1 = res;
+                        result = result1;
+                        ite = EverParseIsError(result1);
+                    }
+                    if (ite)
+                    {
+                        break;
+                    }
+                }
+                uint64_t res = result;
+                positionAfterLoadNativeProgramsBody0 = res;
+            }
+            uint64_t positionAfterGuid;
+            if (EverParseIsSuccess(positionAfterLoadNativeProgramsBody0))
+            {
+                positionAfterGuid = positionAfterLoadNativeProgramsBody0;
+            }
+            else
+            {
+                Err("_LOAD_NATIVE_PROGRAMS_BODY",
+                    "Guid",
+                    EverParseErrorReasonOfResult(
+                        positionAfterLoadNativeProgramsBody0),
+                    Ctxt,
+                    Input,
+                    positionAfternone1);
+                positionAfterGuid = positionAfterLoadNativeProgramsBody0;
+            }
+            if (EverParseIsError(positionAfterGuid))
+            {
+                positionAfterLoadNativeProgramsBody = positionAfterGuid;
+            }
+            else
+            {
+                /* Validating field PinRootPath */
+                BOOLEAN
+                hasEnoughBytes = (uint64_t)(uint32_t)(
+                                     MessageLength - (uint16_t)(uint8_t)24U) <=
+                                 (InputLength - positionAfterGuid);
+                uint64_t positionAfterLoadNativeProgramsBody0;
+                if (!hasEnoughBytes)
+                {
+                    positionAfterLoadNativeProgramsBody0 =
+                        EverParseSetValidatorErrorPos(
+                            EVERPARSE_VALIDATOR_ERROR_NOT_ENOUGH_DATA,
+                            positionAfterGuid);
+                }
+                else
+                {
+                    uint8_t *truncatedInput = Input;
+                    uint64_t truncatedInputLength =
+                        positionAfterGuid +
+                        (uint64_t)(uint32_t)(
+                            MessageLength - (uint16_t)(uint8_t)24U);
+                    uint64_t result = positionAfterGuid;
+                    while (TRUE)
+                    {
+                        uint64_t position = *&result;
+                        BOOLEAN ite;
+                        if (!((uint64_t)1U <=
+                              (truncatedInputLength - position)))
+                        {
+                            ite = TRUE;
+                        }
+                        else
+                        {
+                            /* Checking that we have enough space for a UINT8,
+                             * i.e., 1 byte */
+                            BOOLEAN hasBytes =
+                                (uint64_t)1U <=
+                                (truncatedInputLength - position);
+                            uint64_t positionAfterLoadNativeProgramsBody;
+                            if (hasBytes)
+                            {
+                                positionAfterLoadNativeProgramsBody =
+                                    position + (uint64_t)1U;
+                            }
+                            else
+                            {
+                                positionAfterLoadNativeProgramsBody =
+                                    EverParseSetValidatorErrorPos(
+                                        EVERPARSE_VALIDATOR_ERROR_NOT_ENOUGH_DATA,
+                                        position);
+                            }
+                            uint64_t res;
+                            if (EverParseIsSuccess(
+                                    positionAfterLoadNativeProgramsBody))
+                            {
+                                res = positionAfterLoadNativeProgramsBody;
+                            }
+                            else
+                            {
+                                Err("_LOAD_NATIVE_PROGRAMS_BODY",
+                                    "PinRootPath.element",
+                                    EverParseErrorReasonOfResult(
+                                        positionAfterLoadNativeProgramsBody),
+                                    Ctxt,
+                                    truncatedInput,
+                                    position);
+                                res = positionAfterLoadNativeProgramsBody;
+                            }
+                            uint64_t result1 = res;
+                            result = result1;
+                            ite = EverParseIsError(result1);
+                        }
+                        if (ite)
+                        {
+                            break;
+                        }
+                    }
+                    uint64_t res = result;
+                    positionAfterLoadNativeProgramsBody0 = res;
+                }
+                if (EverParseIsSuccess(positionAfterLoadNativeProgramsBody0))
+                {
+                    positionAfterLoadNativeProgramsBody =
+                        positionAfterLoadNativeProgramsBody0;
+                }
+                else
+                {
+                    Err("_LOAD_NATIVE_PROGRAMS_BODY",
+                        "PinRootPath",
+                        EverParseErrorReasonOfResult(
+                            positionAfterLoadNativeProgramsBody0),
+                        Ctxt,
+                        Input,
+                        positionAfterGuid);
+                    positionAfterLoadNativeProgramsBody =
+                        positionAfterLoadNativeProgramsBody0;
+                }
+            }
+        }
+    }
+    if (EverParseIsSuccess(positionAfterLoadNativeProgramsBody))
+    {
+        return positionAfterLoadNativeProgramsBody;
+    }
+    Err("_LOAD_NATIVE_PROGRAMS_BODY",
+        "none",
+        EverParseErrorReasonOfResult(positionAfterLoadNativeProgramsBody),
+        Ctxt,
+        Input,
+        StartPosition);
+    return positionAfterLoadNativeProgramsBody;
+}
+
+static inline uint64_t
 ValidateOperationBody(
     uint32_t Id,
     uint16_t MessageLength,
@@ -6261,6 +7070,91 @@ ValidateOperationBody(
     {
         /* Validating field PinnedObjectPath */
         uint64_t positionAfterOperationBody = ValidatePinnedObjectPathBody(
+            MessageLength, Ctxt, Err, Input, InputLen, StartPosition);
+        if (EverParseIsSuccess(positionAfterOperationBody))
+        {
+            return positionAfterOperationBody;
+        }
+        Err("_OPERATION_BODY",
+            "missing",
+            EverParseErrorReasonOfResult(positionAfterOperationBody),
+            Ctxt,
+            Input,
+            StartPosition);
+        return positionAfterOperationBody;
+    }
+    if (Id == (uint32_t)EBPFPROTOCOL____OP_SET_NAMESPACE)
+    {
+        /* Validating field SetNamespace */
+        uint64_t positionAfterOperationBody = ValidateGuidBody(
+            MessageLength, Ctxt, Err, Input, InputLen, StartPosition);
+        if (EverParseIsSuccess(positionAfterOperationBody))
+        {
+            return positionAfterOperationBody;
+        }
+        Err("_OPERATION_BODY",
+            "missing",
+            EverParseErrorReasonOfResult(positionAfterOperationBody),
+            Ctxt,
+            Input,
+            StartPosition);
+        return positionAfterOperationBody;
+    }
+    if (Id == (uint32_t)EBPFPROTOCOL____OP_GET_NAMESPACE)
+    {
+        /* Validating field GetNamespace */
+        uint64_t positionAfterOperationBody = ValidateGetNamespaceBody(
+            MessageLength, Ctxt, Err, Input, InputLen, StartPosition);
+        if (EverParseIsSuccess(positionAfterOperationBody))
+        {
+            return positionAfterOperationBody;
+        }
+        Err("_OPERATION_BODY",
+            "missing",
+            EverParseErrorReasonOfResult(positionAfterOperationBody),
+            Ctxt,
+            Input,
+            StartPosition);
+        return positionAfterOperationBody;
+    }
+    if (Id == (uint32_t)EBPFPROTOCOL____OP_DELETE_PINNING_IF_MATCHES)
+    {
+        /* Validating field DeletePinningIfMatches */
+        uint64_t positionAfterOperationBody = ValidateDeletePinReceiptBody(
+            MessageLength, Ctxt, Err, Input, InputLen, StartPosition);
+        if (EverParseIsSuccess(positionAfterOperationBody))
+        {
+            return positionAfterOperationBody;
+        }
+        Err("_OPERATION_BODY",
+            "missing",
+            EverParseErrorReasonOfResult(positionAfterOperationBody),
+            Ctxt,
+            Input,
+            StartPosition);
+        return positionAfterOperationBody;
+    }
+    if (Id == (uint32_t)EBPFPROTOCOL____OP_LOAD_NATIVE_PROGRAMS_EX)
+    {
+        /* Validating field LoadNativeProgramsEx */
+        uint64_t positionAfterOperationBody = ValidateLoadNativeProgramsBody(
+            MessageLength, Ctxt, Err, Input, InputLen, StartPosition);
+        if (EverParseIsSuccess(positionAfterOperationBody))
+        {
+            return positionAfterOperationBody;
+        }
+        Err("_OPERATION_BODY",
+            "missing",
+            EverParseErrorReasonOfResult(positionAfterOperationBody),
+            Ctxt,
+            Input,
+            StartPosition);
+        return positionAfterOperationBody;
+    }
+    if (Id == (uint32_t)EBPFPROTOCOL____OP_UPDATE_PINNING_EX)
+    {
+        /* Validating field UpdatePinningEx */
+        uint64_t positionAfterOperationBody = ValidateUpdatePinningBody(
             MessageLength, Ctxt, Err, Input, InputLen, StartPosition);
         if (EverParseIsSuccess(positionAfterOperationBody))
         {

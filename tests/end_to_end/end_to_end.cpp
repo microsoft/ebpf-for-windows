@@ -599,8 +599,7 @@ _callgraph_bpf2bpf_test(ebpf_execution_type_t execution_type)
     // Expected return: RESULT_REDIRECT (2).
     {
         program_load_attach_helper_t program_helper;
-        program_helper.initialize(
-            file_name, BPF_PROG_TYPE_SAMPLE, "entry_program1", execution_type, nullptr, 0, hook);
+        program_helper.initialize(file_name, BPF_PROG_TYPE_SAMPLE, "entry_program1", execution_type, nullptr, 0, hook);
 
         INITIALIZE_SAMPLE_CONTEXT;
         uint32_t hook_result = 0;
@@ -612,8 +611,7 @@ _callgraph_bpf2bpf_test(ebpf_execution_type_t execution_type)
     // Expected return: RESULT_PERMIT (1).
     {
         program_load_attach_helper_t program_helper;
-        program_helper.initialize(
-            file_name, BPF_PROG_TYPE_SAMPLE, "entry_program2", execution_type, nullptr, 0, hook);
+        program_helper.initialize(file_name, BPF_PROG_TYPE_SAMPLE, "entry_program2", execution_type, nullptr, 0, hook);
 
         INITIALIZE_SAMPLE_CONTEXT;
         uint32_t hook_result = 0;
@@ -696,13 +694,7 @@ _callgraph_bpf2bpf_test(ebpf_execution_type_t execution_type)
             (execution_type == EBPF_EXECUTION_NATIVE ? "bpf2bpf_loop_um.dll" : "bpf2bpf_loop.o");
         program_load_attach_helper_t program_helper;
         program_helper.initialize(
-            stack_frame_file_name,
-            BPF_PROG_TYPE_SAMPLE,
-            "stack_frame_test_entry",
-            execution_type,
-            nullptr,
-            0,
-            hook);
+            stack_frame_file_name, BPF_PROG_TYPE_SAMPLE, "stack_frame_test_entry", execution_type, nullptr, 0, hook);
 
         INITIALIZE_SAMPLE_CONTEXT;
         uint32_t hook_result = 0;
@@ -738,8 +730,8 @@ sample_ring_buffer_test(ebpf_execution_type_t execution_type)
     const char* error_message = nullptr;
     int result;
 
-    result = ebpf_program_load(
-        file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
@@ -2955,8 +2947,8 @@ TEST_CASE("native custom-root pin rollback", "[end_to_end][native]")
     REQUIRE(bpf_map__set_pin_path(inner_map, port_path) == 0);
     REQUIRE(bpf_object__load(object.get()) == -EEXIST);
     fd_t outer_fd = bpf_obj_get(outer_path);
-    REQUIRE(outer_fd > 0);
-    Platform::_close(outer_fd);
+    REQUIRE(outer_fd < 0);
+    REQUIRE(errno == ENOENT);
     REQUIRE(bpf_obj_get("/ebpf/global/outer_map") < 0);
     REQUIRE(bpf_obj_get("/ebpf/global/port_map") < 0);
 
@@ -2967,7 +2959,6 @@ TEST_CASE("native custom-root pin rollback", "[end_to_end][native]")
     REQUIRE(bpf_obj_get_info_by_fd(pinned_fd, &pinned_info, &info_size) == 0);
     REQUIRE(pinned_info.id == existing_info.id);
     Platform::_close(pinned_fd);
-    REQUIRE(ebpf_object_unpin(outer_path) == EBPF_SUCCESS);
     REQUIRE(bpf_map__unpin(existing_port, nullptr) == 0);
 }
 
@@ -3422,8 +3413,10 @@ TEST_CASE("load_native_program_reply_compatibility", "[end_to_end][native]")
     const size_t reply_length = legacy_reply_size + extra_reply_bytes;
     ebpf_protocol_buffer_t reply_buffer(reply_length + (direct_dispatch ? 1 : 0), 0xa5);
     if (direct_dispatch) {
+        ebpf_request_context_t scope{};
         REQUIRE(
             ebpf_core_invoke_protocol_handler(
+                &scope,
                 EBPF_OPERATION_LOAD_NATIVE_PROGRAMS,
                 request_buffer.data(),
                 static_cast<uint16_t>(request_buffer.size()),

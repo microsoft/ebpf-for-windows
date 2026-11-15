@@ -15,6 +15,9 @@
 #include "ebpf_program.h"
 #include "ebpf_ring_buffer.h"
 #include "ebpf_tracelog.h"
+#if defined(EBPF_RUNTIME_TEST_INSTRUMENTATION)
+#include "ebpf_object_test.h"
+#endif
 
 #define IS_NESTED_ARRAY_MAP(x) ((x) == BPF_MAP_TYPE_ARRAY_OF_MAPS || (x) == BPF_MAP_TYPE_PROG_ARRAY)
 #define IS_NESTED_MAP(x) \
@@ -268,10 +271,14 @@ typedef struct _ebpf_core_lru_map
 {
     ebpf_core_map_t core_map; //< Core map structure.
     size_t partition_count;   //< Number of LRU partitions. Limited to a maximum of EBPF_LRU_MAXIMUM_PARTITIONS.
-    uint32_t padding[14];     //< Padding to align the partitions array to cache line size.
+    uint8_t padding[EBPF_CACHE_LINE_SIZE - ((sizeof(ebpf_core_map_t) + sizeof(size_t)) % EBPF_CACHE_LINE_SIZE)];
     __declspec(align(EBPF_CACHE_LINE_SIZE)) ebpf_lru_partition_t
         partitions[1]; //< Array of LRU partitions. Limited to a maximum of EBPF_LRU_MAXIMUM_PARTITIONS.
 } ebpf_core_lru_map_t;
+
+static_assert(
+    EBPF_OFFSET_OF(ebpf_core_lru_map_t, partitions) % EBPF_CACHE_LINE_SIZE == 0,
+    "LRU partitions must begin on a cache line.");
 
 /**
  * @brief Operation being performed on the LRU maps key history.
@@ -791,7 +798,8 @@ _next_array_map_key_and_value(
 }
 
 _Must_inspect_result_ ebpf_result_t
-_associate_inner_map(_Inout_ ebpf_core_object_map_t* object_map, ebpf_handle_t inner_map_handle)
+_associate_inner_map(
+    _In_ const GUID* namespace_id, _Inout_ ebpf_core_object_map_t* object_map, ebpf_handle_t inner_map_handle)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_map_definition_in_memory_t local_map_definition = object_map->core_map.ebpf_map_definition;
@@ -816,6 +824,11 @@ _associate_inner_map(_Inout_ ebpf_core_object_map_t* object_map, ebpf_handle_t i
     if (result != EBPF_SUCCESS) {
         EBPF_LOG_MESSAGE_NTSTATUS(
             EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Get object ref by handle failed.", result);
+        goto Exit;
+    }
+
+    if (memcmp(namespace_id, &inner_map_template_object->namespace_id, sizeof(GUID)) != 0) {
+        result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
 
@@ -889,11 +902,7 @@ _create_object_array_map(
         goto Exit;
     }
 
-    ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, local_map);
-    result = _associate_inner_map(object_map, inner_map_handle);
-    if (result != EBPF_SUCCESS) {
-        goto Exit;
-    }
+    UNREFERENCED_PARAMETER(inner_map_handle);
     *map = local_map;
     local_map = NULL;
 
@@ -973,6 +982,10 @@ static _Requires_lock_held_(object_map->lock) ebpf_result_t _validate_map_value_
 {
     ebpf_result_t result = EBPF_SUCCESS;
     const ebpf_core_map_t* map = &object_map->core_map;
+
+    if (memcmp(&map->object.namespace_id, &value_object->namespace_id, sizeof(GUID)) != 0) {
+        return EBPF_INVALID_ARGUMENT;
+    }
 
     ebpf_program_type_t value_program_type = {0};
     bool is_program_type_set = false;
@@ -1369,11 +1382,7 @@ _create_object_hash_map(
         goto Exit;
     }
 
-    ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, local_map);
-    result = _associate_inner_map(object_map, inner_map_handle);
-    if (result != EBPF_SUCCESS) {
-        goto Exit;
-    }
+    UNREFERENCED_PARAMETER(inner_map_handle);
 
     *map = local_map;
     local_map = NULL;
@@ -2523,7 +2532,7 @@ _map_async_query(
 
     // Allocate and initialize the async query context and queue it up.
     ebpf_core_map_async_query_context_t* context =
-        ebpf_allocate_with_tag(sizeof(ebpf_core_map_async_query_context_t), EBPF_POOL_TAG_ASYNC);
+        ebpf_epoch_allocate_with_tag(sizeof(ebpf_core_map_async_query_context_t), EBPF_POOL_TAG_ASYNC);
     if (!context) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -2588,7 +2597,7 @@ _map_async_query_complete(_In_ const ebpf_core_map_t* map, _Inout_ ebpf_core_map
         ebpf_operation_map_async_query_reply_t* reply =
             EBPF_FROM_FIELD(ebpf_operation_map_async_query_reply_t, async_query_result, async_query_result);
         ebpf_async_complete_with_epoch(context->async_context, sizeof(*reply), EBPF_SUCCESS);
-        ebpf_free(context);
+        ebpf_epoch_free(context);
         context = NULL;
     }
     EBPF_LOG_EXIT();
@@ -2628,7 +2637,7 @@ _map_async_query_cancel(
     ebpf_list_remove_entry(&found_context->entry);
     ebpf_lock_unlock(&async_contexts->lock, state);
     ebpf_async_complete_with_epoch(found_context->async_context, 0, EBPF_CANCELED);
-    ebpf_free(found_context);
+    ebpf_epoch_free(found_context);
 }
 
 static void
@@ -2684,6 +2693,9 @@ _query_perf_event_array_map(
 static void
 _ebpf_ring_buffer_map_cancel_async_query(_In_ _Frees_ptr_ ebpf_core_map_async_query_context_t* context)
 {
+#if defined(EBPF_RUNTIME_TEST_INSTRUMENTATION)
+    (void)ebpf_object_test_invoke(EBPF_OBJECT_TEST_BEFORE_ASYNC_CANCEL, NULL);
+#endif
     EBPF_LOG_ENTRY();
     ebpf_core_ring_buffer_map_t* ring_buffer_map = EBPF_FROM_FIELD(ebpf_core_ring_buffer_map_t, core_map, context->map);
     _map_async_query_cancel(&ring_buffer_map->async, context);
@@ -2715,13 +2727,16 @@ _ebpf_ring_buffer_map_signal_async_query_complete(
 static void
 _ebpf_perf_event_array_map_cancel_async_query(_In_ _Frees_ptr_ ebpf_core_map_async_query_context_t* context)
 {
+#if defined(EBPF_RUNTIME_TEST_INSTRUMENTATION)
+    (void)ebpf_object_test_invoke(EBPF_OBJECT_TEST_BEFORE_ASYNC_CANCEL, NULL);
+#endif
     EBPF_LOG_ENTRY();
     uint32_t cpu_id = (uint32_t)context->index;
     ebpf_core_perf_event_array_map_t* perf_event_array_map =
         EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, context->map);
     if (cpu_id >= perf_event_array_map->ring_count) {
         EBPF_LOG_MESSAGE_UINT64(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Invalid CPU ID", cpu_id);
-        ebpf_free(context);
+        ebpf_epoch_free(context);
     } else {
         ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_id];
         _map_async_query_cancel(&ring->async, context);
@@ -2976,7 +2991,7 @@ _delete_ring_buffer_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
             EBPF_FROM_FIELD(ebpf_core_map_async_query_context_t, entry, temp_list.Flink);
         ebpf_async_complete(context->async_context, 0, EBPF_CANCELED);
         ebpf_list_remove_entry(&context->entry);
-        ebpf_free(context);
+        ebpf_epoch_free(context);
     }
     ebpf_epoch_exit(&epoch_state);
     ebpf_epoch_free(ring_buffer_map);
@@ -3266,7 +3281,7 @@ _delete_perf_event_array_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
                 EBPF_FROM_FIELD(ebpf_core_map_async_query_context_t, entry, temp_list.Flink);
             ebpf_async_complete(context->async_context, 0, EBPF_CANCELED);
             ebpf_list_remove_entry(&context->entry);
-            ebpf_free(context);
+            ebpf_epoch_free(context);
         }
         ebpf_epoch_exit(&epoch_state);
         ebpf_ring_buffer_destroy(ring->ring);
@@ -3785,12 +3800,17 @@ _ebpf_map_delete(_In_ _Post_invalid_ ebpf_core_object_t* object)
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_create(
+    _In_ const GUID* namespace_id,
     _In_ const cxplat_utf8_string_t* map_name,
     _In_ const ebpf_map_definition_in_memory_t* ebpf_map_definition,
     ebpf_handle_t inner_map_handle,
     _Outptr_ ebpf_map_t** ebpf_map)
 {
     EBPF_LOG_ENTRY();
+    *ebpf_map = NULL;
+    if (namespace_id == NULL) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
     ebpf_map_t* local_map = NULL;
     ebpf_map_type_t type = ebpf_map_definition->type;
     ebpf_result_t result = EBPF_SUCCESS;
@@ -3909,6 +3929,14 @@ Initialize:
     local_map->original_value_size = ebpf_map_definition->value_size;
     local_map->properties = properties;
 
+    if (type == BPF_MAP_TYPE_ARRAY_OF_MAPS || type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+        result = _associate_inner_map(
+            namespace_id, EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, local_map), inner_map_handle);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+    }
+
     result = ebpf_duplicate_utf8_string(&local_map->name, map_name);
     if (result != EBPF_SUCCESS) {
         goto Exit;
@@ -3916,7 +3944,13 @@ Initialize:
 
     ebpf_object_get_program_type_t get_program_type = (IS_NESTED_MAP(type)) ? _get_map_program_type : NULL;
     result = EBPF_OBJECT_INITIALIZE(
-        &local_map->object, EBPF_OBJECT_MAP, _ebpf_map_delete, NULL, zero_user_function, get_program_type);
+        namespace_id,
+        &local_map->object,
+        EBPF_OBJECT_MAP,
+        _ebpf_map_delete,
+        NULL,
+        zero_user_function,
+        get_program_type);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -4013,6 +4047,10 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_map_associate_program(_Inout_ ebpf_map_t* map, _In_ const ebpf_program_t* program)
 {
     EBPF_LOG_ENTRY();
+
+    if (memcmp(&map->object.namespace_id, &((const ebpf_core_object_t*)program)->namespace_id, sizeof(GUID)) != 0) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
 
     if (MAP_IS_CUSTOM(map)) {
         EBPF_RETURN_RESULT(ebpf_custom_map_associate_program(map, program));

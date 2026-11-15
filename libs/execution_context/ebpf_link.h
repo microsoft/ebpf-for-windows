@@ -17,6 +17,7 @@ extern "C"
     /**
      * @brief Create a new link object.
      *
+     * @param[in] namespace_id Immutable namespace of the new link.
      * @param[in] attach_type Attach type to load.
      * @param[in] context_data Data to be passed to the hook provider.
      * @param[in] context_data_length Length of the data to be passed to the hook
@@ -28,6 +29,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_link_create(
+        _In_ const GUID* namespace_id,
         ebpf_attach_type_t attach_type,
         _In_reads_(context_data_length) const uint8_t* context_data,
         size_t context_data_length,

@@ -163,6 +163,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\libs\ebpfnetsh\namespaces.h" />
     <ClInclude Include="elf.h" />
     <ClInclude Include="programs.h" />
     <ClInclude Include="resource.h" />

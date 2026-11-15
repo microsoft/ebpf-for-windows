@@ -5,6 +5,7 @@
 #include "elf.h"
 #include "links.h"
 #include "maps.h"
+#include "namespaces.h"
 #include "netsh_hash.h"
 #include "pins.h"
 #include "processes.h"
@@ -52,6 +53,8 @@ DllMain(HMODULE moduleHandle, unsigned long reasonForCall, void* reserved)
 #define CMD_EBPF_ADD_PROGRAM L"program"
 #define CMD_EBPF_DELETE_PROGRAM L"program"
 #define CMD_EBPF_SET_PROGRAM L"program"
+#define CMD_EBPF_SET_NAMESPACE L"namespace"
+#define CMD_EBPF_SHOW_NAMESPACE L"namespace"
 #define CMD_EBPF_SHOW_PROGRAMS L"programs"
 
 #define CMD_EBPF_SHOW_SECTIONS L"sections"
@@ -75,8 +78,10 @@ CMD_ENTRY g_EbpfDeleteCommandTable[] = {
 };
 CMD_ENTRY g_EbpfSetCommandTable[] = {
     CREATE_CMD_ENTRY(EBPF_SET_PROGRAM, handle_ebpf_set_program),
+    CREATE_CMD_ENTRY(EBPF_SET_NAMESPACE, handle_ebpf_set_thread_namespace),
 };
 CMD_ENTRY g_EbpfShowCommandTable[] = {
+    CREATE_CMD_ENTRY(EBPF_SHOW_NAMESPACE, handle_ebpf_show_namespace),
     CREATE_CMD_ENTRY(EBPF_SHOW_DISASSEMBLY, handle_ebpf_show_disassembly),
     CREATE_CMD_ENTRY(EBPF_SHOW_HASH, handle_ebpf_show_hash),
     CREATE_CMD_ENTRY(EBPF_SHOW_LINKS, handle_ebpf_show_links),
@@ -127,11 +132,14 @@ CMD_ENTRY_LONG g_EbpfDeleteCommandTableLong[] = {
 };
 CMD_ENTRY_ORIGINAL g_EbpfSetCommandTableOriginal[] = {
     CREATE_CMD_ENTRY_ORIGINAL(EBPF_SET_PROGRAM, handle_ebpf_set_program),
+    CREATE_CMD_ENTRY_ORIGINAL(EBPF_SET_NAMESPACE, handle_ebpf_set_thread_namespace),
 };
 CMD_ENTRY_LONG g_EbpfSetCommandTableLong[] = {
     CREATE_CMD_ENTRY_LONG(EBPF_SET_PROGRAM, handle_ebpf_set_program),
+    CREATE_CMD_ENTRY_LONG(EBPF_SET_NAMESPACE, handle_ebpf_set_thread_namespace),
 };
 CMD_ENTRY_ORIGINAL g_EbpfShowCommandTableOriginal[] = {
+    CREATE_CMD_ENTRY_ORIGINAL(EBPF_SHOW_NAMESPACE, handle_ebpf_show_namespace),
     CREATE_CMD_ENTRY_ORIGINAL(EBPF_SHOW_DISASSEMBLY, handle_ebpf_show_disassembly),
     CREATE_CMD_ENTRY_ORIGINAL(EBPF_SHOW_HASH, handle_ebpf_show_hash),
     CREATE_CMD_ENTRY_ORIGINAL(EBPF_SHOW_LINKS, handle_ebpf_show_links),
@@ -143,6 +151,7 @@ CMD_ENTRY_ORIGINAL g_EbpfShowCommandTableOriginal[] = {
     CREATE_CMD_ENTRY_ORIGINAL(EBPF_SHOW_VERIFICATION, handle_ebpf_show_verification),
 };
 CMD_ENTRY_LONG g_EbpfShowCommandTableLong[] = {
+    CREATE_CMD_ENTRY_LONG(EBPF_SHOW_NAMESPACE, handle_ebpf_show_namespace),
     CREATE_CMD_ENTRY_LONG(EBPF_SHOW_DISASSEMBLY, handle_ebpf_show_disassembly),
     CREATE_CMD_ENTRY_LONG(EBPF_SHOW_HASH, handle_ebpf_show_hash),
     CREATE_CMD_ENTRY_LONG(EBPF_SHOW_LINKS, handle_ebpf_show_links),

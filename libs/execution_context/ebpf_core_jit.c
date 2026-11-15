@@ -10,8 +10,10 @@
 
 #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 _Must_inspect_result_ ebpf_result_t
-ebpf_core_protocol_load_code(_In_ const ebpf_operation_load_code_request_t* request)
+ebpf_core_protocol_load_code(
+    _In_ const ebpf_request_context_t* context, _In_ const ebpf_operation_load_code_request_t* request)
 {
+    UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
     ebpf_result_t retval;
     uint8_t* code = NULL;
@@ -60,7 +62,9 @@ Done:
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_core_protocol_create_program(
-    _In_ const ebpf_operation_create_program_request_t* request, _Inout_ ebpf_operation_create_program_reply_t* reply)
+    _In_ const ebpf_request_context_t* context,
+    _In_ const ebpf_operation_create_program_request_t* request,
+    _Inout_ ebpf_operation_create_program_reply_t* reply)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t retval;
@@ -106,7 +110,7 @@ ebpf_core_protocol_create_program(
     parameters.file_name.value = file_name;
     parameters.file_name.length = file_name_length;
 
-    retval = ebpf_program_create_and_initialize(&parameters, &reply->program_handle);
+    retval = ebpf_program_create_and_initialize(&context->namespace_id, &parameters, &reply->program_handle);
 
 Done:
     EBPF_RETURN_RESULT(retval);
@@ -116,10 +120,12 @@ Done:
 #if !defined(CONFIG_BPF_JIT_DISABLED)
 _Must_inspect_result_ ebpf_result_t
 ebpf_core_protocol_resolve_helper(
+    _In_ const ebpf_request_context_t* context,
     _In_ const ebpf_operation_resolve_helper_request_t* request,
     _Inout_ ebpf_operation_resolve_helper_reply_t* reply,
     uint16_t reply_length)
 {
+    UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
     uint32_t* request_helper_ids = NULL;
     size_t required_reply_length = 0;
@@ -179,10 +185,12 @@ Done:
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_core_protocol_resolve_map(
+    _In_ const ebpf_request_context_t* context,
     _In_ const struct _ebpf_operation_resolve_map_request* request,
     _Inout_ struct _ebpf_operation_resolve_map_reply* reply,
     uint16_t reply_length)
 {
+    UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
     size_t map_handle_length;
     ebpf_result_t return_value = ebpf_safe_size_t_subtract(
@@ -224,8 +232,11 @@ Done:
 
 _Must_inspect_result_ uint64_t
 ebpf_core_protocol_get_ec_function(
-    _In_ const ebpf_operation_get_ec_function_request_t* request, _Inout_ ebpf_operation_get_ec_function_reply_t* reply)
+    _In_ const ebpf_request_context_t* context,
+    _In_ const ebpf_operation_get_ec_function_request_t* request,
+    _Inout_ ebpf_operation_get_ec_function_reply_t* reply)
 {
+    UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
     if (request->function != EBPF_EC_FUNCTION_LOG) {
         return EBPF_INVALID_ARGUMENT;

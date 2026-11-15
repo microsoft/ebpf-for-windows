@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "ebpf_api.h"
+#include "namespaces.h"
 #include "netsh_hash.h"
 #include "platform.h"
 #include "tokens.h"
@@ -24,6 +25,7 @@ handle_ebpf_show_hash(
     IN LPCVOID data,
     OUT BOOL* done)
 {
+    EBPF_NETSH_NAMESPACE_OVERRIDE(handle_ebpf_show_hash);
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);
     UNREFERENCED_PARAMETER(data);

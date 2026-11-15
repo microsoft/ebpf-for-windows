@@ -20,6 +20,7 @@ bpf_object__name(const struct bpf_object* object)
 int
 bpf_object__pin(struct bpf_object* obj, const char* path)
 {
+    ebpf_api_namespace_guard namespace_guard;
     int err;
 
     err = bpf_object__pin_maps(obj, path);
@@ -29,7 +30,14 @@ bpf_object__pin(struct bpf_object* obj, const char* path)
 
     err = bpf_object__pin_programs(obj, path);
     if (err) {
-        bpf_object__unpin_maps(obj, path);
+        struct bpf_map* map;
+        bpf_object__for_each_map(map, obj)
+        {
+            if (path && map->pin_path) {
+                ebpf_object_unpin_if_matches_cleanup(map->map_fd, map->pin_path, map->pin_cookie);
+                map->pinned = false;
+            }
+        }
         return libbpf_err(err);
     }
 

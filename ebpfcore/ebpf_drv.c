@@ -8,6 +8,8 @@
  * 2. Opens an IOCTL surface that forwards commands to ebpf_core.
  */
 
+#define EBPF_FILE_ID EBPF_FILE_ID_DRIVER
+
 #include "ebpf_core.h"
 #include "ebpf_error.h"
 #include "ebpf_tracelog.h"
@@ -51,10 +53,62 @@ PSECURITY_DESCRIPTOR ebpf_execution_context_privileged_security_descriptor = NUL
 // Pre-Declarations
 //
 static EVT_WDF_FILE_CLOSE _ebpf_driver_file_close;
+static EVT_WDF_DEVICE_FILE_CREATE _ebpf_driver_file_create;
+static EVT_WDF_FILE_CLEANUP _ebpf_driver_file_cleanup;
+static EVT_WDF_IO_IN_CALLER_CONTEXT _ebpf_driver_io_in_caller_context;
 static EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL _ebpf_driver_io_device_control;
 static EVT_WDFDEVICE_WDM_IRP_PREPROCESS _ebpf_driver_query_volume_information;
 static EVT_WDF_REQUEST_CANCEL _ebpf_driver_io_device_control_cancel;
 DRIVER_INITIALIZE DriverEntry;
+
+typedef struct _ebpf_file_context
+{
+    ebpf_namespace_state_t namespace_state;
+    ebpf_list_entry_t pending_requests;
+    bool initialized;
+} ebpf_file_context_t;
+
+WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(ebpf_file_context_t, _ebpf_driver_get_file_context)
+
+typedef struct _ebpf_driver_request_context
+{
+    ebpf_request_context_t scope;
+    ebpf_lock_t lock;
+    ebpf_list_entry_t entry;
+    WDFREQUEST request;
+    WDFFILEOBJECT file;
+    void* input;
+    void* output;
+    uint16_t input_length;
+    uint16_t output_length;
+    ebpf_operation_id_t operation;
+    ebpf_result_t result;
+    size_t completed_length;
+    bool initialized;
+    bool enrolled;
+    bool starting;
+    bool arming;
+    bool registered;
+    bool cancel_active;
+    bool cancel_requested;
+    bool cleanup_visited;
+    bool completed;
+    bool completing;
+    bool terminal;
+} ebpf_driver_request_context_t;
+
+WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(ebpf_driver_request_context_t, _ebpf_driver_get_request_context)
+
+static void
+_ebpf_driver_dispatch_request(
+    _In_ WDFDEVICE device,
+    _In_ WDFREQUEST request,
+    size_t output_buffer_length,
+    size_t input_buffer_length,
+    unsigned long io_control_code);
+
+static void
+_ebpf_driver_cancel_request(_In_ WDFREQUEST request, bool from_framework);
 
 static VOID
 _ebpf_driver_io_device_control(
@@ -690,10 +744,15 @@ _ebpf_driver_initialize_device(WDFDRIVER driver_handle, _Out_ WDFDEVICE* device)
         goto Exit;
     }
 
-    WDF_OBJECT_ATTRIBUTES_INIT(&attributes);
+    WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&attributes, ebpf_file_context_t);
     attributes.SynchronizationScope = WdfSynchronizationScopeNone;
-    WDF_FILEOBJECT_CONFIG_INIT(&file_object_config, NULL, _ebpf_driver_file_close, WDF_NO_EVENT_CALLBACK);
+    WDF_FILEOBJECT_CONFIG_INIT(
+        &file_object_config, _ebpf_driver_file_create, _ebpf_driver_file_close, _ebpf_driver_file_cleanup);
+    file_object_config.FileObjectClass = WdfFileObjectWdfCannotUseFsContexts;
     WdfDeviceInitSetFileObjectConfig(device_initialize, &file_object_config, &attributes);
+#if !defined(USERSIM_DLLMAIN)
+    WdfDeviceInitSetIoInCallerContextCallback(device_initialize, _ebpf_driver_io_in_caller_context);
+#endif
 
     // WDF framework doesn't handle IRP_MJ_QUERY_VOLUME_INFORMATION so register a handler for this IRP.
     status = WdfDeviceInitAssignWdmIrpPreprocessCallback(
@@ -813,28 +872,166 @@ Exit:
 }
 
 static void
+_ebpf_driver_file_create(WDFDEVICE device, WDFREQUEST request, WDFFILEOBJECT file)
+{
+    UNREFERENCED_PARAMETER(device);
+    ebpf_file_context_t* context = _ebpf_driver_get_file_context(file);
+    ebpf_namespace_state_initialize(&context->namespace_state);
+    ebpf_list_initialize(&context->pending_requests);
+    context->initialized = true;
+    WdfRequestComplete(request, STATUS_SUCCESS);
+}
+
+static void
+_ebpf_driver_file_cleanup(WDFFILEOBJECT file)
+{
+    ebpf_file_context_t* context = _ebpf_driver_get_file_context(file);
+    if (!context->initialized) {
+        return;
+    }
+    ebpf_namespace_state_close(&context->namespace_state);
+    for (;;) {
+        WDFREQUEST pending = NULL;
+        ebpf_lock_state_t state = ebpf_lock_lock(&context->namespace_state.lock);
+        for (ebpf_list_entry_t* entry = context->pending_requests.Flink; entry != &context->pending_requests;
+             entry = entry->Flink) {
+            ebpf_driver_request_context_t* request_context =
+                EBPF_FROM_FIELD(ebpf_driver_request_context_t, entry, entry);
+            if (!request_context->cleanup_visited) {
+                request_context->cleanup_visited = true;
+                pending = request_context->request;
+                WdfObjectReference(pending);
+                break;
+            }
+        }
+        ebpf_lock_unlock(&context->namespace_state.lock, state);
+        if (pending == NULL) {
+            break;
+        }
+        _ebpf_driver_cancel_request(pending, false);
+        WdfObjectDereference(pending);
+    }
+}
+
+static void
 _ebpf_driver_file_close(WDFFILEOBJECT wdf_file_object)
 {
     FILE_OBJECT* file_object = WdfFileObjectWdmGetFileObject(wdf_file_object);
     ebpf_core_close_context(file_object->FsContext2);
+    ebpf_file_context_t* context = _ebpf_driver_get_file_context(wdf_file_object);
+    if (context->initialized) {
+        ebpf_namespace_state_destroy(&context->namespace_state);
+        context->initialized = false;
+    }
 }
 
 static void
-_ebpf_driver_io_device_control_complete(_Inout_ void* context, size_t output_buffer_length, ebpf_result_t result)
+_ebpf_driver_request_cleanup(WDFOBJECT object)
 {
-    NTSTATUS status;
-    WDFREQUEST request = (WDFREQUEST)context;
-    status = WdfRequestUnmarkCancelable(request);
-    UNREFERENCED_PARAMETER(status);
-    WdfRequestCompleteWithInformation(request, ebpf_result_to_ntstatus(result), output_buffer_length);
+    ebpf_driver_request_context_t* context = _ebpf_driver_get_request_context(object);
+    if (context->initialized) {
+        EBPF_OBJECT_RELEASE_REFERENCE(context->scope.referenced_object);
+        ebpf_lock_destroy(&context->lock);
+        context->initialized = false;
+    }
+}
+
+static void
+_ebpf_driver_try_complete(WDFREQUEST request)
+{
+    WdfObjectReference(request);
+    ebpf_driver_request_context_t* context = _ebpf_driver_get_request_context(request);
+    ebpf_lock_state_t state = ebpf_lock_lock(&context->lock);
+    if (!context->completed || context->starting || context->arming || context->cancel_active || context->completing ||
+        context->terminal) {
+        ebpf_lock_unlock(&context->lock, state);
+        WdfObjectDereference(request);
+        return;
+    }
+    context->completing = true;
+    bool registered = context->registered;
+    ebpf_lock_unlock(&context->lock, state);
+
+    NTSTATUS status = registered ? WdfRequestUnmarkCancelable(request) : STATUS_SUCCESS;
+    state = ebpf_lock_lock(&context->lock);
+    context->completing = false;
+    if (status == STATUS_CANCELLED || context->cancel_active) {
+        // The cancellation callback may have finished while UnmarkCancelable returned.
+        bool retry = !context->registered && !context->cancel_active;
+        ebpf_lock_unlock(&context->lock, state);
+        if (retry) {
+            _ebpf_driver_try_complete(request);
+        }
+        WdfObjectDereference(request);
+        return;
+    }
+    context->registered = false;
+    context->terminal = true;
+    ebpf_lock_unlock(&context->lock, state);
+
+    ebpf_file_context_t* file_context = _ebpf_driver_get_file_context(context->file);
+    state = ebpf_lock_lock(&file_context->namespace_state.lock);
+    if (context->enrolled) {
+        ebpf_list_remove_entry(&context->entry);
+        context->enrolled = false;
+    }
+    ebpf_lock_unlock(&file_context->namespace_state.lock, state);
+    WdfRequestCompleteWithInformation(request, ebpf_result_to_ntstatus(context->result), context->completed_length);
+    WdfObjectDereference(request);
+    WdfObjectDereference(request);
+}
+
+static void
+_ebpf_driver_io_device_control_complete(_Inout_ void* request_pointer, size_t length, ebpf_result_t result)
+{
+    WDFREQUEST request = (WDFREQUEST)request_pointer;
+    ebpf_driver_request_context_t* context = _ebpf_driver_get_request_context(request);
+    ebpf_lock_state_t state = ebpf_lock_lock(&context->lock);
+    context->completed = true;
+    context->result = result;
+    if (result == EBPF_SUCCESS && length <= context->output_length) {
+        context->completed_length = length;
+    } else if (result == EBPF_INSUFFICIENT_BUFFER) {
+        context->completed_length = context->output_length;
+    } else {
+        context->completed_length = 0;
+        if (result == EBPF_SUCCESS) {
+            context->result = EBPF_INVALID_ARGUMENT;
+        }
+    }
+    ebpf_lock_unlock(&context->lock, state);
+    _ebpf_driver_try_complete(request);
+}
+
+static void
+_ebpf_driver_cancel_request(_In_ WDFREQUEST request, bool from_framework)
+{
+    WdfObjectReference(request);
+    ebpf_driver_request_context_t* context = _ebpf_driver_get_request_context(request);
+    ebpf_lock_state_t state = ebpf_lock_lock(&context->lock);
+    context->cancel_requested = true;
+    if (from_framework) {
+        context->registered = false;
+    }
+    bool cancel = !context->starting && !context->arming && !context->completed && !context->cancel_active;
+    if (cancel) {
+        context->cancel_active = true;
+    }
+    ebpf_lock_unlock(&context->lock, state);
+    if (cancel) {
+        (void)ebpf_core_cancel_protocol_handler(request);
+        state = ebpf_lock_lock(&context->lock);
+        context->cancel_active = false;
+        ebpf_lock_unlock(&context->lock, state);
+    }
+    _ebpf_driver_try_complete(request);
     WdfObjectDereference(request);
 }
 
 static void
 _ebpf_driver_io_device_control_cancel(WDFREQUEST request)
 {
-    // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdfrequest/nc-wdfrequest-evt_wdf_request_cancel
-    ebpf_core_cancel_protocol_handler(request);
+    _ebpf_driver_cancel_request(request, true);
 }
 
 static bool
@@ -872,8 +1069,108 @@ _ebpf_driver_io_device_control(
     size_t input_buffer_length,
     unsigned long io_control_code)
 {
+#if defined(USERSIM_DLLMAIN)
+    _ebpf_driver_dispatch_request(
+        WdfIoQueueGetDevice(queue), request, output_buffer_length, input_buffer_length, io_control_code);
+#else
+    UNREFERENCED_PARAMETER(queue);
+    UNREFERENCED_PARAMETER(output_buffer_length);
+    UNREFERENCED_PARAMETER(input_buffer_length);
+    UNREFERENCED_PARAMETER(io_control_code);
+    ebpf_driver_request_context_t* context = _ebpf_driver_get_request_context(request);
+    ebpf_file_context_t* file_context = _ebpf_driver_get_file_context(context->file);
+    // Keep distinct references for the dispatch stack and eventual terminal completion.
+    WdfObjectReference(request);
+    WdfObjectReference(request);
+    ebpf_lock_state_t state = ebpf_lock_lock(&file_context->namespace_state.lock);
+    bool closing = file_context->namespace_state.closing;
+    if (!closing) {
+        ebpf_list_insert_tail(&file_context->pending_requests, &context->entry);
+        context->enrolled = true;
+    }
+    ebpf_lock_unlock(&file_context->namespace_state.lock, state);
+    if (closing) {
+        context->starting = false;
+        _ebpf_driver_io_device_control_complete(request, 0, EBPF_CANCELED);
+        WdfObjectDereference(request);
+        return;
+    }
+    ebpf_result_t result = ebpf_core_invoke_protocol_handler(
+        &context->scope,
+        context->operation,
+        context->input,
+        context->input_length,
+        context->output,
+        context->output_length,
+        request,
+        _ebpf_driver_io_device_control_complete);
+    state = ebpf_lock_lock(&context->lock);
+    context->starting = false;
+    if (!context->completed && result != EBPF_PENDING) {
+        context->completed = true;
+        context->result = result;
+        context->completed_length = 0;
+    }
+    bool completed = context->completed;
+    if (!completed) {
+        // Core cancellation state now exists; inline completion was deferred during start.
+        context->arming = true;
+        context->registered = true;
+    }
+    ebpf_lock_unlock(&context->lock, state);
+    if (completed) {
+        _ebpf_driver_try_complete(request);
+        WdfObjectDereference(request);
+        return;
+    }
+    NTSTATUS status = WdfRequestMarkCancelableEx(request, _ebpf_driver_io_device_control_cancel);
+    state = ebpf_lock_lock(&context->lock);
+    context->arming = false;
+    if (!NT_SUCCESS(status)) {
+        context->registered = false;
+        context->cancel_requested = true;
+    }
+    bool cancel = context->cancel_requested;
+    ebpf_lock_unlock(&context->lock, state);
+    if (!NT_SUCCESS(status) && status != STATUS_CANCELLED) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, WdfRequestMarkCancelableEx, status);
+    }
+    if (cancel) {
+        _ebpf_driver_cancel_request(request, false);
+    } else {
+        _ebpf_driver_try_complete(request);
+    }
+    WdfObjectDereference(request);
+#endif
+}
+
+static void
+_ebpf_driver_io_in_caller_context(WDFDEVICE device, WDFREQUEST request)
+{
+    WDF_REQUEST_PARAMETERS parameters;
+    WDF_REQUEST_PARAMETERS_INIT(&parameters);
+    WdfRequestGetParameters(request, &parameters);
+    if (parameters.Type != WdfRequestTypeDeviceControl) {
+        WdfRequestComplete(request, STATUS_INVALID_DEVICE_REQUEST);
+        return;
+    }
+    _ebpf_driver_dispatch_request(
+        device,
+        request,
+        parameters.Parameters.DeviceIoControl.OutputBufferLength,
+        parameters.Parameters.DeviceIoControl.InputBufferLength,
+        parameters.Parameters.DeviceIoControl.IoControlCode);
+}
+
+static void
+_ebpf_driver_dispatch_request(
+    _In_ WDFDEVICE device,
+    _In_ WDFREQUEST request,
+    size_t output_buffer_length,
+    size_t input_buffer_length,
+    unsigned long io_control_code)
+{
     NTSTATUS status = STATUS_SUCCESS;
-    WDFDEVICE device;
     void* input_buffer = NULL;
     void* output_buffer = NULL;
     size_t actual_input_length = 0;
@@ -882,9 +1179,11 @@ _ebpf_driver_io_device_control(
     struct _ebpf_operation_header* user_reply = NULL;
     bool async = false;
     bool privileged = false;
-    bool wdf_request_ref_acquired = false;
-
-    device = WdfIoQueueGetDevice(queue);
+    ebpf_request_context_t scope = {0};
+    WDFFILEOBJECT file = NULL;
+#if !defined(USERSIM_DLLMAIN)
+    file = WdfRequestGetFileObject(request);
+#endif
 
     switch (io_control_code) {
     case IOCTL_EBPF_CTL_METHOD_BUFFERED:
@@ -914,7 +1213,6 @@ _ebpf_driver_io_device_control(
             if (input_buffer != NULL) {
                 size_t minimum_request_size = 0;
                 size_t minimum_reply_size = 0;
-                void* async_context = NULL;
 
                 user_request = input_buffer;
                 if (actual_input_length < sizeof(struct _ebpf_operation_header)) {
@@ -936,6 +1234,26 @@ _ebpf_driver_io_device_control(
                     EBPF_LOG_MESSAGE(
                         EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_ERROR, "Caller is not privileged");
                     status = STATUS_ACCESS_DENIED;
+                    goto Done;
+                }
+
+                if (file == NULL) {
+                    // Usersim does not model control FILE_OBJECTs. Never substitute a successful null scope.
+                    status = STATUS_INVALID_DEVICE_STATE;
+                    goto Done;
+                }
+                ebpf_file_context_t* file_context = _ebpf_driver_get_file_context(file);
+                if (!file_context->initialized || WdfFileObjectWdmGetFileObject(file)->FsContext2 != NULL) {
+                    status = STATUS_INVALID_DEVICE_STATE;
+                    goto Done;
+                }
+                status = ebpf_result_to_ntstatus(ebpf_namespace_state_capture(&file_context->namespace_state, &scope));
+                if (!NT_SUCCESS(status)) {
+                    goto Done;
+                }
+                if (actual_input_length < minimum_request_size || user_request->length > actual_input_length ||
+                    user_request->length < minimum_request_size) {
+                    status = STATUS_INVALID_PARAMETER;
                     goto Done;
                 }
 
@@ -987,20 +1305,58 @@ _ebpf_driver_io_device_control(
                 }
 
                 if (async) {
-                    WdfObjectReference(request);
-                    async_context = request;
-                    WdfRequestMarkCancelable(request, _ebpf_driver_io_device_control_cancel);
-                    wdf_request_ref_acquired = true;
+                    WDF_OBJECT_ATTRIBUTES attributes;
+                    WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&attributes, ebpf_driver_request_context_t);
+                    attributes.EvtCleanupCallback = _ebpf_driver_request_cleanup;
+                    ebpf_driver_request_context_t* context = NULL;
+                    status = WdfObjectAllocateContext(request, &attributes, (void**)&context);
+                    if (!NT_SUCCESS(status)) {
+                        goto Done;
+                    }
+                    ebpf_lock_create(&context->lock);
+                    context->initialized = true;
+                    context->scope = scope;
+                    context->scope.namespace_target = NULL;
+                    context->request = request;
+                    context->file = file;
+                    context->input = input_buffer;
+                    context->output = output_buffer;
+                    context->input_length = (uint16_t)actual_input_length;
+                    context->output_length = (uint16_t)actual_output_length;
+                    context->operation = user_request->id;
+                    context->starting = true;
+                    ebpf_handle_t handle = ebpf_handle_invalid;
+                    ebpf_object_type_t type = EBPF_OBJECT_UNKNOWN;
+                    if (user_request->id == EBPF_OPERATION_MAP_ASYNC_QUERY) {
+                        handle = ((const ebpf_operation_map_async_query_request_t*)input_buffer)->map_handle;
+                        type = EBPF_OBJECT_MAP;
+                    } else if (user_request->id == EBPF_OPERATION_PROGRAM_TEST_RUN) {
+                        handle = ((const ebpf_operation_program_test_run_request_t*)input_buffer)->program_handle;
+                        type = EBPF_OBJECT_PROGRAM;
+                    }
+                    if (type != EBPF_OBJECT_UNKNOWN) {
+                        status = ebpf_result_to_ntstatus(
+                            EBPF_OBJECT_REFERENCE_BY_HANDLE(handle, type, &context->scope.referenced_object));
+                        if (!NT_SUCCESS(status)) {
+                            goto Done;
+                        }
+                    }
+                    status = WdfDeviceEnqueueRequest(device, request);
+                    if (NT_SUCCESS(status)) {
+                        return;
+                    }
+                    goto Done;
                 }
 
                 status = ebpf_result_to_ntstatus(ebpf_core_invoke_protocol_handler(
+                    &scope,
                     user_request->id,
                     user_request,
                     (uint16_t)actual_input_length,
                     user_reply,
                     (uint16_t)actual_output_length,
-                    async_context,
-                    _ebpf_driver_io_device_control_complete));
+                    NULL,
+                    NULL));
                 if (status != STATUS_SUCCESS && !EBPF_OPERATION_IS_NTSTATUS_ENUMERATION_END(user_request->id, status)) {
                     EBPF_LOG_NTSTATUS_API_FAILURE(
                         EBPF_TRACELOG_KEYWORD_ERROR, "ebpf_core_invoke_protocol_handler", status);
@@ -1020,13 +1376,9 @@ _ebpf_driver_io_device_control(
 
 Done:
     if (status != STATUS_PENDING) {
-        if (wdf_request_ref_acquired) {
-            ebpf_assert(status != STATUS_SUCCESS);
-            // Async operation failed. Remove cancellable marker.
-            (void)WdfRequestUnmarkCancelable(request);
-            WdfObjectDereference(request);
-        }
-        WdfRequestCompleteWithInformation(request, status, output_buffer_length);
+        // Legacy variable replies do not all set header.length. Warning replies carry retry information.
+        size_t length = (NT_SUCCESS(status) || status == STATUS_BUFFER_OVERFLOW) ? actual_output_length : 0;
+        WdfRequestCompleteWithInformation(request, status, length);
     }
     return;
 }

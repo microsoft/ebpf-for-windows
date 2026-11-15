@@ -122,6 +122,7 @@ EXPORTS
     ebpf_get_ebpf_program_type
     ebpf_get_next_pinned_object_path
     ebpf_get_map_annotations_from_verifier
+    ebpf_get_thread_namespace
     ebpf_get_program_info_from_verifier
     ebpf_get_program_type_by_name
     ebpf_get_program_type_name
@@ -147,6 +148,7 @@ EXPORTS
     ebpf_ring_buffer_map_map_buffer
     ebpf_ring_buffer_map_unmap_buffer
     ebpf_ring_buffer_map_write
+    ebpf_set_thread_namespace
     ebpf_store_delete_btf_resolved_function_provider_information
     ebpf_store_delete_program_information
     ebpf_store_delete_section_information

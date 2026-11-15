@@ -106,6 +106,7 @@
     <ClCompile Include="netsh_hash.cpp" />
     <ClCompile Include="links.cpp" />
     <ClCompile Include="maps.cpp" />
+    <ClCompile Include="namespaces.cpp" />
     <ClCompile Include="pins.cpp" />
     <ClCompile Include="processes.cpp" />
     <ClCompile Include="programs.cpp" />
@@ -116,6 +117,7 @@
     <ClInclude Include="netsh_hash.h" />
     <ClInclude Include="links.h" />
     <ClInclude Include="maps.h" />
+    <ClInclude Include="namespaces.h" />
     <ClInclude Include="pins.h" />
     <ClInclude Include="processes.h" />
     <ClInclude Include="programs.h" />

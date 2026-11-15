@@ -28,6 +28,14 @@ typedef struct _async_ioctl_completion_context
 
 // Handle used for synchronous calls to the driver.
 static thread_local ebpf_handle_t _sync_device_handle = ebpf_handle_invalid;
+static thread_local GUID _thread_namespace{};
+static const GUID _default_namespace{};
+static thread_local uint64_t _thread_namespace_generation;
+static thread_local bool _thread_namespace_valid = true;
+static thread_local bool _sync_device_bound;
+static thread_local size_t _namespace_operation_depth;
+static thread_local ebpf_handle_t _namespace_operation_handle = ebpf_handle_invalid;
+static thread_local bool _namespace_operation_bound;
 // Handle used for asynchronous calls to the driver.
 static ebpf_handle_t _async_device_handle = ebpf_handle_invalid;
 static std::mutex _mutex;
@@ -64,8 +72,14 @@ initialize_sync_device_handle()
         Platform::CreateFile(EBPF_DEVICE_WIN32_NAME, GENERIC_READ | GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, 0, 0);
 
     if (_sync_device_handle == ebpf_handle_invalid) {
-        return win32_error_code_to_ebpf_result(GetLastError());
+        uint32_t error = GetLastError();
+        if (error == ERROR_SUCCESS) {
+            error = ERROR_INVALID_HANDLE;
+            SetLastError(error);
+        }
+        return win32_error_code_to_ebpf_result(error);
     }
+    _sync_device_bound = IsEqualGUID(_thread_namespace, _default_namespace);
 
     return EBPF_SUCCESS;
 }
@@ -85,20 +99,178 @@ void
 clean_up_sync_device_handle()
 {
     if (_sync_device_handle != ebpf_handle_invalid) {
-        Platform::CloseHandle(_sync_device_handle);
+        if (_sync_device_handle != _namespace_operation_handle) {
+            Platform::CloseHandle(_sync_device_handle);
+        }
         _sync_device_handle = ebpf_handle_invalid;
+        _sync_device_bound = false;
     }
 }
 
 ebpf_handle_t
 get_sync_device_handle()
 {
+    if (_namespace_operation_handle != ebpf_handle_invalid) {
+        return _namespace_operation_handle;
+    }
     if (_sync_device_handle == ebpf_handle_invalid) {
         // Ignore failures.
         (void)initialize_sync_device_handle();
     }
 
     return _sync_device_handle;
+}
+
+static uint32_t
+_set_file_namespace(ebpf_handle_t handle, const GUID& namespace_id) noexcept
+{
+    ebpf_operation_set_namespace_request_t request{{sizeof(request), EBPF_OPERATION_SET_NAMESPACE}, namespace_id};
+    uint32_t returned = 0;
+    if (!Platform::DeviceIoControl(
+            handle, IOCTL_EBPF_CTL_METHOD_BUFFERED, &request, sizeof(request), nullptr, 0, &returned, nullptr)) {
+        uint32_t error = GetLastError();
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, DeviceIoControl);
+        return error != ERROR_SUCCESS ? error : ERROR_GEN_FAILURE;
+    }
+    return returned == 0 ? ERROR_SUCCESS : ERROR_INVALID_PARAMETER;
+}
+
+void
+begin_thread_namespace_operation() noexcept
+{
+    ++_namespace_operation_depth;
+}
+
+void
+end_thread_namespace_operation() noexcept
+{
+    ebpf_assert(_namespace_operation_depth != 0);
+    if (--_namespace_operation_depth == 0) {
+        if (_namespace_operation_handle != ebpf_handle_invalid && _namespace_operation_handle != _sync_device_handle) {
+            Platform::CloseHandle(_namespace_operation_handle);
+        }
+        _namespace_operation_handle = ebpf_handle_invalid;
+        _namespace_operation_bound = false;
+    }
+}
+
+uint32_t
+get_sync_device_handle_for_request(
+    _In_reads_bytes_opt_(request_size) const void* request, uint32_t request_size, _Out_ ebpf_handle_t* handle)
+{
+    bool scoped = false;
+    if (request != nullptr && request_size >= sizeof(ebpf_operation_header_t)) {
+        const auto* header = static_cast<const ebpf_operation_header_t*>(request);
+        switch (header->id) {
+        case EBPF_OPERATION_CREATE_PROGRAM:
+        case EBPF_OPERATION_CREATE_MAP:
+        case EBPF_OPERATION_UPDATE_PINNING:
+        case EBPF_OPERATION_UPDATE_PINNING_EX:
+        case EBPF_OPERATION_GET_PINNED_OBJECT:
+        case EBPF_OPERATION_LINK_PROGRAM:
+        case EBPF_OPERATION_GET_LINK_HANDLE_BY_ID:
+        case EBPF_OPERATION_GET_MAP_HANDLE_BY_ID:
+        case EBPF_OPERATION_GET_PROGRAM_HANDLE_BY_ID:
+        case EBPF_OPERATION_GET_NEXT_LINK_ID:
+        case EBPF_OPERATION_GET_NEXT_MAP_ID:
+        case EBPF_OPERATION_GET_NEXT_PROGRAM_ID:
+        case EBPF_OPERATION_GET_PINNED_MAP_INFO:
+        case EBPF_OPERATION_GET_NEXT_PINNED_PROGRAM_PATH:
+        case EBPF_OPERATION_GET_NEXT_PINNED_OBJECT_PATH:
+        case EBPF_OPERATION_LOAD_NATIVE_PROGRAMS:
+        case EBPF_OPERATION_LOAD_NATIVE_PROGRAMS_EX:
+        case EBPF_OPERATION_GET_NAMESPACE:
+            scoped = true;
+            break;
+        case EBPF_OPERATION_UNLINK_PROGRAM:
+            scoped = request_size < EBPF_OFFSET_OF(ebpf_operation_unlink_program_request_t, data) ||
+                     static_cast<const ebpf_operation_unlink_program_request_t*>(request)->link_handle ==
+                         ebpf_handle_invalid;
+            break;
+        default:
+            break;
+        }
+    }
+    if (scoped && !_thread_namespace_valid) {
+        return ERROR_INVALID_STATE;
+    }
+    ebpf_handle_t candidate = get_sync_device_handle();
+    if (candidate == ebpf_handle_invalid) {
+        uint32_t error = GetLastError();
+        return error != ERROR_SUCCESS ? error : ERROR_INVALID_HANDLE;
+    }
+    bool& bound = _namespace_operation_handle != ebpf_handle_invalid ? _namespace_operation_bound : _sync_device_bound;
+    if (scoped && !bound) {
+        uint32_t error = _set_file_namespace(candidate, _thread_namespace);
+        if (error != ERROR_SUCCESS) {
+            clean_up_sync_device_handle();
+            return error;
+        }
+        bound = true;
+        if (candidate == _sync_device_handle) {
+            _sync_device_bound = true;
+        }
+    }
+    if (_namespace_operation_depth != 0 && _namespace_operation_handle == ebpf_handle_invalid) {
+        _namespace_operation_handle = candidate;
+        _namespace_operation_bound = _sync_device_bound;
+    }
+    *handle = candidate;
+    return ERROR_SUCCESS;
+}
+
+ebpf_result_t
+set_thread_namespace(_In_ const GUID* namespace_id) noexcept
+{
+    if (namespace_id == nullptr) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+    if (_namespace_operation_depth != 0) {
+        return EBPF_INVALID_STATE;
+    }
+    bool changed = !IsEqualGUID(*namespace_id, _thread_namespace);
+    if (changed && _thread_namespace_generation == UINT64_MAX) {
+        return EBPF_ARITHMETIC_OVERFLOW;
+    }
+    ebpf_handle_t handle = get_sync_device_handle();
+    if (handle == ebpf_handle_invalid) {
+        return win32_error_code_to_ebpf_result(GetLastError());
+    }
+    ebpf_result_t result = win32_error_code_to_ebpf_result(_set_file_namespace(handle, *namespace_id));
+    if (result != EBPF_SUCCESS) {
+        clean_up_sync_device_handle();
+        return result;
+    }
+    _thread_namespace = *namespace_id;
+    _thread_namespace_generation += changed ? 1 : 0;
+    _thread_namespace_valid = true;
+    _sync_device_bound = true;
+    return EBPF_SUCCESS;
+}
+
+ebpf_result_t
+get_thread_namespace(_Out_ GUID* namespace_id) noexcept
+{
+    if (namespace_id == nullptr) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+    ebpf_operation_get_namespace_request_t request{{sizeof(request), EBPF_OPERATION_GET_NAMESPACE}};
+    ebpf_operation_get_namespace_reply_t reply{};
+    ebpf_result_t result = win32_error_code_to_ebpf_result(invoke_ioctl(request, reply));
+    if (result != EBPF_SUCCESS) {
+        clean_up_sync_device_handle();
+        return result;
+    }
+    if (reply.header.id != EBPF_OPERATION_GET_NAMESPACE || reply.header.length != sizeof(reply) ||
+        !IsEqualGUID(reply.namespace_id, _thread_namespace)) {
+        _thread_namespace_valid = false;
+        clean_up_sync_device_handle();
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_API, "Invalid thread namespace binding reply");
+        return EBPF_INVALID_STATE;
+    }
+    *namespace_id = reply.namespace_id;
+    return EBPF_SUCCESS;
 }
 
 ebpf_handle_t

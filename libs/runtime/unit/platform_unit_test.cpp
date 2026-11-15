@@ -48,6 +48,8 @@
 extern ebpf_helper_function_prototype_t* ebpf_core_helper_function_prototype;
 extern uint32_t ebpf_core_helper_functions_count;
 
+static const GUID _test_default_namespace_id{};
+
 typedef struct _free_ebpf_pinning_table
 {
     void
@@ -693,6 +695,7 @@ TEST_CASE("pinning_test", "[platform]")
         initialize()
         {
             ebpf_result_t return_value = EBPF_OBJECT_INITIALIZE(
+                &_test_default_namespace_id,
                 &object,
                 EBPF_OBJECT_MAP,
                 [](ebpf_core_object_t* object) {
@@ -736,15 +739,22 @@ TEST_CASE("pinning_test", "[platform]")
         pinning_table.reset(local_pinning_table);
     }
 
-    REQUIRE(ebpf_pinning_table_insert(pinning_table.get(), &foo, &an_object.object) == EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_pinning_table_insert(pinning_table.get(), &_test_default_namespace_id, &foo, &an_object.object) ==
+        EBPF_SUCCESS);
     REQUIRE(an_object.object.base.reference_count == 2);
-    REQUIRE(ebpf_pinning_table_insert(pinning_table.get(), &bar, &another_object.object) == EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_pinning_table_insert(pinning_table.get(), &_test_default_namespace_id, &bar, &another_object.object) ==
+        EBPF_SUCCESS);
     REQUIRE(another_object.object.base.reference_count == 2);
-    REQUIRE(ebpf_pinning_table_find(pinning_table.get(), &foo, (ebpf_core_object_t**)&some_object) == EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_pinning_table_find(
+            pinning_table.get(), &_test_default_namespace_id, &foo, (ebpf_core_object_t**)&some_object) ==
+        EBPF_SUCCESS);
     REQUIRE(an_object.object.base.reference_count == 3);
     REQUIRE(some_object == &an_object);
     EBPF_OBJECT_RELEASE_REFERENCE(&some_object->object);
-    REQUIRE(ebpf_pinning_table_delete(pinning_table.get(), &foo) == EBPF_SUCCESS);
+    REQUIRE(ebpf_pinning_table_delete(pinning_table.get(), &_test_default_namespace_id, &foo) == EBPF_SUCCESS);
     REQUIRE(another_object.object.base.reference_count == 2);
 
     ebpf_pinning_table_free(pinning_table.release());

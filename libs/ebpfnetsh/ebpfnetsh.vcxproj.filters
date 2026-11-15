@@ -31,6 +31,9 @@
     <ClCompile Include="maps.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="namespaces.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="links.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -58,6 +61,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="maps.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="namespaces.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="links.h">

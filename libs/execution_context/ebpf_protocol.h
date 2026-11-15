@@ -55,6 +55,11 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_RING_BUFFER_MAP_UNMAP_BUFFER,
     EBPF_OPERATION_EPOCH_SYNCHRONIZE,
     EBPF_OPERATION_LINK_SET_LEGACY_MODE,
+    EBPF_OPERATION_SET_NAMESPACE,
+    EBPF_OPERATION_GET_NAMESPACE,
+    EBPF_OPERATION_DELETE_PINNING_IF_MATCHES,
+    EBPF_OPERATION_LOAD_NATIVE_PROGRAMS_EX,
+    EBPF_OPERATION_UPDATE_PINNING_EX,
 } ebpf_operation_id_t;
 
 static inline bool
@@ -94,6 +99,44 @@ typedef struct _ebpf_operation_header
     uint16_t length;
     ebpf_operation_id_t id;
 } ebpf_operation_header_t;
+
+typedef struct _ebpf_operation_set_namespace_request
+{
+    ebpf_operation_header_t header;
+    GUID namespace_id;
+} ebpf_operation_set_namespace_request_t;
+
+typedef struct _ebpf_operation_get_namespace_request
+{
+    ebpf_operation_header_t header;
+} ebpf_operation_get_namespace_request_t;
+
+typedef struct _ebpf_operation_get_namespace_reply
+{
+    ebpf_operation_header_t header;
+    GUID namespace_id;
+} ebpf_operation_get_namespace_reply_t;
+
+typedef struct _ebpf_operation_delete_pinning_if_matches_request
+{
+    ebpf_operation_header_t header;
+    ebpf_handle_t handle;
+    uint64_t pin_cookie;
+    uint8_t path[1];
+} ebpf_operation_delete_pinning_if_matches_request_t;
+
+typedef struct _ebpf_operation_update_pinning_ex_request
+{
+    ebpf_operation_header_t header;
+    ebpf_handle_t handle;
+    uint8_t path[1];
+} ebpf_operation_update_pinning_ex_request_t;
+
+typedef struct _ebpf_operation_update_pinning_ex_reply
+{
+    ebpf_operation_header_t header;
+    uint64_t pin_cookie;
+} ebpf_operation_update_pinning_ex_reply_t;
 
 typedef enum _ebpf_ec_function
 {
@@ -516,6 +559,17 @@ typedef struct _ebpf_operation_load_native_programs_reply
     // Clients must not use the status bytes for rollback unless this marker is present.
     uint8_t data[1];
 } ebpf_operation_load_native_programs_reply_t;
+
+typedef ebpf_operation_load_native_programs_request_t ebpf_operation_load_native_programs_ex_request_t;
+// Extended data: handles, map ownership bytes, map insertion cookies, creation GUID.
+typedef ebpf_operation_load_native_programs_reply_t ebpf_operation_load_native_programs_ex_reply_t;
+
+typedef enum _ebpf_native_map_pin_ownership
+{
+    EBPF_NATIVE_MAP_PIN_NONE = 0,
+    EBPF_NATIVE_MAP_PIN_CREATED = 1,
+    EBPF_NATIVE_MAP_PIN_REUSED = 2,
+} ebpf_native_map_pin_ownership_t;
 
 typedef struct _ebpf_operation_program_test_run_request
 {

@@ -40,8 +40,8 @@
 #define HEADER_SIZE         8
 #define HEADER_PAD_SIZE     2
 
-// Maximum valid operation ID (EBPF_OPERATION_LINK_SET_LEGACY_MODE = 45)
-#define MAX_OPERATION_ID    45
+// Maximum valid operation ID (EBPF_OPERATION_UPDATE_PINNING_EX = 50)
+#define MAX_OPERATION_ID    50
 
 // Operation IDs that need specific validation
 #define OP_CREATE_PROGRAM                    2
@@ -63,6 +63,11 @@
 #define OP_MAP_DELETE_ELEMENT_BATCH           35
 #define OP_MAP_GET_NEXT_KEY_VALUE_BATCH       36
 #define OP_GET_NEXT_PINNED_OBJECT_PATH       38
+#define OP_SET_NAMESPACE                    46
+#define OP_GET_NAMESPACE                    47
+#define OP_DELETE_PINNING_IF_MATCHES         48
+#define OP_LOAD_NATIVE_PROGRAMS_EX           49
+#define OP_UPDATE_PINNING_EX                 50
 
 // Enum maximums
 #define EBPF_CODE_TYPE_MAX      3     // EBPF_CODE_NATIVE
@@ -440,6 +445,33 @@ where (MessageLength >= HEADER_SIZE)
     UINT8 Rest[:byte-size (UINT32)(MessageLength - HEADER_SIZE)];
 } GENERIC_BODY;
 
+typedef struct _GUID_BODY (UINT16 MessageLength)
+where (MessageLength == HEADER_SIZE + 16)
+{
+    UINT8 Guid[16];
+} GUID_BODY;
+
+typedef struct _GET_NAMESPACE_BODY (UINT16 MessageLength)
+where (MessageLength == HEADER_SIZE)
+{
+    UINT8 Rest[:byte-size (UINT32)(MessageLength - HEADER_SIZE)];
+} GET_NAMESPACE_BODY;
+
+typedef struct _DELETE_PIN_RECEIPT_BODY (UINT16 MessageLength)
+where (MessageLength > 24)
+{
+    UINT8 Handle[8];
+    UINT64 Cookie { Cookie != 0 };
+    UINT8 Path[:byte-size (UINT32)(MessageLength - 24)];
+} DELETE_PIN_RECEIPT_BODY;
+
+typedef struct _LOAD_NATIVE_PROGRAMS_BODY (UINT16 MessageLength)
+where (MessageLength >= 24)
+{
+    UINT8 Guid[16];
+    UINT8 PinRootPath[:byte-size (UINT32)(MessageLength - 24)];
+} LOAD_NATIVE_PROGRAMS_BODY;
+
 
 // ============================================================================
 // Operation body dispatcher
@@ -486,6 +518,16 @@ casetype _OPERATION_BODY (UINT32 Id, UINT16 MessageLength)
             MAP_GET_NEXT_KEY_VALUE_BATCH_BODY(MessageLength)    MapGetNextKeyValueBatch;
         case OP_GET_NEXT_PINNED_OBJECT_PATH:
             PINNED_OBJECT_PATH_BODY(MessageLength)              PinnedObjectPath;
+        case OP_SET_NAMESPACE:
+            GUID_BODY(MessageLength)                            SetNamespace;
+        case OP_GET_NAMESPACE:
+            GET_NAMESPACE_BODY(MessageLength)                   GetNamespace;
+        case OP_DELETE_PINNING_IF_MATCHES:
+            DELETE_PIN_RECEIPT_BODY(MessageLength)               DeletePinningIfMatches;
+        case OP_LOAD_NATIVE_PROGRAMS_EX:
+            LOAD_NATIVE_PROGRAMS_BODY(MessageLength)             LoadNativeProgramsEx;
+        case OP_UPDATE_PINNING_EX:
+            UPDATE_PINNING_BODY(MessageLength)                  UpdatePinningEx;
         default:
             GENERIC_BODY(MessageLength)                         Generic;
     }

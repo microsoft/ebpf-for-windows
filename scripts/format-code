@@ -338,6 +338,10 @@ get_file_list
 
 for file in "${file_list[@]}"
 do
+    # EverParse output must match the generator byte-for-byte.
+    case "${file#./}" in
+        libs/ioctl_spec/generated/*) continue ;;
+    esac
     ((filecount+=1))
     format_command=("${cfargs[@]}" "${file}")
 

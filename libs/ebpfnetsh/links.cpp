@@ -7,6 +7,7 @@
 #include "ebpf_api.h"
 #include "ebpf_windows.h"
 #include "links.h"
+#include "namespaces.h"
 #include "platform.h"
 #include "tokens.h"
 
@@ -29,6 +30,7 @@ handle_ebpf_show_links(
     IN LPCVOID data,
     OUT BOOL* done)
 {
+    EBPF_NETSH_NAMESPACE_OVERRIDE(handle_ebpf_show_links);
     UNREFERENCED_PARAMETER(argv);
     UNREFERENCED_PARAMETER(current_index);
     UNREFERENCED_PARAMETER(argc);

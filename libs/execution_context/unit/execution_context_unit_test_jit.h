@@ -134,7 +134,9 @@ invoke_protocol(
 
     auto completion = [](void*, size_t, ebpf_result_t) {};
 
+    ebpf_request_context_t context = {};
     return ebpf_core_invoke_protocol_handler(
+        &context,
         operation_id,
         request_ptr,
         static_cast<uint16_t>(request_size),

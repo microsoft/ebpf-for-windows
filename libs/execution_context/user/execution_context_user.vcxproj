@@ -9,8 +9,13 @@
     <ClCompile Include="..\ebpf_core_jit.c" />
     <ClCompile Include="..\ebpf_general_helpers.c" />
     <ClCompile Include="..\ebpf_link.c" />
-    <ClCompile Include="..\ebpf_maps.c" />
-    <ClCompile Include="..\ebpf_native.c" />
+    <ClCompile Include="..\ebpf_maps.c">
+      <PreprocessorDefinitions>EBPF_RUNTIME_TEST_INSTRUMENTATION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\runtime\user;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <ClCompile Include="..\ebpf_native.c">
+      <PreprocessorDefinitions>EBPF_RUNTIME_TEST_INSTRUMENTATION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
     <ClCompile Include="..\ebpf_program.c" />
     <ClCompile Include="..\ebpf_strings.c" />
     <ClCompile Include="$(SolutionDir)libs\ioctl_spec\ebpf_protocol_validator.c" />
@@ -21,6 +26,7 @@
     <ClInclude Include="..\ebpf_link.h" />
     <ClInclude Include="..\ebpf_maps.h" />
     <ClInclude Include="..\ebpf_native.h" />
+    <ClInclude Include="ebpf_native_test.h" />
     <ClInclude Include="..\ebpf_program.h" />
     <ClInclude Include="..\ebpf_protocol.h" />
     <ClInclude Include="..\ebpf_strings.h" />

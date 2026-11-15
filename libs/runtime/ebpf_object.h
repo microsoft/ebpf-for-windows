@@ -29,6 +29,7 @@ extern "C"
         EBPF_FILE_ID_PLATFORM_UNIT_TESTS,
         EBPF_FILE_ID_PERFORMANCE_TESTS,
         EBPF_FILE_ID_CORE_HELPER_FUZZER,
+        EBPF_FILE_ID_DRIVER,
     } ebpf_file_id_t;
 
 /**
@@ -55,15 +56,19 @@ extern "C"
  * @brief Macro to locate the next object in the object list and acquire a reference on it and record the file and
  * line number of the reference.
  */
-#define EBPF_OBJECT_REFERENCE_NEXT_OBJECT(object, type, next_object) \
-    ebpf_object_reference_next_object(object, type, next_object, EBPF_FILE_ID, __LINE__)
+#define EBPF_OBJECT_REFERENCE_NEXT_OBJECT(namespace_id, object, type, next_object) \
+    ebpf_object_reference_next_object(namespace_id, object, type, next_object, EBPF_FILE_ID, __LINE__)
+
+// Trusted teardown only; namespace-sensitive discovery must use EBPF_OBJECT_REFERENCE_NEXT_OBJECT.
+#define EBPF_OBJECT_REFERENCE_NEXT_OBJECT_FOR_TEARDOWN(object, type, next_object) \
+    ebpf_object_reference_next_object_for_teardown(object, type, next_object, EBPF_FILE_ID, __LINE__)
 
 /**
  * @brief Macro to locate an object by its ID and acquire a reference on it and record the file and line number of
  * the reference.
  */
-#define EBPF_OBJECT_REFERENCE_BY_ID(object_id, type, object) \
-    ebpf_object_reference_by_id(object_id, type, object, EBPF_FILE_ID, __LINE__)
+#define EBPF_OBJECT_REFERENCE_BY_ID(namespace_id, object_id, type, object) \
+    ebpf_object_reference_by_id(namespace_id, object_id, type, object, EBPF_FILE_ID, __LINE__)
 
 /**
  * @brief Macro to locate an object by its handle and acquire a reference on it and record the file and line number
@@ -104,16 +109,17 @@ extern "C"
  * @brief Macro to initialize an object and record the file and line number of the reference.
  *EBPF_OBJECT_INITIALIZE
  */
-#define EBPF_OBJECT_INITIALIZE(                                                                    \
-    object, object_type, free_object, zero_ref_function, zero_user_ref_function, get_program_type) \
-    ebpf_object_initialize(                                                                        \
-        (ebpf_core_object_t*)(object),                                                             \
-        (object_type),                                                                             \
-        (free_object),                                                                             \
-        (zero_ref_function),                                                                       \
-        (zero_user_ref_function),                                                                  \
-        (get_program_type),                                                                        \
-        EBPF_FILE_ID,                                                                              \
+#define EBPF_OBJECT_INITIALIZE(                                                                                  \
+    namespace_id, object, object_type, free_object, zero_ref_function, zero_user_ref_function, get_program_type) \
+    ebpf_object_initialize(                                                                                      \
+        (namespace_id),                                                                                          \
+        (ebpf_core_object_t*)(object),                                                                           \
+        (object_type),                                                                                           \
+        (free_object),                                                                                           \
+        (zero_ref_function),                                                                                     \
+        (zero_user_ref_function),                                                                                \
+        (get_program_type),                                                                                      \
+        EBPF_FILE_ID,                                                                                            \
         __LINE__)
 
     typedef struct _ebpf_base_object ebpf_base_object_t;
@@ -151,6 +157,7 @@ extern "C"
     {
         ebpf_base_object_t base;        ///< Base object for all reference counted eBPF objects.
         ebpf_object_type_t type;        ///< Type of this object.
+        GUID namespace_id;              ///< Immutable namespace, initialized before ID publication.
         ebpf_free_object_t free_object; ///< Function to free this object.
         ebpf_notify_reference_count_zeroed_t notify_reference_count_zeroed; ///< Function to notify the object that the
                                                                             ///< reference count has reached zero.
@@ -185,6 +192,7 @@ extern "C"
      *
      * @param[in, out] object ebpf_core_object_t structure to initialize.
      * @param[in] object_type The type of the object.
+     * @param[in] namespace_id Immutable namespace of the object.
      * @param[in] free_object The function used to free the object.
      * @param[in] get_program_type The function used to get a program type, or NULL. Each program
      * has a program type, and hence so do maps that can contain programs, whether directly (like
@@ -197,6 +205,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_object_initialize(
+        _In_ const GUID* namespace_id,
         _Inout_ ebpf_core_object_t* object,
         ebpf_object_type_t object_type,
         _In_ ebpf_free_object_t free_object,
@@ -247,6 +256,7 @@ extern "C"
      * @param[in] previous_object Previous object that was found. Can be NULL
      *  to find first object.
      * @param[in] type Type of object to find.
+     * @param[in] namespace_id Namespace to search.
      * @param[out] next_object Pointer to memory containing the next object or
      * @param[in] file_id The file ID of the caller.
      * @param[in] line The line number of the caller.
@@ -254,6 +264,18 @@ extern "C"
      */
     void
     ebpf_object_reference_next_object(
+        _In_ const GUID* namespace_id,
+        _In_opt_ const ebpf_core_object_t* previous_object,
+        ebpf_object_type_t type,
+        _Outptr_result_maybenull_ ebpf_core_object_t** next_object,
+        ebpf_file_id_t file_id,
+        uint32_t line);
+
+    /**
+     * @brief Traverse all namespaces during trusted subsystem teardown only.
+     */
+    void
+    ebpf_object_reference_next_object_for_teardown(
         _In_opt_ const ebpf_core_object_t* previous_object,
         ebpf_object_type_t type,
         _Outptr_result_maybenull_ ebpf_core_object_t** next_object,
@@ -266,6 +288,7 @@ extern "C"
      *
      * @param[in] id ID to find in table.
      * @param[in] object_type Object type to match.
+     * @param[in] namespace_id Namespace to search.
      * @param[out] object Pointer to memory that contains object success.
      * @param[in] file_id The file ID of the caller.
      * @param[in] line The line number of the caller.
@@ -274,6 +297,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_object_reference_by_id(
+        _In_ const GUID* namespace_id,
         ebpf_id_t id,
         ebpf_object_type_t object_type,
         _Outptr_ ebpf_core_object_t** object,
@@ -283,6 +307,7 @@ extern "C"
     /**
      * @brief Obtain pointer to object given its ID and type and do not acquire a reference.
      * Note: The object returned may have a zero reference count and may be freed at the end of the current epoch.
+     * This unscoped helper is only for trusted, already-bound references, never user ID discovery.
      *
      * @param[in] id ID to find in table.
      * @param[in] object_type Object type to match.
@@ -298,11 +323,13 @@ extern "C"
      *
      * @param[in] start_id ID to look for an ID after.  The start_id
      * need not exist.
+     * @param[in] namespace_id Namespace to search.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MORE_KEYS No such IDs found.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_object_get_next_id(ebpf_id_t start_id, ebpf_object_type_t object_type, _Out_ ebpf_id_t* next_id);
+    ebpf_object_get_next_id(
+        _In_ const GUID* namespace_id, ebpf_id_t start_id, ebpf_object_type_t object_type, _Out_ ebpf_id_t* next_id);
 
     /**
      * @brief Find the corresponding handle in the handle table, verify the type matches,

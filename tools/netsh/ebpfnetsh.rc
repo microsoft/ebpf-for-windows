@@ -54,7 +54,7 @@ STRINGTABLE
 BEGIN
     HLP_EBPF_ADD_PROGRAM    "Loads an eBPF program.\n"
     HLP_EBPF_ADD_PROGRAM_EX "\
-\nUsage: %1!s! [filename=]<string>\
+\nUsage: %1!s! [filename=]<string> [namespace={GUID}]\
 \n                   [[type=]<string>]\
 \n                   [[pinpath=]<string>]\
 \n                   [[interface=]<string>]\
@@ -92,7 +92,7 @@ BEGIN
 \n"
     HLP_EBPF_DELETE_PROGRAM "Deletes an eBPF program.\n"
     HLP_EBPF_DELETE_PROGRAM_EX "\
-\nUsage: %1!s! [id=]<integer>\
+\nUsage: %1!s! [id=]<integer> [namespace={GUID}]\
 \n\
 \nParameters:\
 \n\
@@ -109,7 +109,7 @@ BEGIN
 \n"
     HLP_EBPF_SET_PROGRAM    "Updates an eBPF program.\n"
     HLP_EBPF_SET_PROGRAM_EX "\
-\nUsage: %1!s! [id=]<integer>\
+\nUsage: %1!s! [id=]<integer> [namespace={GUID}]\
 \n                   [[attached=]<string>]\
 \n                   [[pinpath=]<string>]\
 \n                   [[interface=]<string>]\
@@ -135,7 +135,7 @@ BEGIN
 \n"
     HLP_EBPF_SHOW_PROGRAMS  "Shows eBPF programs.\n"
     HLP_EBPF_SHOW_PROGRAMS_EX "\
-\nUsage: %1!s! [[type=]<string>]\
+\nUsage: %1!s! [[type=]<string>] [namespace={GUID}]\
 \n                     [[attached=]any|yes|no]\
 \n                     [[pinned=]any|yes|no]\
 \n                     [[level=]normal|verbose]\
@@ -174,7 +174,7 @@ BEGIN
 
     HLP_EBPF_SHOW_DISASSEMBLY "Shows disassembly of an eBPF program.\n"
     HLP_EBPF_SHOW_DISASSEMBLY_EX "\
-\nUsage: %1!s! [filename=]<string> [[section=]<string>] [[program=]<string>]\
+\nUsage: %1!s! [filename=]<string> [[section=]<string>] [[program=]<string>] [namespace={GUID}]\
 \n\
 \nParameters:\
 \n\
@@ -190,7 +190,7 @@ BEGIN
 \n"
     HLP_EBPF_SHOW_SECTIONS  "Shows sections of an eBPF file.\n"
     HLP_EBPF_SHOW_SECTIONS_EX "\
-\nUsage: %1!s! [filename=]<string> [[section=]<string>]\
+\nUsage: %1!s! [filename=]<string> [[section=]<string>] [namespace={GUID}]\
 \n                     [[level=]normal|verbose]\
 \n\
 \nParameters:\
@@ -212,7 +212,7 @@ BEGIN
     HLP_EBPF_SHOW_VERIFICATION
                             "Shows results of trying to verify an eBPF program.\n"
     HLP_EBPF_SHOW_VERIFICATION_EX "\
-\nUsage: %1!s! [filename=]<string> [[section=]<string>] [[program=]<string>]\
+\nUsage: %1!s! [filename=]<string> [[section=]<string>] [[program=]<string>] [namespace={GUID}]\
 \n                     [[type=]<string>] [[level=]normal|verbose]\
 \n\
 \nParameters:\
@@ -237,35 +237,35 @@ BEGIN
 
     HLP_EBPF_SHOW_MAPS  "Shows eBPF maps.\n"
     HLP_EBPF_SHOW_MAPS_EX "\
-\nUsage: %1!s!\
+\nUsage: %1!s! [namespace={GUID}]\
 \n\
 \nRemarks: Shows all loaded maps.\
 \n"
 
     HLP_EBPF_SHOW_LINKS  "Shows eBPF links.\n"
     HLP_EBPF_SHOW_LINKS_EX "\
-\nUsage: %1!s!\
+\nUsage: %1!s! [namespace={GUID}]\
 \n\
 \nRemarks: Shows all loaded links.\
 \n"
 
     HLP_EBPF_SHOW_PINS  "Shows paths used by pinned programs.\n"
     HLP_EBPF_SHOW_PINS_EX "\
-\nUsage: %1!s!\
+\nUsage: %1!s! [namespace={GUID}]\
 \n\
 \nRemarks: Shows pinned program paths.\
 \n"
 
     HLP_EBPF_SHOW_PROCESSES  "Shows processes using eBPF.\n"
     HLP_EBPF_SHOW_PROCESSES_EX "\
-\nUsage: %1!s!\
+\nUsage: %1!s! [namespace={GUID}]\
 \n\
 \nRemarks: Shows processes using eBPF.\
 \n"
 
     HLP_EBPF_SHOW_HASH  "Shows hash embedded in PE file.\n"
     HLP_EBPF_SHOW_HASH_EX "\
-\nUsage: %1!s! <filename>\
+\nUsage: %1!s! <filename> [namespace={GUID}]\
 \n\
 \nParameters:\
 \n\
@@ -276,20 +276,29 @@ BEGIN
 
     HLP_EBPF_PIN_MAP "Pins an eBPF map.\n"
     HLP_EBPF_PIN_MAP_EX "\
-\nUsage: %1 <id> [path]\n"
+\nUsage: %1 <id> [path] [namespace={GUID}]\n"
 
     HLP_EBPF_PIN_PROGRAM "Pin program.\n"
     HLP_EBPF_PIN_PROGRAM_EX "\
-\nUsage: %1 <id> [path]\n"
+\nUsage: %1 <id> [path] [namespace={GUID}]\n"
 
     HLP_EBPF_UNPIN_MAP "Unpin map.\n"
     HLP_EBPF_UNPIN_MAP_EX "\
-\nUsage: %1 <id> [path]\n"
+\nUsage: %1 <id> [path] [namespace={GUID}]\n"
 
     HLP_EBPF_UNPIN_PROGRAM "Unpin program.\n"
     HLP_EBPF_UNPIN_PROGRAM_EX "\
-\nUsage: %1 <id> [path]\n"
+\nUsage: %1 <id> [path] [namespace={GUID}]\n"
 
+    HLP_EBPF_SET_NAMESPACE "Selects the current thread's eBPF namespace.\n"
+    HLP_EBPF_SET_NAMESPACE_EX "\
+\nUsage: %1!s! {GUID}\
+\n\
+\nSelects a namespace for this thread in the current netsh session.\
+\nUse {00000000-0000-0000-0000-000000000000} to reset to the default namespace.\n"
+    HLP_EBPF_SHOW_NAMESPACE "Shows the current thread's eBPF namespace.\n"
+    HLP_EBPF_SHOW_NAMESPACE_EX "\
+\nUsage: %1!s!\n"
 
 END
 

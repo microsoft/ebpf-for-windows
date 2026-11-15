@@ -4,6 +4,7 @@
 #pragma once
 
 #include "cxplat.h"
+#include "ebpf_namespace.h"
 #include "ebpf_object.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
@@ -43,6 +44,7 @@ extern "C"
      * @brief Invoke an operations on the eBPF execution context that was issued
      *  by the user mode library.
      *
+     * @param[in] context Immutable namespace snapshot captured in the requestor's execution context.
      * @param[in] operation_id Identifier of the operation to execute.
      * @param[in] input_buffer Encoded buffer containing parameters for this
      *  operation.
@@ -57,6 +59,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_core_invoke_protocol_handler(
+        _In_ const ebpf_request_context_t* context,
         ebpf_operation_id_t operation_id,
         _In_reads_bytes_(input_buffer_length) const void* input_buffer,
         uint16_t input_buffer_length,
@@ -121,6 +124,7 @@ extern "C"
      * @brief Return a handle to the object which is pinned at the
      *  supplied pin path.
      *
+     * @param[in] namespace_id Namespace in which to resolve the path.
      * @param[in] path Path at which the object is pinned.
      * @param[out] handle Handle to the pinned object.
      *
@@ -128,13 +132,15 @@ extern "C"
      * @retval EBPF_NOT_FOUND No object was pinned to the provided path.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_core_get_pinned_object(_In_ const cxplat_utf8_string_t* path, _Out_ ebpf_handle_t* handle);
+    ebpf_core_get_pinned_object(
+        _In_ const GUID* namespace_id, _In_ const cxplat_utf8_string_t* path, _Out_ ebpf_handle_t* handle);
 
     /**
      * @brief Pin or unpin an object to the provided path. If supplied handle is
      *  ebpf_handle_invalid, any object already pinned to the provided path is
      *  unpinned from the path.
      *
+     * @param[in] namespace_id Namespace of the pin entry.
      * @param[in] handle Handle of the object to be pinned.
      * @param[in] path Pin path.
      *
@@ -143,11 +149,26 @@ extern "C"
      * @retval EBPF_NOT_FOUND No object was pinned to the provided path.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_core_update_pinning(const ebpf_handle_t handle, _In_ const cxplat_utf8_string_t* path);
+    ebpf_core_update_pinning(
+        _In_ const GUID* namespace_id, const ebpf_handle_t handle, _In_ const cxplat_utf8_string_t* path);
+
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_core_delete_pinning_if_matches(ebpf_handle_t handle, _In_ const cxplat_utf8_string_t* path);
+
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_core_insert_pinning(
+        _In_ const GUID* namespace_id,
+        ebpf_handle_t handle,
+        _In_ const cxplat_utf8_string_t* path,
+        _Out_ uint64_t* cookie);
+
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_core_delete_pinning_with_cookie(ebpf_handle_t handle, _In_ const cxplat_utf8_string_t* path, uint64_t cookie);
 
     /**
      * @brief Create a new map object.
      *
+     * @param[in] namespace_id Immutable ownership assigned before object publication.
      * @param[in] map_name Name of the map to be created.
      * @param[in] ebpf_map_definition Map definition structure.
      * @param[in] inner_map_handle Handle to the inner map object, if any.
@@ -158,6 +179,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_core_create_map(
+        _In_ const GUID* namespace_id,
         _In_ const cxplat_utf8_string_t* map_name,
         _In_ const ebpf_map_definition_in_memory_t* ebpf_map_definition,
         ebpf_handle_t inner_map_handle,
@@ -186,6 +208,7 @@ extern "C"
     /**
      * @brief Returns a handle to an object identified by the id.
      *
+     * @param[in] namespace_id Namespace in which to resolve the ID.
      * @param[in] type Type of the object to get handle of.
      * @param[in] id Specifies the ID of the object.
      * @param[out] handle Handle to the object.
@@ -196,7 +219,8 @@ extern "C"
      *  operation.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_core_get_handle_by_id(ebpf_object_type_t type, ebpf_id_t id, _Out_ ebpf_handle_t* handle);
+    ebpf_core_get_handle_by_id(
+        _In_ const GUID* namespace_id, ebpf_object_type_t type, ebpf_id_t id, _Out_ ebpf_handle_t* handle);
 
     /**
      * @brief Query the ID and type of the object associated with the provided handle.

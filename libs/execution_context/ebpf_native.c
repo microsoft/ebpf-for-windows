@@ -15,6 +15,10 @@
 #include "ebpf_protocol.h"
 #include "ebpf_tracelog.h"
 
+#if defined(EBPF_RUNTIME_TEST_INSTRUMENTATION)
+#include "user\ebpf_native_test.h"
+#endif
+
 #include <intrin.h>
 
 #define EBPF_MAX_PIN_PATH_LENGTH 256
@@ -53,6 +57,7 @@ typedef struct _ebpf_native_map
     cxplat_utf8_string_t pin_path;
     bool reused;
     bool pinned;
+    uint64_t pin_cookie;
 } ebpf_native_map_t;
 
 typedef struct _ebpf_native_program
@@ -91,10 +96,16 @@ typedef struct _ebpf_native_module
     bpf2c_version_t version;
     cxplat_utf8_string_t module_path;
     uint8_t module_hash[EBPF_SHA256_HASH_LENGTH]; // SHA256 hash of the module.
+#if defined(EBPF_RUNTIME_TEST_INSTRUMENTATION)
+    bool test_transient_override;
+    ebpf_native_module_state_t test_saved_state;
+    bool test_saved_detaching;
+#endif
 } ebpf_native_module_t;
 
 typedef struct _ebpf_native_module_instance
 {
+    GUID namespace_id;
     ebpf_native_module_t* module;
     GUID instance_id;
     ebpf_native_map_t* maps;
@@ -160,6 +171,130 @@ static HANDLE _ebpf_native_nmr_provider_handle = NULL;
 
 static ebpf_lock_t _ebpf_native_client_table_lock = {0};
 static _Guarded_by_(_ebpf_native_client_table_lock) ebpf_hash_table_t* _ebpf_native_client_table = NULL;
+
+#if defined(EBPF_RUNTIME_TEST_INSTRUMENTATION)
+static ebpf_native_test_callback_t _ebpf_native_test_callback;
+static void* _ebpf_native_test_context;
+
+void
+ebpf_native_test_set_callback(_In_opt_ ebpf_native_test_callback_t callback, _Inout_opt_ void* context)
+{
+    _ebpf_native_test_callback = callback;
+    _ebpf_native_test_context = context;
+}
+
+static bool
+_ebpf_native_test_invoke(
+    ebpf_native_test_point_t point,
+    _In_ const ebpf_native_module_instance_t* instance,
+    size_t index,
+    ebpf_handle_t handle,
+    _In_opt_ const char* name)
+{
+    if (_ebpf_native_test_callback == NULL) {
+        return false;
+    }
+    ebpf_native_test_event_t event = {
+        .module_id = instance->module->client_module_id,
+        .namespace_id = instance->namespace_id,
+        .index = index,
+        .handle = handle,
+        .name = name,
+    };
+    return _ebpf_native_test_callback(point, &event, _ebpf_native_test_context);
+}
+
+#define EBPF_NATIVE_TEST_INVOKE(point, instance, index, handle, name) \
+    _ebpf_native_test_invoke(point, instance, index, handle, name)
+
+_Requires_lock_held_(module->lock) static void _ebpf_native_test_restore_state_locked(
+    _Inout_ ebpf_native_module_t* module)
+{
+    if (module->test_transient_override) {
+        module->state = module->test_saved_state;
+        module->detaching = module->test_saved_detaching;
+        module->test_transient_override = false;
+    }
+}
+
+ebpf_result_t
+ebpf_native_test_get_snapshot(_In_ const GUID* module_id, _Out_ ebpf_native_test_snapshot_t* snapshot)
+{
+    ebpf_native_module_t** found = NULL;
+    ebpf_lock_state_t table_state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
+    ebpf_result_t result =
+        ebpf_hash_table_find(_ebpf_native_client_table, (const uint8_t*)module_id, (uint8_t**)&found);
+    if (result == EBPF_SUCCESS) {
+        ebpf_native_module_t* module = *found;
+        ebpf_lock_state_t state = ebpf_lock_lock(&module->lock);
+        *snapshot = (ebpf_native_test_snapshot_t){
+            .state = (ebpf_native_test_state_t)module->state,
+            .detaching = module->detaching,
+            .transient_override = module->test_transient_override,
+            .references = module->base.reference_count,
+        };
+        ebpf_lock_unlock(&module->lock, state);
+    } else if (result == EBPF_KEY_NOT_FOUND) {
+        result = EBPF_OBJECT_NOT_FOUND;
+    }
+    ebpf_lock_unlock(&_ebpf_native_client_table_lock, table_state);
+    return result;
+}
+
+ebpf_result_t
+ebpf_native_test_override_state(_In_ const GUID* module_id, ebpf_native_test_transient_state_t override)
+{
+    if (override != EBPF_NATIVE_TEST_TRANSIENT_UNLOADING && override != EBPF_NATIVE_TEST_TRANSIENT_DETACHING) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+    ebpf_native_module_t** found = NULL;
+    ebpf_lock_state_t table_state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
+    ebpf_result_t result =
+        ebpf_hash_table_find(_ebpf_native_client_table, (const uint8_t*)module_id, (uint8_t**)&found);
+    if (result == EBPF_SUCCESS) {
+        ebpf_native_module_t* module = *found;
+        ebpf_lock_state_t state = ebpf_lock_lock(&module->lock);
+        if (module->state != MODULE_STATE_INITIALIZED || module->detaching || module->test_transient_override) {
+            result = EBPF_INVALID_STATE;
+        } else {
+            module->test_saved_state = module->state;
+            module->test_saved_detaching = module->detaching;
+            module->test_transient_override = true;
+            if (override == EBPF_NATIVE_TEST_TRANSIENT_UNLOADING) {
+                module->state = MODULE_STATE_UNLOADING;
+            } else {
+                module->detaching = true;
+            }
+        }
+        ebpf_lock_unlock(&module->lock, state);
+    } else if (result == EBPF_KEY_NOT_FOUND) {
+        result = EBPF_OBJECT_NOT_FOUND;
+    }
+    ebpf_lock_unlock(&_ebpf_native_client_table_lock, table_state);
+    return result;
+}
+
+ebpf_result_t
+ebpf_native_test_restore_state(_In_ const GUID* module_id)
+{
+    ebpf_native_module_t** found = NULL;
+    ebpf_lock_state_t table_state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
+    ebpf_result_t result =
+        ebpf_hash_table_find(_ebpf_native_client_table, (const uint8_t*)module_id, (uint8_t**)&found);
+    if (result == EBPF_SUCCESS) {
+        ebpf_native_module_t* module = *found;
+        ebpf_lock_state_t state = ebpf_lock_lock(&module->lock);
+        _ebpf_native_test_restore_state_locked(module);
+        ebpf_lock_unlock(&module->lock, state);
+    } else if (result == EBPF_KEY_NOT_FOUND) {
+        result = EBPF_OBJECT_NOT_FOUND;
+    }
+    ebpf_lock_unlock(&_ebpf_native_client_table_lock, table_state);
+    return result;
+}
+#else
+#define EBPF_NATIVE_TEST_INVOKE(point, instance, index, handle, name) false
+#endif
 
 static ebpf_lock_t _ebpf_native_authorized_module_table_lock = {0};
 static _Guarded_by_(_ebpf_native_authorized_module_table_lock)
@@ -539,7 +674,12 @@ _ebpf_native_clean_up_maps(
             // Map should only be unpinned if this is a failure case, and the map
             // was created and pinned while loading the native module.
             if (map->pin_path.value && map->pinned && !map->reused) {
-                ebpf_assert_success(ebpf_core_update_pinning(UINT64_MAX, &map->pin_path));
+                ebpf_result_t result =
+                    ebpf_core_delete_pinning_with_cookie(map->handle, &map->pin_path, map->pin_cookie);
+                if (result != EBPF_SUCCESS && result != EBPF_KEY_NOT_FOUND) {
+                    EBPF_LOG_MESSAGE_ERROR(
+                        EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_NATIVE, "Native pin rollback failed", result);
+                }
             }
         }
         if (map->pin_path.value) {
@@ -1390,7 +1530,8 @@ _ebpf_native_validate_map(_In_ const ebpf_native_map_t* map, ebpf_handle_t origi
         }
 
         // For map-in-map, validate the inner map template also.
-        result = ebpf_core_get_handle_by_id(EBPF_OBJECT_MAP, info.inner_map_id, &inner_map_handle);
+        result =
+            ebpf_core_get_handle_by_id(&object->namespace_id, EBPF_OBJECT_MAP, info.inner_map_id, &inner_map_handle);
         if (result != EBPF_SUCCESS) {
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
@@ -1405,13 +1546,13 @@ Exit:
 }
 
 static ebpf_result_t
-_ebpf_native_reuse_map(_Inout_ ebpf_native_map_t* map)
+_ebpf_native_reuse_map(_In_ const GUID* namespace_id, _Inout_ ebpf_native_map_t* map)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_handle_t handle = ebpf_handle_invalid;
     // Check if a map is already present with this pin path.
-    result = ebpf_core_get_pinned_object(&map->pin_path, &handle);
+    result = ebpf_core_get_pinned_object(namespace_id, &map->pin_path, &handle);
     if (result != EBPF_SUCCESS) {
         // Treat EBPF_KEY_NOT_FOUND as success.
         if (result == EBPF_KEY_NOT_FOUND) {
@@ -1434,7 +1575,7 @@ _ebpf_native_reuse_map(_Inout_ ebpf_native_map_t* map)
     map->pinned = true;
 
 Exit:
-    if (result != EBPF_SUCCESS) {
+    if (result != EBPF_SUCCESS && handle != ebpf_handle_invalid) {
         ebpf_assert_success(ebpf_handle_close(handle));
     }
     EBPF_RETURN_RESULT(result);
@@ -1528,6 +1669,15 @@ _ebpf_native_set_initial_map_values(_Inout_ ebpf_native_module_instance_t* insta
             }
 
             uint32_t key = (uint32_t)j;
+            if (EBPF_NATIVE_TEST_INVOKE(
+                    EBPF_NATIVE_TEST_INITIAL_VALUE,
+                    instance,
+                    j,
+                    native_map_to_update->handle,
+                    native_map_to_update->entry.name)) {
+                result = EBPF_NO_MEMORY;
+                break;
+            }
             result = ebpf_core_update_map_with_handle(
                 native_map_to_update->handle,
                 (uint8_t*)&key,
@@ -1642,6 +1792,9 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_instance_t* instance, _In_op
     if (result != EBPF_SUCCESS) {
         EBPF_RETURN_RESULT(result);
     }
+    if (EBPF_NATIVE_TEST_INVOKE(EBPF_NATIVE_TEST_MAP_ALLOCATION, instance, 0, ebpf_handle_invalid, NULL)) {
+        return EBPF_NO_MEMORY;
+    }
     instance->maps = (ebpf_native_map_t*)ebpf_allocate_with_tag(native_map_array_length, EBPF_POOL_TAG_NATIVE);
     if (instance->maps == NULL) {
         EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
@@ -1669,7 +1822,7 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_instance_t* instance, _In_op
         }
 
         if (native_map->entry.definition.pinning == LIBBPF_PIN_BY_NAME) {
-            result = _ebpf_native_reuse_map(native_map);
+            result = _ebpf_native_reuse_map(&instance->namespace_id, native_map);
             if (result != EBPF_SUCCESS) {
                 break;
             }
@@ -1692,7 +1845,8 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_instance_t* instance, _In_op
         map_definition.max_entries = native_map->entry.definition.max_entries;
         map_definition.map_flags = native_map->entry.map_flags;
 
-        result = ebpf_core_create_map(&map_name, &map_definition, inner_map_handle, &native_map->handle);
+        result = ebpf_core_create_map(
+            &instance->namespace_id, &map_name, &map_definition, inner_map_handle, &native_map->handle);
         if (result != EBPF_SUCCESS) {
             break;
         }
@@ -1702,11 +1856,17 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_instance_t* instance, _In_op
 
         // If pin_path is set and the map is not yet pinned, pin it now.
         if (native_map->pin_path.value != NULL && !native_map->pinned) {
-            result = ebpf_core_update_pinning(native_map->handle, &native_map->pin_path);
+            result = ebpf_core_insert_pinning(
+                &instance->namespace_id, native_map->handle, &native_map->pin_path, &native_map->pin_cookie);
             if (result != EBPF_SUCCESS) {
                 break;
             }
             native_map->pinned = true;
+            if (EBPF_NATIVE_TEST_INVOKE(
+                    EBPF_NATIVE_TEST_MAP_PINNED, instance, count, native_map->handle, native_map->entry.name)) {
+                result = EBPF_NO_MEMORY;
+                break;
+            }
         }
     }
 
@@ -2083,6 +2243,9 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
     if (result != EBPF_SUCCESS) {
         return result;
     }
+    if (EBPF_NATIVE_TEST_INVOKE(EBPF_NATIVE_TEST_PROGRAM_ALLOCATION, instance, 0, ebpf_handle_invalid, NULL)) {
+        return EBPF_NO_MEMORY;
+    }
     instance->programs = (ebpf_native_program_t**)ebpf_allocate_with_tag(native_programs_length, EBPF_POOL_TAG_NATIVE);
     if (instance->programs == NULL) {
         return EBPF_NO_MEMORY;
@@ -2233,7 +2396,7 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
             parameters.program_info_hash_type.length = hash_type_length;
         }
 
-        result = ebpf_program_create_and_initialize(&parameters, &native_program->handle);
+        result = ebpf_program_create_and_initialize(&instance->namespace_id, &parameters, &native_program->handle);
         if (result != EBPF_SUCCESS) {
             goto Done;
         }
@@ -2337,6 +2500,15 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
             goto Done;
         }
         native_program->loaded = true;
+        if (EBPF_NATIVE_TEST_INVOKE(
+                EBPF_NATIVE_TEST_PROGRAM_CREATED,
+                instance,
+                count,
+                native_program->handle,
+                native_program->program_entry.program_name)) {
+            result = EBPF_NO_MEMORY;
+            goto Done;
+        }
     }
 
 Done:
@@ -2486,13 +2658,16 @@ Done:
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_native_load_programs(
+    _In_ const GUID* namespace_id,
     _In_ const GUID* module_id,
     _In_opt_z_ const char* pin_root_path,
     size_t count_of_map_handles,
     _Out_writes_opt_(count_of_map_handles) ebpf_handle_t* map_handles,
     _Out_writes_opt_(count_of_map_handles) uint8_t* map_reused,
     size_t count_of_program_handles,
-    _Out_writes_(count_of_program_handles) ebpf_handle_t* program_handles)
+    _Out_writes_(count_of_program_handles) ebpf_handle_t* program_handles,
+    _Out_writes_opt_(count_of_map_handles) uint8_t* map_pin_ownership,
+    _Out_writes_opt_(count_of_map_handles) uint64_t* map_pin_cookies)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result;
@@ -2507,6 +2682,7 @@ ebpf_native_load_programs(
     bool maps_created = false;
     bool programs_created = false;
     ebpf_native_module_instance_t instance = {0};
+    instance.namespace_id = *namespace_id;
 
     if ((count_of_map_handles > 0 && map_handles == NULL) ||
         (count_of_program_handles > 0 && program_handles == NULL)) {
@@ -2550,6 +2726,9 @@ ebpf_native_load_programs(
                 "ebpf_native_load_programs: programs already loaded / loading",
                 module_id);
         }
+#if defined(EBPF_RUNTIME_TEST_INSTRUMENTATION)
+        _ebpf_native_test_restore_state_locked(module);
+#endif
         goto Done;
     }
 
@@ -2566,6 +2745,8 @@ ebpf_native_load_programs(
     // Release hash table lock.
     ebpf_lock_unlock(&_ebpf_native_client_table_lock, state);
     lock_acquired = false;
+
+    (void)EBPF_NATIVE_TEST_INVOKE(EBPF_NATIVE_TEST_LOADING_UNLOCKED, &instance, 0, ebpf_handle_invalid, NULL);
 
     // Create maps.
     result = _ebpf_native_create_maps(&instance, pin_root_path);
@@ -2614,6 +2795,14 @@ ebpf_native_load_programs(
     ebpf_assert(count_of_program_handles == instance.program_count);
 
     for (int i = 0; i < count_of_map_handles; i++) {
+        if (map_pin_ownership != NULL) {
+            map_pin_ownership[i] = !instance.maps[i].pinned  ? EBPF_NATIVE_MAP_PIN_NONE
+                                   : instance.maps[i].reused ? EBPF_NATIVE_MAP_PIN_REUSED
+                                                             : EBPF_NATIVE_MAP_PIN_CREATED;
+        }
+        if (map_pin_cookies != NULL) {
+            map_pin_cookies[i] = instance.maps[i].pin_cookie;
+        }
         map_handles[i] = instance.maps[i].handle;
         if (map_reused != NULL) {
             map_reused[i] = instance.maps[i].reused ? 1 : 0;

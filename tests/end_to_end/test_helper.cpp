@@ -46,7 +46,15 @@ static void* _native_module_metadata_hook_context = nullptr;
 // clang-format off
 #define SERVICE_PATH_PREFIX L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\"
 // clang-format on
-#define CREATE_FILE_HANDLE 0x12345678
+static std::mutex _control_files_mutex;
+struct test_control_file
+{
+    ebpf_namespace_state_t state;
+    test_control_file() { ebpf_namespace_state_initialize(&state); }
+    ~test_control_file() { ebpf_namespace_state_destroy(&state); }
+};
+static std::map<HANDLE, std::shared_ptr<test_control_file>> _control_files;
+static std::atomic<uintptr_t> _next_control_file{0x12345678};
 
 static GUID _bpf2c_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
                              0xc847aac8,
@@ -256,14 +264,31 @@ GlueCreateFileW(
     UNREFERENCED_PARAMETER(flags_and_attributes);
     UNREFERENCED_PARAMETER(template_file);
 
-    return (HANDLE)CREATE_FILE_HANDLE;
+    try {
+        auto file = std::make_shared<test_control_file>();
+        auto handle = reinterpret_cast<HANDLE>(_next_control_file.fetch_add(1));
+        std::scoped_lock lock(_control_files_mutex);
+        _control_files.emplace(handle, std::move(file));
+        return handle;
+    } catch (const std::bad_alloc&) {
+        SetLastError(ERROR_NOT_ENOUGH_MEMORY);
+        return INVALID_HANDLE_VALUE;
+    }
 }
 
 bool
 GlueCloseHandle(HANDLE object_handle)
 {
-    if (object_handle == (HANDLE)CREATE_FILE_HANDLE) {
-        return TRUE;
+    {
+        std::scoped_lock lock(_control_files_mutex);
+        auto it = _control_files.find(object_handle);
+        if (it != _control_files.end()) {
+            if (it->second.use_count() == 1) {
+                ebpf_namespace_state_close(&it->second->state);
+            }
+            _control_files.erase(it);
+            return TRUE;
+        }
     }
 
     ebpf_handle_t handle = reinterpret_cast<ebpf_handle_t>(object_handle);
@@ -293,6 +318,15 @@ GlueDuplicateHandle(
     UNREFERENCED_PARAMETER(desired_access);
     UNREFERENCED_PARAMETER(inherit_handle);
     UNREFERENCED_PARAMETER(options);
+    {
+        std::scoped_lock lock(_control_files_mutex);
+        auto it = _control_files.find(source_handle);
+        if (it != _control_files.end()) {
+            *target_handle = reinterpret_cast<HANDLE>(_next_control_file.fetch_add(1));
+            _control_files.emplace(*target_handle, it->second);
+            return TRUE;
+        }
+    }
     // Return the same value for duplicated handle.
     *target_handle = source_handle;
     return !!_duplicate_handles.reference_or_add(reinterpret_cast<ebpf_handle_t>(source_handle));
@@ -474,11 +508,11 @@ GlueDeviceIoControl(
     _Out_ unsigned long* bytes_returned,
     _Inout_ OVERLAPPED* overlapped)
 {
-    UNREFERENCED_PARAMETER(device_handle);
     UNREFERENCED_PARAMETER(io_control_code);
 
     ebpf_result_t result;
     const ebpf_operation_header_t* user_request = reinterpret_cast<decltype(user_request)>(input_buffer);
+    ebpf_request_context_t context = {};
     ebpf_operation_header_t* user_reply = nullptr;
     *bytes_returned = 0;
     auto request_id = user_request->id;
@@ -491,6 +525,18 @@ GlueDeviceIoControl(
     void* local_output_buffer = nullptr;
     std::vector<uint8_t> synchronousBuffer;
     std::vector<uint8_t>* sharedBuffer = nullptr;
+    std::shared_ptr<test_control_file> file;
+    {
+        std::scoped_lock lock(_control_files_mutex);
+        auto it = _control_files.find(device_handle);
+        if (it != _control_files.end()) {
+            file = it->second;
+        }
+    }
+    if (!file) {
+        result = EBPF_INVALID_FD;
+        goto Fail;
+    }
 
     // To correctly emulate the kernel execution context, we need to use the same buffer
     // for both input and output.  So we allocate a buffer that is large enough to hold
@@ -542,7 +588,12 @@ GlueDeviceIoControl(
     local_input_buffer = (*sharedBuffer).data();
     local_output_buffer = (minimum_reply_size > 0) ? (*sharedBuffer).data() : nullptr;
 
+    result = ebpf_namespace_state_capture(&file->state, &context);
+    if (result != EBPF_SUCCESS) {
+        goto Fail;
+    }
     result = ebpf_core_invoke_protocol_handler(
+        &context,
         request_id,
         local_input_buffer,
         static_cast<uint16_t>(input_buffer_size),

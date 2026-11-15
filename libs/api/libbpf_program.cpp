@@ -356,7 +356,7 @@ bpf_program__pin(struct bpf_program* prog, const char* path)
         return libbpf_err(-EINVAL);
     }
 
-    result = ebpf_object_pin(prog->fd, path);
+    result = ebpf_object_pin_with_cookie(prog->fd, path, &prog->pin_cookie);
     if (result) {
         return libbpf_result_err(result);
     }
@@ -384,6 +384,7 @@ __bpf_program__pin_name(struct bpf_program* prog)
 int
 bpf_object__pin_programs(struct bpf_object* obj, const char* path)
 {
+    ebpf_api_namespace_guard namespace_guard;
     struct bpf_program* prog;
     int err;
 
@@ -398,7 +399,8 @@ bpf_object__pin_programs(struct bpf_object* obj, const char* path)
 
         char* pin_name = __bpf_program__pin_name(prog);
         if (!pin_name) {
-            return libbpf_err(-ENOMEM);
+            err = -ENOMEM;
+            goto err_unpin_programs;
         }
         len = snprintf(buf, PATH_MAX, "%s/%s", path, pin_name);
         ebpf_free(pin_name);
@@ -423,19 +425,19 @@ err_unpin_programs:
         char buf[PATH_MAX];
         int len;
 
-        char* pin_name = __bpf_program__pin_name(prog);
-        if (!pin_name) {
-            continue;
-        }
-        len = snprintf(buf, PATH_MAX, "%s/%s", path, pin_name);
-        ebpf_free(pin_name);
+        len = snprintf(buf, PATH_MAX, "%s/%s", path, prog->section_name);
         if (len < 0) {
             continue;
         } else if (len >= PATH_MAX) {
             continue;
         }
+        for (char* cursor = buf + strlen(path) + 1; *cursor; ++cursor) {
+            if (*cursor == '/') {
+                *cursor = '_';
+            }
+        }
 
-        bpf_program__unpin(prog, path);
+        ebpf_object_unpin_if_matches_cleanup(prog->fd, buf, prog->pin_cookie);
     }
     return err;
 }
@@ -443,6 +445,7 @@ err_unpin_programs:
 int
 bpf_object__unpin_programs(struct bpf_object* obj, const char* path)
 {
+    ebpf_api_namespace_guard namespace_guard;
     struct bpf_program* prog;
     int err;
 

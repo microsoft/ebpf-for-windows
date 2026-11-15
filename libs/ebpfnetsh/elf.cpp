@@ -3,6 +3,7 @@
 
 #include "bpf/libbpf.h"
 #include "elf.h"
+#include "namespaces.h"
 #include "tokens.h"
 #include "utilities.h"
 
@@ -28,6 +29,7 @@ handle_ebpf_show_disassembly(
     IN LPCVOID data,
     OUT BOOL* done)
 {
+    EBPF_NETSH_NAMESPACE_OVERRIDE(handle_ebpf_show_disassembly);
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);
     UNREFERENCED_PARAMETER(data);
@@ -111,6 +113,7 @@ handle_ebpf_show_sections(
     IN LPCVOID data,
     OUT BOOL* done)
 {
+    EBPF_NETSH_NAMESPACE_OVERRIDE(handle_ebpf_show_sections);
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);
     UNREFERENCED_PARAMETER(data);
@@ -284,6 +287,7 @@ handle_ebpf_show_verification(
     IN LPCVOID data,
     OUT BOOL* done)
 {
+    EBPF_NETSH_NAMESPACE_OVERRIDE(handle_ebpf_show_verification);
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);
     UNREFERENCED_PARAMETER(data);

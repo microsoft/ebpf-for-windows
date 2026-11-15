@@ -252,12 +252,17 @@ _ebpf_link_free(_In_ _Frees_ptr_ ebpf_core_object_t* object)
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_link_create(
+    _In_ const GUID* namespace_id,
     ebpf_attach_type_t attach_type,
     _In_reads_(context_data_length) const uint8_t* context_data,
     size_t context_data_length,
     _Outptr_ ebpf_link_t** link)
 {
     EBPF_LOG_ENTRY();
+    *link = NULL;
+    if (namespace_id == NULL) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
     ebpf_result_t retval;
     bool lock_held = false;
     ebpf_link_t* local_link = NULL;
@@ -308,7 +313,13 @@ ebpf_link_create(
     // Note: This must be the last thing done in this function as it inserts the object into the global list.
     // After this point, the object can be accessed by other threads.
     ebpf_result_t result = EBPF_OBJECT_INITIALIZE(
-        &local_link->object, EBPF_OBJECT_LINK, _ebpf_link_free, _ebpf_link_notify_reference_count_zeroed, NULL, NULL);
+        namespace_id,
+        &local_link->object,
+        EBPF_OBJECT_LINK,
+        _ebpf_link_free,
+        _ebpf_link_notify_reference_count_zeroed,
+        NULL,
+        NULL);
     if (result != EBPF_SUCCESS) {
         EBPF_LOG_MESSAGE_ERROR(
             EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_LINK, "ebpf_object_initialize failed for link", result);
@@ -339,6 +350,10 @@ ebpf_link_attach_program(_Inout_ ebpf_link_t* link, _Inout_ ebpf_program_t* prog
     bool lock_held = false;
     bool link_attached_to_program = false;
     ebpf_lock_state_t state = 0;
+
+    if (memcmp(&link->object.namespace_id, &((ebpf_core_object_t*)program)->namespace_id, sizeof(GUID)) != 0) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
 
     state = ebpf_lock_lock(&link->lock);
     lock_held = true;
@@ -671,7 +686,7 @@ ebpf_link_terminate()
     ebpf_core_object_t* previous_object = NULL;
 
     for (;;) {
-        EBPF_OBJECT_REFERENCE_NEXT_OBJECT(previous_object, EBPF_OBJECT_LINK, &object);
+        EBPF_OBJECT_REFERENCE_NEXT_OBJECT_FOR_TEARDOWN(previous_object, EBPF_OBJECT_LINK, &object);
 
         // Release the previous object reference after acquiring the next reference to avoid accessing a freed object.
         if (previous_object) {

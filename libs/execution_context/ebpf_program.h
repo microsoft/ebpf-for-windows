@@ -78,6 +78,7 @@ extern "C"
     /**
      * @brief Create a new program instance and initialize a program instance from the provided program parameters.
      *
+     * @param[in] namespace_id Immutable namespace of the new program.
      * @param[in] program_parameters Program parameters to be used to initialize
      * @param[out] program Pointer to memory that will contain the program instance.
      * @retval EBPF_SUCCESS The operation was successful.
@@ -87,7 +88,10 @@ extern "C"
      * @retval EBPF_EXTENSION_FAILED_TO_LOAD The program extension failed to load.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _Outptr_ ebpf_program_t** program);
+    ebpf_program_create(
+        _In_ const GUID* namespace_id,
+        _In_ const ebpf_program_parameters_t* program_parameters,
+        _Outptr_ ebpf_program_t** program);
 
     /**
      * @brief Get the original file name of the program.
@@ -377,7 +381,9 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_program_create_and_initialize(
-        _In_ const ebpf_program_parameters_t* parameters, _Out_ ebpf_handle_t* program_handle);
+        _In_ const GUID* namespace_id,
+        _In_ const ebpf_program_parameters_t* parameters,
+        _Out_ ebpf_handle_t* program_handle);
 
     typedef struct _ebpf_program_test_run_options
     {

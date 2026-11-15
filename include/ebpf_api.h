@@ -39,6 +39,29 @@ extern "C"
     struct bpf_link;
 
     /**
+     * @brief Select the calling thread's namespace for subsequent discovery and creation.
+     *
+     * GUID_NULL resets selection to the default namespace. Existing object handles
+     * remain valid. Namespaces are logical partitions, not an authorization boundary.
+     * Requires administrative privileges. Selection is not inherited by new threads
+     * and survives synchronous device-handle recreation. Applications reset pooled workers
+     * when later work assumes the default namespace, or explicitly select each task's
+     * intended namespace. A failed SET preserves the previous selection.
+     * @retval EBPF_INVALID_ARGUMENT namespace_guid is NULL.
+     * @retval EBPF_INVALID_STATE SET reenters a namespace-dependent library operation.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_set_thread_namespace(_In_ const GUID* namespace_guid) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Query the calling thread's current namespace (initially GUID_NULL).
+     * Requires administrative privileges. Failure leaves the output unchanged.
+     * @retval EBPF_INVALID_ARGUMENT namespace_guid is NULL.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_get_thread_namespace(_Out_ GUID* namespace_guid) EBPF_NO_EXCEPT;
+
+    /**
      * @brief Query info about an eBPF program.
      * @param[in] fd File descriptor of an eBPF program.
      * @param[out] execution_type On success, contains the execution type.

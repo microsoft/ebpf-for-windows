@@ -15,6 +15,8 @@ extern "C"
 #include <numeric>
 #include <optional>
 
+static const GUID _test_default_namespace_id{};
+
 typedef class _ebpf_program_test_state
 {
   public:
@@ -29,7 +31,7 @@ typedef class _ebpf_program_test_state
         program_info_provider = new _program_info_provider();
         REQUIRE(program_info_provider->initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
-        REQUIRE(ebpf_program_create(&parameters, &program) == EBPF_SUCCESS);
+        REQUIRE(ebpf_program_create(&_test_default_namespace_id, &parameters, &program) == EBPF_SUCCESS);
     }
     ~_ebpf_program_test_state()
     {
@@ -108,7 +110,7 @@ typedef class _ebpf_map_test_state
         ebpf_map_definition_in_memory_t definition{
             type, sizeof(uint32_t), sizeof(uint64_t), map_size.has_value() ? map_size.value() : ebpf_get_cpu_count()};
 
-        (void)ebpf_map_create(&name, &definition, ebpf_handle_invalid, &map);
+        (void)ebpf_map_create(&_test_default_namespace_id, &name, &definition, ebpf_handle_invalid, &map);
 
         for (uint32_t i = 0; i < definition.max_entries; i++) {
             uint64_t value = 0;
@@ -219,7 +221,7 @@ typedef class _ebpf_map_lpm_trie_test_state
         ebpf_map_definition_in_memory_t definition{
             BPF_MAP_TYPE_LPM_TRIE, sizeof(uint32_t) * 2, sizeof(uint64_t), static_cast<uint32_t>(route_count)};
 
-        (void)ebpf_map_create(&name, &definition, ebpf_handle_invalid, &map);
+        (void)ebpf_map_create(&_test_default_namespace_id, &name, &definition, ebpf_handle_invalid, &map);
 
         // Prefix Length Distributions from https://bgp.potaroo.net/as2.0/bgp-active.html
         std::vector<size_t> ipv4_prefix_length_distribution{

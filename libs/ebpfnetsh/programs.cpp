@@ -3,6 +3,7 @@
 
 #include "bpf/bpf.h"
 #include "bpf/libbpf.h"
+#include "namespaces.h"
 #include "platform.h"
 #include "programs.h"
 #include "tokens.h"
@@ -115,6 +116,7 @@ unsigned long
 handle_ebpf_add_program(
     LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
 {
+    EBPF_NETSH_NAMESPACE_OVERRIDE(handle_ebpf_add_program);
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);
     UNREFERENCED_PARAMETER(data);
@@ -367,6 +369,7 @@ unsigned long
 handle_ebpf_delete_program(
     LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
 {
+    EBPF_NETSH_NAMESPACE_OVERRIDE(handle_ebpf_delete_program);
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);
     UNREFERENCED_PARAMETER(data);
@@ -494,6 +497,7 @@ unsigned long
 handle_ebpf_set_program(
     LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
 {
+    EBPF_NETSH_NAMESPACE_OVERRIDE(handle_ebpf_set_program);
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);
     UNREFERENCED_PARAMETER(data);
@@ -606,6 +610,7 @@ unsigned long
 handle_ebpf_show_programs(
     LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
 {
+    EBPF_NETSH_NAMESPACE_OVERRIDE(handle_ebpf_show_programs);
     UNREFERENCED_PARAMETER(machine);
     UNREFERENCED_PARAMETER(flags);
     UNREFERENCED_PARAMETER(data);
@@ -896,6 +901,7 @@ unsigned long
 handle_ebpf_pin_program(
     LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
 {
+    EBPF_NETSH_NAMESPACE_OVERRIDE(handle_ebpf_pin_program);
     return handle_ebpf_pinunpin_program_common(
         machine, argv, current_index, argc, flags, data, done, [](auto fd, auto pinpath) {
             return bpf_obj_pin(fd, pinpath);
@@ -908,6 +914,7 @@ unsigned long
 handle_ebpf_unpin_program(
     LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
 {
+    EBPF_NETSH_NAMESPACE_OVERRIDE(handle_ebpf_unpin_program);
     // Unpin program from a specific pin path (not all paths).
     return handle_ebpf_pinunpin_program_common(
         machine, argv, current_index, argc, flags, data, done, [](auto, auto pinpath) {

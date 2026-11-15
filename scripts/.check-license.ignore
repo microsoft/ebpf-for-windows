@@ -16,6 +16,7 @@
 
 # Generated files
 tools/netsh/resource.h
+^libs/ioctl_spec/generated/
 
 # Other Files
 LICENSE.txt

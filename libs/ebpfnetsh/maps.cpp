@@ -6,6 +6,7 @@
 #include "ebpf_api.h"
 #include "ebpf_windows.h"
 #include "maps.h"
+#include "namespaces.h"
 #include "platform.h"
 #include "tokens.h"
 
@@ -29,6 +30,7 @@ handle_ebpf_show_maps(
     IN LPCVOID data,
     OUT BOOL* done)
 {
+    EBPF_NETSH_NAMESPACE_OVERRIDE(handle_ebpf_show_maps);
     UNREFERENCED_PARAMETER(argv);
     UNREFERENCED_PARAMETER(current_index);
     UNREFERENCED_PARAMETER(argc);
@@ -140,6 +142,7 @@ unsigned long
 handle_ebpf_pin_map(
     LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
 {
+    EBPF_NETSH_NAMESPACE_OVERRIDE(handle_ebpf_pin_map);
     return handle_ebpf_pinunpin_map_common(
         machine, argv, current_index, argc, flags, data, done, [](auto fd, auto pinpath) {
             return bpf_obj_pin(fd, pinpath);
@@ -152,6 +155,7 @@ unsigned long
 handle_ebpf_unpin_map(
     LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
 {
+    EBPF_NETSH_NAMESPACE_OVERRIDE(handle_ebpf_unpin_map);
     // Unpin map from a specific pin path.
     return handle_ebpf_pinunpin_map_common(
         machine, argv, current_index, argc, flags, data, done, [](auto, auto pinpath) {

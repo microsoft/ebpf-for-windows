@@ -353,6 +353,10 @@ if ( !$whatif ) {
 }
 
 foreach ( $file in $filelist ) {
+    # EverParse output must match the generator byte-for-byte.
+    if (($file -replace '\\', '/') -match '^(?:\./)?libs/ioctl_spec/generated/') {
+        continue
+    }
     $filecount+=1;
     $formatterArguments=@($cfargs + [string]$file)
 

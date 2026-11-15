@@ -350,8 +350,7 @@ _test_libbpf_subprogram(ebpf_execution_type_t execution_type)
     program_info_provider_t sample_program_info;
     REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
-    const char* file_name =
-        (execution_type == EBPF_EXECUTION_NATIVE ? "bpf2bpf_loop_um.dll" : "bpf2bpf_loop.o");
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "bpf2bpf_loop_um.dll" : "bpf2bpf_loop.o");
     struct bpf_object* object = bpf_object__open(file_name);
     REQUIRE(object != nullptr);
 
@@ -4200,34 +4199,27 @@ TEST_CASE("bpf_object__load with native automatic pin path rollback", "[libbpf]"
         Platform::_close(pinned_fd);
     };
 
-    check_pin(existing_outer->pin_path, bpf_map__fd(existing_outer), true, reuse_outer);
-    check_pin(existing_port->pin_path, bpf_map__fd(existing_port), true, reuse_port);
+    check_pin(existing_outer->pin_path, bpf_map__fd(existing_outer), reuse_outer, true);
+    check_pin(existing_port->pin_path, bpf_map__fd(existing_port), reuse_port, true);
     check_pin(explicit_path, collision_fd, true, true);
 
     if (reuse_outer) {
         REQUIRE(bpf_map__unpin(existing_outer, nullptr) == 0);
-    } else {
-        REQUIRE(ebpf_object_unpin(existing_outer->pin_path) == EBPF_SUCCESS);
     }
     if (reuse_port) {
         REQUIRE(bpf_map__unpin(existing_port, nullptr) == 0);
-    } else {
-        REQUIRE(ebpf_object_unpin(existing_port->pin_path) == EBPF_SUCCESS);
     }
     REQUIRE(ebpf_object_unpin(explicit_path) == EBPF_SUCCESS);
     Platform::_close(collision_fd);
 }
 
-TEST_CASE("native handle-only reply size limit", "[libbpf]")
+TEST_CASE("native load rejects kernel counts that disagree with metadata", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
     test_helper.initialize();
 
-    const size_t map_count = GENERATE(size_t{4}, size_t{5});
-    const size_t program_count = 8184;
-    const size_t reply_size = offsetof(ebpf_operation_load_native_programs_reply_t, data) +
-                              (map_count + program_count) * sizeof(ebpf_handle_t);
-    REQUIRE(reply_size + map_count + sizeof(uint32_t) > UINT16_MAX);
+    const size_t map_count = GENERATE(size_t{0}, size_t{4});
+    const size_t program_count = GENERATE(size_t{0}, size_t{8184});
 
     bool programs_requested = false;
     auto original_handler = device_io_control_handler;
@@ -4242,9 +4234,9 @@ TEST_CASE("native handle-only reply size limit", "[libbpf]")
                                     DWORD* bytes_returned,
                                     OVERLAPPED* overlapped) -> BOOL {
         auto* request = static_cast<ebpf_operation_header_t*>(input);
-        if (input != nullptr && input_size >= sizeof(*request) && request->id == EBPF_OPERATION_LOAD_NATIVE_PROGRAMS) {
+        if (input != nullptr && input_size >= sizeof(*request) &&
+            request->id == EBPF_OPERATION_LOAD_NATIVE_PROGRAMS_EX) {
             programs_requested = true;
-            REQUIRE(output_size == reply_size);
             SetLastError(ERROR_ACCESS_DENIED);
             return FALSE;
         }
@@ -4265,8 +4257,8 @@ TEST_CASE("native handle-only reply size limit", "[libbpf]")
     std::vector<fd_t> program_fds(programs);
     REQUIRE(
         ebpf_object_load_native_by_fds("droppacket_um.dll", &maps, map_fds.data(), &programs, program_fds.data()) ==
-        (reply_size <= UINT16_MAX ? EBPF_ACCESS_DENIED : EBPF_ARITHMETIC_OVERFLOW));
-    REQUIRE(programs_requested == (reply_size <= UINT16_MAX));
+        EBPF_INVALID_ARGUMENT);
+    REQUIRE_FALSE(programs_requested);
 }
 
 // Test bpf() with the following command ids:
@@ -4759,13 +4751,13 @@ TEST_CASE("sample_tail_call_max_exceed", "[libbpf]")
     program_info_provider_t sample_program_info;
     REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
-        const char* file_name =
-    #if defined(CONFIG_BPF_JIT_DISABLED)
+    const char* file_name =
+#if defined(CONFIG_BPF_JIT_DISABLED)
         "tail_call_max_exceed_um.dll";
-    #else
+#else
         "tail_call_max_exceed.o";
-    #endif
-        struct bpf_object* object = bpf_object__open(file_name);
+#endif
+    struct bpf_object* object = bpf_object__open(file_name);
     REQUIRE(object != nullptr);
 
     // Load the BPF program.

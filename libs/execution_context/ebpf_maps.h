@@ -35,6 +35,7 @@ extern "C"
     /**
      * @brief Allocate a new map.
      *
+     * @param[in] namespace_id Immutable namespace of the new map.
      * @param[in] map_name Name of the map.
      * @param[in] ebpf_map_definition Definition of the new map.
      * @param[in] inner_map_handle Handle to inner map, or ebpf_handle_invalid if none.
@@ -45,6 +46,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_map_create(
+        _In_ const GUID* namespace_id,
         _In_ const cxplat_utf8_string_t* map_name,
         _In_ const ebpf_map_definition_in_memory_t* ebpf_map_definition,
         ebpf_handle_t inner_map_handle,

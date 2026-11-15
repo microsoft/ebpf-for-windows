@@ -50,6 +50,7 @@ enum : uint32_t
 #include "windows_platform_common.hpp"
 
 #include <algorithm>
+#include <array>
 #include <codecvt>
 #include <cstdint>
 #include <fcntl.h>
@@ -72,6 +73,28 @@ _Guarded_by_(_ebpf_state_mutex) static std::map<ebpf_handle_t, ebpf_program_t*> 
 _Guarded_by_(_ebpf_state_mutex) static std::map<ebpf_handle_t, ebpf_map_t*> _ebpf_maps;
 _Guarded_by_(_ebpf_state_mutex) static std::vector<ebpf_object_t*> _ebpf_objects;
 static std::mutex _ebpf_ring_mapping_mutex;
+
+ebpf_api_namespace_guard::ebpf_api_namespace_guard() { begin_thread_namespace_operation(); }
+
+ebpf_api_namespace_guard::~ebpf_api_namespace_guard() noexcept { end_thread_namespace_operation(); }
+
+ebpf_result_t
+ebpf_set_thread_namespace(_In_ const GUID* namespace_guid) noexcept
+{
+    return set_thread_namespace(namespace_guid);
+}
+
+ebpf_result_t
+ebpf_get_thread_namespace(_Out_ GUID* namespace_guid) noexcept
+{
+    return get_thread_namespace(namespace_guid);
+}
+
+ebpf_result_t
+ebpf_get_namespace_for_pin(_Out_ GUID* namespace_id) noexcept
+{
+    return ebpf_get_thread_namespace(namespace_id);
+}
 
 typedef struct _ebpf_ring_buffer_user_mapping
 {
@@ -1624,6 +1647,15 @@ ebpf_free_string(_In_opt_ _Post_invalid_ const char* error_message) noexcept
 _Must_inspect_result_ ebpf_result_t
 ebpf_object_pin(fd_t fd, _In_z_ const char* path) NO_EXCEPT_TRY
 {
+    uint64_t cookie;
+    return ebpf_object_pin_with_cookie(fd, path, &cookie);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+ebpf_result_t
+ebpf_object_pin_with_cookie(fd_t fd, _In_z_ const char* path, _Out_ uint64_t* cookie) NO_EXCEPT_TRY
+{
+    ebpf_api_namespace_guard namespace_guard;
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_handle_t handle;
@@ -1655,14 +1687,22 @@ ebpf_object_pin(fd_t fd, _In_z_ const char* path) NO_EXCEPT_TRY
     ebpf_protocol_buffer_t request_buffer(request_buffer_size);
     auto request = reinterpret_cast<ebpf_operation_update_pinning_request_t*>(request_buffer.data());
 
-    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_UPDATE_PINNING;
+    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_UPDATE_PINNING_EX;
     result = ebpf_safe_size_t_to_uint16(request_buffer.size(), &request->header.length);
     if (result != EBPF_SUCCESS) {
         EBPF_RETURN_RESULT(result);
     }
     request->handle = handle;
     std::copy(canonical_path, canonical_path + path_length, request->path);
-    result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer));
+    ebpf_operation_update_pinning_ex_reply_t reply{};
+    result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer, reply));
+    if (result == EBPF_SUCCESS) {
+        if (reply.header.length != sizeof(reply) || reply.header.id != EBPF_OPERATION_UPDATE_PINNING_EX ||
+            reply.pin_cookie == 0) {
+            EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+        }
+        *cookie = reply.pin_cookie;
+    }
 
     EBPF_RETURN_RESULT(result);
 }
@@ -1671,6 +1711,7 @@ CATCH_NO_MEMORY_EBPF_RESULT
 _Must_inspect_result_ ebpf_result_t
 ebpf_object_unpin(_In_z_ const char* path) NO_EXCEPT_TRY
 {
+    ebpf_api_namespace_guard namespace_guard;
     EBPF_LOG_ENTRY();
     ebpf_assert(path);
     char canonical_path[MAX_PATH];
@@ -1702,15 +1743,111 @@ ebpf_object_unpin(_In_z_ const char* path) NO_EXCEPT_TRY
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
+static ebpf_result_t
+_ebpf_object_unpin_handle_if_matches(ebpf_handle_t handle, _In_z_ const char* path, uint64_t cookie) NO_EXCEPT_TRY
+{
+    ebpf_api_namespace_guard namespace_guard;
+    char canonical_path[MAX_PATH];
+    if (path == nullptr || ebpf_canonicalize_path(canonical_path, sizeof(canonical_path), path) != ERROR_SUCCESS) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+    if (handle == ebpf_handle_invalid) {
+        return EBPF_INVALID_FD;
+    }
+    size_t length = strlen(canonical_path);
+    alignas(ebpf_operation_delete_pinning_if_matches_request_t)
+        std::array<uint8_t, offsetof(ebpf_operation_delete_pinning_if_matches_request_t, path) + MAX_PATH>
+            buffer{};
+    auto request = reinterpret_cast<ebpf_operation_delete_pinning_if_matches_request_t*>(buffer.data());
+    request->header.id = EBPF_OPERATION_DELETE_PINNING_IF_MATCHES;
+    ebpf_result_t result = ebpf_safe_size_t_to_uint16(
+        offsetof(ebpf_operation_delete_pinning_if_matches_request_t, path) + length, &request->header.length);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+    request->handle = handle;
+    request->pin_cookie = cookie;
+    std::copy(canonical_path, canonical_path + length, request->path);
+    ebpf_protocol_buffer_t bytes(buffer.begin(), buffer.begin() + request->header.length);
+    return win32_error_code_to_ebpf_result(invoke_ioctl(bytes));
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+ebpf_result_t
+ebpf_object_unpin_if_matches(fd_t expected_fd, _In_z_ const char* path, uint64_t cookie) noexcept
+{
+    return _ebpf_object_unpin_handle_if_matches(_get_handle_from_file_descriptor(expected_fd), path, cookie);
+}
+
+struct ebpf_native_pin_rollback
+{
+    std::array<char, EBPF_MAX_PIN_PATH_LENGTH> path{};
+    ebpf_handle_t handle = ebpf_handle_invalid;
+    GUID namespace_id{};
+    uint8_t ownership = EBPF_NATIVE_MAP_PIN_NONE;
+    uint64_t cookie = 0;
+};
+
+static ebpf_result_t
+_ebpf_prepare_native_pin_rollback(const std::vector<ebpf_map_t*>& maps, std::vector<ebpf_native_pin_rollback>& rollback)
+{
+    rollback.resize(maps.size());
+    for (size_t index = 0; index < maps.size(); ++index) {
+        if (maps[index]->map_definition.pinning != LIBBPF_PIN_BY_NAME) {
+            continue;
+        }
+        if (maps[index]->pin_path == nullptr ||
+            ebpf_canonicalize_path(rollback[index].path.data(), rollback[index].path.size(), maps[index]->pin_path) !=
+                ERROR_SUCCESS) {
+            return EBPF_INVALID_OBJECT;
+        }
+    }
+    return EBPF_SUCCESS;
+}
+
+static void
+_ebpf_rollback_native_pins(const std::vector<ebpf_native_pin_rollback>& rollback) noexcept
+{
+    for (const auto& pin : rollback) {
+        if (pin.ownership != EBPF_NATIVE_MAP_PIN_CREATED || pin.handle == ebpf_handle_invalid || pin.path[0] == 0) {
+            continue;
+        }
+        ebpf_result_t result = _ebpf_object_unpin_handle_if_matches(pin.handle, pin.path.data(), pin.cookie);
+        if (result != EBPF_SUCCESS && result != EBPF_KEY_NOT_FOUND) {
+            EBPF_LOG_MESSAGE_UINT64(
+                EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_API, "Native pin rollback failed", result);
+        }
+    }
+}
+
+void
+ebpf_object_unpin_if_matches_cleanup(fd_t expected_fd, _In_z_ const char* path, uint64_t cookie) noexcept
+{
+    ebpf_result_t result = ebpf_object_unpin_if_matches(expected_fd, path, cookie);
+    if (result != EBPF_SUCCESS && result != EBPF_OBJECT_NOT_FOUND && result != EBPF_KEY_NOT_FOUND) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_API, "Conditional pin rollback failed", result);
+    }
+}
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_pin(_In_ struct bpf_map* map, _In_opt_z_ const char* path) NO_EXCEPT_TRY
 {
+    ebpf_api_namespace_guard namespace_guard;
     EBPF_LOG_ENTRY();
     ebpf_assert(map);
+    GUID namespace_id;
+    ebpf_result_t result = ebpf_get_namespace_for_pin(&namespace_id);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
     if (map->pin_path == nullptr && path == nullptr) {
         EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
     if (map->pinned) {
+        if (!IsEqualGUID(map->pinned_namespace, namespace_id)) {
+            EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+        }
         EBPF_RETURN_RESULT(
             (map->pin_path != nullptr && path != nullptr && strcmp(path, map->pin_path) == 0)
                 ? EBPF_OBJECT_ALREADY_EXISTS
@@ -1722,17 +1859,19 @@ ebpf_map_pin(_In_ struct bpf_map* map, _In_opt_z_ const char* path) NO_EXCEPT_TR
         if (map->pin_path != nullptr && strcmp(path, map->pin_path) != 0) {
             EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
         }
-        ebpf_free(map->pin_path);
-        map->pin_path = cxplat_duplicate_string(path);
         if (map->pin_path == nullptr) {
-            EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
+            map->pin_path = cxplat_duplicate_string(path);
+            if (map->pin_path == nullptr) {
+                EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
+            }
         }
     }
     assert(map->map_handle != ebpf_handle_invalid);
     assert(map->map_fd > 0);
-    ebpf_result_t result = ebpf_object_pin(map->map_fd, map->pin_path);
+    result = ebpf_object_pin_with_cookie(map->map_fd, map->pin_path, &map->pin_cookie);
     if (result == EBPF_SUCCESS) {
         map->pinned = true;
+        map->pinned_namespace = namespace_id;
     }
 
     EBPF_RETURN_RESULT(result);
@@ -1772,8 +1911,14 @@ CATCH_NO_MEMORY_EBPF_RESULT
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_unpin(_In_ struct bpf_map* map, _In_opt_z_ const char* path) NO_EXCEPT_TRY
 {
+    ebpf_api_namespace_guard namespace_guard;
     EBPF_LOG_ENTRY();
     ebpf_assert(map);
+    GUID namespace_id;
+    ebpf_result_t result = ebpf_get_namespace_for_pin(&namespace_id);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
     if (map->pin_path != nullptr) {
         // If pin path is already set, the pin path provided now should be same
         // as the one previously set.
@@ -1787,8 +1932,8 @@ ebpf_map_unpin(_In_ struct bpf_map* map, _In_opt_z_ const char* path) NO_EXCEPT_
     assert(map->map_handle != ebpf_handle_invalid);
     assert(map->map_fd > 0);
 
-    ebpf_result_t result = ebpf_object_unpin(path);
-    if (result == EBPF_SUCCESS) {
+    result = ebpf_object_unpin(path);
+    if (result == EBPF_SUCCESS && map->pinned && IsEqualGUID(map->pinned_namespace, namespace_id)) {
         map->pinned = false;
     }
 
@@ -1799,6 +1944,7 @@ CATCH_NO_MEMORY_EBPF_RESULT
 ebpf_result_t
 ebpf_object_get(_In_z_ const char* path, _Out_ fd_t* fd) NO_EXCEPT_TRY
 {
+    ebpf_api_namespace_guard namespace_guard;
     EBPF_LOG_ENTRY();
     ebpf_assert(fd);
     ebpf_assert(path);
@@ -2098,6 +2244,7 @@ ebpf_program_attach(
     size_t attach_params_size,
     _Outptr_opt_ struct bpf_link** link) NO_EXCEPT_TRY
 {
+    ebpf_api_namespace_guard namespace_guard;
     EBPF_LOG_ENTRY();
 
     ebpf_assert(program);
@@ -2141,6 +2288,7 @@ ebpf_program_attach_by_fds(
     size_t attach_parameters_size,
     _Out_opt_ fd_t* link) NO_EXCEPT_TRY
 {
+    ebpf_api_namespace_guard namespace_guard;
     EBPF_LOG_ENTRY();
 
     ebpf_handle_t program_handle = _get_handle_from_file_descriptor(program_fd);
@@ -2166,6 +2314,7 @@ ebpf_program_attach_by_fd(
     size_t attach_parameters_size,
     _Outptr_opt_ struct bpf_link** link) NO_EXCEPT_TRY
 {
+    ebpf_api_namespace_guard namespace_guard;
     EBPF_LOG_ENTRY();
 
     ebpf_link_t* new_link = nullptr;
@@ -2318,6 +2467,7 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_api_get_pinned_map_info(
     _Out_ uint16_t* map_count, _Outptr_result_buffer_maybenull_(*map_count) ebpf_map_info_t** map_info) NO_EXCEPT_TRY
 {
+    ebpf_api_namespace_guard namespace_guard;
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_operation_get_pinned_map_info_request_t request = {
@@ -2343,6 +2493,10 @@ ebpf_api_get_pinned_map_info(
         result = ebpf_safe_size_t_add(
             EBPF_OFFSET_OF(ebpf_operation_get_pinned_map_info_reply_t, data), output_buffer_length, &reply_length);
         if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+        if (reply_length > UINT16_MAX) {
+            result = EBPF_ARITHMETIC_OVERFLOW;
             goto Exit;
         }
 
@@ -2585,6 +2739,10 @@ _initialize_ebpf_maps_native(
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_map_t* map = nullptr;
 
+    if (count_of_maps != maps.size()) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
     for (int i = 0; i < count_of_maps; i++) {
         if (map_handles[i] == ebpf_handle_invalid) {
             result = EBPF_INVALID_ARGUMENT;
@@ -2741,14 +2899,14 @@ _initialize_ebpf_programs_native(
             result = EBPF_NO_MEMORY;
             goto Exit;
         }
+        program->handle = program_handles[i];
+        program_handles[i] = ebpf_handle_invalid;
         if (program->flags != 0) {
             result = ebpf_program_set_flags(program->fd, program->flags);
             if (result != EBPF_SUCCESS) {
                 goto Exit;
             }
         }
-        program->handle = program_handles[i];
-        program_handles[i] = ebpf_handle_invalid;
         program->program_type = info.type_uuid;
         program->attach_type = info.attach_type_uuid;
 
@@ -2756,9 +2914,6 @@ _initialize_ebpf_programs_native(
     }
 
 Exit:
-    if (result != EBPF_SUCCESS) {
-        clean_up_ebpf_programs(programs);
-    }
     EBPF_RETURN_RESULT(result);
 }
 CATCH_NO_MEMORY_EBPF_RESULT
@@ -2770,6 +2925,8 @@ _initialize_ebpf_object_native(
     _In_reads_opt_(count_of_maps) ebpf_handle_t* map_handles,
     size_t count_of_programs,
     _In_reads_opt_(count_of_programs) ebpf_handle_t* program_handles,
+    const std::vector<ebpf_native_pin_rollback>& rollback,
+    const GUID& namespace_id,
     _Inout_ ebpf_object_t& object) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
@@ -2786,6 +2943,18 @@ _initialize_ebpf_object_native(
     result = _initialize_ebpf_programs_native(count_of_programs, program_handles, object.programs);
     if (result != EBPF_SUCCESS) {
         goto Exit;
+    }
+
+    for (size_t index = 0; index < object.maps.size(); ++index) {
+        char configured_path[EBPF_MAX_PIN_PATH_LENGTH];
+        object.maps[index]->pinned =
+            rollback[index].ownership != EBPF_NATIVE_MAP_PIN_NONE && object.maps[index]->pin_path != nullptr &&
+            ebpf_canonicalize_path(configured_path, sizeof(configured_path), object.maps[index]->pin_path) ==
+                ERROR_SUCCESS &&
+            strcmp(configured_path, rollback[index].path.data()) == 0;
+        object.maps[index]->reused = rollback[index].ownership == EBPF_NATIVE_MAP_PIN_REUSED;
+        object.maps[index]->pinned_namespace = namespace_id;
+        object.maps[index]->pin_cookie = rollback[index].cookie;
     }
 
     result = _initialize_ebpf_maps_native(count_of_maps, map_handles, object.maps);
@@ -2843,9 +3012,10 @@ Exit:
             // Another load may have reused automatic pins after the kernel published them.
             if (map->pinned && map->map_definition.pinning != LIBBPF_PIN_BY_NAME) {
                 // Initialization can fail before this map has a user-mode fd.
-                ebpf_assert_success(ebpf_object_unpin(map->pin_path));
+                ebpf_object_unpin_if_matches_cleanup(map->map_fd, map->pin_path, map->pin_cookie);
             }
         }
+        _ebpf_rollback_native_pins(rollback);
         clean_up_ebpf_programs(object.programs);
         clean_up_ebpf_maps(object.maps);
     }
@@ -3781,12 +3951,17 @@ _ebpf_object_reuse_map(_Inout_ ebpf_map_t* map) NO_EXCEPT_TRY
     fd_t map_fd = ebpf_fd_invalid;
     result = ebpf_object_get(map->pin_path, &map_fd);
     if (result != EBPF_SUCCESS) {
-        EBPF_RETURN_RESULT(EBPF_SUCCESS);
+        EBPF_RETURN_RESULT((result == EBPF_OBJECT_NOT_FOUND || result == EBPF_KEY_NOT_FOUND) ? EBPF_SUCCESS : result);
     }
 
     // Recursively validate that the map definition matches with the existing
     // map.
     result = _ebpf_validate_map(map, map_fd);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    result = ebpf_get_namespace_for_pin(&map->pinned_namespace);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -3839,6 +4014,12 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static ebpf_result_t
             break;
         }
         map->map_fd = _create_file_descriptor_for_handle(map->map_handle);
+        if (map->map_fd == ebpf_fd_invalid) {
+            Platform::CloseHandle(map->map_handle);
+            map->map_handle = ebpf_handle_invalid;
+            result = EBPF_NO_MEMORY;
+            break;
+        }
 
         // If pin_path is set and the map is not yet pinned, pin it now.
         if (map->pin_path && !map->pinned) {
@@ -3866,7 +4047,8 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static ebpf_result_t
         // Unpin all the maps which have been auto-pinned above.
         for (auto& map : object->maps) {
             if (map->pin_path && map->pinned && !map->reused) {
-                ebpf_assert_success(ebpf_map_unpin(map, nullptr));
+                ebpf_object_unpin_if_matches_cleanup(map->map_fd, map->pin_path, map->pin_cookie);
+                map->pinned = false;
             }
         }
         clean_up_ebpf_maps(object->maps);
@@ -3889,6 +4071,7 @@ ebpf_program_load_bytes(
     _Out_ fd_t* program_fd,
     _Out_opt_ uint32_t* log_buffer_true_size) NO_EXCEPT_TRY
 {
+    ebpf_api_namespace_guard namespace_guard;
     EBPF_LOG_ENTRY();
     ebpf_assert(program_type);
     ebpf_assert(instructions);
@@ -4012,7 +4195,10 @@ ebpf_program_load_bytes(
 
     *program_fd = (result == EBPF_SUCCESS) ? _create_file_descriptor_for_handle(program_handle) : ebpf_fd_invalid;
     if (*program_fd == ebpf_fd_invalid) {
-        CloseHandle(program_handle);
+        Platform::CloseHandle(program_handle);
+        if (result == EBPF_SUCCESS) {
+            result = EBPF_NO_MEMORY;
+        }
     }
 
     EBPF_RETURN_RESULT(result);
@@ -4046,6 +4232,12 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static ebpf_result_t
         }
 
         program->fd = _create_file_descriptor_for_handle(program->handle);
+        if (program->fd == ebpf_fd_invalid) {
+            Platform::CloseHandle(program->handle);
+            program->handle = ebpf_handle_invalid;
+            result = EBPF_NO_MEMORY;
+            break;
+        }
 
         if (program->flags != 0) {
             result = ebpf_program_set_flags(program->fd, program->flags);
@@ -4103,6 +4295,7 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static ebpf_result_t
 _Must_inspect_result_ ebpf_result_t
 ebpf_object_load(_Inout_ struct bpf_object* object) NO_EXCEPT_TRY
 {
+    ebpf_api_namespace_guard namespace_guard;
     ebpf_result_t result;
     EBPF_LOG_ENTRY();
     ebpf_assert(object);
@@ -4138,6 +4331,12 @@ ebpf_object_load(_Inout_ struct bpf_object* object) NO_EXCEPT_TRY
 
 Done:
     if (result != EBPF_SUCCESS) {
+        for (auto map : object->maps) {
+            if (map->pinned && !map->reused && map->pin_path) {
+                ebpf_object_unpin_if_matches_cleanup(map->map_fd, map->pin_path, map->pin_cookie);
+                map->pinned = false;
+            }
+        }
         ebpf_assert_success(ebpf_object_unload(object));
     }
     EBPF_RETURN_RESULT(result);
@@ -4300,13 +4499,16 @@ _load_native_programs(
     size_t count_of_maps,
     _Outptr_result_buffer_maybenull_(count_of_maps) ebpf_handle_t** map_handles,
     size_t count_of_programs,
-    _Outptr_result_buffer_maybenull_(count_of_programs) ebpf_handle_t** program_handles) noexcept(false)
+    _Outptr_result_buffer_maybenull_(count_of_programs) ebpf_handle_t** program_handles,
+    std::vector<ebpf_native_pin_rollback>& rollback,
+    _Out_ GUID* namespace_id) noexcept(false)
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(module_id);
 
     *map_handles = nullptr;
     *program_handles = nullptr;
+    *namespace_id = GUID_NULL;
 
     ebpf_result_t result = EBPF_SUCCESS;
     uint32_t error = ERROR_SUCCESS;
@@ -4321,12 +4523,36 @@ _load_native_programs(
     size_t pin_root_path_size = pin_root_path ? strlen(pin_root_path) : 0;
     size_t request_size = 0;
     uint16_t reply_size = 0;
+    size_t legacy_buffer_size = 0;
+    size_t receipt_bytes = 0;
+    uint32_t actual_reply_size = 0;
+    auto invoke_native = [&]() -> uint32_t {
+        ebpf_handle_t device;
+        uint32_t status = get_sync_device_handle_for_request(
+            request_buffer.data(), static_cast<uint32_t>(request_buffer.size()), &device);
+        if (status != ERROR_SUCCESS) {
+            return status;
+        }
+        actual_reply_size = 0;
+        return Platform::DeviceIoControl(
+                   device,
+                   IOCTL_EBPF_CTL_METHOD_BUFFERED,
+                   request_buffer.data(),
+                   static_cast<uint32_t>(request_buffer.size()),
+                   reply_buffer.data(),
+                   static_cast<uint32_t>(reply_buffer.size()),
+                   &actual_reply_size,
+                   nullptr)
+                   ? ERROR_SUCCESS
+                   : GetLastError();
+    };
 
-    if (pin_root_path_size >= EBPF_MAX_PIN_PATH_LENGTH) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Done;
+    if (rollback.size() != count_of_maps) {
+        return EBPF_INVALID_ARGUMENT;
     }
-
+    if (pin_root_path_size >= EBPF_MAX_PIN_PATH_LENGTH) {
+        return EBPF_INVALID_ARGUMENT;
+    }
     result = ebpf_safe_size_t_add(
         offsetof(ebpf_operation_load_native_programs_request_t, pin_root_path), pin_root_path_size, &request_size);
     if (result != EBPF_SUCCESS) {
@@ -4337,7 +4563,6 @@ _load_native_programs(
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
-
     result = ebpf_safe_size_t_multiply(count_of_programs, sizeof(ebpf_handle_t), &program_handles_size);
     if (result != EBPF_SUCCESS) {
         goto Done;
@@ -4353,10 +4578,19 @@ _load_native_programs(
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
-    result = ebpf_safe_size_t_to_uint16(buffer_size, &reply_size);
-    if (result != EBPF_SUCCESS) {
+    legacy_buffer_size = buffer_size;
+    result = ebpf_safe_size_t_multiply(count_of_maps, 1 + sizeof(uint64_t), &receipt_bytes);
+    if (result == EBPF_SUCCESS) {
+        result = ebpf_safe_size_t_add(buffer_size, receipt_bytes, &buffer_size);
+    }
+    if (result == EBPF_SUCCESS) {
+        result = ebpf_safe_size_t_add(buffer_size, sizeof(GUID), &buffer_size);
+    }
+    if (result != EBPF_SUCCESS || buffer_size > UINT16_MAX) {
+        result = EBPF_ARITHMETIC_OVERFLOW;
         goto Done;
     }
+    reply_size = static_cast<uint16_t>(buffer_size);
 
     if (count_of_maps > 0) {
         *map_handles = (ebpf_handle_t*)ebpf_allocate_with_tag(map_handles_size, EBPF_POOL_TAG_DEFAULT);
@@ -4368,6 +4602,7 @@ _load_native_programs(
             result = EBPF_NO_MEMORY;
             goto Done;
         }
+        std::fill_n(*map_handles, count_of_maps, ebpf_handle_invalid);
     }
 
     if (count_of_programs > 0) {
@@ -4380,6 +4615,7 @@ _load_native_programs(
             result = EBPF_NO_MEMORY;
             goto Done;
         }
+        std::fill_n(*program_handles, count_of_programs, ebpf_handle_invalid);
     }
 
     request_buffer.resize(request_size);
@@ -4387,7 +4623,7 @@ _load_native_programs(
 
     request = reinterpret_cast<ebpf_operation_load_native_programs_request_t*>(request_buffer.data());
     reply = reinterpret_cast<ebpf_operation_load_native_programs_reply_t*>(reply_buffer.data());
-    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_LOAD_NATIVE_PROGRAMS;
+    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_LOAD_NATIVE_PROGRAMS_EX;
     result = ebpf_safe_size_t_to_uint16(request_size, &request->header.length);
     if (result != EBPF_SUCCESS) {
         goto Done;
@@ -4400,15 +4636,15 @@ _load_native_programs(
             pin_root_path_size);
     }
 
-    error = invoke_ioctl(request_buffer, reply_buffer);
+    error = invoke_native();
     if (error != ERROR_SUCCESS) {
         result = win32_error_code_to_ebpf_result(error);
-        EBPF_LOG_WIN32_GUID_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, module_id, invoke_ioctl);
+        EBPF_LOG_WIN32_GUID_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, module_id, invoke_native);
         goto Done;
     }
 
-    ebpf_assert(reply->header.id == ebpf_operation_id_t::EBPF_OPERATION_LOAD_NATIVE_PROGRAMS);
-    if (reply->map_handle_count != count_of_maps || reply->program_handle_count != count_of_programs) {
+    if (actual_reply_size < legacy_buffer_size || reply->map_handle_count != count_of_maps ||
+        reply->program_handle_count != count_of_programs) {
         result = EBPF_FAILED;
         EBPF_LOG_MESSAGE(
             EBPF_TRACELOG_LEVEL_ERROR,
@@ -4423,9 +4659,55 @@ _load_native_programs(
     if (*program_handles != nullptr) {
         memcpy(*program_handles, reply->data + map_handles_size, program_handles_size);
     }
+    if (actual_reply_size != buffer_size) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+    memcpy(namespace_id, reply->data + handles_size + receipt_bytes, sizeof(*namespace_id));
+    for (size_t index = 0; index < count_of_maps; ++index) {
+        rollback[index].handle = (*map_handles)[index];
+        rollback[index].namespace_id = *namespace_id;
+        uint8_t ownership = reply->data[handles_size + index];
+        uint64_t cookie;
+        memcpy(&cookie, reply->data + handles_size + count_of_maps + index * sizeof(cookie), sizeof(cookie));
+        if ((ownership != EBPF_NATIVE_MAP_PIN_NONE && ownership != EBPF_NATIVE_MAP_PIN_CREATED &&
+             ownership != EBPF_NATIVE_MAP_PIN_REUSED) ||
+            ((ownership == EBPF_NATIVE_MAP_PIN_CREATED) != (cookie != 0))) {
+            result = EBPF_INVALID_ARGUMENT;
+            continue;
+        }
+        rollback[index].ownership = ownership;
+        rollback[index].cookie = cookie;
+    }
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+    if (reply->header.id != request->header.id || reply->header.length != buffer_size) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 
 Done:
+    _ebpf_rollback_native_pins(rollback);
+    for (auto& pin : rollback) {
+        pin.handle = ebpf_handle_invalid;
+        pin.ownership = EBPF_NATIVE_MAP_PIN_NONE;
+    }
+    if (*map_handles) {
+        for (size_t index = 0; index < count_of_maps; ++index) {
+            if ((*map_handles)[index] != 0 && (*map_handles)[index] != ebpf_handle_invalid) {
+                Platform::CloseHandle((*map_handles)[index]);
+            }
+        }
+    }
+    if (*program_handles) {
+        for (size_t index = 0; index < count_of_programs; ++index) {
+            if ((*program_handles)[index] != 0 && (*program_handles)[index] != ebpf_handle_invalid) {
+                Platform::CloseHandle((*program_handles)[index]);
+            }
+        }
+    }
     ebpf_free(*map_handles);
     *map_handles = nullptr;
     ebpf_free(*program_handles);
@@ -4458,7 +4740,10 @@ _ebpf_object_load_native(
     _Inout_ size_t* count_of_maps,
     _Outptr_result_buffer_all_maybenull_(*count_of_maps) ebpf_handle_t** map_handles,
     _Inout_ size_t* count_of_programs,
-    _Outptr_result_buffer_all_maybenull_(*count_of_programs) ebpf_handle_t** program_handles) NO_EXCEPT_TRY
+    _Outptr_result_buffer_all_maybenull_(*count_of_programs) ebpf_handle_t** program_handles,
+    std::vector<ebpf_native_pin_rollback>& rollback,
+    size_t expected_program_count,
+    _Out_ GUID* namespace_id) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
 
@@ -4485,6 +4770,7 @@ _ebpf_object_load_native(
     *native_module_handle = ebpf_handle_invalid;
     *map_handles = nullptr;
     *program_handles = nullptr;
+    *namespace_id = GUID_NULL;
 
     if (UuidCreate(&service_name_guid) != RPC_S_OK) {
         EBPF_LOG_MESSAGE_STRING(
@@ -4565,6 +4851,9 @@ _ebpf_object_load_native(
         if (*count_of_maps < real_count_of_maps || *count_of_programs < real_count_of_programs) {
             result = EBPF_NO_MEMORY;
         }
+        if (real_count_of_maps != rollback.size() || real_count_of_programs != expected_program_count) {
+            result = EBPF_INVALID_ARGUMENT;
+        }
 
         *count_of_maps = real_count_of_maps;
         *count_of_programs = real_count_of_programs;
@@ -4579,7 +4868,9 @@ _ebpf_object_load_native(
             real_count_of_maps,
             map_handles,
             real_count_of_programs,
-            program_handles);
+            program_handles,
+            rollback,
+            namespace_id);
         if (result != EBPF_SUCCESS) {
             EBPF_LOG_MESSAGE_STRING(
                 EBPF_TRACELOG_LEVEL_ERROR,
@@ -4633,6 +4924,7 @@ ebpf_object_load_native_by_fds(
     _Inout_ size_t* count_of_programs,
     _Out_writes_opt_(*count_of_programs) fd_t* program_fds) NO_EXCEPT_TRY
 {
+    ebpf_api_namespace_guard namespace_guard;
     EBPF_LOG_ENTRY();
 
     ebpf_assert(count_of_maps);
@@ -4643,14 +4935,34 @@ ebpf_object_load_native_by_fds(
     ebpf_handle_t native_module_handle;
     ebpf_handle_t* map_handles = nullptr;
     ebpf_handle_t* program_handles = nullptr;
-
-    ebpf_result_t result = _ebpf_object_load_native(
-        file_name, nullptr, &native_module_handle, count_of_maps, &map_handles, count_of_programs, &program_handles);
+    std::unique_ptr<ebpf_object_t, decltype(&_delete_ebpf_object)> metadata(new ebpf_object_t, _delete_ebpf_object);
+    const char* error_message = nullptr;
+    ebpf_result_t result = _initialize_ebpf_object_from_native_file(file_name, nullptr, *metadata, &error_message);
+    ebpf_free_string(error_message);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
+    std::vector<ebpf_native_pin_rollback> rollback;
+    GUID namespace_id{};
+    result = _ebpf_prepare_native_pin_rollback(metadata->maps, rollback);
     if (result != EBPF_SUCCESS) {
         EBPF_RETURN_RESULT(result);
     }
 
-    Platform::CloseHandle(native_module_handle);
+    result = _ebpf_object_load_native(
+        file_name,
+        nullptr,
+        &native_module_handle,
+        count_of_maps,
+        &map_handles,
+        count_of_programs,
+        &program_handles,
+        rollback,
+        metadata->programs.size(),
+        &namespace_id);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
 
     __analysis_assume(*count_of_maps == 0 || map_handles != nullptr);
     for (int i = 0; i < *count_of_maps; i++) {
@@ -4673,6 +4985,7 @@ ebpf_object_load_native_by_fds(
     }
 
     if (result != EBPF_SUCCESS) {
+        _ebpf_rollback_native_pins(rollback);
         if (map_fds != nullptr) {
             for (int i = 0; i < *count_of_maps; i++) {
                 if (map_fds[i] != ebpf_fd_invalid) {
@@ -4694,6 +5007,7 @@ ebpf_object_load_native_by_fds(
 
     _ebpf_free_handles(*count_of_maps, map_handles);
     _ebpf_free_handles(*count_of_programs, program_handles);
+    Platform::CloseHandle(native_module_handle);
 
     EBPF_RETURN_RESULT(result);
 }
@@ -4712,9 +5026,15 @@ _ebpf_program_load_native(
     ebpf_handle_t native_module_handle = ebpf_handle_invalid;
     ebpf_handle_t* map_handles = nullptr;
     ebpf_handle_t* program_handles = nullptr;
-    size_t count_of_maps = SIZE_MAX;
-    size_t count_of_programs = SIZE_MAX;
+    size_t count_of_maps = object->maps.size();
+    size_t count_of_programs = object->programs.size();
+    std::vector<ebpf_native_pin_rollback> rollback;
+    GUID namespace_id{};
 
+    result = _ebpf_prepare_native_pin_rollback(object->maps, rollback);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
     try {
         result = _validate_native_map_pin_paths(*object);
         if (result != EBPF_SUCCESS) {
@@ -4728,13 +5048,23 @@ _ebpf_program_load_native(
             &count_of_maps,
             &map_handles,
             &count_of_programs,
-            &program_handles);
+            &program_handles,
+            rollback,
+            object->programs.size(),
+            &namespace_id);
         if (result != EBPF_SUCCESS) {
             EBPF_RETURN_RESULT(result);
         }
 
         result = _initialize_ebpf_object_native(
-            native_module_handle, count_of_maps, map_handles, count_of_programs, program_handles, *object);
+            native_module_handle,
+            count_of_maps,
+            map_handles,
+            count_of_programs,
+            program_handles,
+            rollback,
+            namespace_id,
+            *object);
         if (result != EBPF_SUCCESS) {
             EBPF_LOG_MESSAGE_STRING(
                 EBPF_TRACELOG_LEVEL_ERROR,

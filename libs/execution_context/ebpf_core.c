@@ -547,6 +547,7 @@ Done:
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_core_create_map(
+    _In_ const GUID* namespace_id,
     _In_ const cxplat_utf8_string_t* map_name,
     _In_ const ebpf_map_definition_in_memory_t* ebpf_map_definition,
     ebpf_handle_t inner_map_handle,
@@ -556,7 +557,7 @@ ebpf_core_create_map(
     ebpf_result_t retval;
     ebpf_map_t* map = NULL;
 
-    retval = ebpf_map_create(map_name, ebpf_map_definition, inner_map_handle, &map);
+    retval = ebpf_map_create(namespace_id, map_name, ebpf_map_definition, inner_map_handle, &map);
     if (retval != EBPF_SUCCESS) {
         return retval;
     }
@@ -577,6 +578,7 @@ Done:
 
 static ebpf_result_t
 _ebpf_core_protocol_create_map(
+    _In_ const ebpf_request_context_t* context,
     _In_ const struct _ebpf_operation_create_map_request* request,
     _Inout_ struct _ebpf_operation_create_map_reply* reply)
 {
@@ -593,16 +595,19 @@ _ebpf_core_protocol_create_map(
         }
     }
 
-    retval = ebpf_core_create_map(&map_name, &request->ebpf_map_definition, request->inner_map_handle, &reply->handle);
+    retval = ebpf_core_create_map(
+        &context->namespace_id, &map_name, &request->ebpf_map_definition, request->inner_map_handle, &reply->handle);
 
     EBPF_RETURN_RESULT(retval);
 }
 
 static ebpf_result_t
 _ebpf_core_protocol_load_native_module(
+    _In_ const ebpf_request_context_t* context,
     _In_ const ebpf_operation_load_native_module_request_t* request,
     _Out_ ebpf_operation_load_native_module_reply_t* reply)
 {
+    UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
     ebpf_result_t result;
     size_t service_name_length = 0;
@@ -638,6 +643,7 @@ Done:
 
 static ebpf_result_t
 _ebpf_core_protocol_load_native_programs(
+    _In_ const ebpf_request_context_t* context,
     _In_ const ebpf_operation_load_native_programs_request_t* request,
     _Inout_updates_bytes_(reply_length) ebpf_operation_load_native_programs_reply_t* reply,
     uint16_t reply_length)
@@ -652,6 +658,9 @@ _ebpf_core_protocol_load_native_programs(
     size_t map_handles_size = 0;
     size_t program_handles_size = 0;
     uint8_t* map_reused = NULL;
+    uint8_t* map_pin_ownership = NULL;
+    uint64_t* map_pin_cookies = NULL;
+    const bool extended = request->header.id == EBPF_OPERATION_LOAD_NATIVE_PROGRAMS_EX;
     size_t pin_root_path_length = 0;
     char pin_root_path[EBPF_MAX_PIN_PATH_LENGTH];
 
@@ -717,13 +726,26 @@ _ebpf_core_protocol_load_native_programs(
         goto Done;
     }
 
-    if (reply_length < required_reply_length) {
+    if (extended) {
+        size_t receipt_bytes = 0;
+        result = ebpf_safe_size_t_multiply(count_of_map_handles, 1 + sizeof(uint64_t), &receipt_bytes);
+        if (result == EBPF_SUCCESS) {
+            result = ebpf_safe_size_t_add(required_reply_length, receipt_bytes, &required_reply_length);
+        }
+        if (result == EBPF_SUCCESS) {
+            result = ebpf_safe_size_t_add(required_reply_length, sizeof(GUID), &required_reply_length);
+        }
+        if (result != EBPF_SUCCESS) {
+            goto Done;
+        }
+    }
+    if (required_reply_length > UINT16_MAX || reply_length < required_reply_length) {
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
     // Legacy callers allocate only the handle arrays. Emit reuse status only if the entire tail fits.
-    if (count_of_map_handles > 0 && reply_length - required_reply_length >= count_of_map_handles) {
+    if (!extended && count_of_map_handles > 0 && reply_length - required_reply_length >= count_of_map_handles) {
         map_reused = (uint8_t*)reply + required_reply_length;
     }
 
@@ -737,6 +759,14 @@ _ebpf_core_protocol_load_native_programs(
         if (map_handles == NULL) {
             result = EBPF_NO_MEMORY;
             goto Done;
+        }
+        if (extended) {
+            map_pin_ownership = ebpf_allocate_with_tag(count_of_map_handles, EBPF_POOL_TAG_CORE);
+            map_pin_cookies = ebpf_allocate_with_tag(map_handles_length, EBPF_POOL_TAG_CORE);
+            if (map_pin_ownership == NULL || map_pin_cookies == NULL) {
+                result = EBPF_NO_MEMORY;
+                goto Done;
+            }
         }
     }
 
@@ -754,13 +784,16 @@ _ebpf_core_protocol_load_native_programs(
     }
 
     result = ebpf_native_load_programs(
+        &context->namespace_id,
         &request->module_id,
         (pin_root_path_length > 0) ? pin_root_path : NULL,
         count_of_map_handles,
         map_handles,
         map_reused,
         count_of_program_handles,
-        program_handles);
+        program_handles,
+        map_pin_ownership,
+        map_pin_cookies);
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
@@ -778,20 +811,52 @@ _ebpf_core_protocol_load_native_programs(
         uint32_t marker = EBPF_NATIVE_MAP_REUSE_STATUS_PRESENT;
         memcpy(map_reused + count_of_map_handles, &marker, sizeof(marker));
     }
+    if (map_pin_ownership != NULL) {
+        memcpy(reply->data + map_handles_size + program_handles_size, map_pin_ownership, count_of_map_handles);
+    }
+    if (extended) {
+        if (count_of_map_handles != 0) {
+            memcpy(
+                reply->data + map_handles_size + program_handles_size + count_of_map_handles,
+                map_pin_cookies,
+                count_of_map_handles * sizeof(uint64_t));
+        }
+        memcpy(
+            reply->data + map_handles_size + program_handles_size + count_of_map_handles * (1 + sizeof(uint64_t)),
+            &context->namespace_id,
+            sizeof(GUID));
+    }
+    if (extended) {
+        reply->header.length = (uint16_t)required_reply_length;
+    }
 
 Done:
     ebpf_free(map_handles);
     ebpf_free(program_handles);
+    ebpf_free(map_pin_ownership);
+    ebpf_free(map_pin_cookies);
 
     EBPF_RETURN_RESULT(result);
 }
 
 static ebpf_result_t
+_ebpf_core_protocol_load_native_programs_ex(
+    _In_ const ebpf_request_context_t* context,
+    _In_ const ebpf_operation_load_native_programs_ex_request_t* request,
+    _Inout_updates_bytes_(reply_length) ebpf_operation_load_native_programs_ex_reply_t* reply,
+    uint16_t reply_length)
+{
+    return _ebpf_core_protocol_load_native_programs(context, request, reply, reply_length);
+}
+
+static ebpf_result_t
 _ebpf_core_protocol_map_find_element(
+    _In_ const ebpf_request_context_t* context,
     _In_ const ebpf_operation_map_find_element_request_t* request,
     _Inout_ ebpf_operation_map_find_element_reply_t* reply,
     uint16_t reply_length)
 {
+    UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
     ebpf_result_t retval;
     ebpf_map_t* map = NULL;
@@ -835,8 +900,10 @@ Done:
 }
 
 static ebpf_result_t
-_ebpf_core_protocol_map_update_element(_In_ const ebpf_operation_map_update_element_request_t* request)
+_ebpf_core_protocol_map_update_element(
+    _In_ const ebpf_request_context_t* context, _In_ const ebpf_operation_map_update_element_request_t* request)
 {
+    UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
     ebpf_result_t retval;
     ebpf_map_t* map = NULL;
@@ -873,9 +940,11 @@ Done:
 
 static ebpf_result_t
 _ebpf_core_protocol_map_update_element_batch(
+    _In_ const ebpf_request_context_t* context,
     _In_ const ebpf_operation_map_update_element_batch_request_t* request,
     _Inout_ ebpf_operation_map_update_element_batch_reply_t* reply)
 {
+    UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
     ebpf_result_t retval;
     ebpf_map_t* map = NULL;
@@ -939,8 +1008,10 @@ Done:
 
 static ebpf_result_t
 _ebpf_core_protocol_map_update_element_with_handle(
+    _In_ const ebpf_request_context_t* context,
     _In_ const ebpf_operation_map_update_element_with_handle_request_t* request)
 {
+    UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
     ebpf_result_t retval;
     ebpf_map_t* map = NULL;
@@ -967,8 +1038,10 @@ Done:
 }
 
 static ebpf_result_t
-_ebpf_core_protocol_map_delete_element(_In_ const ebpf_operation_map_delete_element_request_t* request)
+_ebpf_core_protocol_map_delete_element(
+    _In_ const ebpf_request_context_t* context, _In_ const ebpf_operation_map_delete_element_request_t* request)
 {
+    UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
     ebpf_result_t retval;
     ebpf_map_t* map = NULL;
@@ -994,9 +1067,11 @@ Done:
 
 static ebpf_result_t
 _ebpf_core_protocol_map_delete_element_batch(
+    _In_ const ebpf_request_context_t* context,
     _In_ const ebpf_operation_map_delete_element_batch_request_t* request,
     _Inout_ ebpf_operation_map_delete_element_batch_reply_t* reply)
 {
+    UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
     ebpf_result_t retval;
     ebpf_map_t* map = NULL;
@@ -1042,10 +1117,12 @@ Done:
 
 static ebpf_result_t
 _ebpf_core_protocol_map_get_next_key(
+    _In_ const ebpf_request_context_t* context,
     _In_ const ebpf_operation_map_get_next_key_request_t* request,
     _Inout_ ebpf_operation_map_get_next_key_reply_t* reply,
     uint16_t reply_length)
 {
+    UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
     ebpf_result_t retval;
     ebpf_map_t* map = NULL;
@@ -1102,10 +1179,12 @@ Done:
 
 static ebpf_result_t
 _ebpf_core_protocol_map_get_next_key_value_batch(
+    _In_ const ebpf_request_context_t* context,
     _In_ const ebpf_operation_map_get_next_key_value_batch_request_t* request,
     _Inout_ ebpf_operation_map_get_next_key_value_batch_reply_t* reply,
     uint16_t reply_length)
 {
+    UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
     ebpf_result_t retval;
     ebpf_map_t* map = NULL;
@@ -1195,11 +1274,13 @@ _ebpf_core_protocol_program_test_run_complete(
 
 static ebpf_result_t
 _ebpf_core_protocol_program_test_run(
+    _In_ const ebpf_request_context_t* context,
     _In_ const ebpf_operation_program_test_run_request_t* request,
     _Inout_updates_bytes_(reply_length) ebpf_operation_program_test_run_reply_t* reply,
     uint16_t reply_length,
     _Inout_ void* async_context)
 {
+    UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
 
     ebpf_program_test_run_options_t* options = NULL;
@@ -1252,8 +1333,14 @@ _ebpf_core_protocol_program_test_run(
         context_size_out = 0;
     }
 
-    retval =
-        EBPF_OBJECT_REFERENCE_BY_HANDLE(request->program_handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program);
+    if (context->referenced_object != NULL) {
+        program = (ebpf_program_t*)context->referenced_object;
+        EBPF_OBJECT_ACQUIRE_REFERENCE((ebpf_core_object_t*)program);
+        retval = EBPF_SUCCESS;
+    } else {
+        retval = EBPF_OBJECT_REFERENCE_BY_HANDLE(
+            request->program_handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program);
+    }
     if (retval != EBPF_SUCCESS) {
         goto Done;
     }
@@ -1291,10 +1378,12 @@ Done:
 
 static ebpf_result_t
 _ebpf_core_protocol_query_program_info(
+    _In_ const ebpf_request_context_t* context,
     _In_ const struct _ebpf_operation_query_program_info_request* request,
     _Inout_ struct _ebpf_operation_query_program_info_reply* reply,
     uint16_t reply_length)
 {
+    UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
     ebpf_result_t retval;
     ebpf_program_t* program = NULL;
@@ -1362,14 +1451,15 @@ Done:
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_core_update_pinning(const ebpf_handle_t handle, _In_ const cxplat_utf8_string_t* path)
+ebpf_core_update_pinning(
+    _In_ const GUID* namespace_id, const ebpf_handle_t handle, _In_ const cxplat_utf8_string_t* path)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t retval = EBPF_SUCCESS;
     ebpf_core_object_t* object = NULL;
 
     if (handle == UINT64_MAX) {
-        retval = ebpf_pinning_table_delete(_ebpf_core_map_pinning_table, path);
+        retval = ebpf_pinning_table_delete(_ebpf_core_map_pinning_table, namespace_id, path);
         goto Done;
     } else {
         retval = EBPF_OBJECT_REFERENCE_BY_HANDLE(handle, EBPF_OBJECT_UNKNOWN, (ebpf_core_object_t**)&object);
@@ -1377,7 +1467,7 @@ ebpf_core_update_pinning(const ebpf_handle_t handle, _In_ const cxplat_utf8_stri
             goto Done;
         }
 
-        retval = ebpf_pinning_table_insert(_ebpf_core_map_pinning_table, path, (ebpf_core_object_t*)object);
+        retval = ebpf_pinning_table_insert(_ebpf_core_map_pinning_table, namespace_id, path, object);
     }
 Done:
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)object);
@@ -1386,7 +1476,8 @@ Done:
 }
 
 static ebpf_result_t
-_ebpf_core_protocol_update_pinning(_In_ const struct _ebpf_operation_update_map_pinning_request* request)
+_ebpf_core_protocol_update_pinning(
+    _In_ const ebpf_request_context_t* context, _In_ const struct _ebpf_operation_update_map_pinning_request* request)
 {
     EBPF_LOG_ENTRY();
     size_t path_length;
@@ -1403,19 +1494,20 @@ _ebpf_core_protocol_update_pinning(_In_ const struct _ebpf_operation_update_map_
         goto Done;
     }
 
-    retval = ebpf_core_update_pinning(request->handle, &path);
+    retval = ebpf_core_update_pinning(&context->namespace_id, request->handle, &path);
 
 Done:
     EBPF_RETURN_RESULT(retval);
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_core_get_pinned_object(_In_ const cxplat_utf8_string_t* path, _Out_ ebpf_handle_t* handle)
+ebpf_core_get_pinned_object(
+    _In_ const GUID* namespace_id, _In_ const cxplat_utf8_string_t* path, _Out_ ebpf_handle_t* handle)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t retval;
     ebpf_core_object_t* object = NULL;
-    retval = ebpf_pinning_table_find(_ebpf_core_map_pinning_table, path, (ebpf_core_object_t**)&object);
+    retval = ebpf_pinning_table_find(_ebpf_core_map_pinning_table, namespace_id, path, &object);
     if (retval != EBPF_SUCCESS) {
         goto Done;
     }
@@ -1429,6 +1521,7 @@ Done:
 
 static ebpf_result_t
 _ebpf_core_protocol_get_pinned_object(
+    _In_ const ebpf_request_context_t* context,
     _In_ const struct _ebpf_operation_get_pinned_object_request* request,
     _Inout_ struct _ebpf_operation_get_pinned_object_reply* reply)
 {
@@ -1446,7 +1539,7 @@ _ebpf_core_protocol_get_pinned_object(
     }
 
     const cxplat_utf8_string_t path = {(uint8_t*)request->path, path_length};
-    retval = ebpf_core_get_pinned_object(&path, &reply->handle);
+    retval = ebpf_core_get_pinned_object(&context->namespace_id, &path, &reply->handle);
 
 Done:
     EBPF_RETURN_RESULT(retval);
@@ -1454,7 +1547,9 @@ Done:
 
 static ebpf_result_t
 _ebpf_core_protocol_link_program(
-    _In_ const ebpf_operation_link_program_request_t* request, _Inout_ ebpf_operation_link_program_reply_t* reply)
+    _In_ const ebpf_request_context_t* context,
+    _In_ const ebpf_operation_link_program_request_t* request,
+    _Inout_ ebpf_operation_link_program_reply_t* reply)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t retval;
@@ -1481,7 +1576,7 @@ _ebpf_core_protocol_link_program(
         goto Done;
     }
 
-    retval = ebpf_link_create(request->attach_type, request->data, data_length, &link);
+    retval = ebpf_link_create(&context->namespace_id, request->attach_type, request->data, data_length, &link);
     if (retval != EBPF_SUCCESS) {
         goto Done;
     }
@@ -1507,6 +1602,7 @@ Done:
 
 static ebpf_result_t
 _ebpf_core_find_matching_link(
+    _In_ const GUID* namespace_id,
     ebpf_handle_t program_handle,
     _In_ const ebpf_attach_type_t* attach_type,
     _In_reads_bytes_(context_data_length) const uint8_t* context_data,
@@ -1532,7 +1628,8 @@ _ebpf_core_find_matching_link(
     // Enumerate all link objects starting with previous_object.
     while (TRUE) {
         struct bpf_link_info info = {0};
-        EBPF_OBJECT_REFERENCE_NEXT_OBJECT(previous_object, EBPF_OBJECT_LINK, (ebpf_core_object_t**)&local_link);
+        EBPF_OBJECT_REFERENCE_NEXT_OBJECT(
+            namespace_id, previous_object, EBPF_OBJECT_LINK, (ebpf_core_object_t**)&local_link);
         if (previous_object != NULL) {
             EBPF_OBJECT_RELEASE_REFERENCE(previous_object);
         }
@@ -1587,7 +1684,8 @@ Exit:
 }
 
 static ebpf_result_t
-_ebpf_core_protocol_unlink_program(_In_ const ebpf_operation_unlink_program_request_t* request)
+_ebpf_core_protocol_unlink_program(
+    _In_ const ebpf_request_context_t* context, _In_ const ebpf_operation_unlink_program_request_t* request)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t retval = EBPF_SUCCESS;
@@ -1611,7 +1709,13 @@ _ebpf_core_protocol_unlink_program(_In_ const ebpf_operation_unlink_program_requ
         ebpf_link_t* previous_link = NULL;
         while (retval != EBPF_NO_MORE_KEYS) {
             retval = _ebpf_core_find_matching_link(
-                request->program_handle, &request->attach_type, request->data, data_length, previous_link, &link);
+                &context->namespace_id,
+                request->program_handle,
+                &request->attach_type,
+                request->data,
+                data_length,
+                previous_link,
+                &link);
             if (retval != EBPF_SUCCESS) {
                 break;
             }
@@ -1638,8 +1742,10 @@ Done:
 }
 
 static ebpf_result_t
-_ebpf_core_protocol_close_handle(_In_ const ebpf_operation_close_handle_request_t* request)
+_ebpf_core_protocol_close_handle(
+    _In_ const ebpf_request_context_t* context, _In_ const ebpf_operation_close_handle_request_t* request)
 {
+    UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
     EBPF_RETURN_RESULT(ebpf_handle_close(request->handle));
 }
@@ -1649,6 +1755,7 @@ _ebpf_core_protocol_close_handle(_In_ const ebpf_operation_close_handle_request_
 // to get standard cross-platform info.
 static ebpf_result_t
 _ebpf_core_protocol_get_program_info(
+    _In_ const ebpf_request_context_t* context,
     _In_ const ebpf_operation_get_program_info_request_t* request,
     _Inout_ ebpf_operation_get_program_info_reply_t* reply,
     uint16_t reply_length)
@@ -1665,7 +1772,7 @@ _ebpf_core_protocol_get_program_info(
     program_parameters.program_type = request->program_type;
 
     if (request->program_handle == ebpf_handle_invalid) {
-        retval = ebpf_program_create(&program_parameters, &program);
+        retval = ebpf_program_create(&context->namespace_id, &program_parameters, &program);
         if (retval != EBPF_SUCCESS) {
             goto Done;
         }
@@ -1792,6 +1899,9 @@ _ebpf_core_protocol_serialize_map_info_reply(
         &required_serialization_length);
 
     if (result != EBPF_SUCCESS) {
+        if (result == EBPF_INSUFFICIENT_BUFFER) {
+            map_info_reply->size = required_serialization_length;
+        }
         ebpf_result_t length_result;
         size_t required_reply_length = 0;
         length_result = ebpf_safe_size_t_add(
@@ -1805,6 +1915,8 @@ _ebpf_core_protocol_serialize_map_info_reply(
         }
     } else {
         map_info_reply->map_count = map_count;
+        map_info_reply->header.length =
+            (uint16_t)(EBPF_OFFSET_OF(ebpf_operation_get_pinned_map_info_reply_t, data) + map_info_reply->size);
     }
 
     return result;
@@ -1814,6 +1926,7 @@ _ebpf_core_protocol_serialize_map_info_reply(
 // which is used by libbpf to get standard cross-platform bpf_map_info.
 static ebpf_result_t
 _ebpf_core_protocol_get_pinned_map_info(
+    _In_ const ebpf_request_context_t* context,
     _In_ const ebpf_operation_get_pinned_map_info_request_t* request,
     _Inout_ ebpf_operation_get_pinned_map_info_reply_t* reply,
     uint16_t reply_length)
@@ -1826,9 +1939,13 @@ _ebpf_core_protocol_get_pinned_map_info(
 
     UNREFERENCED_PARAMETER(request);
 
+    reply->map_count = 0;
+    reply->size = 0;
+    reply->header.length = EBPF_OFFSET_OF(ebpf_operation_get_pinned_map_info_reply_t, data);
+
     // Enumerate all the pinning entries for map objects.
     result = ebpf_pinning_table_enumerate_entries(
-        _ebpf_core_map_pinning_table, EBPF_OBJECT_MAP, &entry_count, &pinning_entries);
+        _ebpf_core_map_pinning_table, &context->namespace_id, EBPF_OBJECT_MAP, &entry_count, &pinning_entries);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -1859,11 +1976,12 @@ Exit:
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_core_get_handle_by_id(ebpf_object_type_t type, ebpf_id_t id, _Out_ ebpf_handle_t* handle)
+ebpf_core_get_handle_by_id(
+    _In_ const GUID* namespace_id, ebpf_object_type_t type, ebpf_id_t id, _Out_ ebpf_handle_t* handle)
 {
     EBPF_LOG_ENTRY();
     ebpf_core_object_t* object;
-    ebpf_result_t result = EBPF_OBJECT_REFERENCE_BY_ID(id, type, &object);
+    ebpf_result_t result = EBPF_OBJECT_REFERENCE_BY_ID(namespace_id, id, type, &object);
     if (result != EBPF_SUCCESS) {
         return result;
     }
@@ -1894,74 +2012,89 @@ ebpf_core_get_id_and_type_from_handle(ebpf_handle_t handle, _Out_ ebpf_id_t* id,
 
 static ebpf_result_t
 _get_handle_by_id(
+    _In_ const GUID* namespace_id,
     ebpf_object_type_t type,
     _In_ const ebpf_operation_get_handle_by_id_request_t* request,
     _Out_ ebpf_operation_get_handle_by_id_reply_t* reply)
 {
     reply->header.length = sizeof(*reply);
-    ebpf_result_t result = ebpf_core_get_handle_by_id(type, request->id, &reply->handle);
+    ebpf_result_t result = ebpf_core_get_handle_by_id(namespace_id, type, request->id, &reply->handle);
 
     return result;
 }
 
 static ebpf_result_t
 _ebpf_core_protocol_get_map_handle_by_id(
-    _In_ const ebpf_operation_get_handle_by_id_request_t* request, _Out_ ebpf_operation_get_handle_by_id_reply_t* reply)
+    _In_ const ebpf_request_context_t* context,
+    _In_ const ebpf_operation_get_handle_by_id_request_t* request,
+    _Out_ ebpf_operation_get_handle_by_id_reply_t* reply)
 {
     EBPF_LOG_ENTRY();
-    EBPF_RETURN_RESULT(_get_handle_by_id(EBPF_OBJECT_MAP, request, reply));
+    EBPF_RETURN_RESULT(_get_handle_by_id(&context->namespace_id, EBPF_OBJECT_MAP, request, reply));
 }
 
 static ebpf_result_t
 _ebpf_core_protocol_get_program_handle_by_id(
-    _In_ const ebpf_operation_get_handle_by_id_request_t* request, _Out_ ebpf_operation_get_handle_by_id_reply_t* reply)
+    _In_ const ebpf_request_context_t* context,
+    _In_ const ebpf_operation_get_handle_by_id_request_t* request,
+    _Out_ ebpf_operation_get_handle_by_id_reply_t* reply)
 {
     EBPF_LOG_ENTRY();
-    EBPF_RETURN_RESULT(_get_handle_by_id(EBPF_OBJECT_PROGRAM, request, reply));
+    EBPF_RETURN_RESULT(_get_handle_by_id(&context->namespace_id, EBPF_OBJECT_PROGRAM, request, reply));
 }
 
 static ebpf_result_t
 _ebpf_core_protocol_get_link_handle_by_id(
-    _In_ const ebpf_operation_get_handle_by_id_request_t* request, _Out_ ebpf_operation_get_handle_by_id_reply_t* reply)
+    _In_ const ebpf_request_context_t* context,
+    _In_ const ebpf_operation_get_handle_by_id_request_t* request,
+    _Out_ ebpf_operation_get_handle_by_id_reply_t* reply)
 {
-    return _get_handle_by_id(EBPF_OBJECT_LINK, request, reply);
+    return _get_handle_by_id(&context->namespace_id, EBPF_OBJECT_LINK, request, reply);
 }
 
 static ebpf_result_t
 _get_next_id(
+    _In_ const GUID* namespace_id,
     ebpf_object_type_t type,
     _In_ const ebpf_operation_get_next_id_request_t* request,
     _Out_ ebpf_operation_get_next_id_reply_t* reply)
 {
-    EBPF_RETURN_ENUMERATION_RESULT(ebpf_object_get_next_id(request->start_id, type, &reply->next_id));
+    EBPF_RETURN_ENUMERATION_RESULT(ebpf_object_get_next_id(namespace_id, request->start_id, type, &reply->next_id));
 }
 
 static ebpf_result_t
 _ebpf_core_protocol_get_next_link_id(
-    _In_ const ebpf_operation_get_next_id_request_t* request, _Out_ ebpf_operation_get_next_id_reply_t* reply)
+    _In_ const ebpf_request_context_t* context,
+    _In_ const ebpf_operation_get_next_id_request_t* request,
+    _Out_ ebpf_operation_get_next_id_reply_t* reply)
 {
     EBPF_LOG_ENTRY();
-    EBPF_RETURN_ENUMERATION_RESULT(_get_next_id(EBPF_OBJECT_LINK, request, reply));
+    EBPF_RETURN_ENUMERATION_RESULT(_get_next_id(&context->namespace_id, EBPF_OBJECT_LINK, request, reply));
 }
 
 static ebpf_result_t
 _ebpf_core_protocol_get_next_map_id(
-    _In_ const ebpf_operation_get_next_id_request_t* request, _Out_ ebpf_operation_get_next_id_reply_t* reply)
+    _In_ const ebpf_request_context_t* context,
+    _In_ const ebpf_operation_get_next_id_request_t* request,
+    _Out_ ebpf_operation_get_next_id_reply_t* reply)
 {
     EBPF_LOG_ENTRY();
-    EBPF_RETURN_ENUMERATION_RESULT(_get_next_id(EBPF_OBJECT_MAP, request, reply));
+    EBPF_RETURN_ENUMERATION_RESULT(_get_next_id(&context->namespace_id, EBPF_OBJECT_MAP, request, reply));
 }
 
 static ebpf_result_t
 _ebpf_core_protocol_get_next_program_id(
-    _In_ const ebpf_operation_get_next_id_request_t* request, _Out_ ebpf_operation_get_next_id_reply_t* reply)
+    _In_ const ebpf_request_context_t* context,
+    _In_ const ebpf_operation_get_next_id_request_t* request,
+    _Out_ ebpf_operation_get_next_id_reply_t* reply)
 {
     EBPF_LOG_ENTRY();
-    EBPF_RETURN_ENUMERATION_RESULT(_get_next_id(EBPF_OBJECT_PROGRAM, request, reply));
+    EBPF_RETURN_ENUMERATION_RESULT(_get_next_id(&context->namespace_id, EBPF_OBJECT_PROGRAM, request, reply));
 }
 
 static ebpf_result_t
 _ebpf_core_protocol_get_next_pinned_program_path(
+    _In_ const ebpf_request_context_t* context,
     _In_ const ebpf_operation_get_next_pinned_program_path_request_t* request,
     _Out_ ebpf_operation_get_next_pinned_program_path_reply_t* reply,
     uint16_t reply_length)
@@ -1990,7 +2123,8 @@ _ebpf_core_protocol_get_next_pinned_program_path(
     next_path.value = (uint8_t*)reply->next_path;
 
     ebpf_object_type_t object_type = EBPF_OBJECT_PROGRAM;
-    result = ebpf_pinning_table_get_next_path(_ebpf_core_map_pinning_table, &object_type, &start_path, &next_path);
+    result = ebpf_pinning_table_get_next_path(
+        _ebpf_core_map_pinning_table, &context->namespace_id, &object_type, &start_path, &next_path);
 
     if (result == EBPF_SUCCESS) {
         size_t required_reply_length = 0;
@@ -2008,6 +2142,7 @@ _ebpf_core_protocol_get_next_pinned_program_path(
 
 static ebpf_result_t
 _ebpf_core_protocol_get_next_pinned_object_path(
+    _In_ const ebpf_request_context_t* context,
     _In_ const ebpf_operation_get_next_pinned_object_path_request_t* request,
     _Out_ ebpf_operation_get_next_pinned_object_path_reply_t* reply,
     uint16_t reply_length)
@@ -2036,7 +2171,8 @@ _ebpf_core_protocol_get_next_pinned_object_path(
     next_path.value = (uint8_t*)reply->next_path;
 
     ebpf_object_type_t object_type = request->type;
-    result = ebpf_pinning_table_get_next_path(_ebpf_core_map_pinning_table, &object_type, &start_path, &next_path);
+    result = ebpf_pinning_table_get_next_path(
+        _ebpf_core_map_pinning_table, &context->namespace_id, &object_type, &start_path, &next_path);
 
     if (result == EBPF_SUCCESS) {
         size_t required_reply_length = 0;
@@ -2054,8 +2190,10 @@ _ebpf_core_protocol_get_next_pinned_object_path(
 }
 
 _Must_inspect_result_ ebpf_result_t
-_ebpf_core_protocol_map_set_wait_handle(_In_ const ebpf_operation_map_set_wait_handle_request_t* request)
+_ebpf_core_protocol_map_set_wait_handle(
+    _In_ const ebpf_request_context_t* context, _In_ const ebpf_operation_map_set_wait_handle_request_t* request)
 {
+    UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
     ebpf_map_t* map = NULL;
 
@@ -2071,8 +2209,10 @@ Done:
 }
 
 static ebpf_result_t
-_ebpf_core_protocol_bind_map(_In_ const ebpf_operation_bind_map_request_t* request)
+_ebpf_core_protocol_bind_map(
+    _In_ const ebpf_request_context_t* context, _In_ const ebpf_operation_bind_map_request_t* request)
 {
+    UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
     ebpf_result_t result;
     ebpf_program_t* program = NULL;
@@ -2103,10 +2243,12 @@ Done:
 
 static ebpf_result_t
 _ebpf_core_protocol_get_object_info(
+    _In_ const ebpf_request_context_t* context,
     _In_ const ebpf_operation_get_object_info_request_t* request,
     _Out_ ebpf_operation_get_object_info_reply_t* reply,
     uint16_t reply_length)
 {
+    UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
     size_t output_buffer_size = reply_length;
     size_t input_buffer_size = request->header.length;
@@ -2170,8 +2312,11 @@ _ebpf_core_protocol_get_object_info(
 
 static ebpf_result_t
 _ebpf_core_protocol_map_query_buffer(
-    _In_ const ebpf_operation_map_query_buffer_request_t* request, _Out_ ebpf_operation_map_query_buffer_reply_t* reply)
+    _In_ const ebpf_request_context_t* context,
+    _In_ const ebpf_operation_map_query_buffer_request_t* request,
+    _Out_ ebpf_operation_map_query_buffer_reply_t* reply)
 {
+    UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
 
     ebpf_map_t* map = NULL;
@@ -2189,11 +2334,13 @@ Exit:
 
 static ebpf_result_t
 _ebpf_core_protocol_map_async_query(
+    _In_ const ebpf_request_context_t* context,
     _In_ const ebpf_operation_map_async_query_request_t* request,
     _Inout_ ebpf_operation_map_async_query_reply_t* reply,
     uint16_t reply_length,
     _Inout_ void* async_context)
 {
+    UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
 
     UNREFERENCED_PARAMETER(reply_length);
@@ -2201,8 +2348,14 @@ _ebpf_core_protocol_map_async_query(
     ebpf_map_t* map = NULL;
     uint32_t index = 0;
 
-    ebpf_result_t result =
-        EBPF_OBJECT_REFERENCE_BY_HANDLE(request->map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
+    ebpf_result_t result;
+    if (context->referenced_object != NULL) {
+        map = (ebpf_map_t*)context->referenced_object;
+        EBPF_OBJECT_ACQUIRE_REFERENCE((ebpf_core_object_t*)map);
+        result = EBPF_SUCCESS;
+    } else {
+        result = EBPF_OBJECT_REFERENCE_BY_HANDLE(request->map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
+    }
     EBPF_BAIL_ON_OBJECT_REF_ERROR(EBPF_TRACELOG_KEYWORD_BASE, result, request->map_handle, Exit);
 
     index = request->index;
@@ -2226,8 +2379,10 @@ Exit:
 }
 
 static ebpf_result_t
-_ebpf_core_protocol_map_write_data(_In_ const ebpf_operation_map_write_data_request_t* request)
+_ebpf_core_protocol_map_write_data(
+    _In_ const ebpf_request_context_t* context, _In_ const ebpf_operation_map_write_data_request_t* request)
 {
+    UNREFERENCED_PARAMETER(context);
     ebpf_map_t* map = NULL;
     size_t data_length = 0;
 
@@ -2249,8 +2404,10 @@ Exit:
 }
 
 static ebpf_result_t
-_ebpf_core_protocol_program_set_flags(_In_ const ebpf_operation_program_set_flags_request_t* request)
+_ebpf_core_protocol_program_set_flags(
+    _In_ const ebpf_request_context_t* context, _In_ const ebpf_operation_program_set_flags_request_t* request)
 {
+    UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
 
     ebpf_program_t* program = NULL;
@@ -2273,8 +2430,10 @@ Exit:
 }
 
 static ebpf_result_t
-_ebpf_core_protocol_authorize_native_module(_In_ const ebpf_operation_authorize_native_module_request_t* request)
+_ebpf_core_protocol_authorize_native_module(
+    _In_ const ebpf_request_context_t* context, _In_ const ebpf_operation_authorize_native_module_request_t* request)
 {
+    UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
     ebpf_result_t result = ebpf_native_authorize_module(&request->module_id, request->module_hash);
     EBPF_RETURN_RESULT(result);
@@ -2282,9 +2441,11 @@ _ebpf_core_protocol_authorize_native_module(_In_ const ebpf_operation_authorize_
 
 static ebpf_result_t
 _ebpf_core_protocol_get_code_integrity_state(
+    _In_ const ebpf_request_context_t* context,
     _In_ const ebpf_operation_get_code_integrity_state_request_t* request,
     _Out_ ebpf_operation_get_code_integrity_state_reply_t* reply)
 {
+    UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
     UNREFERENCED_PARAMETER(request);
     ebpf_result_t result = EBPF_SUCCESS;
@@ -2309,8 +2470,11 @@ _ebpf_core_epoch_synchronize_work_item(_In_ cxplat_preemptible_work_item_t* work
 
 static ebpf_result_t
 _ebpf_core_protocol_epoch_synchronize(
-    _In_ const ebpf_operation_epoch_synchronize_request_t* request, _Inout_ void* async_context)
+    _In_ const ebpf_request_context_t* context,
+    _In_ const ebpf_operation_epoch_synchronize_request_t* request,
+    _Inout_ void* async_context)
 {
+    UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
     UNREFERENCED_PARAMETER(request);
     cxplat_preemptible_work_item_t* work_item = NULL;
@@ -2330,8 +2494,10 @@ _ebpf_core_protocol_epoch_synchronize(
 }
 
 static ebpf_result_t
-_ebpf_core_protocol_link_set_legacy_mode(_In_ const ebpf_operation_link_set_legacy_mode_request_t* request)
+_ebpf_core_protocol_link_set_legacy_mode(
+    _In_ const ebpf_request_context_t* context, _In_ const ebpf_operation_link_set_legacy_mode_request_t* request)
 {
+    UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
     ebpf_result_t result;
     ebpf_link_t* link = NULL;
@@ -2651,9 +2817,11 @@ _ebpf_core_ring_buffer_output(
 
 static ebpf_result_t
 _ebpf_core_protocol_ring_buffer_map_map_buffer(
+    _In_ const ebpf_request_context_t* context,
     _In_ const ebpf_operation_ring_buffer_map_map_buffer_request_t* request,
     _Inout_ ebpf_operation_ring_buffer_map_map_buffer_reply_t* reply)
 {
+    UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
 
     ebpf_result_t result = EBPF_SUCCESS;
@@ -2676,8 +2844,10 @@ Exit:
 
 static ebpf_result_t
 _ebpf_core_protocol_ring_buffer_map_unmap_buffer(
+    _In_ const ebpf_request_context_t* context,
     _In_ const ebpf_operation_ring_buffer_map_unmap_buffer_request_t* request)
 {
+    UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
 
     ebpf_result_t result = EBPF_SUCCESS;
@@ -2827,20 +2997,27 @@ typedef struct _ebpf_protocol_handler
     union
     {
         void* default_case;
-        ebpf_result_t(__cdecl* protocol_handler_no_reply)(_In_ const ebpf_operation_header_t* request);
+        ebpf_result_t(__cdecl* protocol_handler_no_reply)(
+            _In_ const ebpf_request_context_t* context, _In_ const ebpf_operation_header_t* request);
         ebpf_result_t(__cdecl* protocol_handler_with_fixed_reply)(
-            _In_ const ebpf_operation_header_t* request, _Out_ ebpf_operation_header_t* reply);
+            _In_ const ebpf_request_context_t* context,
+            _In_ const ebpf_operation_header_t* request,
+            _Out_ ebpf_operation_header_t* reply);
         ebpf_result_t(__cdecl* protocol_handler_with_variable_reply)(
-            _In_ _In_ const ebpf_operation_header_t* request,
+            _In_ const ebpf_request_context_t* context,
+            _In_ const ebpf_operation_header_t* request,
             _Out_writes_bytes_(output_buffer_length) ebpf_operation_header_t* reply,
             uint16_t output_buffer_length);
         ebpf_result_t(__cdecl* async_protocol_handler_with_reply)(
+            _In_ const ebpf_request_context_t* context,
             _In_ const ebpf_operation_header_t* request,
             _Out_writes_bytes_(output_buffer_length) ebpf_operation_header_t* reply,
             uint16_t output_buffer_length,
             _Inout_ void* async_context);
         ebpf_result_t(__cdecl* async_protocol_handler_no_reply)(
-            _In_ const ebpf_operation_header_t* request, _Inout_ void* async_context);
+            _In_ const ebpf_request_context_t* context,
+            _In_ const ebpf_operation_header_t* request,
+            _Inout_ void* async_context);
     } dispatch;
     size_t minimum_request_size;
     size_t minimum_reply_size;
@@ -2850,12 +3027,8 @@ typedef struct _ebpf_protocol_handler
         struct
         {
             uint64_t used_by_native : 1;
-#if !defined(CONFIG_BPF_JIT_DISABLED)
             uint64_t used_by_jit : 1;
-#endif
-#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
             uint64_t used_by_interpret : 1;
-#endif
             uint64_t privileged : 1; // If set, the operation can only be called by the eBPF Service.
         } bits;
     } flags;
@@ -2972,6 +3145,96 @@ ALIAS_TYPES(get_handle_by_id, get_link_handle_by_id)
 ALIAS_TYPES(get_handle_by_id, get_map_handle_by_id)
 ALIAS_TYPES(get_handle_by_id, get_program_handle_by_id)
 
+_Must_inspect_result_ ebpf_result_t
+ebpf_core_delete_pinning_if_matches(ebpf_handle_t handle, _In_ const cxplat_utf8_string_t* path)
+{
+    ebpf_core_object_t* object = NULL;
+    ebpf_result_t result = EBPF_OBJECT_REFERENCE_BY_HANDLE(handle, EBPF_OBJECT_UNKNOWN, &object);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
+    result = ebpf_pinning_table_delete_if_matches(_ebpf_core_map_pinning_table, &object->namespace_id, path, object);
+    EBPF_OBJECT_RELEASE_REFERENCE(object);
+    EBPF_RETURN_RESULT(result);
+}
+
+static ebpf_result_t
+_ebpf_core_protocol_set_namespace(
+    _In_ const ebpf_request_context_t* context, _In_ const ebpf_operation_set_namespace_request_t* request)
+{
+    if (context->namespace_target == NULL) {
+        return EBPF_INVALID_STATE;
+    }
+    return ebpf_namespace_state_set(context->namespace_target, &request->namespace_id);
+}
+
+static ebpf_result_t
+_ebpf_core_protocol_get_namespace(
+    _In_ const ebpf_request_context_t* context,
+    _In_ const ebpf_operation_get_namespace_request_t* request,
+    _Out_ ebpf_operation_get_namespace_reply_t* reply)
+{
+    UNREFERENCED_PARAMETER(request);
+    reply->namespace_id = context->namespace_id;
+    return EBPF_SUCCESS;
+}
+
+static ebpf_result_t
+_ebpf_core_protocol_delete_pinning_if_matches(
+    _In_ const ebpf_request_context_t* context, _In_ const ebpf_operation_delete_pinning_if_matches_request_t* request)
+{
+    UNREFERENCED_PARAMETER(context);
+    const size_t offset = EBPF_OFFSET_OF(ebpf_operation_delete_pinning_if_matches_request_t, path);
+    if (request->header.length <= offset) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+    const cxplat_utf8_string_t path = {(uint8_t*)request->path, request->header.length - offset};
+    return ebpf_core_delete_pinning_with_cookie(request->handle, &path, request->pin_cookie);
+}
+
+ebpf_result_t
+ebpf_core_insert_pinning(
+    _In_ const GUID* namespace_id, ebpf_handle_t handle, _In_ const cxplat_utf8_string_t* path, _Out_ uint64_t* cookie)
+{
+    ebpf_core_object_t* object = NULL;
+    ebpf_result_t result = EBPF_OBJECT_REFERENCE_BY_HANDLE(handle, EBPF_OBJECT_UNKNOWN, &object);
+    if (result == EBPF_SUCCESS) {
+        result =
+            ebpf_pinning_table_insert_with_cookie(_ebpf_core_map_pinning_table, namespace_id, path, object, cookie);
+    }
+    EBPF_OBJECT_RELEASE_REFERENCE(object);
+    return result;
+}
+
+ebpf_result_t
+ebpf_core_delete_pinning_with_cookie(ebpf_handle_t handle, _In_ const cxplat_utf8_string_t* path, uint64_t cookie)
+{
+    ebpf_core_object_t* object = NULL;
+    ebpf_result_t result = EBPF_OBJECT_REFERENCE_BY_HANDLE(handle, EBPF_OBJECT_UNKNOWN, &object);
+    if (result == EBPF_SUCCESS) {
+        result = ebpf_pinning_table_delete_with_cookie(
+            _ebpf_core_map_pinning_table, &object->namespace_id, path, object, cookie);
+    }
+    EBPF_OBJECT_RELEASE_REFERENCE(object);
+    return result;
+}
+
+static ebpf_result_t
+_ebpf_core_protocol_update_pinning_ex(
+    _In_ const ebpf_request_context_t* context,
+    _In_ const ebpf_operation_update_pinning_ex_request_t* request,
+    _Out_ ebpf_operation_update_pinning_ex_reply_t* reply)
+{
+    const size_t offset = EBPF_OFFSET_OF(ebpf_operation_update_pinning_ex_request_t, path);
+    const cxplat_utf8_string_t path = {(uint8_t*)request->path, request->header.length - offset};
+    uint64_t cookie;
+    ebpf_result_t result = ebpf_core_insert_pinning(&context->namespace_id, request->handle, &path, &cookie);
+    if (result == EBPF_SUCCESS) {
+        reply->pin_cookie = cookie;
+    }
+    return result;
+}
+
 static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
 #if !defined(CONFIG_BPF_JIT_DISABLED)
     DECLARE_NON_STATIC_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(
@@ -3048,7 +3311,19 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(ring_buffer_map_unmap_buffer, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY_ASYNC(epoch_synchronize, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(link_set_legacy_mode, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(set_namespace, PROTOCOL_ALL_MODES | PROTOCOL_PRIVILEGED_OPERATION),
+    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(
+        get_namespace, PROTOCOL_ALL_MODES | PROTOCOL_PRIVILEGED_OPERATION),
+    DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(
+        delete_pinning_if_matches, path, PROTOCOL_ALL_MODES | PROTOCOL_PRIVILEGED_OPERATION),
+    DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(
+        load_native_programs_ex, pin_root_path, data, PROTOCOL_NATIVE_MODE),
+    DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_FIXED_REPLY(update_pinning_ex, path, PROTOCOL_ALL_MODES),
 };
+
+static_assert(
+    EBPF_COUNT_OF(_ebpf_protocol_handlers) == EBPF_OPERATION_UPDATE_PINNING_EX + 1,
+    "Every protocol operation must have a dispatch entry");
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_core_get_protocol_handler_properties(
@@ -3123,6 +3398,7 @@ ebpf_core_get_protocol_handler_properties(
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_core_invoke_protocol_handler(
+    _In_ const ebpf_request_context_t* context,
     ebpf_operation_id_t operation_id,
     _In_reads_bytes_(input_buffer_length) const void* input_buffer,
     uint16_t input_buffer_length,
@@ -3134,7 +3410,7 @@ ebpf_core_invoke_protocol_handler(
     ebpf_result_t retval;
     ebpf_epoch_state_t epoch_state = {0};
     bool in_epoch = false;
-    ebpf_protocol_handler_t* handler = &_ebpf_protocol_handlers[operation_id];
+    ebpf_protocol_handler_t* handler = NULL;
     ebpf_operation_header_t* request = (ebpf_operation_header_t*)input_buffer;
     ebpf_operation_header_t* reply = (ebpf_operation_header_t*)output_buffer;
 
@@ -3142,6 +3418,12 @@ ebpf_core_invoke_protocol_handler(
         retval = EBPF_OPERATION_NOT_SUPPORTED;
         goto Done;
     }
+
+    if (context == NULL) {
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+    handler = &_ebpf_protocol_handlers[operation_id];
 
     // If the dispatch function is NULL, the operation is not supported.
     if (_ebpf_protocol_handlers[operation_id].dispatch.default_case == NULL) {
@@ -3238,14 +3520,14 @@ ebpf_core_invoke_protocol_handler(
     switch (handler->call_type) {
     case EBPF_PROTOCOL_FIXED_REQUEST_NO_REPLY:
     case EBPF_PROTOCOL_VARIABLE_REQUEST_NO_REPLY:
-        retval = handler->dispatch.protocol_handler_no_reply(request);
+        retval = handler->dispatch.protocol_handler_no_reply(context, request);
         break;
 
     case EBPF_PROTOCOL_FIXED_REQUEST_FIXED_REPLY:
     case EBPF_PROTOCOL_VARIABLE_REQUEST_FIXED_REPLY:
         // Validated above.
         _Analysis_assume_(reply);
-        retval = handler->dispatch.protocol_handler_with_fixed_reply(request, reply);
+        retval = handler->dispatch.protocol_handler_with_fixed_reply(context, request, reply);
         reply->id = operation_id;
         reply->length = (uint16_t)handler->minimum_reply_size;
         break;
@@ -3260,7 +3542,7 @@ ebpf_core_invoke_protocol_handler(
         if (retval != EBPF_SUCCESS) {
             goto Done;
         }
-        retval = handler->dispatch.async_protocol_handler_no_reply(request, async_context);
+        retval = handler->dispatch.async_protocol_handler_no_reply(context, request, async_context);
         if ((retval != EBPF_SUCCESS) && (retval != EBPF_PENDING)) {
             ebpf_assert_success(ebpf_async_reset_completion_callback(async_context));
         }
@@ -3277,8 +3559,8 @@ ebpf_core_invoke_protocol_handler(
         if (retval != EBPF_SUCCESS) {
             goto Done;
         }
-        retval =
-            handler->dispatch.async_protocol_handler_with_reply(request, reply, output_buffer_length, async_context);
+        retval = handler->dispatch.async_protocol_handler_with_reply(
+            context, request, reply, output_buffer_length, async_context);
         if ((retval != EBPF_SUCCESS) && (retval != EBPF_PENDING)) {
             ebpf_assert_success(ebpf_async_reset_completion_callback(async_context));
         }
@@ -3288,7 +3570,7 @@ ebpf_core_invoke_protocol_handler(
     case EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY:
         // Validated above.
         _Analysis_assume_(reply);
-        retval = handler->dispatch.protocol_handler_with_variable_reply(request, reply, output_buffer_length);
+        retval = handler->dispatch.protocol_handler_with_variable_reply(context, request, reply, output_buffer_length);
         reply->id = operation_id;
         break;
     case EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC:
@@ -3302,8 +3584,8 @@ ebpf_core_invoke_protocol_handler(
         if (retval != EBPF_SUCCESS) {
             goto Done;
         }
-        retval =
-            handler->dispatch.async_protocol_handler_with_reply(request, reply, output_buffer_length, async_context);
+        retval = handler->dispatch.async_protocol_handler_with_reply(
+            context, request, reply, output_buffer_length, async_context);
         if ((retval != EBPF_SUCCESS) && (retval != EBPF_PENDING)) {
             ebpf_assert_success(ebpf_async_reset_completion_callback(async_context));
         }

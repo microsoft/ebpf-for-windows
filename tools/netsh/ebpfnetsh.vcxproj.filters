@@ -19,6 +19,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\libs\ebpfnetsh\namespaces.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="programs.h">
       <Filter>Header Files</Filter>
     </ClInclude>

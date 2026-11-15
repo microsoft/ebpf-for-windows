@@ -47,6 +47,22 @@ get_sync_device_handle();
 ebpf_handle_t
 get_async_device_handle();
 
+void
+begin_thread_namespace_operation() noexcept;
+
+void
+end_thread_namespace_operation() noexcept;
+
+ebpf_result_t
+set_thread_namespace(_In_ const GUID* namespace_id) noexcept;
+
+ebpf_result_t
+get_thread_namespace(_Out_ GUID* namespace_id) noexcept;
+
+uint32_t
+get_sync_device_handle_for_request(
+    _In_reads_bytes_opt_(request_size) const void* request, uint32_t request_size, _Out_ ebpf_handle_t* handle);
+
 typedef ebpf_result_t (*async_ioctl_completion_callback_t)(_Inout_opt_ void* completion_context);
 
 typedef struct _async_ioctl_completion_context async_ioctl_completion_t;
@@ -113,7 +129,14 @@ invoke_ioctl(request_t& request, reply_t& reply = _empty_reply, _Inout_opt_ OVER
         reply_ptr = &reply;
     }
 
-    handle = overlapped ? get_async_device_handle() : get_sync_device_handle();
+    if (overlapped) {
+        handle = get_async_device_handle();
+    } else {
+        return_value = get_sync_device_handle_for_request(request_ptr, request_size, &handle);
+        if (return_value != ERROR_SUCCESS) {
+            goto Exit;
+        }
+    }
 
     if (handle == ebpf_handle_invalid) {
         return_value = ERROR_ACCESS_DENIED;
