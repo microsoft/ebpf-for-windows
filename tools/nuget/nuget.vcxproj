@@ -81,7 +81,8 @@
 if not exist "$(OutDir)undocked" mkdir "$(OutDir)undocked"
 type nul &gt; $(OutDir)undocked\ebpf-for-windows.zip
 xcopy $(OutDir)eBPF-for-Windows.*.nupkg /F /Y $(OutDir)undocked\ebpf-for-windows.zip
-powershell -NonInteractive -ExecutionPolicy Unrestricted -command "Expand-Archive $(OutDir)undocked\ebpf-for-windows.zip -DestinationPath $(OutDir)undocked\ebpf-for-windows -Force"
+pwsh -NoProfile -NonInteractive -ExecutionPolicy Unrestricted -Command "$ErrorActionPreference = 'Stop'; Expand-Archive -LiteralPath '$(OutDir)undocked\ebpf-for-windows.zip' -DestinationPath '$(OutDir)undocked\ebpf-for-windows' -Force"
+if errorlevel 1 exit /b 1
 popd $(OutDir)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -101,7 +102,8 @@ popd $(OutDir)</Command>
 if not exist "$(OutDir)undocked" mkdir "$(OutDir)undocked"
 type nul &gt; $(OutDir)undocked\ebpf-for-windows.zip
 xcopy $(OutDir)eBPF-for-Windows.*.nupkg /F /Y $(OutDir)undocked\ebpf-for-windows.zip
-powershell -NonInteractive -ExecutionPolicy Unrestricted -command "Expand-Archive $(OutDir)undocked\ebpf-for-windows.zip -DestinationPath $(OutDir)undocked\ebpf-for-windows -Force"
+pwsh -NoProfile -NonInteractive -ExecutionPolicy Unrestricted -Command "$ErrorActionPreference = 'Stop'; Expand-Archive -LiteralPath '$(OutDir)undocked\ebpf-for-windows.zip' -DestinationPath '$(OutDir)undocked\ebpf-for-windows' -Force"
+if errorlevel 1 exit /b 1
 popd $(OutDir)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -125,7 +127,8 @@ popd $(OutDir)</Command>
 if not exist "$(OutDir)undocked" mkdir "$(OutDir)undocked"
 type nul &gt; $(OutDir)undocked\ebpf-for-windows.zip
 xcopy $(OutDir)eBPF-for-Windows.*.nupkg /F /Y $(OutDir)undocked\ebpf-for-windows.zip
-powershell -NonInteractive -ExecutionPolicy Unrestricted -command "Expand-Archive $(OutDir)undocked\ebpf-for-windows.zip -DestinationPath $(OutDir)undocked\ebpf-for-windows -Force"
+pwsh -NoProfile -NonInteractive -ExecutionPolicy Unrestricted -Command "$ErrorActionPreference = 'Stop'; Expand-Archive -LiteralPath '$(OutDir)undocked\ebpf-for-windows.zip' -DestinationPath '$(OutDir)undocked\ebpf-for-windows' -Force"
+if errorlevel 1 exit /b 1
 popd $(OutDir)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -149,7 +152,8 @@ popd $(OutDir)</Command>
 if not exist "$(OutDir)undocked" mkdir "$(OutDir)undocked"
 type nul &gt; $(OutDir)undocked\ebpf-for-windows.zip
 xcopy $(OutDir)eBPF-for-Windows.*.nupkg /F /Y $(OutDir)undocked\ebpf-for-windows.zip
-powershell -NonInteractive -ExecutionPolicy Unrestricted -command "Expand-Archive $(OutDir)undocked\ebpf-for-windows.zip -DestinationPath $(OutDir)undocked\ebpf-for-windows -Force"
+pwsh -NoProfile -NonInteractive -ExecutionPolicy Unrestricted -Command "$ErrorActionPreference = 'Stop'; Expand-Archive -LiteralPath '$(OutDir)undocked\ebpf-for-windows.zip' -DestinationPath '$(OutDir)undocked\ebpf-for-windows' -Force"
+if errorlevel 1 exit /b 1
 popd $(OutDir)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
