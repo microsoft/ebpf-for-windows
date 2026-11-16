@@ -559,7 +559,9 @@ function Invoke-NativeCommand
         [string[]]$ArgumentList,
 
         [Parameter(Mandatory = $true)]
-        [string]$FailureMessage)
+        [string]$FailureMessage,
+
+        [string]$WorkingDirectory)
 
     # Encode for the Windows native argv parser, bypassing Windows PowerShell's lossy argument marshalling.
     $encoded = foreach ($argument in $ArgumentList) {
@@ -568,6 +570,9 @@ function Invoke-NativeCommand
     $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
     $startInfo.FileName = $FilePath
     $startInfo.Arguments = $encoded -join " "
+    if (-not [string]::IsNullOrWhiteSpace($WorkingDirectory)) {
+        $startInfo.WorkingDirectory = $WorkingDirectory
+    }
     $startInfo.UseShellExecute = $false
     $startInfo.CreateNoWindow = $true
     $startInfo.RedirectStandardOutput = $true
@@ -1467,10 +1472,28 @@ function Set-ServiceFromState
             -FailureMessage "Failed to restore the $name service security descriptor"
     }
     if ($StartIfPreviouslyRunning -and [bool]$ServiceState.WasRunning) {
-        Start-Service -Name $name
-        (Get-Service -Name $name).WaitForStatus(
-            [System.ServiceProcess.ServiceControllerStatus]::Running,
-            [TimeSpan]::FromSeconds(60))
+        # Disabling startup does not stop a running service. Temporarily allow startup to restore
+        # a saved Running + Disabled state, then restore Disabled even if starting fails.
+        $restoreDisabled = [int]$ServiceState.Start -eq 4
+        if ($restoreDisabled) {
+            Invoke-NativeCommand `
+                -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
+                -ArgumentList @("config", $name, "start=", "demand") `
+                -FailureMessage "Failed to temporarily enable the $name service for restoration"
+        }
+        try {
+            Start-Service -Name $name
+            (Get-Service -Name $name).WaitForStatus(
+                [System.ServiceProcess.ServiceControllerStatus]::Running,
+                [TimeSpan]::FromSeconds(60))
+        } finally {
+            if ($restoreDisabled) {
+                Invoke-NativeCommand `
+                    -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
+                    -ArgumentList @("config", $name, "start=", "disabled") `
+                    -FailureMessage "Failed to restore the $name service's disabled startup configuration"
+            }
+        }
     }
 }
 
@@ -1561,6 +1584,60 @@ function Read-ServiceState
     return $state
 }
 
+function Test-NetshHelperRegistered
+{
+    $path = "HKLM:\SOFTWARE\Microsoft\NetSh"
+    if (-not (Test-Path -LiteralPath $path)) {
+        return $false
+    }
+
+    $key = Get-Item -LiteralPath $path
+    try {
+        foreach ($name in $key.GetValueNames()) {
+            $value = $key.GetValue($name)
+            if ($value -is [string] -and [IO.Path]::GetFileName($value) -ieq "ebpfnetsh.dll") {
+                return $true
+            }
+        }
+        return $false
+    } finally {
+        $key.Dispose()
+    }
+}
+
+function Restore-NetshHelper
+{
+    param(
+        [Parameter(Mandatory = $true)][object]$State,
+        [Parameter(Mandatory = $true)][string]$HelperPath)
+
+    if ($null -eq $State.PSObject.Properties["NetshHelperRegistered"]) {
+        Write-Warning "The service snapshot predates netsh helper tracking; leaving its registration unchanged."
+        return
+    }
+    if ($State.NetshHelperRegistered -isnot [bool]) {
+        throw "The saved netsh helper registration flag is invalid."
+    }
+
+    $netsh = Join-Path $env:SystemRoot "System32\netsh.exe"
+    if (Test-NetshHelperRegistered) {
+        Invoke-NativeCommand -FilePath $netsh -ArgumentList @("delete", "helper", "ebpfnetsh.dll") `
+            -FailureMessage "Failed to remove the current eBPF netsh helper registration"
+        if (Test-NetshHelperRegistered) {
+            throw "The current eBPF netsh helper registration was not removed."
+        }
+    }
+    if ($State.NetshHelperRegistered) {
+        # Inbox restoration uses the canonical DLL, not an arbitrary saved registration path.
+        Invoke-NativeCommand -FilePath $netsh -ArgumentList @("add", "helper", $HelperPath) `
+            -WorkingDirectory (Split-Path -Parent $HelperPath) `
+            -FailureMessage "Failed to restore the eBPF netsh helper registration"
+    }
+    if ((Test-NetshHelperRegistered) -ne $State.NetshHelperRegistered) {
+        throw "The eBPF netsh helper registration does not match the saved state."
+    }
+}
+
 function Save-CurrentServices
 {
     param(
@@ -1576,6 +1653,7 @@ function Save-CurrentServices
     [PSCustomObject]@{
         SchemaVersion = 1
         Services = $services
+        NetshHelperRegistered = Test-NetshHelperRegistered
         Created = (Get-Date).ToUniversalTime().ToString("o")
     } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $StateFile -Encoding UTF8
 }
@@ -1640,6 +1718,7 @@ function Rollback-ServiceTransaction
     }
 
     Apply-ServiceState -State $state -StartIfPreviouslyRunning $true
+    Restore-NetshHelper -State $state -HelperPath (Join-Path $SystemRootPath "System32\ebpfnetsh.dll")
     Remove-ServiceStateFiles -FileSuffix "original"
     Remove-Item -LiteralPath $paths.StateFile -Force
 }
@@ -1648,6 +1727,10 @@ function Remove-MsiServices
 {
     $paths = Get-ServicePaths
     $state = Read-ServiceState -Path $paths.StateFile
+    # Release service and extension handles before stopping the core or deleting registrations.
+    for ($index = $ServiceNames.Count - 1; $index -ge 0; $index--) {
+        Stop-ServiceIfPresent -Name $ServiceNames[$index]
+    }
     if ($null -eq $state) {
         foreach ($name in $ServiceNames) {
             Remove-ServiceIfPresent -Name $name
@@ -1684,6 +1767,7 @@ function Restore-Services
         return
     }
     Apply-ServiceState -State $state -StartIfPreviouslyRunning $true
+    Restore-NetshHelper -State $state -HelperPath (Join-Path $SystemRootPath "System32\ebpfnetsh.dll")
 }
 
 function Rollback-ServiceRestore
@@ -1695,6 +1779,7 @@ function Rollback-ServiceRestore
     }
 
     Apply-ServiceState -State $state -StartIfPreviouslyRunning $true
+    Restore-NetshHelper -State $state -HelperPath (Join-Path $InstallRoot "ebpfnetsh.dll")
     Remove-ServiceStateFiles -FileSuffix "uninstall-rollback"
     Remove-Item -LiteralPath $paths.UninstallRollbackFile -Force
 }

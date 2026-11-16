@@ -16,6 +16,9 @@ With `FORCE=1` and an existing eBPFCore registration, the MSI:
 
 The MSI saves one original backup set for both failed-install recovery and final uninstall.
 Uninstall and repair create additional, temporary recovery snapshots.
+Service snapshots also record whether the eBPF netsh helper was registered. Forced-install rollback
+and final uninstall re-register the restored System32 DLL only if it was previously registered;
+failed-uninstall rollback restores the MSI helper's prior registration state.
 
 On final uninstall, the saved original service state, binary hard links, and HKLM store are used
 to restore the machine-wide eBPF stack to its pre-MSI state. HKCU restoration is best effort by identity:
@@ -137,6 +140,8 @@ backups for uninstall.
 
 This chart follows supported final removal (`REMOVE="ALL"` and `NOT UPGRADINGPRODUCTCODE`).
 Rollback annotations use the same `R: <action>` convention as section 1.
+`Force_eBPF_services_uninstall_remove` stops eBPFSvc, NetEbpfExt, and then eBPFCore before
+removing registrations. The separate driver-stop actions apply only to upgrade removal.
 
 
 ```mermaid
@@ -148,8 +153,6 @@ flowchart TD
         MachineSnapshot["Force_eBPF_store_uninstall_prepare_HKLM<br/>R: Force_eBPF_services_uninstall_rollback"]
         UserSnapshot["Force_eBPF_store_uninstall_prepare_HKCU<br/>R: Force_eBPF_store_uninstall_rollback_HKLM"]
         Netsh["eBPF_netsh_helper_uninstall<br/>R: Force_eBPF_store_uninstall_rollback_HKCU"]
-        CoreStop["eBPFCore_Driver_stop"]
-        NetStop["NetEbpfExt_Driver_stop"]
         ServiceRemove["Force_eBPF_services_uninstall_remove"]
         Components["ProcessComponents<br/>UnpublishFeatures"]
         StandardStop["StopServices"]
@@ -163,7 +166,7 @@ flowchart TD
         NormalSuccess["Normal uninstall succeeded"]
 
         UserAccess --> ServiceSnapshot --> MachineSnapshot --> UserSnapshot --> Netsh
-        Netsh --> NetStop --> CoreStop --> ServiceRemove --> Components
+        Netsh --> ServiceRemove --> Components
         Components --> StandardStop --> Environment --> MachineRestore
         MachineRestore --> UserRestore --> BinaryRestore --> ServiceRestore --> Files
         Files --> Folders --> NormalSuccess
