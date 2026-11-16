@@ -881,12 +881,12 @@ using udp_v6_params =
 // ---------------------------------------------------------------------------
 // Shared helpers for sock_addr multi-attach test scenarios.
 //
-// The bind and listen hooks share the same multi-attach verdict accumulation, so
-// their multi-attach tests run the same scenarios. A hook descriptor holds the
-// hook-specific pieces (program, verdict map, WFP layer, and how a denial is
-// observed), and a scenario holds the hook-independent pieces (program count,
-// per-program verdicts, attach/detach steps, and the expected outcome). Each test
-// case pairs one hook with one scenario.
+// The bind, listen, and recv_accept hooks share the same multi-attach verdict
+// accumulation, so their multi-attach tests run the same scenarios. A hook
+// descriptor holds the hook-specific pieces (program, verdict map, WFP layer,
+// and how a denial is observed), and a scenario holds the hook-independent
+// pieces (program count, per-program verdicts, attach/detach steps, and the
+// expected outcome). Each test case pairs one hook with one scenario.
 // ---------------------------------------------------------------------------
 
 /**
@@ -1257,7 +1257,7 @@ TEMPLATE_TEST_CASE("connection_test_connect_authorization", "[sock_addr_tests]",
 // Regression test for the documented ABI contract in include/ebpf_nethooks.h: any return
 // value from a cgroup_sock_addr program that is not one of {REJECT, PROCEED_SOFT,
 // PROCEED_HARD} must be treated as REJECT. The shared sock_addr process_verdict callback
-// (used by CONNECT, CONNECT_AUTHORIZATION, and RECV_ACCEPT chains) normalizes unknown
+// (used by CONNECT and CONNECT_AUTHORIZATION chains) normalizes unknown
 // verdicts to REJECT before priority comparison. Without normalization, the chain would
 // keep the cached redirect-layer verdict and the connection would incorrectly succeed.
 TEMPLATE_TEST_CASE(
@@ -3685,6 +3685,277 @@ TEMPLATE_TEST_CASE(
     SECTION("wildcard attached first")
     {
         run_sock_addr_multi_attach_scope_scenarios<TestType>(_sock_addr_listen_multi_attach_hook, true, scenarios);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Multi-program recv_accept tests (cgroup/recv_accept4 / cgroup/recv_accept6).
+//
+// These mirror the bind and listen multi-attach tests for TCP and UDP. Each test
+// loads multiple independent instances of cgroup_sock_addr, each with its own
+// ingress_connection_policy_map. The shared _sock_addr_multi_attach_* scenarios
+// are defined with the bind multi-attach tests above.
+// ---------------------------------------------------------------------------
+
+// Hook descriptor for the recv_accept hook (cgroup/recv_accept4 / cgroup/recv_accept6). A denial is observed as a
+// blocked connection rather than a socket error, so no additional denial expectations are needed.
+static const sock_addr_multi_attach_hook _sock_addr_accept_multi_attach_hook = {
+    .object_file = "cgroup_sock_addr",
+    .ipv4 = {"authorize_recv_accept4", BPF_CGROUP_INET4_RECV_ACCEPT, &FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V4},
+    .ipv6 = {"authorize_recv_accept6", BPF_CGROUP_INET6_RECV_ACCEPT, &FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V6},
+    .set_verdict = [](program_policy_spec& policy, uint32_t verdict) { policy.ingress_verdict = verdict; },
+    .expect_denied = [](connection_test_params&) {},
+};
+
+// Two programs both PROCEED_SOFT -> connection allowed.
+TEMPLATE_TEST_CASE("sock_addr_accept_multi_all_soft", "[sock_addr_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
+{
+    run_sock_addr_multi_attach_scenario<TestType>(
+        _sock_addr_accept_multi_attach_hook, _sock_addr_multi_attach_all_soft);
+}
+
+// Second program REJECT -> connection blocked.
+TEMPLATE_TEST_CASE(
+    "sock_addr_accept_multi_second_rejects", "[sock_addr_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
+{
+    run_sock_addr_multi_attach_scenario<TestType>(
+        _sock_addr_accept_multi_attach_hook, _sock_addr_multi_attach_second_rejects);
+}
+
+// First program REJECT (short-circuit) -> connection blocked.
+TEMPLATE_TEST_CASE(
+    "sock_addr_accept_multi_first_rejects", "[sock_addr_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
+{
+    run_sock_addr_multi_attach_scenario<TestType>(
+        _sock_addr_accept_multi_attach_hook, _sock_addr_multi_attach_first_rejects);
+}
+
+// Unknown verdict from the second program is normalized to REJECT -> connection blocked.
+static const sock_addr_multi_attach_scenario _sock_addr_multi_attach_unknown_verdict = {
+    .program_count = 2,
+    .steps{{
+        .description = "Unknown verdict 0xAAAAAAAA after soft permit is treated as REJECT",
+        .allowed = false,
+        .verdicts{BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, 0xAAAAAAAAu},
+    }},
+};
+
+TEMPLATE_TEST_CASE(
+    "sock_addr_accept_multi_unknown_verdict", "[sock_addr_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
+{
+    run_sock_addr_multi_attach_scenario<TestType>(
+        _sock_addr_accept_multi_attach_hook, _sock_addr_multi_attach_unknown_verdict);
+}
+
+// Mix of PROCEED_SOFT + PROCEED_HARD -> accumulated verdict is PROCEED_HARD -> connection allowed.
+TEMPLATE_TEST_CASE(
+    "sock_addr_accept_multi_soft_hard_mix", "[sock_addr_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
+{
+    run_sock_addr_multi_attach_scenario<TestType>(
+        _sock_addr_accept_multi_attach_hook, _sock_addr_multi_attach_soft_hard_mix);
+}
+
+// Multi-program with WFP block: both programs return PROCEED_SOFT -> connection blocked.
+TEMPLATE_TEST_CASE(
+    "sock_addr_accept_multi_soft_blocked_by_wfp", "[sock_addr_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
+{
+    run_sock_addr_multi_attach_scenario<TestType>(
+        _sock_addr_accept_multi_attach_hook, _sock_addr_multi_attach_soft_blocked_by_wfp);
+}
+
+// Multi-program with WFP block: HARD permit overrides WFP -> connection allowed.
+TEMPLATE_TEST_CASE(
+    "sock_addr_accept_multi_hard_overrides_wfp", "[sock_addr_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
+{
+    run_sock_addr_multi_attach_scenario<TestType>(
+        _sock_addr_accept_multi_attach_hook, _sock_addr_multi_attach_hard_overrides_wfp);
+}
+
+// PROCEED_HARD first, PROCEED_SOFT second, with WFP block -> connection allowed.
+TEMPLATE_TEST_CASE(
+    "sock_addr_accept_multi_hard_first_overrides_wfp", "[sock_addr_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
+{
+    run_sock_addr_multi_attach_scenario<TestType>(
+        _sock_addr_accept_multi_attach_hook, _sock_addr_multi_attach_hard_first_overrides_wfp);
+}
+
+// REJECT + HARD -> REJECT wins (higher priority).
+TEMPLATE_TEST_CASE(
+    "sock_addr_accept_multi_reject_beats_hard", "[sock_addr_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
+{
+    run_sock_addr_multi_attach_scenario<TestType>(
+        _sock_addr_accept_multi_attach_hook, _sock_addr_multi_attach_reject_beats_hard);
+}
+
+// PROCEED_HARD + REJECT -> REJECT wins.
+TEMPLATE_TEST_CASE(
+    "sock_addr_accept_multi_hard_then_reject", "[sock_addr_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
+{
+    run_sock_addr_multi_attach_scenario<TestType>(
+        _sock_addr_accept_multi_attach_hook, _sock_addr_multi_attach_hard_then_reject);
+}
+
+// Three programs all return PROCEED_SOFT -> connection allowed.
+TEMPLATE_TEST_CASE("sock_addr_accept_multi_three_soft", "[sock_addr_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
+{
+    run_sock_addr_multi_attach_scenario<TestType>(
+        _sock_addr_accept_multi_attach_hook, _sock_addr_multi_attach_three_soft);
+}
+
+// Third program rejects after two PROCEED_SOFT verdicts -> connection blocked.
+TEMPLATE_TEST_CASE(
+    "sock_addr_accept_multi_third_rejects", "[sock_addr_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
+{
+    run_sock_addr_multi_attach_scenario<TestType>(
+        _sock_addr_accept_multi_attach_hook, _sock_addr_multi_attach_third_rejects);
+}
+
+// Third program provides PROCEED_HARD with a WFP block -> connection allowed.
+TEMPLATE_TEST_CASE(
+    "sock_addr_accept_multi_third_hard_overrides_wfp", "[sock_addr_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
+{
+    run_sock_addr_multi_attach_scenario<TestType>(
+        _sock_addr_accept_multi_attach_hook, _sock_addr_multi_attach_third_hard_overrides_wfp);
+}
+
+// Detach first program: first REJECT blocks, then two remaining PROCEED_SOFT programs allow.
+TEMPLATE_TEST_CASE("sock_addr_accept_multi_detach_first", "[sock_addr_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
+{
+    run_sock_addr_multi_attach_scenario<TestType>(
+        _sock_addr_accept_multi_attach_hook, _sock_addr_multi_attach_detach_first);
+}
+
+// Detach middle program: 3 programs with middle=REJECT -> blocked. Detach middle -> allowed.
+TEMPLATE_TEST_CASE(
+    "sock_addr_accept_multi_detach_middle", "[sock_addr_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
+{
+    run_sock_addr_multi_attach_scenario<TestType>(
+        _sock_addr_accept_multi_attach_hook, _sock_addr_multi_attach_detach_middle);
+}
+
+// Detach last program: last REJECT blocks, then two remaining PROCEED_SOFT programs allow.
+TEMPLATE_TEST_CASE("sock_addr_accept_multi_detach_last", "[sock_addr_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
+{
+    run_sock_addr_multi_attach_scenario<TestType>(
+        _sock_addr_accept_multi_attach_hook, _sock_addr_multi_attach_detach_last);
+}
+
+// Detach and reattach: both programs initially permit. Reattach the second with REJECT -> connection blocked.
+TEMPLATE_TEST_CASE(
+    "sock_addr_accept_multi_detach_reattach", "[sock_addr_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
+{
+    run_sock_addr_multi_attach_scenario<TestType>(
+        _sock_addr_accept_multi_attach_hook, _sock_addr_multi_attach_detach_reattach);
+}
+
+// ---------------------------------------------------------------------------
+// Wildcard and compartment-specific recv_accept attach.
+//
+// Programs are attached with bpf_prog_attach so the wildcard scope uses a single
+// attach-parameter representation (see #5589).
+// ---------------------------------------------------------------------------
+
+// Wildcard and compartment-specific permits coexist and allow the connection in either attach order.
+TEMPLATE_TEST_CASE(
+    "sock_addr_accept_multi_wildcard_and_specific_permit",
+    "[sock_addr_tests][multi_attach]",
+    ALL_CONNECTION_TEST_PARAMS)
+{
+    const sock_addr_multi_attach_scope_scenario scenarios[] = {
+        {
+            "Specific and wildcard soft permits allow the connection",
+            {BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+            {BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+            true,
+        },
+    };
+
+    SECTION("specific attached first")
+    {
+        run_sock_addr_multi_attach_scope_scenarios<TestType>(_sock_addr_accept_multi_attach_hook, false, scenarios);
+    }
+    SECTION("wildcard attached first")
+    {
+        run_sock_addr_multi_attach_scope_scenarios<TestType>(_sock_addr_accept_multi_attach_hook, true, scenarios);
+    }
+}
+
+// A matching compartment-specific reject overrides wildcard permits in either attach order.
+TEMPLATE_TEST_CASE(
+    "sock_addr_accept_multi_specific_reject", "[sock_addr_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
+{
+    const sock_addr_multi_attach_scope_scenario scenarios[] = {
+        {
+            "Specific reject overrides wildcard hard permit",
+            {BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, BPF_SOCK_ADDR_VERDICT_REJECT},
+            {BPF_SOCK_ADDR_VERDICT_PROCEED_HARD, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+            false,
+        },
+        {
+            "Specific reject overrides wildcard soft permits",
+            {BPF_SOCK_ADDR_VERDICT_REJECT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+            {BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+            false,
+        },
+    };
+
+    SECTION("specific attached first")
+    {
+        run_sock_addr_multi_attach_scope_scenarios<TestType>(_sock_addr_accept_multi_attach_hook, false, scenarios);
+    }
+    SECTION("wildcard attached first")
+    {
+        run_sock_addr_multi_attach_scope_scenarios<TestType>(_sock_addr_accept_multi_attach_hook, true, scenarios);
+    }
+}
+
+// A matching wildcard reject is expected to override compartment-specific soft permits in either attach order.
+// This remains mayfail while the shared wildcard/specific filter arbitration limitation is unresolved (#5590).
+TEMPLATE_TEST_CASE(
+    "sock_addr_accept_multi_wildcard_reject", "[sock_addr_tests][multi_attach][!mayfail]", ALL_CONNECTION_TEST_PARAMS)
+{
+    const sock_addr_multi_attach_scope_scenario scenarios[] = {
+        {
+            "Wildcard reject overrides specific soft permits",
+            {BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+            {BPF_SOCK_ADDR_VERDICT_REJECT, BPF_SOCK_ADDR_VERDICT_REJECT},
+            false,
+        },
+    };
+
+    SECTION("specific attached first")
+    {
+        run_sock_addr_multi_attach_scope_scenarios<TestType>(_sock_addr_accept_multi_attach_hook, false, scenarios);
+    }
+    SECTION("wildcard attached first")
+    {
+        run_sock_addr_multi_attach_scope_scenarios<TestType>(_sock_addr_accept_multi_attach_hook, true, scenarios);
+    }
+}
+
+// A compartment-specific hard permit can revoke write rights before the wildcard filter runs.
+// This remains mayfail while the shared wildcard/specific filter arbitration limitation is unresolved (#5590).
+TEMPLATE_TEST_CASE(
+    "sock_addr_accept_multi_wildcard_reject_after_specific_hard",
+    "[sock_addr_tests][multi_attach][!mayfail]",
+    ALL_CONNECTION_TEST_PARAMS)
+{
+    const sock_addr_multi_attach_scope_scenario scenarios[] = {
+        {
+            "Wildcard reject overrides specific hard permit",
+            {BPF_SOCK_ADDR_VERDICT_PROCEED_HARD, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+            {BPF_SOCK_ADDR_VERDICT_REJECT, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+            false,
+        },
+    };
+
+    SECTION("specific attached first")
+    {
+        run_sock_addr_multi_attach_scope_scenarios<TestType>(_sock_addr_accept_multi_attach_hook, false, scenarios);
+    }
+    SECTION("wildcard attached first")
+    {
+        run_sock_addr_multi_attach_scope_scenarios<TestType>(_sock_addr_accept_multi_attach_hook, true, scenarios);
     }
 }
 
