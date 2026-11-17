@@ -18,9 +18,16 @@ link, ID, and pin-management operations. JIT/interpreter namespace integration
 is not required; unrelated execution-mode functionality is not removed.
 Native image signature/hash authorization remains required.
 
+### Relationship to network compartments
+
+BPF object namespaces are orthogonal to network compartments: changing one
+does not change the other. They scope BPF objects rather than network resources,
+allowing products sharing a compartment to use separate BPF namespaces.
+Existing security checks still apply.
+
 ## Use Cases
 
-1. **Multi-tenant isolation**: Multiple products can use separate discovery
+1. **Multi-product coexistence**: Multiple products can use separate discovery
    partitions and the same pin paths without naming conflicts. Object IDs
    remain globally unique.
 2. **Testing isolation**: Test workers can select a dedicated namespace instead
@@ -65,8 +72,8 @@ error code on failure. Failure leaves the previous selection unchanged.
 | Aspect | Behavior |
 |--------|----------|
 | Scope | Calling thread; other threads are unchanged. |
-| Persistence | Selection remains effective until successfully changed or the thread/DLL lifetime ends. |
-| Default | `GUID_NULL` on each newly initialized thread. |
+| Persistence | Selection remains effective until successfully changed, the calling thread terminates (including process exit), or `ebpfapi.dll` is completely unloaded. |
+| Default | `GUID_NULL` on each new thread and on surviving threads after a complete DLL unload/reload. |
 | Reset | Pass the address of `GUID_NULL`; a NULL pointer is invalid, not a reset. |
 | Effect on existing objects | None; their GUIDs and ordinary handle-based access remain unchanged. |
 | Effect on new objects | Creation uses the calling thread's captured selection. |
@@ -112,7 +119,10 @@ on the operation, not just whether an API accepts an fd or object pointer.
 3. **Handle semantics**: Existing handles/fds remain valid after namespace
    changes and can be passed between threads or processes where permitted.
    Objects cannot be connected across namespaces or pinned outside their own
-   namespace.
+   namespace. For maps-of-maps (`ARRAY_OF_MAPS` and `HASH_OF_MAPS`), the outer
+   map, inner-map template, and inserted maps must share a namespace. A program
+   array (`PROG_ARRAY`) and the programs inserted into it must also share a
+   namespace, even when the caller already holds all the fds.
 4. **Implicit namespaces**: Namespaces are not explicitly created or deleted.
    A namespace exists as long as objects with that GUID exist.
 
@@ -143,8 +153,9 @@ async operations need no reselection.
 
 A dedicated worker may retain its selection until it takes on work that needs
 a different namespace. Remove pins by path while their namespace
-is selected, before resetting the worker. Use a stable GUID to rediscover
-surviving pins after an application restart.
+is selected, before resetting the worker. Selection does not survive process
+exit. Pinned BPF objects can survive and retain their GUIDs; after restarting,
+select the same stable GUID to rediscover those pins.
 
 ## Acceptance Criteria
 
@@ -154,7 +165,7 @@ surviving pins after an application restart.
 | AC2 | A thread selecting namespace A cannot open or enumerate pins in namespace B. |
 | AC3 | Objects in different namespaces can be pinned at the same path. Unpinning in one namespace does not affect the other. |
 | AC4 | After `ebpf_set_thread_namespace()` succeeds, new maps, programs, and links belong to the selected namespace. Existing objects and other threads' selections remain unchanged. |
-| AC5 | Existing handles remain usable for permitted operations after SET/reset and across threads. Objects cannot be connected across namespaces or pinned outside their own namespace. |
+| AC5 | Existing handles remain usable for permitted operations after SET/reset and across threads. Cross-namespace inner-map templates, map-of-maps entries, program-array entries, and program/map/link relationships are rejected, as is pinning outside an object's namespace. |
 | AC6 | An application that never calls `ebpf_set_thread_namespace()` behaves as it did before namespace isolation. |
 | AC7 | Callers without eBPF management privileges receive an access-denied error from `ebpf_set_thread_namespace()` and `ebpf_get_thread_namespace()`. |
 | AC8 | If `ebpf_set_thread_namespace()` fails, the calling thread's selected namespace remains unchanged. If `ebpf_get_thread_namespace()` fails, its output remains unchanged. |
@@ -170,8 +181,8 @@ failure cases and regressions.
 
 | Coverage | Focus |
 |----------|-------|
-| Unit tests | Per-thread selection, object ownership, ID/pin isolation, same-path pins in different namespaces, relationship restrictions, and failure handling. |
-| Real-driver tests | Independent threads and applications using different GUIDs, intentional sharing through the same GUID, management permissions, and existing handle validity after selection changes. |
+| Unit tests | Per-thread selection, object ownership, ID/pin isolation, same-path pins in different namespaces, same-namespace acceptance and cross-namespace rejection for map-of-maps/program-array relationships, and failure handling. |
+| Real-driver tests | Independent threads and applications using different GUIDs, intentional sharing through the same GUID, management permissions, relationship restrictions, compartment/namespace independence, and existing handle validity after selection changes. |
 | Regression tests | Default-namespace behavior, native loading, local metadata queries, and existing handle-based asynchronous and buffer APIs. |
 
 Unit tests do not replace real-driver validation. Detailed scenarios and
@@ -188,19 +199,31 @@ failure-injection cases remain in the separate implementation test plan.
 
 ### netsh
 
-Existing commands accept an optional `namespace={GUID}` argument, scoped to
-that command. If omitted, they use the thread's selected namespace
-(`GUID_NULL` by default).
+Within the `ebpf` context of a persistent netsh session, select a namespace,
+run existing commands, then reset. These commands must execute on the same
+thread:
+
+```text
+set namespace {GUID}
+show namespace
+show programs
+set namespace {00000000-0000-0000-0000-000000000000}
+```
+
+Selection does not persist after netsh exits. Running SET in one netsh process
+does not affect a later invocation or another application.
+
+Existing commands also accept an optional `namespace={GUID}` argument, scoped
+to that command:
 
 ```text
 netsh ebpf add program filename=<file> namespace={GUID}
 netsh ebpf show programs namespace={GUID}
-netsh ebpf set namespace {GUID}
-netsh ebpf show namespace
 ```
 
-`set namespace` selects the namespace for the current thread in the netsh
-session only. Use the all-zero GUID to reset.
+The `namespace={GUID}` argument lets a standalone command target a namespace
+without a prior `set namespace` call. If omitted, the command uses the thread's
+selected namespace (`GUID_NULL` by default).
 
 ### bpftool
 
