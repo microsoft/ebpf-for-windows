@@ -325,7 +325,7 @@ typedef class _test_sample_map_provider
         UNREFERENCED_PARAMETER(client_binding_context);
         UNREFERENCED_PARAMETER(client_dispatch);
 
-        test_sample_map_provider_t* map_provider = (test_sample_map_provider_t*)provider_context;
+        auto* map_provider = static_cast<_test_sample_map_provider*>(provider_context);
         ebpf_map_client_data_t* client_data =
             (ebpf_map_client_data_t*)client_registration_instance->NpiSpecificCharacteristics;
         ebpf_base_map_client_dispatch_table_t* client_dispatch_table = client_data->base_client_table;
