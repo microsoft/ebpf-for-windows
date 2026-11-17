@@ -28,6 +28,7 @@ param(
         "CommitRestoreStore",
         "CommitRestoreAll",
         "PrepareUserStore",
+        "RollbackUserStore",
         "ClearStore",
         "PopulateStore",
         "RestoreLinks",
@@ -1111,6 +1112,19 @@ function Prepare-UserStore
     }
 }
 
+function Remove-EmptyUserStore
+{
+    $owner = Get-UserStoreOwner
+    if ($null -eq $owner) {
+        return
+    }
+    if ([EbpfMsi.NativeSecurity]::DeleteEmptyUserStore((Join-Path $StateRoot "UserStore"), $owner)) {
+        Remove-Item -LiteralPath (Join-Path $StateRoot "hkcu-owner.sid") -Force
+    } else {
+        Write-Warning "Retaining the nonempty HKCU backup directory and its owner marker."
+    }
+}
+
 function Get-StorePaths
 {
     param([Parameter(Mandatory = $true)][string]$StoreScope)
@@ -1749,14 +1763,24 @@ function Prepare-ServiceRestore
 {
     $paths = Get-ServicePaths
     New-Item -ItemType Directory -Path $StateRoot -Force | Out-Null
-    if (Test-Path -LiteralPath $paths.UninstallRollbackFile) {
-        throw "Incomplete eBPF service restoration exists in '$StateRoot'."
+    $snapshotFiles = @($paths.UninstallRollbackFile)
+    $snapshotFiles += $ServiceNames | ForEach-Object { Join-Path $StateRoot "$_.uninstall-rollback.reg" }
+    foreach ($path in $snapshotFiles) {
+        if (Test-Path -LiteralPath $path) {
+            throw "Incomplete eBPF service restoration exists in '$StateRoot'."
+        }
     }
 
     # Commit runs after RemoveFiles, so retain a copy in the already validated, protected directory.
     $cleanupScript = Join-Path $StateRoot "ForceEbpfStack.cleanup.ps1"
     Copy-Item -LiteralPath $PSCommandPath -Destination $cleanupScript -Force
-    Save-CurrentServices -StateFile $paths.UninstallRollbackFile -FileSuffix "uninstall-rollback"
+    try {
+        Save-CurrentServices -StateFile $paths.UninstallRollbackFile -FileSuffix "uninstall-rollback"
+    } catch {
+        Remove-ServiceStateFiles -FileSuffix "uninstall-rollback"
+        Remove-BackupFileIfPresent -Path $paths.UninstallRollbackFile
+        throw
+    }
 }
 
 function Restore-Services
@@ -1982,21 +2006,27 @@ function Prepare-StoreRestore
 
     $providerPath = Get-RegistryProviderPath -RegistryPath $paths.RegistryPath
     $storeExisted = Test-Path -LiteralPath $providerPath
-    if ($storeExisted) {
-        Invoke-NativeCommand `
-            -FilePath (Join-Path $env:SystemRoot "System32\reg.exe") `
-            -ArgumentList @("export", $paths.RegistryPath, $paths.UninstallRegistryFile, "/y") `
-            -FailureMessage "Failed to save the current $Scope eBPF store for uninstall rollback"
-    }
+    try {
+        if ($storeExisted) {
+            Invoke-NativeCommand `
+                -FilePath (Join-Path $env:SystemRoot "System32\reg.exe") `
+                -ArgumentList @("export", $paths.RegistryPath, $paths.UninstallRegistryFile, "/y") `
+                -FailureMessage "Failed to save the current $Scope eBPF store for uninstall rollback"
+        }
 
-    [PSCustomObject]@{
-        SchemaVersion = 1
-        Scope = $Scope
-        RegistryPath = $paths.RegistryPath
-        StoreExisted = $storeExisted
-        UserSid = if ($Scope -eq "HKCU") { Get-CurrentUserSid } else { $null }
-        RestoreCompleted = $false
-    } | ConvertTo-Json | Set-Content -LiteralPath $paths.UninstallStateFile -Encoding UTF8
+        [PSCustomObject]@{
+            SchemaVersion = 1
+            Scope = $Scope
+            RegistryPath = $paths.RegistryPath
+            StoreExisted = $storeExisted
+            UserSid = if ($Scope -eq "HKCU") { Get-CurrentUserSid } else { $null }
+            RestoreCompleted = $false
+        } | ConvertTo-Json | Set-Content -LiteralPath $paths.UninstallStateFile -Encoding UTF8
+    } catch {
+        Remove-BackupFileIfPresent -Path $paths.UninstallRegistryFile
+        Remove-BackupFileIfPresent -Path $paths.UninstallStateFile
+        throw
+    }
 }
 
 function Rollback-StoreRestore
@@ -2212,6 +2242,10 @@ try {
             Prepare-UserStore
         }
 
+        "RollbackUserStore" {
+            Remove-EmptyUserStore
+        }
+
         "ClearStore" {
             Invoke-NativeCommand -FilePath (Join-Path $InstallRoot "export_program_info.exe") `
                 -ArgumentList @("--clear") -FailureMessage "Failed to clear the user eBPF store"
@@ -2255,11 +2289,7 @@ try {
                     Remove-Item -LiteralPath $path -Force
                 }
             }
-            $owner = Get-UserStoreOwner
-            if ($null -ne $owner -and
-                [EbpfMsi.NativeSecurity]::DeleteEmptyUserStore((Join-Path $StateRoot "UserStore"), $owner)) {
-                Remove-Item -LiteralPath (Join-Path $StateRoot "hkcu-owner.sid") -Force
-            }
+            Remove-EmptyUserStore
             Remove-Item -LiteralPath (Join-Path $StateRoot "ForceEbpfStack.cleanup.ps1") -Force
         }
 

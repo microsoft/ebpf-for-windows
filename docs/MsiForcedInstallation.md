@@ -16,6 +16,8 @@ With `FORCE=1` and an existing eBPFCore registration, the MSI:
 
 The MSI saves one original backup set for both failed-install recovery and final uninstall.
 Uninstall and repair create additional, temporary recovery snapshots.
+Failed uninstall service or registry snapshot preparation removes its partial journal and exports so it can be
+retried; pre-existing recovery files are rejected and preserved.
 Service snapshots also record whether the eBPF netsh helper was registered. Forced-install rollback
 and final uninstall re-register the restored System32 DLL only if it was previously registered;
 failed-uninstall rollback restores the MSI helper's prior registration state.
@@ -78,7 +80,7 @@ flowchart TD
         Stop{"Forced stack replacement?"}
         StandardStop["StopServices"]
         Files["CreateFolders<br/>InstallFiles"]
-        UserAccess["Prepare_eBPF_user_store"]
+        UserAccess["Prepare_eBPF_user_store<br/>R: Rollback_eBPF_user_store"]
         Forced{"Existing eBPFCore and FORCE=1?"}
         Backup["Force_eBPF_services_backup"]
         NetStop["Force_NetEbpfExt_Driver_stop<br/>R: Force_eBPF_services_rollback"]
@@ -135,6 +137,8 @@ flowchart TD
 If normal work reports a fatal error, MSI runs the rollback work accumulated so far, using the
 original backups. No success-only install cleanup is needed: successful installation keeps those
 backups for uninstall.
+After HKCU rollback, SYSTEM removes an empty `UserStore` and its owner marker, including pre-existing
+empty metadata. If backup files remain, both the directory and marker are retained for recovery.
 
 ## 2. Uninstall execution only: when the work actually happens
 

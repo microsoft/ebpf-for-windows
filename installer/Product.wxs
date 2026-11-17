@@ -56,6 +56,8 @@ SPDX-License-Identifier: MIT
 			<StopServices>VersionNT AND NOT (NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1")</StopServices>
 
 			<!--Rollback sequence-->
+			<!-- Rollback runs in reverse order, so remove empty user metadata after HKCU restoration. -->
+			<Custom Action="Rollback_eBPF_user_store" Before="Prepare_eBPF_user_store">NOT Installed</Custom>
 			<Custom Action="eBPF_netsh_helper_uninstall_rollback" Before="eBPF_netsh_helper_install">NOT Installed</Custom>
 
 			<!-- Register stop undo last so rollback stops drivers before restoring or deleting their registrations. -->
@@ -218,6 +220,8 @@ SPDX-License-Identifier: MIT
 		<SetProperty Id="Commit_eBPF_repair" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action CommitRepair" Before="Commit_eBPF_repair" Sequence="execute"/>
 		<CustomAction Id="Commit_eBPF_repair" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="commit" Return="ignore" Impersonate="no"/>
 		<!--Clear/Setup the eBPF store-->
+		<SetProperty Id="Rollback_eBPF_user_store" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action RollbackUserStore" Before="Rollback_eBPF_user_store" Sequence="execute"/>
+		<CustomAction Id="Rollback_eBPF_user_store" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="check" Impersonate="no"/>
 		<SetProperty Id="Prepare_eBPF_user_store" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action PrepareUserStore -InstallingUserSid &quot;[UserSID]&quot;" Before="Prepare_eBPF_user_store" Sequence="execute"/>
 		<CustomAction Id="Prepare_eBPF_user_store" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
 		<SetProperty Id="Prepare_eBPF_user_store_uninstall" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action PrepareUserStore -InstallingUserSid &quot;[UserSID]&quot;" Before="Prepare_eBPF_user_store_uninstall" Sequence="execute"/>
