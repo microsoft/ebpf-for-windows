@@ -14,23 +14,10 @@ With `FORCE=1` and an existing eBPFCore registration, the MSI:
 4. Saves the HKLM and installing user's HKCU eBPF stores, then replaces their metadata with the MSI's version.
 5. Configures and starts the drivers, and configures and requests startup of eBPFSvc.
 
-The MSI saves one original backup set for both failed-install recovery and final uninstall.
-Uninstall and repair create additional, temporary recovery snapshots.
-Failed uninstall service or registry snapshot preparation removes its partial journal and exports so it can be
-retried; pre-existing recovery files are rejected and preserved.
-Service snapshots also record whether the eBPF netsh helper was registered. Forced-install rollback
-and final uninstall re-register the restored System32 DLL only if it was previously registered;
-failed-uninstall rollback restores the MSI helper's prior registration state.
-
 On final uninstall, the saved original service state, binary hard links, and HKLM store are used
 to restore the machine-wide eBPF stack to its pre-MSI state. HKCU restoration is best effort by identity:
 only the saved installing user restores their HKCU store. Another user or SYSTEM skips that restoration
 with a warning, leaves the caller's HKCU unchanged, and retains the original HKCU backup.
-
-On final uninstall with an original service backup, the MSI sets `MSIDISABLERMRESTART=1` before
-`InstallValidate`. This prevents Restart Manager from restarting applications and services after the
-helper restores the original stack. Automatic shutdown remains enabled, and payload files remain
-MSI-managed. Installation, repair, ordinary uninstall, and upgrade removal retain default Restart Manager behavior.
 
 Known limitation: if eBPFSvc was running when uninstall began, Restart Manager may stop it before
 the rollback snapshot. If uninstall subsequently fails, rollback may leave eBPFSvc stopped rather than
@@ -63,13 +50,8 @@ Only `UserStore` and its protected owner marker receive custom ACLs. The install
 modify, and delete backup files, but cannot rename, delete, or change permissions on `UserStore` itself
 or create subdirectories. SYSTEM stages the owner marker, grants user access, then finalizes
 `hkcu-owner.sid`. HKCU actions run as that user; other identities skip them without loading another
-profile. Metadata access validates ownership, permissions, paths, and imports, rejecting reparse points
-and hard-linked metadata files. Machine-directory checks stop below native Program Files and close
-handles after validation; explicit `-StateRoot` overrides outside it retain full ancestor checks.
-Only `UserStore` retains action-duration directory locking. Untrusted state requires investigation,
-not deleting backups to bypass checks. A protected `ForceEbpfStack.cleanup.ps1` supports
-uninstall commit after payload removal. HKCU cleanup stays impersonated; skipped backups remain,
-and SYSTEM removes `UserStore` and its owner marker only when empty.
+profile.
+These actions back up, clear, populate, and restore the user's eBPF registry store, and clean up its backup files.
 
 ## 1. Install execution flow
 
@@ -150,7 +132,7 @@ backups for uninstall.
 After HKCU rollback, SYSTEM removes an empty `UserStore` and its owner marker, including pre-existing
 empty metadata. If backup files remain, both the directory and marker are retained for recovery.
 
-## 2. Uninstall execution only: when the work actually happens
+## 2. Uninstall execution flow
 
 This chart follows supported final removal (`REMOVE="ALL"` and `NOT UPGRADINGPRODUCTCODE`).
 Rollback annotations use the same `R: <action>` convention as section 1.
