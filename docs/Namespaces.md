@@ -18,12 +18,10 @@ link, ID, and pin-management operations. JIT/interpreter namespace integration
 is not required; unrelated execution-mode functionality is not removed.
 Native image signature/hash authorization remains required.
 
-### Relationship to network compartments
-
-BPF object namespaces are orthogonal to network compartments: changing one
-does not change the other. They scope BPF objects rather than network resources,
-allowing products sharing a compartment to use separate BPF namespaces.
-Existing security checks still apply.
+> **Note:** BPF object namespaces are orthogonal to network compartments: changing one
+> does not change the other. They scope BPF objects rather than network resources,
+> allowing products sharing a compartment to use separate BPF namespaces.
+> Existing security checks still apply.
 
 ## Use Cases
 
