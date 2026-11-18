@@ -1396,6 +1396,12 @@ function Set-ServiceFromState
     if (-not (Test-Path -LiteralPath $registryFile -PathType Leaf)) {
         throw "The saved $name service registry file is missing: $registryFile"
     }
+    $registryPath = Get-ServiceRegistryPath -Name $name
+    $registryHeader = "[HKEY_LOCAL_MACHINE$($registryPath.Substring(4))]"
+    if (@(Get-Content -LiteralPath $registryFile) -inotcontains $registryHeader) {
+        throw "The saved $name service registry file does not contain its service key: $registryFile"
+    }
+    Remove-RegistryTreeIfPresent -RegistryPath "$registryPath\Parameters"
     Invoke-NativeCommand `
         -FilePath (Join-Path $env:SystemRoot "System32\reg.exe") `
         -ArgumentList @("import", $registryFile) `

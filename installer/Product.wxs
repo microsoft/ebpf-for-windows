@@ -28,6 +28,11 @@ SPDX-License-Identifier: MIT
 		<Property Id="EXISTING_EBPFSVC">
 			<RegistrySearch Id="FindExistingEbpfSvc" Root="HKLM" Key="SYSTEM\CurrentControlSet\Services\eBPFSvc" Name="ImagePath" Type="raw" Win64="yes" />
 		</Property>
+		<Property Id="EBPF_ORIGINAL_SERVICE_BACKUP">
+			<DirectorySearch Id="FindEbpfServiceBackupDirectory" Path="[ProgramFiles64Folder]ebpf-for-windows\MsiBackup" Depth="0">
+				<FileSearch Id="FindEbpfOriginalServiceBackup" Name="ebpf-services.original.json" />
+			</DirectorySearch>
+		</Property>
 		<Property Id="INSTALLFOLDER" Secure="yes">
 			<RegistrySearch Id="FindInstallLocation" Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\[WIX_UPGRADE_DETECTED]" Name="InstallLocation" Type="raw" Win64="yes" />
 		</Property>
@@ -50,6 +55,11 @@ SPDX-License-Identifier: MIT
 				<ComponentGroupRef Id="eBPF_Service" />
 			</Feature>
 		</Feature>
+
+		<!-- Prevent Restart Manager from restarting services after the original stack is restored. -->
+		<SetProperty Id="MSIDISABLERMRESTART" Value="1" Before="InstallValidate" Sequence="execute">
+			Installed AND REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE AND EBPF_ORIGINAL_SERVICE_BACKUP
+		</SetProperty>
 
 		<InstallExecuteSequence>
 			<!-- Forced installs back up running state before stopping services in the custom chain. -->

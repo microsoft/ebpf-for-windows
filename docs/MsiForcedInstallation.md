@@ -27,6 +27,15 @@ to restore the machine-wide eBPF stack to its pre-MSI state. HKCU restoration is
 only the saved installing user restores their HKCU store. Another user or SYSTEM skips that restoration
 with a warning, leaves the caller's HKCU unchanged, and retains the original HKCU backup.
 
+On final uninstall with an original service backup, the MSI sets `MSIDISABLERMRESTART=1` before
+`InstallValidate`. This prevents Restart Manager from restarting applications and services after the
+helper restores the original stack. Automatic shutdown remains enabled, and payload files remain
+MSI-managed. Installation, repair, ordinary uninstall, and upgrade removal retain default Restart Manager behavior.
+
+Known limitation: if eBPFSvc was running when uninstall began, Restart Manager may stop it before
+the rollback snapshot. If uninstall subsequently fails, rollback may leave eBPFSvc stopped rather than
+restore its running state. Start it manually if needed.
+
 ### Backup filenames
 
 Machine metadata lives in native `%ProgramFiles%\ebpf-for-windows\MsiBackup`, regardless of
