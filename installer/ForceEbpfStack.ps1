@@ -1768,6 +1768,15 @@ function Remove-MsiServices
 function Prepare-ServiceRestore
 {
     $paths = Get-ServicePaths
+    $state = Read-ServiceState -Path $paths.StateFile
+    $backupCount = Get-BackupCount
+    if ($null -eq $state -and $backupCount -ne 0) {
+        throw "Original eBPF binary backups exist but the service snapshot is missing: $($paths.StateFile)"
+    }
+    if ($null -ne $state -and $backupCount -ne $mappings.Count) {
+        throw "The original eBPF service snapshot exists but only $backupCount of $($mappings.Count) binary backups exist."
+    }
+
     New-Item -ItemType Directory -Path $StateRoot -Force | Out-Null
     $snapshotFiles = @($paths.UninstallRollbackFile)
     $snapshotFiles += $ServiceNames | ForEach-Object { Join-Path $StateRoot "$_.uninstall-rollback.reg" }
@@ -1911,6 +1920,10 @@ function Read-StoreState
     param([Parameter(Mandatory = $true)][hashtable]$Paths)
 
     if (-not (Test-Path -LiteralPath $Paths.StateFile -PathType Leaf)) {
+        if ($Scope -eq "HKCU" -and
+            (Test-Path -LiteralPath (Get-ServicePaths).StateFile -PathType Leaf)) {
+            throw "The original HKCU eBPF store snapshot is missing: $($Paths.StateFile)"
+        }
         return $null
     }
     $state = Get-Content -LiteralPath $Paths.StateFile -Raw | ConvertFrom-Json

@@ -42,7 +42,8 @@ Machine metadata lives in native `%ProgramFiles%\ebpf-for-windows\MsiBackup`, re
 `INSTALLFOLDER`; HKCU metadata lives in `UserStore` beneath it. Binary links sit beside the canonical
 Windows binaries. Below, `<scope>` is `hklm` or `hkcu`, `<service>` is eBPFCore, NetEbpfExt, or eBPFSvc,
 and `<binary>` is the canonical binary filename. Registry exports exist only for keys that were present.
-Incomplete original binary backup sets are rejected.
+Uninstall preparation requires either no service snapshot and no binary backups, or a valid service
+snapshot and all six binary backups. Mismatches are rejected without deleting remaining backups.
 
 | Purpose | Filenames |
 |---|---|
