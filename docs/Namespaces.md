@@ -23,33 +23,26 @@ Native image signature/hash authorization remains required.
 > allowing products sharing a compartment to use separate BPF namespaces.
 > Existing security checks still apply.
 
-## Use Cases
-
-1. **Multi-product coexistence**: Multiple products can use separate discovery
-   partitions and the same pin paths without naming conflicts. Object IDs
-   remain globally unique.
-2. **Testing isolation**: Test workers can select a dedicated namespace instead
-   of discovering or modifying production objects through default discovery.
-3. **Application partitioning**: Applications or their components can manage
-   their BPF objects in separate namespaces.
-
 ## Requirements
+
+Namespace isolation lets applications partition their BPF objects for product
+coexistence without pin-path naming conflicts, test isolation, and separation
+between application components.
 
 | ID | Requirement |
 |----|-------------|
 | R1 | Each BPF object SHALL be associated with exactly one immutable namespace GUID at creation, before its ID becomes discoverable. |
 | R2 | The default namespace SHALL be the null GUID (`GUID_NULL`). |
 | R3 | Object ID enumeration and open-by-ID SHALL only return objects matching the calling thread's selected namespace. IDs SHALL remain globally unique. |
-| R4 | Pin lookup, insertion, deletion, and enumeration SHALL be relative to the calling thread's selected GUID. |
-| R5 | The same pin path string MAY exist in multiple namespaces without conflict. |
-| R6 | Existing handles to BPF objects SHALL remain valid after a namespace switch. |
-| R7 | A namespace switch SHALL NOT modify existing objects; it only affects subsequent operations. |
-| R8 | Namespace management SHALL require the same privileges as other eBPF management operations. |
-| R9 | Applications not using namespace APIs SHALL operate in the default namespace with no code changes. |
-| R10 | Namespace selection SHALL be per thread. New threads SHALL start in `GUID_NULL`, without inheritance. |
-| R11 | A successful namespace change SHALL apply to subsequent namespace-dependent operations on the calling thread. A failed change SHALL preserve its previous selection. |
-| R12 | New object relationships SHALL connect only objects in the same namespace. Existing ordinary handle-based access SHALL NOT depend on the caller's selected namespace. |
-| R13 | Existing handle-based asynchronous operations SHALL remain independent of the caller's selected namespace. |
+| R4 | Pin lookup, insertion, deletion, and enumeration SHALL be relative to the calling thread's selected GUID. The same pin path string MAY exist in multiple namespaces without conflict. |
+| R5 | Existing handles to BPF objects SHALL remain valid after a namespace switch. |
+| R6 | A namespace switch SHALL affect only the scope of subsequent namespace-dependent operations. |
+| R7 | Namespace management SHALL require the same privileges as other eBPF management operations. |
+| R8 | Applications not using namespace APIs SHALL operate in the default namespace with no code changes. |
+| R9 | Namespace selection SHALL be per thread. New threads SHALL start in `GUID_NULL`, without inheritance. |
+| R10 | A successful namespace change SHALL apply to subsequent namespace-dependent operations on the calling thread. A failed change SHALL preserve its previous selection. |
+| R11 | New object relationships SHALL connect only objects in the same namespace. Existing ordinary handle-based access SHALL NOT depend on the caller's selected namespace. |
+| R12 | Existing handle-based asynchronous operations SHALL remain independent of the caller's selected namespace. |
 
 ## API Specification
 
