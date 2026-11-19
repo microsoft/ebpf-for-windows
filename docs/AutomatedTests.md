@@ -76,3 +76,10 @@ Tests in this category currently include:
 Performance tests check for performance regressions across builds.
 
 This invokes the bpf_performance test suite with a variety of test cases.
+
+The GitHub CI jobs named `stress` run `ebpf_performance.exe`. Its workers use the
+process's permitted CPUs except logical CPU 0, leaving scheduling headroom for the
+runner. Usersim's background DPC threads retain access to all CPUs. The dedicated
+kernel-mode multi-threaded stress executables exclude CPU 0 process-wide.
+If CPU 0 is the only permitted CPU, the tests continue on that CPU.
+Performance measurements are averaged over the participating workers, not all system CPUs.
