@@ -7,6 +7,10 @@ name: Reusable Test Workflow
 
 on:
   workflow_call:
+    outputs:
+      should_skip:
+        description: 'Whether duplicate detection skipped the test job.'
+        value: ${{ jobs.run_test.outputs.should_skip }}
     inputs:
       name:
         required: true
@@ -68,6 +72,8 @@ permissions:
 
 jobs:
   run_test:
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
     # Due to app-verifier, unit tests take a lot longer to execute. Also, stress tests now take around 90 minutes.
     # Increase the timeout to 150 minutes.
     timeout-minutes: 150
