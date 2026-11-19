@@ -5,7 +5,7 @@
 1. [Status](#status)
 2. [Purpose](#purpose)
 3. [Definitions](#definitions)
-4. [Design overview](#design-overview)
+4. [High-level process overview](#high-level-process-overview)
 5. [Relationship to Linux](#relationship-to-linux)
 6. [eBPF interface](#ebpf-interface)
    - [Program and attach types](#program-and-attach-types)
@@ -25,32 +25,30 @@
 
 ## Status
 
-This is a design proposal. The authoritative behavioral requirements are in
-[FlowClassifyHookRequirements.md](FlowClassifyHookRequirements.md).
+The [flow-classification requirements](FlowClassifyHookRequirements.md) define the required behavior.
 
-This design covers TCP stream data, UDP datagrams, non-error ICMP and ICMPv6 messages, and asynchronous pending.
-
-Payload mutation, raw IP datagrams, reauthorization, and redirect are out of scope. ICMP error-layer classification is
-not defined by this proposal and requires requirements clarification before the design is finalized.
-
-All type and function declarations below are proposed and non-final.
+This design covers TCP stream data, UDP datagrams, non-error ICMP and ICMPv6 messages, and asynchronous `PEND`.
+Support for payload mutation, raw IP datagrams, WFP reauthorization, and redirect is not currently planned.
 
 ## Purpose
 
-The flow classification hook lets eBPF programs inspect transport payload and contribute to a flow-level policy
-decision to allow or block the associated network flow.
+The hook lets one or more eBPF classifiers inspect a flow over time and return actions that compose into a whole-flow
+policy decision. `ALLOW` and `NEED_MORE_DATA` are nonblocking results; `PEND` retains the current indication; and
+`BLOCK` stops the current indication and future traffic but cannot retract payload already released.
 
 ## Definitions
 
-- **Network flow:** Traffic with common endpoint and protocol metadata tracked under one stable identifier and
-  lifecycle. TCP flows are connections. Related UDP datagrams and ICMP or ICMPv6 messages share one flow identifier.
+- **Network flow:** Traffic grouped under one stable flow identifier and lifecycle. A TCP flow is one connection; UDP
+  and non-error ICMP/ICMPv6 traffic follows the WFP flow identifier and lifetime.
 - **Flow classification:** A whole-flow decision informed by metadata and payload inspection rather than a per-packet
   verdict.
 - **Classifier:** A flow-classify program attached to a flow map.
-- **Flow-map membership:** The relationship that activates one flow map's classifier for a flow with selected flags.
-- **Payload indication:** One stream range or logical datagram delivered to the classifier chain.
-- **Logical datagram:** One UDP, ICMP, or ICMPv6 message after fragmentation and offload normalization.
-- **Pending (`PEND`):** Withholding the current payload while an external component supplies a decision.
+- **Flow map:** A map whose memberships select flows for its attached stream or datagram classifier.
+- **Flow-map membership:** The relationship between one flow and one flow map, including its direction and pending
+  flags. The membership activates the applicable classifier.
+- **Payload indication:** One classification unit: an ordered stream-byte range or one logical datagram.
+- **Logical datagram:** One UDP or non-error ICMP/ICMPv6 message presented as a single classification unit.
+- **Pending (`PEND`):** Retaining the current indication until an external decision provider completes the decision.
 - **Windows Filtering Platform (WFP):** The Windows network filtering framework used to receive flow and payload
   indications.
 - **Application Layer Enforcement (ALE):** WFP layers that report flow establishment and lifecycle events.
@@ -62,21 +60,16 @@ decision to allow or block the associated network flow.
   helper identifier.
 - **LUID:** A locally unique identifier, used by this design for interface and logon-session identity.
 
-## Design overview
+## High-level process overview
 
-The design follows the Linux sockmap principle that map membership drives inspection:
+Flow-map membership activates payload inspection:
 
-1. A flow-classify program attaches to a **flow map**.
-2. An existing `sock_ops` program runs at flow establishment and decides whether the current flow needs payload
-   inspection.
-3. The `sock_ops` program calls `ebpf_flow_map_track()` for each classifier map that should inspect the flow's payload.
-4. Membership in a flow map activates that map's classifier for the flow.
-5. On each applicable payload indication, the extension invokes active classifiers in global program-attachment order.
-   Each classifier returns an action.
-6. The extension applies each returned action. `ALLOW` finalizes only the returning classifier.
-   `NEED_MORE_DATA` keeps that classifier active. `BLOCK` is terminal for the flow.
-7. Finalized classifiers receive cleanup before their memberships are removed. When no active classifier remains,
-   payload inspection is disarmed unless the flow must retain blocked or out-of-band enforcement state.
+1. A flow-classify program attaches to a flow map.
+2. At flow establishment, `sock_ops` enrolls the flow in each classifier map selected for inspection.
+3. For each indication, the extension invokes applicable classifiers in successful attachment order.
+4. `ALLOW` finalizes only the returning classifier; `NEED_MORE_DATA` keeps it active; `PEND` retains the indication and
+   pauses the chain; and `BLOCK` is terminal for the flow.
+5. A finalized classifier receives one cleanup invocation after in-flight calls drain, then its membership is removed.
 
 ```text
  flow established                           payload indication
@@ -90,28 +83,21 @@ The design follows the Linux sockmap principle that map membership drives inspec
                                   ALLOW / BLOCK / NEED_MORE_DATA / PEND
 ```
 
-One flow may be tracked by multiple flow maps so an enrollment policy can compose independent classifiers. Each flow
-map supports at most one program per flow-classification attach type.
+A flow may belong to multiple flow maps, allowing independent classifiers to compose.
 
 ## Relationship to Linux
 
 Linux combines `BPF_PROG_TYPE_SOCK_OPS` enrollment with programs attached to `BPF_MAP_TYPE_SOCKMAP` or
-`BPF_MAP_TYPE_SOCKHASH`. Sockets inserted into the map inherit its parser or verdict programs.
+`BPF_MAP_TYPE_SOCKHASH`; sockets in a map are processed by programs attached to that map. This design retains
+`sock_ops` enrollment, link-based map attachment, membership-driven inspection, and direct payload access with lazy
+linearization.
 
-This design adopts:
-
-- `sock_ops` enrollment at flow establishment;
-- program attachment to a map FD;
-- membership-driven payload inspection;
-- direct payload access with lazy linearization.
-
-It deliberately differs from Linux:
+Unlike Linux sockmap/sockhash:
 
 - the map key is a Windows flow ID rather than a caller-selected socket lookup key;
-- verdicts classify a whole flow rather than one message;
-- one flow may be tracked by multiple classifier maps;
-- flow direction selection is explicit rather than implied by program type;
-- asynchronous pending uses Windows-specific payload retention and reinjection.
+- policy is whole-flow, and one flow can compose multiple classifier maps;
+- each membership explicitly selects inbound, outbound, or both directions; and
+- `PEND` adds asynchronous decisions using Windows payload retention.
 
 ## eBPF interface
 
@@ -143,11 +129,13 @@ Map creation requires a `uint64_t` key, the published `ebpf_flow_map_value_t` si
 
 #### Key
 
-The key is the stable `uint64_t flow_id` exposed by `bpf_sock_ops_get_flow_id()`.
+The key is the `uint64_t flow_id` exposed by `bpf_sock_ops_get_flow_id()`. It is opaque and unique among live
+extension flow contexts during the current boot. It is not reused until all invocations, cleanup, and pending
+completions for the prior flow are impossible.
 
 #### Value
 
-The value is fixed-size, extension-owned metadata. A proposed shape is:
+The value is fixed-size, extension-owned metadata with this layout:
 
 ```c
 /**
@@ -165,10 +153,9 @@ typedef enum _ebpf_flow_classify_data_path
 typedef enum _ebpf_flow_metadata_flag
 {
     EBPF_FLOW_METADATA_PORTS_VALID = 1 << 0, /**< The TCP or UDP ports are valid. */
-    EBPF_FLOW_METADATA_ICMP_TYPE_CODE_VALID = 1 << 1, /**< The ICMP type and code are valid. */
-    EBPF_FLOW_METADATA_PROCESS_ID_VALID = 1 << 2, /**< The process identifier is valid. */
-    EBPF_FLOW_METADATA_LOGON_ID_VALID = 1 << 3, /**< The logon identifier is valid. */
-    EBPF_FLOW_METADATA_ADMIN_VALID = 1 << 4, /**< The administrator status is valid. */
+    EBPF_FLOW_METADATA_PROCESS_ID_VALID = 1 << 1, /**< The process identifier is valid. */
+    EBPF_FLOW_METADATA_LOGON_ID_VALID = 1 << 2, /**< The logon identifier is valid. */
+    EBPF_FLOW_METADATA_ADMIN_VALID = 1 << 3, /**< The administrator status is valid. */
 } ebpf_flow_metadata_flag_t;
 
 /**
@@ -183,15 +170,15 @@ typedef enum _ebpf_flow_direction
 } ebpf_flow_direction_t;
 
 /**
- * @brief Contains extension-owned metadata for one tracked flow.
- *
- * User mode can read this value, but neither user mode nor eBPF programs can modify it through standard map
- * operations.
+ * @brief Contains stable metadata for one flow.
  */
-typedef struct _ebpf_flow_map_value
+typedef struct _ebpf_flow_metadata
 {
-    uint64_t flow_id; /**< Stable flow identifier and flow-map key. */
-    uint32_t family;  /**< IP address family selecting the valid member in both address unions. */
+    uint64_t flow_id;       /**< Stable flow identifier and flow-map key. */
+    uint64_t process_id;    /**< Initiating process identifier, if valid. */
+    uint64_t logon_id;      /**< Initiating token AuthenticationId LUID, encoded as uint64_t, if valid. */
+    uint64_t interface_luid; /**< Local interface LUID. */
+
     union
     {
         uint32_t local_ip4;    /**< Local IPv4 address in network byte order. */
@@ -202,21 +189,34 @@ typedef struct _ebpf_flow_map_value
         uint32_t remote_ip4;    /**< Remote IPv4 address in network byte order. */
         uint32_t remote_ip6[4]; /**< Remote IPv6 address in network byte order. */
     };
-    uint8_t protocol;        /**< IP protocol number. */
-    uint8_t reserved[3];     /**< Reserved; set to zero. */
+
+    uint32_t family;         /**< IP address family selecting the valid member in both address unions. */
+    uint32_t compartment_id; /**< Network compartment identifier. */
     uint32_t data_path;      /**< One ebpf_flow_classify_data_path_t value. */
     uint32_t metadata_flags; /**< Bitmask of ebpf_flow_metadata_flag_t values. */
-    uint16_t local_port;  /**< Local TCP or UDP port in network byte order, if valid. */
-    uint16_t remote_port; /**< Remote TCP or UDP port in network byte order, if valid. */
-    uint32_t compartment_id;  /**< Network compartment identifier. */
-    uint64_t interface_luid;  /**< Local interface LUID. */
-    uint64_t process_id;   /**< Initiating process identifier, if valid. */
-    uint64_t logon_id;     /**< Initiating token AuthenticationId LUID, encoded as uint64_t, if valid. */
-    int32_t is_admin;      /**< 1 for an administrator, 0 otherwise, or -1 when unavailable. */
-    uint32_t reserved2;    /**< Reserved; set to zero. */
-    uint64_t track_flags;  /**< Normalized ebpf_flow_map_track_flag_t values for this membership. */
+
+    uint16_t local_port;   /**< Local TCP or UDP port in network byte order, if valid. */
+    uint16_t remote_port;  /**< Remote TCP or UDP port in network byte order, if valid. */
+    uint8_t protocol;      /**< IP protocol number. */
+    uint8_t is_admin;      /**< 1 if the initiating token is an administrator, otherwise 0, if valid. */
+    uint8_t reserved[2];   /**< Reserved; set to zero. */
+} ebpf_flow_metadata_t;
+
+/**
+ * @brief Contains extension-owned metadata for one tracked flow-map membership.
+ *
+ * User mode can read this value, but neither user mode nor eBPF programs can modify it through standard map
+ * operations.
+ */
+typedef struct _ebpf_flow_map_value
+{
+    ebpf_flow_metadata_t metadata; /**< Stable flow metadata. */
+    uint64_t track_flags;          /**< Normalized ebpf_flow_map_track_flag_t values for this membership. */
 } ebpf_flow_map_value_t;
 ```
+
+The field ordering groups identifiers, addresses, fixed-width flow attributes, and compact transport and identity
+fields while preserving natural alignment. The layout is not packed.
 
 The value does not contain a verdict, pending state, retained payload, writable scratch, or WFP pointers. Classifiers
 store mutable parser or policy state in ordinary program maps keyed by `flow_id`. ICMP type and code are per-message
@@ -266,9 +266,13 @@ struct bpf_link*
 bpf_program__attach_flow_classify(const struct bpf_program* program, int flow_map_fd);
 ```
 
-The API derives the stream or datagram attach type from the program's expected attach type and rejects any other type.
-The returned link owns the attachment and retains the flow map. The caller retains or pins the link for the desired
-attachment lifetime.
+The API reads the stream or datagram expected attach type from the program metadata and rejects an absent or
+unsupported type. The expected type selects the corresponding classifier slot in the target map.
+
+The returned link owns the attachment and retains references to both the program and the flow map. Closing the original
+program or map FD does not detach the program. The caller keeps the attachment by retaining or pinning the link.
+Explicitly detaching the link removes the attachment immediately. Otherwise, closing or destroying the last unpinned
+link reference detaches and releases both object references. The map does not independently own the program.
 
 A flow map supports:
 
@@ -361,6 +365,14 @@ typedef enum _ebpf_flow_classify_event
 } ebpf_flow_classify_event_t;
 
 /**
+ * @brief Indicates which optional invocation-specific metadata fields are valid.
+ */
+typedef enum _ebpf_flow_classify_metadata_flag
+{
+    EBPF_FLOW_CLASSIFY_METADATA_ICMP_TYPE_CODE_VALID = 1 << 0, /**< The ICMP type and code are valid. */
+} ebpf_flow_classify_metadata_flag_t;
+
+/**
  * @brief Contains stable flow metadata and the payload for one flow-classify invocation.
  *
  * The verifier enforces read-only access to metadata and payload. Payload pointers are valid only for the duration of
@@ -368,47 +380,15 @@ typedef enum _ebpf_flow_classify_event
  */
 typedef struct _ebpf_flow_classify
 {
-    uint64_t flow_id;        /**< Stable flow identifier. */
-    uint64_t interface_luid; /**< Local interface LUID. */
-    uint64_t process_id;     /**< Initiating process identifier, if valid. */
-    uint64_t logon_id;       /**< Initiating token AuthenticationId LUID, encoded as uint64_t, if valid. */
-    uint64_t track_flags;    /**< Normalized ebpf_flow_map_track_flag_t values for this membership. */
+    ebpf_flow_metadata_t metadata; /**< Stable flow metadata. */
+    uint64_t track_flags;          /**< Normalized ebpf_flow_map_track_flag_t values for this membership. */
 
-    uint32_t family;         /**< IP address family selecting the valid member in both address unions. */
-    uint32_t compartment_id; /**< Network compartment identifier. */
-    int32_t is_admin;        /**< 1 for an administrator, 0 otherwise, or -1 when unavailable. */
-    uint8_t protocol;        /**< IP protocol number. */
-    uint8_t reserved[3];     /**< Reserved; set to zero. */
-
-    union
-    {
-        uint32_t local_ip4;    /**< Local IPv4 address in network byte order. */
-        uint32_t local_ip6[4]; /**< Local IPv6 address in network byte order. */
-    };
-    union
-    {
-        uint32_t remote_ip4;    /**< Remote IPv4 address in network byte order. */
-        uint32_t remote_ip6[4]; /**< Remote IPv6 address in network byte order. */
-    };
-
-    uint32_t event;          /**< One ebpf_flow_classify_event_t value. */
-    uint32_t data_path;      /**< One ebpf_flow_classify_data_path_t value. */
-    uint32_t metadata_flags; /**< Bitmask of ebpf_flow_metadata_flag_t values. */
-    uint32_t direction;      /**< Current payload direction, or UNSPECIFIED for a deletion event. */
-
-    union
-    {
-        struct
-        {
-            uint16_t local_port;  /**< Local TCP or UDP port in network byte order. */
-            uint16_t remote_port; /**< Remote TCP or UDP port in network byte order. */
-        } ports;                   /**< Port metadata when EBPF_FLOW_METADATA_PORTS_VALID is set. */
-        struct
-        {
-            uint8_t type; /**< ICMP or ICMPv6 message type. */
-            uint8_t code; /**< ICMP or ICMPv6 message code. */
-        } icmp;           /**< ICMP metadata when EBPF_FLOW_METADATA_ICMP_TYPE_CODE_VALID is set. */
-    } transport; /**< Protocol-specific transport metadata. */
+    uint32_t event;                   /**< One ebpf_flow_classify_event_t value. */
+    uint32_t direction;               /**< Current payload direction, or UNSPECIFIED for a deletion event. */
+    uint32_t classify_metadata_flags; /**< Bitmask of ebpf_flow_classify_metadata_flag_t values. */
+    uint8_t icmp_type;                /**< ICMP or ICMPv6 message type, if valid. */
+    uint8_t icmp_code;                /**< ICMP or ICMPv6 message code, if valid. */
+    uint8_t reserved[2];              /**< Reserved; set to zero. */
 
     uint64_t data_length;  /**< Total logical payload length for this invocation. */
     uint64_t missed_bytes; /**< Stream bytes hidden by higher-weight filters since the previous invocation. */
@@ -417,39 +397,29 @@ typedef struct _ebpf_flow_classify
 } ebpf_flow_classify_t;
 ```
 
-The concrete layout is non-final. Its contract is:
+Field validity is:
 
-- `event` distinguishes payload delivery from final cleanup.
-- `data_path` and `protocol` identify stream, UDP, ICMP, or ICMPv6.
-- `metadata_flags` identifies valid transport and identity fields.
-- `direction` is the current payload direction.
-- `track_flags` reports the membership's normalized tracking flags.
-- `data_length` and `missed_bytes` preserve the full WFP-native length without 32-bit truncation.
-- `data_start..data_end` is the directly accessible first span and is valid only for this invocation.
-- `missed_bytes` reports stream bytes since the previous invocation that a higher-weight WFP filter prevented this
-  callout from processing. Each classifier handles the gap in its program logic by resetting its parser state,
-  returning `BLOCK`, or continuing inspection.
+| Field group | `DATA` | `DELETED` |
+| --- | --- | --- |
+| Stable metadata and `track_flags` | Valid according to `metadata.metadata_flags` | Same captured values |
+| `direction` | `INBOUND` or `OUTBOUND` | `UNSPECIFIED` |
+| ICMP metadata | Valid only when its classify flag is set | Zero |
+| Payload | `0 <= data_end - data_start <= data_length` | Lengths are zero and pointers are `NULL` |
+| `missed_bytes` | WFP stream-gap count; zero for datagrams | Zero |
 
-Field validity depends on `event`:
+Flow establishment uses the existing `sock_ops` invocation. Flow-classify programs receive `DATA` and
+membership-deletion events. A deletion event occurs exactly once per membership after its in-flight calls drain.
 
-- For `DATA`, stable metadata is valid according to `metadata_flags`; `direction` is `INBOUND` or `OUTBOUND`; the
-  payload fields describe the current payload; and `missed_bytes` is valid only for stream data.
-- For `DELETED`, stable captured metadata, `data_path`, `metadata_flags`, and `track_flags` remain valid;
-  `direction` is `UNSPECIFIED`; `data_length` and `missed_bytes` are zero; and the payload pointers are `NULL`.
-
-Flow establishment is represented by the existing `sock_ops` enrollment invocation. Flow-classify programs receive
-only payload and membership-deletion events.
-
-When a flow is tracked, the extension captures the available `process_id`, `logon_id`, and tri-state `is_admin` values
-and keeps them stable for the flow lifetime. Unavailable optional fields clear their validity flags and do not fail
-enrollment. `logon_id` is the initiating token's `AuthenticationId` LUID encoded as a `uint64_t`; it is not a token
-handle.
+When a flow is tracked, the extension captures the available `process_id`, `logon_id`, and `is_admin` values and keeps
+them stable for the flow lifetime. Unavailable optional fields clear their validity flags and remain zero without
+failing enrollment. `logon_id` is the initiating token's `AuthenticationId` LUID encoded as a `uint64_t`; it is not a
+token handle.
 
 `bpf_get_current_logon_id(context)` and `bpf_is_current_admin(context)` are available to flow-classify programs and
-return the captured values consistently with `sock_addr`.
+return the captured values consistently with `sock_addr`. The former returns zero when the logon ID is unavailable;
+the latter returns a negative value when administrator status is unavailable.
 
-The initial identity summary supports logon-session and administrator-based policy. Support for richer token claims
-requires a separately versioned identity extension.
+The identity metadata supports logon-session and administrator-based policy. Richer token claims are not included.
 
 ### Payload access
 
@@ -642,13 +612,13 @@ A flow map remains valid while file descriptors, pins, links, memberships, or pe
 
 ### UDP and ICMP/ICMPv6
 
-Datagram classification covers UDP and non-error ICMP/ICMPv6. Raw IP datagrams are out of scope. WFP's separate ICMP
-error layers are not supported by this design revision pending requirements clarification.
+Datagram classification covers UDP and non-error ICMP/ICMPv6. Support for raw IP datagram classification is not
+currently planned. ICMP error-layer classification is not defined pending requirements clarification.
 
 - one invocation receives one logical UDP datagram or ICMP/ICMPv6 message;
 - inbound and outbound offsets are normalized to one direction-independent payload contract;
 - UDP payload begins after the UDP header;
-- proposed ICMP payload begins after the base ICMP/ICMPv6 header, with type and code in metadata;
+- ICMP payload begins after the base ICMP/ICMPv6 header, with type and code in metadata;
 - the extension delivers one logical message after any required IP fragment reassembly.
 
 **Open question:** Whether ICMP payload should instead begin at the base ICMP/ICMPv6 header.
@@ -683,13 +653,16 @@ TCP pending requires WFP out-of-band stream processing. WFP requires pending str
 warns that mixing synchronous and asynchronous processing for one flow is undefined. A pending-capable TCP flow remains
 out of band through flow deletion.
 
-Datagram pending retains the indicated logical datagram and later reinjects or discards it. The WFP mapping for pending
-inbound URO indications remains an open design question because WFP does not permit cloning and reinjecting URO
-indications.
+Ordinary datagram pending later reinjects or discards the retained logical datagrams in order. An outbound USO
+indication can be retained as one indication or normalized into newly constructed ordinary datagrams, provided
+completion preserves the logical datagram order and contents.
 
-Exact notification structures, queueing, teardown, and reinjection mechanics are outside the scope of this document.
-They must align with the lifetime, authorization, cancellation, and exactly-once completion principles in
-[Asynchronous Processing](AsyncProcessing.md).
+WFP prohibits cloning and reinjecting an inbound URO indication. `PEND` for inbound URO is not enabled until a
+compatible retention mechanism is defined.
+
+This document defines the required pending behavior. Notification structures, queueing, teardown, and reinjection
+mechanics are specified separately and must follow the lifetime, authorization, cancellation, and exactly-once
+completion principles in [Asynchronous Processing](AsyncProcessing.md).
 
 ## Security and resource management
 
@@ -711,7 +684,8 @@ They must align with the lifetime, authorization, cancellation, and exactly-once
 - `ebpf_flow_classify_t` is a fixed, verifier-described context whose metadata and direct payload region are read-only.
 - `ebpf_flow_classify_pull_data()` invalidates payload-derived pointer proofs, requiring programs to reload the context
   pointers and repeat bounds checks.
-- The context and flow-map value use one layout for stream and datagram classification.
+- The internal flow context, classifier context, and flow-map value embed the same pointer-free
+  `ebpf_flow_metadata_t` layout by value.
 - Metadata validity uses append-only bit flags with reserved bits.
 - Pending notification and completion structures are independently versioned.
 - The flow-map entry contains no pending control fields, retained payload, or writable program state.
