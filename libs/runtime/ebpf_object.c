@@ -9,7 +9,9 @@
 #include "ebpf_shared_framework.h"
 #include "ebpf_tracelog.h"
 
+#ifndef _KERNEL_MODE
 #include <intrin.h>
+#endif
 
 static const uint32_t _ebpf_object_marker = 'eobj';
 
