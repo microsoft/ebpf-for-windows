@@ -5,7 +5,11 @@
 #include "ebpf_hash_table.h"
 #include "ebpf_random.h"
 
+#ifndef _KERNEL_MODE
 #include <intrin.h>
+#elif defined(_M_X64)
+#include <nmmintrin.h>
+#endif
 
 #define EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALL                                              \
     (EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE | EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE | \
