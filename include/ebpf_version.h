@@ -3,6 +3,6 @@
 #pragma once
 
 #define EBPF_VERSION_MAJOR 1
-#define EBPF_VERSION_MINOR 8
+#define EBPF_VERSION_MINOR 9
 #define EBPF_VERSION_REVISION 0
-#define EBPF_VERSION "1.8.0"
+#define EBPF_VERSION "1.9.0"
