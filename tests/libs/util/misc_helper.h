@@ -7,33 +7,6 @@
 
 #pragma once
 #include <atomic>
-#include <system_error>
-
-inline DWORD_PTR
-get_stress_test_cpu_affinity(DWORD_PTR process_mask)
-{
-    if (process_mask == 0) {
-        throw std::system_error(ERROR_NOT_SUPPORTED, std::system_category(), "Empty stress-test process affinity");
-    }
-
-    // Keep CPU 0 free, unless it is the only processor available to this process.
-    DWORD_PTR worker_mask = process_mask & ~DWORD_PTR{1};
-    if (worker_mask == 0) {
-        worker_mask = process_mask;
-    }
-    return worker_mask;
-}
-
-inline DWORD_PTR
-get_stress_test_cpu_affinity()
-{
-    DWORD_PTR process_mask = 0;
-    DWORD_PTR system_mask = 0;
-    if (!GetProcessAffinityMask(GetCurrentProcess(), &process_mask, &system_mask)) {
-        throw std::system_error(GetLastError(), std::system_category(), "GetProcessAffinityMask");
-    }
-    return get_stress_test_cpu_affinity(process_mask);
-}
 
 /**
  * @brief Helper function to get a 64-bit number where high-order 32 bits contain the process ID and

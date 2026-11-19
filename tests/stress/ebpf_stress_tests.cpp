@@ -7,7 +7,6 @@
 #include "bpf/libbpf.h"
 #include "catch_wrapper.hpp"
 #include "ebpf_mt_stress.h"
-#include "misc_helper.h"
 #include "program_helper.h"
 #include "test_helper.hpp"
 
@@ -95,20 +94,6 @@ main(int argc, char* argv[])
     if (_test_verbose_output_arg) {
         cur_log_level = log_level::LOG_VERBOSE;
     }
-
-    // Usersim's background DPC threads must retain access to every CPU.
-#ifndef USER_MODE_TEST
-    try {
-        auto worker_mask = get_stress_test_cpu_affinity();
-        if (!SetProcessAffinityMask(GetCurrentProcess(), worker_mask)) {
-            throw std::system_error(GetLastError(), std::system_category(), "SetProcessAffinityMask");
-        }
-        LOG_INFO("Stress-test CPU affinity: {:#x} (CPU 0 reserved when another CPU is available)", worker_mask);
-    } catch (const std::system_error& error) {
-        LOG_ERROR("Failed to reserve a CPU for the test runner: {}", error.what());
-        return 1;
-    }
-#endif
 
     int test_result = session.run();
 

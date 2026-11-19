@@ -3,15 +3,41 @@
 #pragma once
 
 #include "ebpf_platform.h"
-#include "misc_helper.h"
 #include "usersim/ke.h"
 
 #include <atomic>
 #include <bit>
 #include <climits>
 #include <stdexcept>
+#include <system_error>
 #include <thread>
 #include <vector>
+
+inline DWORD_PTR
+get_stress_test_cpu_affinity(DWORD_PTR process_mask)
+{
+    if (process_mask == 0) {
+        throw std::system_error(ERROR_NOT_SUPPORTED, std::system_category(), "Empty stress-test process affinity");
+    }
+
+    // Keep CPU 0 free, unless it is the only processor available to this process.
+    DWORD_PTR worker_mask = process_mask & ~DWORD_PTR{1};
+    if (worker_mask == 0) {
+        worker_mask = process_mask;
+    }
+    return worker_mask;
+}
+
+inline DWORD_PTR
+get_stress_test_cpu_affinity()
+{
+    DWORD_PTR process_mask = 0;
+    DWORD_PTR system_mask = 0;
+    if (!GetProcessAffinityMask(GetCurrentProcess(), &process_mask, &system_mask)) {
+        throw std::system_error(GetLastError(), std::system_category(), "GetProcessAffinityMask");
+    }
+    return get_stress_test_cpu_affinity(process_mask);
+}
 
 #define PERFORMANCE_MEASURE_ITERATION_COUNT 1000000
 #define PERFORMANCE_MEASURE_TIMEOUT 60000
