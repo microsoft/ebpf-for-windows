@@ -15,7 +15,9 @@
 #include "ebpf_protocol.h"
 #include "ebpf_tracelog.h"
 
+#ifndef _KERNEL_MODE
 #include <intrin.h>
+#endif
 
 #define EBPF_MAX_PIN_PATH_LENGTH 256
 #define EBPF_SHA256_HASH_LENGTH 32
