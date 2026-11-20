@@ -42,7 +42,9 @@ SEC("sample_ext") int caller(sample_program_context_t* ctx)
     uint32_t index = 0;
     struct bpf_map* inner_map = (struct bpf_map*)bpf_map_lookup_elem(&outer_map, &index);
 
-    bpf_tail_call(ctx, inner_map, 0);
+    if (inner_map) {
+        bpf_tail_call(ctx, inner_map, 0);
+    }
 
     // If we get to here it means bpf_tail_call failed.
     return 6;
