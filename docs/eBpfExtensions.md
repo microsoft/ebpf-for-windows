@@ -5,6 +5,10 @@ An "eBPF extension" is a Windows kernel driver or component that implements eBPF
 of eBPF for Windows is such that an extension providing an implementation for hooks, helper functions, and maps can be
 developed and deployed without the need to modify either the eBPF execution context or the eBPF verifier.
 
+For a concrete implementation of these contracts using Windows Filtering Platform (WFP),
+see the [netebpfext architecture](netebpfext-architecture.md), including program invocation,
+attach/detach lifecycle, and concurrency and ownership invariants.
+
 ## 1.1 Windows Network Module Registrar
 The eBPF for Windows project uses the
 [Network Module Registrar (NMR)](https://docs.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-the-network-module-registrar)
