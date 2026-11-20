@@ -28,6 +28,7 @@
 #include <ws2tcpip.h>
 #include <algorithm>
 #include <chrono>
+#include <cstring>
 #include <functional>
 #include <io.h>
 #include <lsalookup.h>
@@ -321,31 +322,36 @@ void
 ring_buffer_api_test(ebpf_execution_type_t execution_type)
 {
     struct bpf_object* object = nullptr;
-    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
     native_module_helper_t module_helper;
-    module_helper.initialize("bindmonitor_ringbuf", execution_type);
+    module_helper.initialize("test_sample_ringbuf", execution_type);
     program_load_attach_helper_t _helper;
     _helper.initialize(
-        module_helper.get_file_name().c_str(), BPF_PROG_TYPE_BIND, "bind_monitor", execution_type, nullptr, 0, hook);
+        module_helper.get_file_name().c_str(),
+        BPF_PROG_TYPE_SAMPLE,
+        "test_program_entry",
+        execution_type,
+        nullptr,
+        0,
+        hook);
     object = _helper.get_object();
 
-    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
-    REQUIRE(process_map_fd > 0);
+    fd_t test_map_fd = bpf_object__find_map_fd_by_name(object, "test_map");
+    REQUIRE(test_map_fd > 0);
 
-    // Create a list of fake app IDs and set it to event context.
-    std::wstring app_id = L"api_test.exe";
-    std::vector<std::vector<char>> app_ids;
-    char* p = reinterpret_cast<char*>(&app_id[0]);
-    std::vector<char> temp(p, p + (app_id.size() + 1) * sizeof(wchar_t));
+    _sample_extension_helper extension;
+    REQUIRE(extension.initialize());
 
-    // ring_buffer_api_test_helper expects a list of app IDs of size RING_BUFFER_TEST_EVENT_COUNT.
+    std::vector<std::vector<char>> expected_records;
     for (auto i = 0; i < RING_BUFFER_TEST_EVENT_COUNT; i++) {
-        app_ids.push_back(temp);
+        std::string record = "ring_buffer_event_" + std::to_string(i);
+        expected_records.emplace_back(record.begin(), record.end());
     }
 
-    ring_buffer_api_test_helper(process_map_fd, app_ids, [](int i) {
-        const uint16_t _test_port = 12345 + static_cast<uint16_t>(i);
-        perform_socket_bind(_test_port, true);
+    ring_buffer_api_test_helper(test_map_fd, expected_records, [&extension, &expected_records](int i) {
+        std::vector<char> input_buffer = expected_records[i];
+        std::vector<char> output_buffer(input_buffer.size());
+        REQUIRE(extension.invoke(input_buffer, output_buffer));
     });
 }
 
@@ -381,16 +387,18 @@ TEST_CASE("divide_by_zero_native", "[divide_by_zero]") { divide_by_zero_test_km(
 TEMPLATE_TEST_CASE("ring_buffer_sync_api", "[ring_buffer]", ENABLED_EXECUTION_TYPES)
 {
     ebpf_execution_type_t execution_type = TestType::value;
-    std::string file_name = _get_program_file_name("bindmonitor_ringbuf", execution_type);
-    const uint16_t base_test_port = 12300;
+    std::string file_name = _get_program_file_name("test_sample_ringbuf", execution_type);
     struct bpf_object* object = nullptr;
-    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
     program_load_attach_helper_t _helper;
-    _helper.initialize(file_name.c_str(), BPF_PROG_TYPE_BIND, "bind_monitor", execution_type, nullptr, 0, hook);
+    _helper.initialize(file_name.c_str(), BPF_PROG_TYPE_SAMPLE, "test_program_entry", execution_type, nullptr, 0, hook);
     object = _helper.get_object();
 
-    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
-    REQUIRE(process_map_fd > 0);
+    fd_t test_map_fd = bpf_object__find_map_fd_by_name(object, "test_map");
+    REQUIRE(test_map_fd > 0);
+
+    _sample_extension_helper extension;
+    REQUIRE(extension.initialize());
 
     // Create a synchronous ring buffer (default mode without auto-callback flag).
     ebpf_ring_buffer_opts ring_opts{.sz = sizeof(ring_opts), .flags = 0};
@@ -400,34 +408,44 @@ TEMPLATE_TEST_CASE("ring_buffer_sync_api", "[ring_buffer]", ENABLED_EXECUTION_TY
 
 #pragma warning(suppress : 4996) // deprecated
     auto ring = ebpf_ring_buffer__new(
-        process_map_fd,
-        [](void* ctx, void* /*data*/, size_t /*size */) {
-            uint32_t* count = reinterpret_cast<uint32_t*>(ctx);
+        test_map_fd,
+        [](void* ctx, void* data, size_t size) {
+            auto* count = static_cast<uint32_t*>(ctx);
+            uint32_t sequence = 0;
+            REQUIRE(size == sizeof(sequence));
+            std::memcpy(&sequence, data, sizeof(sequence));
+            REQUIRE(sequence == *count);
             (*count)++;
             return 0;
         },
         &event_count,
         &ring_opts);
     REQUIRE(ring != nullptr);
+    auto ring_cleanup = std::unique_ptr<ring_buffer, decltype(&ring_buffer__free)>(ring, ring_buffer__free);
 
     // Test ebpf_ring_buffer_get_wait_handle.
     ebpf_handle_t wait_handle = ebpf_ring_buffer_get_wait_handle(ring);
     REQUIRE(wait_handle != ebpf_handle_invalid);
 
-    // Generate event to consume by triggering socket bind.
-    perform_socket_bind(base_test_port, true);
+    auto generate_event = [&extension](uint32_t sequence) {
+        std::vector<char> input_buffer(sizeof(sequence));
+        std::vector<char> output_buffer(input_buffer.size());
+        std::memcpy(input_buffer.data(), &sequence, sizeof(sequence));
+        REQUIRE(extension.invoke(input_buffer, output_buffer));
+    };
+    generate_event(0);
 
     // Test 1: Use WaitForSingleObject and consume to verify we can consume after notify.
     DWORD wait_result = WaitForSingleObject(reinterpret_cast<HANDLE>(wait_handle), 5000); // 5 second timeout.
     REQUIRE(wait_result == WAIT_OBJECT_0);
 
     int consume_result = ring_buffer__consume(ring);
-    REQUIRE(consume_result > 0);
-    REQUIRE(event_count > 0);
+    REQUIRE(consume_result == 1);
+    REQUIRE(event_count == 1);
 
     // Generate some additional events.
-    for (uint16_t i = 1; i < expected_events; i++) {
-        perform_socket_bind(base_test_port + i, true);
+    for (uint32_t i = 1; i < expected_events; i++) {
+        generate_event(i);
     }
 
     // Test 2: Use poll API in a loop until we get all expected events.
@@ -449,11 +467,9 @@ TEMPLATE_TEST_CASE("ring_buffer_sync_api", "[ring_buffer]", ENABLED_EXECUTION_TY
         iteration++;
     }
 
-    REQUIRE(total_events_polled > 0);
-    REQUIRE(event_count >= expected_events);
-
-    // Clean up.
-    ring_buffer__free(ring);
+    CAPTURE(iteration, total_events_polled, event_count);
+    REQUIRE(total_events_polled == expected_events - 1);
+    REQUIRE(event_count == expected_events);
 }
 
 // Test synchronous ring buffer consume API.
