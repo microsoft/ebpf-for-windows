@@ -54,7 +54,8 @@ policy decision. `ALLOW` and `NEED_MORE_DATA` are nonblocking results; `PEND` re
 - **Application Layer Enforcement (ALE):** WFP layers that report flow establishment and lifecycle events.
 - **Callout:** A kernel callback registered at a WFP filtering layer.
 - **Flow context:** Extension-owned state associated with a WFP flow and callout.
-- **Waterfall:** WFP's ordering of independent callouts at one filtering layer.
+- **Waterfall:** WFP's higher-to-lower ordering of stream callouts. Injected replacement data is available only to
+  lower-weight sublayers.
 - **USO / URO:** UDP Segmentation Offload and UDP Receive Offload.
 - **BTF-resolved function:** An extension function resolved by name and BPF Type Format metadata rather than a fixed
   helper identifier.
@@ -534,11 +535,9 @@ For each payload, the extension snapshots applicable active classifier attachmen
 attachment order.
 
 - **ALLOW**
-  - permits the current payload unless another classifier blocks it;
   - finalizes only the returning classifier; and
   - gives it one final `DELETED` cleanup invocation after its in-flight invocations drain, then removes its membership.
 - **NEED_MORE_DATA**
-  - permits the current payload unless another classifier blocks it;
   - keeps only the returning classifier active for future payload; and
   - does not hold, accumulate, replay, or partially permit the current payload.
 - **BLOCK**
@@ -546,6 +545,9 @@ attachment order.
   - is terminal for the flow and blocks current and future payload;
   - gives every active classifier one final `DELETED` cleanup invocation after in-flight invocations drain; and
   - removes all memberships after cleanup but retains minimal enforcement state until WFP deletes the flow.
+
+`ALLOW` and `NEED_MORE_DATA` are nonblocking classifier results, not immediate WFP verdicts. The extension releases or
+reinjects the indication only after the classifier chain completes and the flow remains neither pending nor blocked.
 
 Direction controls whether a classifier is invoked, not the scope of its verdict. A classifier armed only for ingress
 can still block the whole flow.
@@ -584,7 +586,7 @@ For each payload indication:
    one classifier returns `PEND` or `BLOCK`.
 3. Finalize a classifier's membership when it returns `ALLOW`; keep it active for `NEED_MORE_DATA`. Commit each action
    before invoking the next classifier.
-4. Recheck the flow decision before permitting the payload so a concurrent `BLOCK` remains flow-terminal.
+4. Recheck the flow state, then release or retain the indication according to the aggregate result.
 5. Drain and clean finalized memberships, then disarm ordinary inspection when none remain.
 
 ### Flow deletion
@@ -615,13 +617,13 @@ A flow map remains valid while file descriptors, pins, links, memberships, or pe
 - An invocation represents an ordered stream-byte range in one direction.
 - WFP stream indications define the byte-range boundaries independently of TCP packet, TCP segment, and
   application-message boundaries.
-- Every active classifier receives the same logical range.
+- Every classifier reached before `PEND` or `BLOCK` receives the same range.
 - `data_length` is the total range length; direct access exposes its first contiguous span, which may be shorter than
   the full range.
-- The extension applies each synchronous decision to the complete indicated range and does not use WFP accumulation
-  for eBPF `NEED_MORE_DATA`, so it does not intentionally re-present overlapping ranges.
-- `missed_bytes` reports stream bytes that a higher-weight WFP filter prevented this callout from observing since its
-  previous invocation.
+- `NEED_MORE_DATA` releases the current range and does not request WFP buffering or replay. Programs retain any parser
+  carry-over in their own maps.
+- `missed_bytes` is the WFP callout-level gap count before the current range. A nonzero value means stream continuity
+  was lost; it does not identify the missing bytes or an absolute stream position.
 
 ### UDP and ICMP/ICMPv6
 
@@ -734,25 +736,36 @@ activated. `FwpsFlowRemoveContext()` disarms an ordinary flow when no classifier
 | `BLOCK` | Use `FWPS_STREAM_ACTION_DROP_CONNECTION` | Return `FWP_ACTION_BLOCK` and retain blocked-flow state |
 | `PEND` | Clone and block; later inject or discard | Retain and block; later inject or discard |
 
-Synchronous stream actions use `FWPS_STREAM_ACTION_NONE`, set `countBytesEnforced` to the complete indicated length,
-and do not use `FWPS_STREAM_ACTION_NEED_MORE_DATA`. Stream filters use the WFP filter-action contract required by
-`FWPS_STREAM_ACTION_DROP_CONNECTION`.
+After the classifier chain produces a final nonblocking result, inline TCP uses `FWPS_STREAM_ACTION_NONE`, sets
+`countBytesEnforced` to the complete indicated length, and returns `FWP_ACTION_PERMIT`. It does not use
+`FWPS_STREAM_ACTION_NEED_MORE_DATA`. `BLOCK` uses `FWPS_STREAM_ACTION_DROP_CONNECTION`; the stream filter therefore
+uses `FWP_ACTION_CALLOUT_UNKNOWN`.
+
+A pending-capable TCP flow remains on the clone/absorb/reinject path even when every classifier returns synchronously.
+Only `PEND` sends the retained range to the external component. Datagram processing remains inline until `PEND`; that
+indication and later indications arriving while the decision is outstanding are blocked and retained.
 
 ### Payload handling and ordering
 
+The stream filters use a dedicated sublayer with the minimum sublayer weight. Strictly higher-weight sublayers run
+first; their injected replacements are visible to flow classification, while bytes they block contribute to
+`missed_bytes`. Ordering against another minimum-weight sublayer and modifications after the stream layer are not
+guaranteed.
+
 The stream callout receives `FWPS_STREAM_CALLOUT_IO_PACKET`; its `missedBytes` value is exposed as `missed_bytes`.
+WFP's `streamDataOffset` is reserved for system use, so the extension does not expose an absolute stream offset.
 `ebpf_flow_classify_pull_data()` materializes only the requested prefix from chained payload storage.
 
 The datagram callout normalizes payload offsets and offload metadata before invoking classifiers. It advertises
 `FWP_CALLOUT_FLAG_ALLOW_USO` and `FWP_CALLOUT_FLAG_ALLOW_URO` when supported by the running Windows version and uses
 `FwpsQueryPacketInjectionState()` to bypass payload reinjected by `netebpfext`.
 
-WFP's waterfall orders independent callouts. Flow-classify programs are multiplexed inside one `netebpfext` callout
-and run in successful attachment order, independent of WFP callout order.
+Flow-classify programs are multiplexed inside one `netebpfext` callout and run in successful attachment order,
+independent of WFP callout order.
 
-For pending TCP flows, the extension retains data with `FwpsCloneStreamData()`, blocks the complete indication, and
-later resumes it with `FwpsStreamInjectAsync()` or discards it. Once a stream flow uses out-of-band processing, it
-remains out of band through flow deletion.
+For pending-capable TCP flows, the extension clones the indicated data and returns `FWP_ACTION_BLOCK` for the complete
+original indication. It reinjects synchronously approved data with `FwpsStreamInjectAsync()`, retains data when a
+classifier returns `PEND`, and discards retained data on `BLOCK`. The flow remains out of band through flow deletion.
 
 For pending datagram flows, the extension retains and blocks the indicated datagram and later resumes it through WFP
 transport injection or discards it. The inbound URO mapping remains unresolved because URO indications cannot be
@@ -781,7 +794,7 @@ only that link's memberships. A blocked flow retains enough state to reject late
 
 - TCP enrollment, ordered stream delivery, discontinuity, lazy payload access, allow, block, and need-more-data;
 - multiple classifier maps and deterministic attachment order;
-- stream-gap reporting and WFP waterfall visibility with an additional modifying callout;
+- stream-gap reporting and replacement visibility from a higher-weight modifying callout;
 - concurrent invocation without holding a lock across eBPF execution;
 - persistent whole-flow blocking for stream and datagram traffic;
 - natural flow deletion, explicit context removal, link detach, and map deletion cleanup;
