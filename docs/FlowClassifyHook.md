@@ -641,14 +641,16 @@ currently planned. ICMP error-layer classification is not defined pending requir
 - inbound and outbound offsets are normalized to one direction-independent payload contract;
 - UDP payload begins after the UDP header;
 - ICMP payload begins after the base ICMP/ICMPv6 header, with type and code in metadata;
-- the extension delivers one logical message after any required IP fragment reassembly.
+- WFP provides the complete transport-layer message; the extension does not perform IP fragment reassembly.
 
 **Open question:** Whether ICMP payload should instead begin at the base ICMP/ICMPv6 header.
 
-The datagram callout advertises USO/URO support when available on the running Windows version and normalizes offloaded
-indications into ordered logical datagrams. Membership changes apply between logical datagrams; a flow-level `BLOCK`
-blocks the complete WFP indication. Older systems use the available non-offloaded path. Datagram payload reinjected by
-this extension bypasses repeat classification.
+When supported by the running Windows version, the datagram callout advertises USO/URO support. Offload is transparent
+to classifiers: they receive ordered logical datagrams, and membership changes apply between them. WFP receives one
+verdict for the underlying indication, so `BLOCK` or `PEND` applies to the complete indication. If all synchronous
+results are nonblocking, the original offloaded indication passes unchanged.
+
+Datagram payload reinjected by this extension bypasses repeat classification.
 
 ## Pending flows
 
@@ -681,12 +683,11 @@ not notified for synchronous classifier results.
 Datagram classification remains inline until `PEND` is returned. It then retains the current and later logical
 datagrams while the decision is outstanding.
 
-Ordinary datagram pending later reinjects or discards the retained logical datagrams in order. An outbound USO
-indication can be retained as one indication or normalized into newly constructed ordinary datagrams, provided
-completion preserves the logical datagram order and contents.
+If a logical datagram within an offloaded indication returns `PEND`, the extension retains the complete indication.
+Completion resumes at the pending datagram and processes the remaining datagrams in order.
 
-WFP prohibits cloning and reinjecting an inbound URO indication. `PEND` for inbound URO is not enabled until a
-compatible retention mechanism is defined.
+WFP prohibits cloning and reinjecting an inbound URO indication. Until a compatible retention mechanism is defined,
+returning `PEND` for inbound URO is treated as `BLOCK`.
 
 This document defines the required pending behavior. Notification structures, queueing, teardown, and reinjection
 mechanics are specified separately and must follow the lifetime, authorization, cancellation, and exactly-once
@@ -769,9 +770,13 @@ The stream callout receives `FWPS_STREAM_CALLOUT_IO_PACKET`; its `missedBytes` v
 WFP's `streamDataOffset` is reserved for system use, so the extension does not expose an absolute stream offset.
 `ebpf_flow_classify_pull_data()` materializes only the requested prefix from chained payload storage.
 
-The datagram callout normalizes payload offsets and offload metadata before invoking classifiers. It advertises
-`FWP_CALLOUT_FLAG_ALLOW_USO` and `FWP_CALLOUT_FLAG_ALLOW_URO` when supported by the running Windows version and uses
-`FwpsQueryPacketInjectionState()` to bypass payload reinjected by `netebpfext`.
+The datagram callout normalizes inbound and outbound payload offsets. On supported Windows versions, it advertises
+`FWP_CALLOUT_FLAG_ALLOW_USO` and `FWP_CALLOUT_FLAG_ALLOW_URO`. For an offloaded indication, it uses the offload metadata
+to invoke classifiers once for each logical datagram. Synchronous classification returns one verdict for the original
+indication without splitting or reinjecting it.
+
+The callout uses a flow-classification-specific injection handle with `FwpsQueryPacketInjectionState()` to bypass its
+own reinjected payload. Third-party reinjected datagrams can be classified as new indications.
 
 Flow-classify programs are multiplexed inside one `netebpfext` callout and run in successful attachment order,
 independent of WFP callout order.
@@ -780,9 +785,8 @@ For pending-capable TCP flows, the extension clones the indicated data and retur
 original indication. It reinjects synchronously approved data with `FwpsStreamInjectAsync()`, retains data when a
 classifier returns `PEND`, and discards retained data on `BLOCK`.
 
-When a datagram classifier returns `PEND`, the extension retains and blocks the indicated datagram and later resumes it
-through WFP transport injection or discards it. Later datagrams are retained while that external decision is
-outstanding. The inbound URO mapping remains unresolved because URO indications cannot be cloned and reinjected.
+For ordinary datagrams, `PEND` blocks and retains the indication for later WFP transport injection or discard.
+Offloaded indications follow the behavior described in [Pending flows](#pending-flows).
 
 ### Teardown
 
@@ -814,7 +818,8 @@ only that link's memberships. A blocked flow retains enough state to reject late
 - process/logon/admin identity validity and stability;
 - direction reporting and program-side filtering;
 - UDP and ICMP/ICMPv6 payload boundaries and metadata;
-- USO/URO normalization, logical-datagram ordering, and batch action aggregation;
+- USO/URO logical-datagram ordering, membership changes within a batch, and unchanged synchronous pass-through;
+- whole-indication `BLOCK` and `PEND`, and fail-closed inbound-URO `PEND`;
 - self-injected datagram bypass and third-party datagram reinjection behavior;
 - upfront TCP pending-mode selection, synchronous verdicts on the out-of-band path, and notification only for `PEND`;
 - datagram transition on `PEND`, retention and ordering of later datagrams, timeout, quota, race, and cancellation;
