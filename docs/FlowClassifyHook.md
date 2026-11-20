@@ -291,7 +291,15 @@ Closing the map FD or removing a pin does not destroy the map while another refe
 
 ### Flow enrollment
 
-The enrollment program uses the `sock_ops` context and available helpers to select classifier maps.
+Before invoking the enrollment program, the extension captures the stable flow metadata and available flow-owner
+identity. The enrollment program uses the `sock_ops` context and existing helpers to select classifier maps:
+
+- the process-ID component of `bpf_get_current_pid_tgid()` reports the captured initiating process;
+- `bpf_get_current_logon_id(context)` reports the captured initiating token's `AuthenticationId`; and
+- `bpf_is_current_admin(context)` evaluates the captured initiating token.
+
+Unavailable identity uses the existing helper failure values. Tracking copies the same captured values and validity
+into the flow's stable metadata, so map selection and later classification use one identity snapshot.
 
 `ebpf_flow_map_track()` is a BTF-resolved function callable only from an active or passive establishment `sock_ops`
 invocation:
@@ -306,7 +314,7 @@ invocation:
  * @param[in] flow_map Flow map whose applicable classifier will inspect the flow.
  * @param[in] flags Membership flags from ebpf_flow_map_track_flag_t.
  *
- * @retval 0 The flow was tracked, or an identical membership already existed.
+ * @retval 0 The membership was prepared, or an identical membership already existed.
  * @retval -ENOTSUP A requested membership capability is not implemented.
  * @retval <0 The operation failed for another reason.
  */
@@ -343,12 +351,16 @@ A repeated track operation with the same normalized flags is idempotent. Any dif
 membership fail explicitly. Membership configuration is immutable for its lifetime.
 
 Tracking fails without creating a membership when the context is not an establishment event, the map has no applicable
-classifier, the configured membership limit is reached, resources cannot be allocated, required protocol metadata is
-unavailable, or the arguments or flags are invalid.
+classifier, the membership limit is reached, resources cannot be allocated, required protocol metadata is unavailable,
+or the arguments or flags are invalid.
 
-Tracking calls are staged for the duration of the establishment invocation. Payload inspection is armed only after all
-successful memberships can be activated; if activation fails, no staged membership becomes active. The first payload
-snapshot therefore includes every membership tracked during that invocation.
+A successful call reserves the required resources and retains the selected classifier link. The prepared membership
+remains inactive until the enrollment program returns. A failed call creates no membership and does not affect earlier
+successful calls.
+
+After enrollment returns, the extension activates all prepared memberships together and arms payload inspection.
+Activation cannot fail. A racing link detach discards that link's prepared memberships, and a replacement attachment
+does not inherit them. Otherwise, the first payload includes every successfully tracked membership.
 
 ### Classification context
 
@@ -410,14 +422,13 @@ Field validity is:
 Flow establishment uses the existing `sock_ops` invocation. Flow-classify programs receive `DATA` and
 membership-deletion events. A deletion event occurs exactly once per membership after its in-flight calls drain.
 
-When a flow is tracked, the extension captures the available `process_id`, `logon_id`, and `is_admin` values and keeps
-them stable for the flow lifetime. Unavailable optional fields clear their validity flags and remain zero without
-failing enrollment. `logon_id` is the initiating token's `AuthenticationId` LUID encoded as a `uint64_t`; it is not a
-token handle.
+The context contains the same `process_id`, `logon_id`, and `is_admin` snapshot used during enrollment. Unavailable
+optional fields clear their validity flags and remain zero. `logon_id` is the initiating token's `AuthenticationId`
+LUID encoded as a `uint64_t`; it is not a token handle.
 
-`bpf_get_current_logon_id(context)` and `bpf_is_current_admin(context)` are available to flow-classify programs and
-return the captured values consistently with `sock_addr`. The former returns zero when the logon ID is unavailable;
-the latter returns a negative value when administrator status is unavailable.
+`bpf_get_current_logon_id(context)` and `bpf_is_current_admin(context)` return the captured values to enrollment and
+flow-classify programs consistently with `sock_addr`. The former returns zero when the logon ID is unavailable; the
+latter returns a negative value when administrator status is unavailable.
 
 The identity metadata supports logon-session and administrator-based policy. Richer token claims are not included.
 
@@ -548,8 +559,8 @@ retain their required enforcement state.
 
 ### Enrollment
 
-At ALE flow establishment, the extension captures stable flow metadata. The `sock_ops` enrollment program can track the
-flow in one or more classifier maps. If no membership is created, payload inspection is not armed.
+At ALE flow establishment, the extension captures stable flow metadata and runs the enrollment process described in
+[Flow enrollment](#flow-enrollment). If no membership is activated, payload inspection is not armed.
 
 TCP flows require the map's stream classifier. UDP and non-error ICMP/ICMPv6 flows require its datagram classifier.
 Connectionless grouping follows the WFP flow identifier and lifetime represented by the associated flow context.
@@ -568,8 +579,9 @@ finalizing, no new invocation starts for that scope. Cleanup runs exactly once a
 
 For each payload indication:
 
-1. Snapshot applicable active classifiers in global attachment order.
-2. Invoke every classifier in the snapshot unless one returns `BLOCK`.
+1. Snapshot applicable active classifiers in global attachment order. The snapshot retains their lifetime.
+2. Before each invocation, recheck that the membership is active; skip it otherwise. Stop when the chain completes or
+   one classifier returns `PEND` or `BLOCK`.
 3. Finalize a classifier's membership when it returns `ALLOW`; keep it active for `NEED_MORE_DATA`. Commit each action
    before invoking the next classifier.
 4. Recheck the flow decision before permitting the payload so a concurrent `BLOCK` remains flow-terminal.
@@ -590,8 +602,9 @@ flow context, such as after endpoint closure or implementation-defined flow time
 
 ### Link or map deletion
 
-Deleting a classifier link prevents new invocations, drains in-flight invocations, cleans that classifier's active
-memberships, and removes them. It does not fabricate flow deletion for classifiers in other maps.
+Deleting a classifier link prevents new tracking and payload invocations, discards its prepared memberships, drains
+in-flight invocations, and cleans its active memberships. Reattachment does not inherit the removed memberships.
+Other classifier maps are unaffected.
 
 A flow map remains valid while file descriptors, pins, links, memberships, or pending operations reference it.
 
@@ -672,7 +685,8 @@ completion principles in [Asynchronous Processing](AsyncProcessing.md).
 - A flow-map handle grants metadata observation and classifier-attachment authority; link handles control detach.
 - eBPF programs cannot use standard map CRUD on flow maps.
 - Classifier attachments retain their maps and scope membership ownership.
-- Token-derived identity is copied or derived at enrollment; no raw token pointer is exposed or retained.
+- Token-derived identity is captured before enrollment, used by the enrollment helpers, and copied into stable flow
+  metadata; no raw token pointer is exposed or retained.
 - `max_entries` bounds map membership unless `BPF_F_NO_MAX_ENTRIES` is set. Allocation, system flow state, payload
   linearization, and pending retention remain bounded and fail explicitly.
 - Pending payload and identity are disclosed only to the owning completion-map subscriber.
@@ -707,9 +721,9 @@ completion principles in [Asynchronous Processing](AsyncProcessing.md).
 `FWP_CALLOUT_FLAG_CONDITIONAL_ON_FLOW`, so WFP invokes them only when the extension has associated a context with the
 flow.
 
-Enrollment runs at ALE flow establishment. After all memberships can be activated, the extension associates its flow
-state with the applicable data-layer callouts using `FwpsFlowAssociateContext()`. Additional memberships join the same
-extension state. `FwpsFlowRemoveContext()` disarms an ordinary flow when no classifier remains.
+Enrollment runs at ALE flow establishment. The extension associates the shared flow state through
+`FwpsFlowAssociateContext()`, but data-layer callouts do not invoke classifiers until the prepared memberships are
+activated. `FwpsFlowRemoveContext()` disarms an ordinary flow when no classifier remains.
 
 ### Action mapping
 
@@ -757,8 +771,8 @@ only that link's memberships. A blocked flow retains enough state to reject late
 - custom-map creation, lookup/enumeration, rejected mutation, and program-type association;
 - BPF-to-GUID program and attach-type mappings, map-target attach, map/link lifetime, and
   one-program-per-attach-type enforcement;
-- enrollment helper validation, idempotency, unsupported flags, and `BPF_F_NO_MAX_ENTRIES` behavior;
-- atomic enrollment visibility before the first payload and normalized membership flags;
+- enrollment helper validation, captured flow-owner identity, idempotency, unsupported flags, and capacity limits;
+- atomic activation, per-call failure, and detach races before the first payload;
 - verifier acceptance of the context and actions and rejection of metadata or direct-payload writes;
 - verifier invalidation of payload pointers after `ebpf_flow_classify_pull_data()`;
 - invalid-action handling, 64-bit payload lengths, action aggregation, and cleanup races.
