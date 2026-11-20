@@ -1,3 +1,6 @@
+# Copyright (c) eBPF for Windows contributors
+# SPDX-License-Identifier: MIT
+---
 name: BPF API behavior
 
 on:
@@ -187,6 +190,8 @@ jobs:
     needs:
       - stable_linux
       - windows
+    # A skipped Windows test job succeeds without uploading a current-run artifact.
+    if: needs.windows.outputs.should_skip != 'true'
     runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
