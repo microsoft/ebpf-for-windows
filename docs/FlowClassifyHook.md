@@ -345,8 +345,9 @@ typedef enum _ebpf_flow_map_track_flag
 } ebpf_flow_map_track_flag_t;
 ```
 
-The function normalizes `DEFAULT` to `BOTH`. `ALLOW_PEND` declares during enrollment that the membership can return
-`PEND`.
+The function normalizes `DEFAULT` to `BOTH`. `ALLOW_PEND` is protocol-independent and declares during enrollment that
+the membership can return `PEND`. If any TCP membership declares it, the extension selects out-of-band stream
+processing before the first payload. Datagram processing remains inline until a classifier actually returns `PEND`.
 
 A repeated track operation with the same normalized flags is idempotent. Any different flags for an existing flow/map
 membership fail explicitly. Membership configuration is immutable for its lifetime.
@@ -540,6 +541,9 @@ attachment order.
 - **NEED_MORE_DATA**
   - keeps only the returning classifier active for future payload; and
   - does not hold, accumulate, replay, or partially permit the current payload.
+- **PEND**
+  - stops the classifier chain after the returning classifier; and
+  - retains the indication for the external-decision workflow described in [Pending flows](#pending-flows).
 - **BLOCK**
   - stops the classifier chain immediately;
   - is terminal for the flow and blocks current and future payload;
@@ -573,6 +577,9 @@ The extension does not hold a lock while an eBPF program runs. One payload indic
 attachment order, but WFP can concurrently invoke the same flow for the opposite direction or for separate datagrams.
 Programs synchronize mutable per-flow state stored in ordinary maps. TCP byte ranges remain ordered within each
 direction according to the WFP stream contract.
+
+If any membership has `ALLOW_PEND`, the extension serializes payload indications for that flow across both directions.
+This ensures that only one classifier chain can enter the pending state.
 
 Terminal membership and flow decisions are committed between program invocations. Once a classifier or flow begins
 finalizing, no new invocation starts for that scope. Cleanup runs exactly once after its in-flight invocations drain.
@@ -648,25 +655,31 @@ this extension bypasses repeat classification.
 `EBPF_FLOW_CLASSIFY_PEND` means withhold the current logical payload for an external decision. It is not equivalent to
 `NEED_MORE_DATA`. A membership declares this capability during enrollment with `EBPF_FLOW_MAP_TRACK_ALLOW_PEND`.
 
-If any membership has `ALLOW_PEND`, the extension selects the applicable WFP retention model before the first payload.
+When a classifier returns `PEND`:
 
-Pending must:
+1. The extension atomically marks the flow pending, stops the chain after that classifier, and retains the current and
+   later indications in both directions. At most one decision is outstanding for a flow.
+2. The owning completion channel receives an opaque decision identifier, flow metadata, payload direction and type,
+   total payload length, and a bounded copied prefix.
+3. The channel completes the decision with `ALLOW`, `NEED_MORE_DATA`, or `BLOCK`.
+4. Exactly one valid completion is accepted. `ALLOW` finalizes the pending classifier; `NEED_MORE_DATA` keeps it active
+   for future indications. Both resume the current chain at the next active classifier without rerunning earlier
+   classifiers. `BLOCK` discards retained payload and terminates the flow.
 
-- allow at most one outstanding external decision per flow;
-- identify each decision with an opaque value that only the owning completion channel can complete;
-- freeze the classifier chain at the pending classifier;
-- retain the current payload and later payload in both directions;
-- expose total payload length and a bounded copied prefix without requiring `ebpf_flow_classify_pull_data()`;
-- complete with `ALLOW`, `BLOCK`, or `NEED_MORE_DATA`; and
-- provide bounded retention, timeout, stale/duplicate rejection, and exactly-once cleanup.
+Timeout, retention or notification failure, quota exhaustion, and loss of the completion channel fail closed as
+`BLOCK`. Duplicate, stale, or unauthorized completions are rejected. Flow deletion cancels the decision, discards
+retained payload, and makes its identifier stale.
 
-Completion actions retain their synchronous semantics. `ALLOW` and `NEED_MORE_DATA` resume the held payload after the
-pending classifier, while `BLOCK` discards retained payload and terminates the flow. Timeout, notification failure,
-quota exhaustion, or loss of the completion subscriber fail closed as `BLOCK`.
+The pending classifier remains referenced until completion or timeout; detaching it prevents new invocations and waits
+for the pending operation to finish.
 
-TCP pending requires WFP out-of-band stream processing. WFP requires pending stream data to be cloned and absorbed and
-warns that mixing synchronous and asynchronous processing for one flow is undefined. A pending-capable TCP flow remains
-out of band through flow deletion.
+TCP selects out-of-band stream processing before the first payload when any membership has `ALLOW_PEND`. It remains
+out of band while a classifier is active or data is retained or being injected. Once none of those conditions remains,
+the extension disarms inspection rather than switching the flow back to inline processing. The external component is
+not notified for synchronous classifier results.
+
+Datagram classification remains inline until `PEND` is returned. It then retains the current and later logical
+datagrams while the decision is outstanding.
 
 Ordinary datagram pending later reinjects or discards the retained logical datagrams in order. An outbound USO
 indication can be retained as one indication or normalized into newly constructed ordinary datagrams, provided
@@ -689,9 +702,9 @@ completion principles in [Asynchronous Processing](AsyncProcessing.md).
 - Classifier attachments retain their maps and scope membership ownership.
 - Token-derived identity is captured before enrollment, used by the enrollment helpers, and copied into stable flow
   metadata; no raw token pointer is exposed or retained.
-- `max_entries` bounds map membership unless `BPF_F_NO_MAX_ENTRIES` is set. Allocation, system flow state, payload
-  linearization, and pending retention remain bounded and fail explicitly.
-- Pending payload and identity are disclosed only to the owning completion-map subscriber.
+- `max_entries` bounds map membership. Allocation, system flow state, payload linearization, and pending retention
+  remain separately bounded and fail explicitly.
+- Pending payload and identity are disclosed only to the owning completion channel.
 
 ## Verifier, ABI, and versioning
 
@@ -729,21 +742,21 @@ activated. `FwpsFlowRemoveContext()` disarms an ordinary flow when no classifier
 
 ### Action mapping
 
-| eBPF action | Stream WFP behavior | Datagram WFP behavior |
-| --- | --- | --- |
-| `ALLOW` | Permit the range; finalize the membership | Permit the indication; finalize the membership |
-| `NEED_MORE_DATA` | Permit the range; retain the membership | Permit the indication; retain the membership |
-| `BLOCK` | Use `FWPS_STREAM_ACTION_DROP_CONNECTION` | Return `FWP_ACTION_BLOCK` and retain blocked-flow state |
-| `PEND` | Clone and block; later inject or discard | Retain and block; later inject or discard |
+| eBPF action | Inline TCP | Pending-capable TCP | Datagram |
+| --- | --- | --- | --- |
+| `ALLOW` | Permit; finalize | Reinject; finalize | Permit; finalize |
+| `NEED_MORE_DATA` | Permit; retain | Reinject; retain | Permit; retain |
+| `BLOCK` | Drop connection | Discard; drop connection | Block; retain flow state |
+| `PEND` | Invalid | Retain; notify | Retain; notify |
 
 After the classifier chain produces a final nonblocking result, inline TCP uses `FWPS_STREAM_ACTION_NONE`, sets
 `countBytesEnforced` to the complete indicated length, and returns `FWP_ACTION_PERMIT`. It does not use
 `FWPS_STREAM_ACTION_NEED_MORE_DATA`. `BLOCK` uses `FWPS_STREAM_ACTION_DROP_CONNECTION`; the stream filter therefore
 uses `FWP_ACTION_CALLOUT_UNKNOWN`.
 
-A pending-capable TCP flow remains on the clone/absorb/reinject path even when every classifier returns synchronously.
-Only `PEND` sends the retained range to the external component. Datagram processing remains inline until `PEND`; that
-indication and later indications arriving while the decision is outstanding are blocked and retained.
+A pending-capable TCP flow remains on the clone/block/reinject path while a classifier is active or data is retained or
+being injected. Only `PEND` notifies the external component. Datagram processing remains inline until `PEND`; that
+indication and later indications are then blocked and retained.
 
 ### Payload handling and ordering
 
@@ -765,11 +778,11 @@ independent of WFP callout order.
 
 For pending-capable TCP flows, the extension clones the indicated data and returns `FWP_ACTION_BLOCK` for the complete
 original indication. It reinjects synchronously approved data with `FwpsStreamInjectAsync()`, retains data when a
-classifier returns `PEND`, and discards retained data on `BLOCK`. The flow remains out of band through flow deletion.
+classifier returns `PEND`, and discards retained data on `BLOCK`.
 
-For pending datagram flows, the extension retains and blocks the indicated datagram and later resumes it through WFP
-transport injection or discards it. The inbound URO mapping remains unresolved because URO indications cannot be
-cloned and reinjected.
+When a datagram classifier returns `PEND`, the extension retains and blocks the indicated datagram and later resumes it
+through WFP transport injection or discards it. Later datagrams are retained while that external decision is
+outstanding. The inbound URO mapping remains unresolved because URO indications cannot be cloned and reinjected.
 
 ### Teardown
 
@@ -803,7 +816,8 @@ only that link's memberships. A blocked flow retains enough state to reject late
 - UDP and ICMP/ICMPv6 payload boundaries and metadata;
 - USO/URO normalization, logical-datagram ordering, and batch action aggregation;
 - self-injected datagram bypass and third-party datagram reinjection behavior;
-- pending capability selection, retention, reinjection, timeout, quota, race, and cancellation behavior;
+- upfront TCP pending-mode selection, synchronous verdicts on the out-of-band path, and notification only for `PEND`;
+- datagram transition on `PEND`, retention and ordering of later datagrams, timeout, quota, race, and cancellation;
 - stress with many flows, high data rates, attach/detach churn, and bounded or `BPF_F_NO_MAX_ENTRIES` maps;
 - resource limits and failure behavior; and
 - observed on-wire behavior when `BLOCK` aborts a stream flow.
