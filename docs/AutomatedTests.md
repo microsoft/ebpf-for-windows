@@ -1,6 +1,6 @@
 # Automated Tests
 
-This file details the testing that is done in CI/CD, and that must be maintained
+This file details the testing that is done in CI/CD and that must be maintained
 and extended as new features are added.
 
 ## eBPF runtime
