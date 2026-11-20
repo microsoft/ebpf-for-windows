@@ -90,7 +90,7 @@ A flow may belong to multiple flow maps, allowing independent classifiers to com
 
 Linux combines `BPF_PROG_TYPE_SOCK_OPS` enrollment with programs attached to `BPF_MAP_TYPE_SOCKMAP` or
 `BPF_MAP_TYPE_SOCKHASH`; sockets in a map are processed by programs attached to that map. This design retains
-`sock_ops` enrollment, link-based map attachment, membership-driven inspection, and direct payload access with lazy
+`sock_ops` enrollment, program attachment to a map FD, membership-driven inspection, and direct payload access with lazy
 linearization.
 
 Unlike Linux sockmap/sockhash:
@@ -237,10 +237,8 @@ struct
 } flow_map SEC(".maps");
 ```
 
-By default, `max_entries` bounds the aggregate number of active stream and datagram memberships. To use it only as an
-initial sizing hint without a map-specific membership limit, the declaration also sets
-`__uint(map_flags, BPF_F_NO_MAX_ENTRIES)`. Allocation and system resource limits still apply. Core custom-map
-validation and the flow-map provider must accept, propagate, and honor this flag.
+`max_entries` is the hard aggregate limit on active stream and datagram memberships in the map. Tracking a new
+membership fails when the limit is reached.
 
 #### Operations
 
@@ -267,13 +265,9 @@ struct bpf_link*
 bpf_program__attach_flow_classify(const struct bpf_program* program, int flow_map_fd);
 ```
 
-The API reads the stream or datagram expected attach type from the program metadata and rejects an absent or
-unsupported type. The expected type selects the corresponding classifier slot in the target map.
-
-The returned link owns the attachment and retains references to both the program and the flow map. Closing the original
-program or map FD does not detach the program. The caller keeps the attachment by retaining or pinning the link.
-Explicitly detaching the link removes the attachment immediately. Otherwise, closing or destroying the last unpinned
-link reference detaches and releases both object references. The map does not independently own the program.
+The API derives the stream or datagram attach type from the program's expected attach type and rejects any other type.
+The returned link owns the attachment and retains the flow map. The caller retains or pins the link for the desired
+attachment lifetime.
 
 A flow map supports:
 
@@ -823,6 +817,6 @@ only that link's memberships. A blocked flow retains enough state to reject late
 - self-injected datagram bypass and third-party datagram reinjection behavior;
 - upfront TCP pending-mode selection, synchronous verdicts on the out-of-band path, and notification only for `PEND`;
 - datagram transition on `PEND`, retention and ordering of later datagrams, timeout, quota, race, and cancellation;
-- stress with many flows, high data rates, attach/detach churn, and bounded or `BPF_F_NO_MAX_ENTRIES` maps;
+- stress with many flows, high data rates, attach/detach churn, and bounded-map exhaustion;
 - resource limits and failure behavior; and
 - observed on-wire behavior when `BLOCK` aborts a stream flow.
