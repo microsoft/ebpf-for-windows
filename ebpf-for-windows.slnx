@@ -589,6 +589,9 @@
       <Build Solution="FuzzerDebug|ARM64" Project="false" />
       <Build Solution="FuzzerDebug|x64" Project="false" />
     </Project>
+    <Project Path="tests/netebpfext_load_test/netebpfext_load_test.vcxproj">
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
     <Project Path="tests/performance/performance.vcxproj">
       <BuildDependency Project="libs/ubpf/user/ubpf_user.vcxproj" />
       <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
@@ -649,6 +652,9 @@
       <Platform Solution="*|x86" Project="x64" />
       <Build Solution="FuzzerDebug|ARM64" Project="false" />
       <Build Solution="FuzzerDebug|x64" Project="false" />
+    </Project>
+    <Project Path="tests/stress/km/net_ebpf_stress_tests_km/net_ebpf_stress_tests_km.vcxproj">
+      <Platform Solution="*|x86" Project="x64" />
     </Project>
     <Project Path="tests/stress/restart_test_controller/ebpf_restart_test_controller.vcxproj">
       <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
