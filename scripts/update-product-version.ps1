@@ -13,7 +13,7 @@ if ("$majorVersion.$minorVersion.$revisionNumber" -match '^\d+\.\d+\.\d+.*$') {
     ('{{ "major": {0}, "minor": {1}, "patch": {2} }}' -f $majorVersion, $minorVersion, $revisionNumber) |
         Set-Content ".\version.json"
 
-    if (Test-Path -Path ".\ebpf-for-windows.sln") {
+    if (Test-Path -Path ".\ebpf-for-windows.slnx") {
         # Set the new version number in Directory.Build.props.
         $ebpf_version_file = "$PSScriptRoot\..\Directory.Build.props"
         Write-Host -ForegroundColor DarkGreen "Updating the version number in the '$ebpf_version_file' file..."
@@ -52,7 +52,7 @@ if ("$majorVersion.$minorVersion.$revisionNumber" -match '^\d+\.\d+\.\d+.*$') {
         $newcontent | Set-Content $ebpf_version_file -NoNewline
         Write-Host -ForegroundColor DarkGreen "Version number updated to '$version_string' in $ebpf_version_file"
     } else {
-        Write-Host -ForegroundColor Red "'ebpf-for-windows.sln' not found in the current path."
+        Write-Host -ForegroundColor Red "'ebpf-for-windows.slnx' not found in the current path."
         Write-Host -ForegroundColor DarkYellow "Please run this script from the root directory of the repository."
     }
 } else {

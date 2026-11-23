@@ -110,13 +110,13 @@ $RequiredFiles = [ordered]@{
     "vm_run_tests.psm1"                = "scripts\setup_build\setup_build.vcxproj"
 }
 
-$SolutionFile = Join-Path $RepoRoot "ebpf-for-windows.sln"
+$SolutionFile = Join-Path $RepoRoot "ebpf-for-windows.slnx"
 $RootProject = "tools\driver-test\driver-test.vcxproj"
 
 function Write-Remediation {
     Write-Host ""
     Write-Host "Add the project that produces each missing file to $RootProject (and to the" -ForegroundColor Yellow
-    Write-Host "driver-test ProjectDependencies section of ebpf-for-windows.sln), or update the" -ForegroundColor Yellow
+    Write-Host "driver-test ProjectDependencies section of ebpf-for-windows.slnx), or update the" -ForegroundColor Yellow
     Write-Host "required-file list in scripts\check_driver_test_closure.ps1 if it is no longer needed." -ForegroundColor Yellow
 }
 

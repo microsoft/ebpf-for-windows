@@ -186,7 +186,7 @@ try {
         $env:_EbpfWdkTargetPlatform = $Platform
         Invoke-BuildTool -FilePath $nuget_path -Arguments @(
             "restore",
-            "ebpf-for-windows.sln",
+            "ebpf-for-windows.slnx",
             "-MSBuildPath",
             $msbuild_directory
         )
