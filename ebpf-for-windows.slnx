@@ -650,7 +650,6 @@
       <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
       <BuildType Solution="FuzzerDebug|*" Project="Debug" />
       <BuildType Solution="MinSizeRel|*" Project="Release" />
-      <BuildType Solution="MinSizeRel|*" Project="Release" />
       <BuildType Solution="RelWithDebInfo|*" Project="Release" />
       <Platform Solution="*|x86" Project="x64" />
     </Project>
