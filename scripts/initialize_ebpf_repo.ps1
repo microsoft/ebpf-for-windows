@@ -160,12 +160,6 @@ if (!$SkipHostToolBootstrap -and $Architecture -ieq "ARM64" -and $hostArchitectu
 
 # Define the commands to run
 $cmakeCommonArgs = "-G `"$cmakeGenerator`" -A $Architecture"
-$msbuildDir = if ($msbuildPath -and (Test-Path $msbuildPath)) { Split-Path -Parent $msbuildPath } else { $null }
-$nugetRestoreCommand = if ($msbuildDir) {
-    "nuget restore ebpf-for-windows.slnx -MSBuildPath `"$msbuildDir`""
-} else {
-    "nuget restore ebpf-for-windows.slnx"
-}
 $commands = @(
     "git submodule update --init --recursive",
     "cmake $cmakeCommonArgs -S external\ebpf-verifier -B external\ebpf-verifier\build -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>$<$<CONFIG:FuzzerDebug>:Debug>",
@@ -208,7 +202,7 @@ foreach ($command in $commands) {
 $previousWdkTargetPlatform = $env:_EbpfWdkTargetPlatform
 try {
     $env:_EbpfWdkTargetPlatform = $Architecture
-    Invoke-NativeCommand -Command $nugetRestoreCommand
+    Invoke-MSBuild -Arguments "/m", "ebpf-for-windows.slnx", "/t:restore", "/p:Platform=$Architecture"
 }
 finally {
     if ($null -eq $previousWdkTargetPlatform) {
