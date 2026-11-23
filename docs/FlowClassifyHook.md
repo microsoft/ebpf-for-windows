@@ -755,10 +755,9 @@ indication and later indications are then blocked and retained.
 
 ### Payload handling and ordering
 
-The stream filters use a dedicated sublayer with the minimum sublayer weight. Strictly higher-weight sublayers run
-first; their injected replacements are visible to flow classification, while bytes they block contribute to
-`missed_bytes`. Ordering against another minimum-weight sublayer and modifications after the stream layer are not
-guaranteed.
+WFP orders stream callouts through its waterfall. Replacement data injected by a callout in a higher-weight sublayer
+is visible to flow classification; modifications made afterward are not reindicated to it. Bytes a higher-weight filter
+prevents the hook from processing contribute to `missed_bytes`.
 
 The stream callout receives `FWPS_STREAM_CALLOUT_IO_PACKET`; its `missedBytes` value is exposed as `missed_bytes`.
 WFP's `streamDataOffset` is reserved for system use, so the extension does not expose an absolute stream offset.
@@ -805,7 +804,7 @@ only that link's memberships. A blocked flow retains enough state to reject late
 
 - TCP enrollment, ordered stream delivery, discontinuity, lazy payload access, allow, block, and need-more-data;
 - multiple classifier maps and deterministic attachment order;
-- stream-gap reporting and replacement visibility from a higher-weight modifying callout;
+- stream-gap reporting and WFP waterfall visibility with an additional modifying callout;
 - concurrent invocation without holding a lock across eBPF execution;
 - persistent whole-flow blocking for stream and datagram traffic;
 - natural flow deletion, explicit context removal, link detach, and map deletion cleanup;
