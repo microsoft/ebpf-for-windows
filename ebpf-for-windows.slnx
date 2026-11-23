@@ -648,15 +648,11 @@
     </Project>
     <Project Path="tests/stress/km/ebpf_stress_tests_km/ebpf_stress_tests_km.vcxproj" Id="6c60537c-7b4a-45a6-b65b-74b4bf1b8088">
       <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
-      <BuildType Solution="FuzzerDebug|ARM64" Project="Debug" />
-      <BuildType Solution="FuzzerDebug|x64" Project="Debug" />
-      <BuildType Solution="MinSizeRel|ARM64" Project="Release" />
-      <BuildType Solution="MinSizeRel|x64" Project="Release" />
-      <BuildType Solution="MinSizeRel|x86" Project="FuzzerDebug" />
+      <BuildType Solution="FuzzerDebug|*" Project="Debug" />
+      <BuildType Solution="MinSizeRel|*" Project="Release" />
+      <BuildType Solution="MinSizeRel|*" Project="Release" />
       <BuildType Solution="RelWithDebInfo|*" Project="Release" />
       <Platform Solution="*|x86" Project="x64" />
-      <Build Solution="FuzzerDebug|ARM64" Project="false" />
-      <Build Solution="FuzzerDebug|x64" Project="false" />
     </Project>
     <Project Path="tests/stress/km/net_ebpf_stress_tests_km/net_ebpf_stress_tests_km.vcxproj" Id="4f082524-9496-44fa-8cba-4bc0bdc62568">
       <BuildType Solution="FuzzerDebug|*" Project="Debug" />
