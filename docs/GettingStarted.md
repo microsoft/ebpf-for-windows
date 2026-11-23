@@ -19,7 +19,7 @@ The following must be installed in order to build this project:
    - [Download Visual Studio Professional 2026](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Professional&rel=18)
    - [Download Visual Studio Enterprise 2026](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Enterprise&rel=18)
 
-   >**Note**: **Visual Studio 2022** (v17.4.2 or later) is also still supported, and is validated by a
+   >**Note**: **Visual Studio 2022** (v17.13 or later) is also still supported, and is validated by a
     dedicated CI build. The project selects the platform toolset and Windows Driver Kit version from the
     Visual Studio version you build with: VS 2026 uses toolset `v145` with WDK `10.0.28000`, and VS 2022
     uses toolset `v143` with WDK `10.0.26100`. See [wdk.props](../wdk.props). Support for VS 2022 will be

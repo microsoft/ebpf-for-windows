@@ -638,7 +638,7 @@
       <Build Solution="FuzzerDebug|ARM64" Project="false" />
       <Build Solution="FuzzerDebug|x64" Project="false" />
     </Project>
-    <Project Path="tests/stress/km/ebpf_stress_tests_km.vcxproj">
+    <Project Path="tests/stress/km/ebpf_stress_tests_km/ebpf_stress_tests_km.vcxproj">
       <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
       <BuildType Solution="FuzzerDebug|ARM64" Project="Debug" />
       <BuildType Solution="FuzzerDebug|x64" Project="Debug" />
@@ -859,7 +859,7 @@
       <BuildDependency Project="tests/sample/ext/app/sample_ext_app.vcxproj" />
       <BuildDependency Project="tests/sample/sample.vcxproj" />
       <BuildDependency Project="tests/socket/socket_tests.vcxproj" />
-      <BuildDependency Project="tests/stress/km/ebpf_stress_tests_km.vcxproj" />
+      <BuildDependency Project="tests/stress/km/ebpf_stress_tests_km/ebpf_stress_tests_km.vcxproj" />
       <BuildDependency Project="tests/stress/restart_test_controller/ebpf_restart_test_controller.vcxproj" />
       <BuildDependency Project="tests/stress/restart_test_helper/ebpf_restart_test_helper.vcxproj" />
       <BuildDependency Project="tests/tcp_udp_listener/tcp_udp_listener.vcxproj" />
@@ -903,7 +903,7 @@
       <BuildDependency Project="tests/api_test/api_test.vcxproj" />
       <BuildDependency Project="tests/connect_redirect/connect_redirect_tests.vcxproj" />
       <BuildDependency Project="tests/socket/socket_tests.vcxproj" />
-      <BuildDependency Project="tests/stress/km/ebpf_stress_tests_km.vcxproj" />
+      <BuildDependency Project="tests/stress/km/ebpf_stress_tests_km/ebpf_stress_tests_km.vcxproj" />
       <BuildDependency Project="tests/tcp_udp_listener/tcp_udp_listener.vcxproj" />
       <BuildDependency Project="tools/bpf2c/bpf2c.vcxproj" />
       <BuildDependency Project="tools/bpftool/bpftool.vcxproj" />
