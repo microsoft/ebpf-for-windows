@@ -478,6 +478,13 @@ _netsh_add_program_test_sample_ebpf(ebpf_execution_type_t execution_type)
         _run_netsh_command(handle_ebpf_add_program, wide_file_name.c_str(), L"pinned=none", nullptr, &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(output.starts_with("Loaded with"));
+
+    uint32_t program_id = 0;
+    REQUIRE(sscanf_s(output.c_str(), "Loaded with ID %u\n", &program_id) == 1);
+    output =
+        _run_netsh_command(handle_ebpf_delete_program, std::to_wstring(program_id).c_str(), nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(output.empty());
 }
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
