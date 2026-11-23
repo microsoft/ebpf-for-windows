@@ -117,7 +117,7 @@ The following steps need to be executed *once* before the first build on a new c
 1. Change directory to where the project is cloned (e.g. `cd ebpf-for-windows`), and run the following command:
 
    ```cmd
-   msbuild /m /p:Configuration=Debug /p:Platform=x64 ebpf-for-windows.sln
+   msbuild /m /p:Configuration=Debug /p:Platform=x64 ebpf-for-windows.slnx
    ```
 
 ##### Setting compile time options when building from Developer Command Prompt
@@ -131,7 +131,7 @@ Both options are set when compiling with the "NativeOnlyDebug" or "NativeOnlyRel
 
 #### Building using Visual Studio IDE
 
-1. Open the `ebpf-for-windows.sln` solution.
+1. Open the `ebpf-for-windows.slnx` solution.
 1. Switch the configuration to "`Debug`|`x64`".  To build with the JIT and Interpreter disabled, switch the configuration to "`NativeOnlyDebug`|`x64`" instead.
 1. Rebuild the solution.
 
@@ -149,7 +149,7 @@ To build with the specific compile time options for disabling JIT compiler and/o
       >*Note for Linux users*: this option is similar to the `CONFIG_BPF_JIT_ALWAYS_ON` which, as documented
 [here](https://googleprojectzero.blogspot.com/2018/01/reading-privileged-memory-with-side.html), is used to disable support for the interpreter.
 
->Note: do the above steps for the following projects within the `ebpf-for-windows.sln` solution:
+>Note: do the above steps for the following projects within the `ebpf-for-windows.slnx` solution:
 >- `api_test`
 >- `execution_context_kernel`
 >- `sample_ext_app`

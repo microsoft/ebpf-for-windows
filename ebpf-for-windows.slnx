@@ -1,0 +1,1114 @@
+<Solution>
+  <Configurations>
+    <BuildType Name="Debug" />
+    <BuildType Name="FuzzerDebug" />
+    <BuildType Name="MinSizeRel" />
+    <BuildType Name="NativeOnlyDebug" />
+    <BuildType Name="NativeOnlyRelease" />
+    <BuildType Name="Release" />
+    <BuildType Name="RelWithDebInfo" />
+    <Platform Name="ARM64" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/dlls/">
+    <Project Path="ebpfapi/ebpfapi.vcxproj">
+      <BuildDependency Project="libs/ubpf/user/ubpf_user.vcxproj" />
+      <BuildDependency Project="rpc_interface/rpc_interface.vcxproj" />
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+    <Project Path="tools/netsh/ebpfnetsh.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+    </Project>
+  </Folder>
+  <Folder Name="/drivers/">
+    <Project Path="ebpfcore/EbpfCore.vcxproj">
+      <BuildDependency Project="libs/ubpf/kernel/ubpf_kernel.vcxproj" />
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="FuzzerDebug|ARM64" Project="Debug" />
+      <BuildType Solution="FuzzerDebug|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="FuzzerDebug" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+      <Deploy Solution="Debug|ARM64" />
+      <Deploy Solution="Debug|x64" />
+      <Deploy Solution="MinSizeRel|ARM64" />
+      <Deploy Solution="MinSizeRel|x64" />
+      <Deploy Solution="NativeOnlyDebug|ARM64" />
+      <Deploy Solution="NativeOnlyDebug|x64" />
+      <Deploy Solution="NativeOnlyRelease|ARM64" />
+      <Deploy Solution="NativeOnlyRelease|x64" />
+      <Deploy Solution="Release|ARM64" />
+      <Deploy Solution="Release|x64" />
+      <Deploy Solution="RelWithDebInfo|ARM64" />
+      <Deploy Solution="RelWithDebInfo|x64" />
+    </Project>
+    <Project Path="ebpfcore/usersim/EbpfCore_Usersim.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+      <Deploy Solution="*|ARM64" />
+      <Deploy Solution="*|x64" />
+    </Project>
+    <Project Path="netebpfext/sys/netebpfext.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildDependency Project="tools/export_program_info/export_program_info.vcxproj" />
+      <BuildType Solution="FuzzerDebug|ARM64" Project="Debug" />
+      <BuildType Solution="FuzzerDebug|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="FuzzerDebug" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+      <Deploy Solution="Debug|ARM64" />
+      <Deploy Solution="Debug|x64" />
+      <Deploy Solution="MinSizeRel|ARM64" />
+      <Deploy Solution="MinSizeRel|x64" />
+      <Deploy Solution="NativeOnlyDebug|ARM64" />
+      <Deploy Solution="NativeOnlyDebug|x64" />
+      <Deploy Solution="NativeOnlyRelease|ARM64" />
+      <Deploy Solution="NativeOnlyRelease|x64" />
+      <Deploy Solution="Release|ARM64" />
+      <Deploy Solution="Release|x64" />
+      <Deploy Solution="RelWithDebInfo|ARM64" />
+      <Deploy Solution="RelWithDebInfo|x64" />
+    </Project>
+  </Folder>
+  <Folder Name="/idl/">
+    <Project Path="rpc_interface/rpc_interface.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="FuzzerDebug|ARM64" Project="Debug" />
+      <BuildType Solution="FuzzerDebug|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="NativeOnlyDebug" />
+      <BuildType Solution="NativeOnlyDebug|ARM64" Project="Debug" />
+      <BuildType Solution="NativeOnlyDebug|x64" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|ARM64" Project="Release" />
+      <BuildType Solution="NativeOnlyRelease|x64" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+  </Folder>
+  <Folder Name="/installer/">
+    <Project Path="installer/ebpf-for-windows.wixproj">
+      <BuildDependency Project="ebpfsvc/eBPFSvc.vcxproj" />
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="FuzzerDebug|ARM64" Project="Debug" />
+      <BuildType Solution="FuzzerDebug|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Release" />
+      <BuildType Solution="MinSizeRel|x64" Project="Release" />
+      <BuildType Solution="MinSizeRel|x86" Project="FuzzerDebug" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="*|x86" />
+      <Build Solution="Debug|ARM64" />
+      <Build Solution="Debug|x64" />
+      <Build Solution="MinSizeRel|ARM64" />
+      <Build Solution="MinSizeRel|x64" />
+      <Build Solution="NativeOnlyDebug|ARM64" />
+      <Build Solution="NativeOnlyDebug|x64" />
+      <Build Solution="NativeOnlyRelease|ARM64" />
+      <Build Solution="NativeOnlyRelease|x64" />
+      <Build Solution="Release|ARM64" />
+      <Build Solution="Release|x64" />
+      <Build Solution="RelWithDebInfo|ARM64" />
+      <Build Solution="RelWithDebInfo|x64" />
+    </Project>
+    <Project Path="tests/bpftool_tests/bpftool_tests.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+    </Project>
+  </Folder>
+  <Folder Name="/libs/" />
+  <Folder Name="/libs/kernel/">
+    <Project Path="external/usersim/cxplat/src/cxplat_winkernel/cxplat_winkernel.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="FuzzerDebug" />
+      <BuildType Solution="NativeOnlyDebug|*" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|*" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+      <Deploy Solution="Debug|ARM64" />
+      <Deploy Solution="Debug|x64" />
+      <Deploy Solution="MinSizeRel|ARM64" />
+      <Deploy Solution="MinSizeRel|x64" />
+      <Deploy Solution="NativeOnlyDebug|ARM64" />
+      <Deploy Solution="NativeOnlyDebug|x64" />
+      <Deploy Solution="NativeOnlyRelease|ARM64" />
+      <Deploy Solution="NativeOnlyRelease|x64" />
+      <Deploy Solution="Release|ARM64" />
+      <Deploy Solution="Release|x64" />
+      <Deploy Solution="RelWithDebInfo|ARM64" />
+      <Deploy Solution="RelWithDebInfo|x64" />
+    </Project>
+    <Project Path="libs/execution_context/kernel/execution_context_kernel.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+      <Deploy Solution="Debug|ARM64" />
+      <Deploy Solution="Debug|x64" />
+      <Deploy Solution="MinSizeRel|ARM64" />
+      <Deploy Solution="MinSizeRel|x64" />
+      <Deploy Solution="NativeOnlyDebug|ARM64" />
+      <Deploy Solution="NativeOnlyDebug|x64" />
+      <Deploy Solution="NativeOnlyRelease|ARM64" />
+      <Deploy Solution="NativeOnlyRelease|x64" />
+      <Deploy Solution="Release|ARM64" />
+      <Deploy Solution="Release|x64" />
+      <Deploy Solution="RelWithDebInfo|ARM64" />
+      <Deploy Solution="RelWithDebInfo|x64" />
+    </Project>
+    <Project Path="libs/runtime/kernel/platform_kernel.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="NativeOnlyRelease" />
+      <BuildType Solution="NativeOnlyDebug|ARM64" Project="Debug" />
+      <BuildType Solution="NativeOnlyDebug|x64" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|ARM64" Project="Release" />
+      <BuildType Solution="NativeOnlyRelease|x64" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+      <Deploy Solution="Debug|ARM64" />
+      <Deploy Solution="Debug|x64" />
+      <Deploy Solution="MinSizeRel|ARM64" />
+      <Deploy Solution="MinSizeRel|x64" />
+      <Deploy Solution="NativeOnlyDebug|ARM64" />
+      <Deploy Solution="NativeOnlyDebug|x64" />
+      <Deploy Solution="NativeOnlyRelease|ARM64" />
+      <Deploy Solution="NativeOnlyRelease|x64" />
+      <Deploy Solution="Release|ARM64" />
+      <Deploy Solution="Release|x64" />
+      <Deploy Solution="RelWithDebInfo|ARM64" />
+      <Deploy Solution="RelWithDebInfo|x64" />
+    </Project>
+    <Project Path="libs/shared/kernel/shared_kernel.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="FuzzerDebug" />
+      <BuildType Solution="MinSizeRel|x64" Project="FuzzerDebug" />
+      <BuildType Solution="MinSizeRel|x86" Project="NativeOnlyRelease" />
+      <BuildType Solution="NativeOnlyDebug|ARM64" Project="Debug" />
+      <BuildType Solution="NativeOnlyDebug|x64" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|ARM64" Project="Release" />
+      <BuildType Solution="NativeOnlyRelease|x64" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+    </Project>
+    <Project Path="libs/ubpf/kernel/ubpf_kernel.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="NativeOnlyRelease" />
+      <BuildType Solution="NativeOnlyDebug|ARM64" Project="Debug" />
+      <BuildType Solution="NativeOnlyDebug|x64" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|ARM64" Project="Release" />
+      <BuildType Solution="NativeOnlyRelease|x64" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+      <Build Solution="NativeOnlyDebug|ARM64" Project="false" />
+      <Build Solution="NativeOnlyDebug|x64" Project="false" />
+      <Build Solution="NativeOnlyRelease|ARM64" Project="false" />
+      <Build Solution="NativeOnlyRelease|x64" Project="false" />
+      <Deploy Solution="Debug|ARM64" />
+      <Deploy Solution="Debug|x64" />
+      <Deploy Solution="MinSizeRel|ARM64" />
+      <Deploy Solution="MinSizeRel|x64" />
+      <Deploy Solution="Release|ARM64" />
+      <Deploy Solution="Release|x64" />
+      <Deploy Solution="RelWithDebInfo|ARM64" />
+      <Deploy Solution="RelWithDebInfo|x64" />
+    </Project>
+  </Folder>
+  <Folder Name="/libs/user/">
+    <Project Path="external/ebpf-verifier/build/libbtf/libbtf/libbtf.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="NativeOnlyDebug|*" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+    <Project Path="external/ebpf-verifier/build/prevail.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="NativeOnlyDebug|*" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|*" Project="Release" />
+      <BuildType Solution="Release|ARM64" Project="MinSizeRel" />
+      <BuildType Solution="Release|x64" Project="MinSizeRel" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+    <Project Path="external/usersim/cxplat/src/cxplat_winuser/cxplat_winuser.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|*" Project="Debug" />
+      <BuildType Solution="NativeOnlyDebug|*" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|*" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+    </Project>
+    <Project Path="external/usersim/src/usersim.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|*" Project="Debug" />
+      <BuildType Solution="NativeOnlyDebug|*" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|*" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+    </Project>
+    <Project Path="external/usersim/usersim_dll_skeleton/usersim_dll_skeleton.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="FuzzerDebug|ARM64" Project="Debug" />
+      <BuildType Solution="FuzzerDebug|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|*" Project="Debug" />
+      <BuildType Solution="NativeOnlyDebug|*" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|*" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+    </Project>
+    <Project Path="libs/api/api.vcxproj">
+      <BuildDependency Project="libs/elf_spec/elf_spec.vcxproj" />
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+    <Project Path="libs/api_common/api_common.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+    <Project Path="libs/ebpfnetsh/ebpfnetsh.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="NativeOnlyDebug" />
+      <BuildType Solution="NativeOnlyDebug|ARM64" Project="Debug" />
+      <BuildType Solution="NativeOnlyDebug|x64" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|ARM64" Project="Release" />
+      <BuildType Solution="NativeOnlyRelease|x64" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+    </Project>
+    <Project Path="libs/elf_spec/elf_spec.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="NativeOnlyDebug" />
+      <BuildType Solution="NativeOnlyDebug|ARM64" Project="Debug" />
+      <BuildType Solution="NativeOnlyDebug|x64" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|ARM64" Project="Release" />
+      <BuildType Solution="NativeOnlyRelease|x64" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+    <Project Path="libs/execution_context/user/execution_context_user.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+    <Project Path="libs/ioctl_spec/ioctl_spec.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="NativeOnlyDebug" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+    <Project Path="libs/pe-parse/pe-parse.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="NativeOnlyDebug" />
+      <BuildType Solution="NativeOnlyDebug|ARM64" Project="Debug" />
+      <BuildType Solution="NativeOnlyDebug|x64" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|ARM64" Project="Release" />
+      <BuildType Solution="NativeOnlyRelease|x64" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+    <Project Path="libs/runtime/user/platform_user.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="NativeOnlyDebug" />
+      <BuildType Solution="NativeOnlyDebug|ARM64" Project="Debug" />
+      <BuildType Solution="NativeOnlyDebug|x64" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|ARM64" Project="Release" />
+      <BuildType Solution="NativeOnlyRelease|x64" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+    <Project Path="libs/service/service.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="NativeOnlyDebug" />
+      <BuildType Solution="NativeOnlyRelease|x64" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+    <Project Path="libs/shared/user/shared_user.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="FuzzerDebug" />
+      <BuildType Solution="MinSizeRel|x64" Project="FuzzerDebug" />
+      <BuildType Solution="MinSizeRel|x86" Project="NativeOnlyDebug" />
+      <BuildType Solution="NativeOnlyDebug|ARM64" Project="Debug" />
+      <BuildType Solution="NativeOnlyDebug|x64" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|ARM64" Project="Release" />
+      <BuildType Solution="NativeOnlyRelease|x64" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+    <Project Path="libs/store_helper/user/ebpf_store_helper_um.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="NativeOnlyDebug" />
+      <BuildType Solution="NativeOnlyDebug|ARM64" Project="Debug" />
+      <BuildType Solution="NativeOnlyDebug|x64" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|ARM64" Project="Release" />
+      <BuildType Solution="NativeOnlyRelease|x64" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Deploy Solution="*|ARM64" />
+      <Deploy Solution="*|x64" />
+    </Project>
+    <Project Path="libs/ubpf/user/ubpf_user.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="NativeOnlyDebug" />
+      <BuildType Solution="NativeOnlyDebug|ARM64" Project="Debug" />
+      <BuildType Solution="NativeOnlyDebug|x64" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|ARM64" Project="Release" />
+      <BuildType Solution="NativeOnlyRelease|x64" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+    <Project Path="netebpfext/user/netebpfext_user.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="NativeOnlyDebug" />
+      <BuildType Solution="NativeOnlyDebug|ARM64" Project="Debug" />
+      <BuildType Solution="NativeOnlyDebug|x64" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|ARM64" Project="Release" />
+      <BuildType Solution="NativeOnlyRelease|x64" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+  </Folder>
+  <Folder Name="/service/">
+    <Project Path="ebpfsvc/eBPFSvc.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="NativeOnlyDebug" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+    </Project>
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="external/Catch2/build/src/Catch2.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="FuzzerDebug|*" Project="Debug" />
+      <BuildType Solution="NativeOnlyDebug|*" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+    <Project Path="external/Catch2/build/src/Catch2WithMain.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="FuzzerDebug|*" Project="Debug" />
+      <BuildType Solution="NativeOnlyDebug|*" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+    <Project Path="tests/api_test/api_test.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+    </Project>
+    <Project Path="tests/bpf2c_plugin/bpf2c_plugin.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="NativeOnlyDebug" />
+      <BuildType Solution="NativeOnlyDebug|ARM64" Project="Debug" />
+      <BuildType Solution="NativeOnlyDebug|x64" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|ARM64" Project="Release" />
+      <BuildType Solution="NativeOnlyRelease|x64" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+      <Build Solution="NativeOnlyDebug|ARM64" Project="false" />
+      <Build Solution="NativeOnlyDebug|x64" Project="false" />
+      <Build Solution="NativeOnlyRelease|ARM64" Project="false" />
+      <Build Solution="NativeOnlyRelease|x64" Project="false" />
+    </Project>
+    <Project Path="tests/bpf2c_tests/bpf2c_tests.vcxproj">
+      <BuildDependency Project="libs/ubpf/user/ubpf_user.vcxproj" />
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildDependency Project="tests/sample/sample.vcxproj" />
+      <BuildDependency Project="tools/bpf2c/bpf2c.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+    </Project>
+    <Project Path="tests/bpf_api_behavior/bpf_api_behavior.vcxproj">
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+    <Project Path="tests/cilium/cilium_tests.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="NativeOnlyDebug" />
+      <BuildType Solution="NativeOnlyDebug|ARM64" Project="Debug" />
+      <BuildType Solution="NativeOnlyDebug|x64" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|ARM64" Project="Release" />
+      <BuildType Solution="NativeOnlyRelease|x64" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+      <Build Solution="NativeOnlyDebug|ARM64" Project="false" />
+      <Build Solution="NativeOnlyDebug|x64" Project="false" />
+      <Build Solution="NativeOnlyRelease|ARM64" Project="false" />
+      <Build Solution="NativeOnlyRelease|x64" Project="false" />
+    </Project>
+    <Project Path="tests/connect_redirect/connect_redirect_tests.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+    </Project>
+    <Project Path="tests/export_program_info_test/export_program_info_test.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+    <Project Path="tests/libs/common/common_tests.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="NativeOnlyDebug" />
+      <BuildType Solution="NativeOnlyDebug|ARM64" Project="Debug" />
+      <BuildType Solution="NativeOnlyDebug|x64" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|ARM64" Project="Release" />
+      <BuildType Solution="NativeOnlyRelease|x64" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+    <Project Path="tests/libs/util/test_util.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+    <Project Path="tests/netebpfext_unit/netebpfext_unit.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="NativeOnlyDebug" />
+      <BuildType Solution="NativeOnlyDebug|ARM64" Project="Debug" />
+      <BuildType Solution="NativeOnlyDebug|x64" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|ARM64" Project="Release" />
+      <BuildType Solution="NativeOnlyRelease|x64" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+    </Project>
+    <Project Path="tests/performance/performance.vcxproj">
+      <BuildDependency Project="libs/ubpf/user/ubpf_user.vcxproj" />
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+    </Project>
+    <Project Path="tests/sample/ext/app/sample_ext_app.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+    </Project>
+    <Project Path="tests/sample/ext/common/sample_test_common.vcxproj">
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="NativeOnlyDebug" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+    <Project Path="tests/sample/sample.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildDependency Project="tools/bpf2c/bpf2c.vcxproj" />
+      <BuildDependency Project="tools/export_program_info/export_program_info.vcxproj" />
+      <BuildDependency Project="undocked/tools/export_program_info_sample/export_program_info_sample.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+    <Project Path="tests/socket/socket_tests.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+    </Project>
+    <Project Path="tests/stress/km/ebpf_stress_tests_km.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="FuzzerDebug|ARM64" Project="Debug" />
+      <BuildType Solution="FuzzerDebug|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Release" />
+      <BuildType Solution="MinSizeRel|x64" Project="Release" />
+      <BuildType Solution="MinSizeRel|x86" Project="FuzzerDebug" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+    </Project>
+    <Project Path="tests/stress/restart_test_controller/ebpf_restart_test_controller.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="FuzzerDebug|*" Project="Debug" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Release" />
+      <BuildType Solution="MinSizeRel|x64" Project="Release" />
+      <BuildType Solution="MinSizeRel|x86" Project="Debug" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|*" Project="false" />
+      <Build Solution="MinSizeRel|x86" Project="false" />
+    </Project>
+    <Project Path="tests/stress/restart_test_helper/ebpf_restart_test_helper.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="FuzzerDebug|*" Project="Debug" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Release" />
+      <BuildType Solution="MinSizeRel|x64" Project="Release" />
+      <BuildType Solution="MinSizeRel|x86" Project="Debug" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|*" Project="false" />
+      <Build Solution="MinSizeRel|x86" Project="false" />
+    </Project>
+    <Project Path="tests/stress/um/ebpf_stress_tests_um.vcxproj">
+      <BuildDependency Project="libs/service/service.vcxproj" />
+      <BuildDependency Project="libs/ubpf/user/ubpf_user.vcxproj" />
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="FuzzerDebug|ARM64" Project="Debug" />
+      <BuildType Solution="FuzzerDebug|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="FuzzerDebug" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+    </Project>
+    <Project Path="tests/tcp_udp_listener/tcp_udp_listener.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+    </Project>
+    <Project Path="tests/unit/test.vcxproj">
+      <BuildDependency Project="libs/service/service.vcxproj" />
+      <BuildDependency Project="libs/ubpf/user/ubpf_user.vcxproj" />
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+    </Project>
+  </Folder>
+  <Folder Name="/tests/libfuzzer/">
+    <Project Path="tests/libfuzzer/bpf2c_fuzzer/bpf2c_fuzzer.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildDependency Project="tests/sample/sample.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="NativeOnlyRelease" />
+      <BuildType Solution="NativeOnlyDebug|ARM64" Project="Debug" />
+      <BuildType Solution="NativeOnlyDebug|x64" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|ARM64" Project="Release" />
+      <BuildType Solution="NativeOnlyRelease|x64" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="Debug|ARM64" Project="false" />
+      <Build Solution="Debug|x64" Project="false" />
+      <Build Solution="NativeOnlyDebug|ARM64" Project="false" />
+      <Build Solution="NativeOnlyDebug|x64" Project="false" />
+      <Build Solution="NativeOnlyRelease|ARM64" Project="false" />
+      <Build Solution="NativeOnlyRelease|x64" Project="false" />
+      <Build Solution="Release|ARM64" Project="false" />
+      <Build Solution="Release|x64" Project="false" />
+    </Project>
+    <Project Path="tests/libfuzzer/core_helper_fuzzer/core_helper_fuzzer.vcxproj">
+      <BuildDependency Project="libs/ubpf/user/ubpf_user.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="Debug|ARM64" Project="false" />
+      <Build Solution="Debug|x64" Project="false" />
+      <Build Solution="NativeOnlyDebug|ARM64" Project="false" />
+      <Build Solution="NativeOnlyDebug|x64" Project="false" />
+      <Build Solution="NativeOnlyRelease|ARM64" Project="false" />
+      <Build Solution="NativeOnlyRelease|x64" Project="false" />
+      <Build Solution="Release|ARM64" Project="false" />
+      <Build Solution="Release|x64" Project="false" />
+    </Project>
+    <Project Path="tests/libfuzzer/execution_context/execution_context_fuzzer.vcxproj">
+      <BuildDependency Project="libs/ubpf/user/ubpf_user.vcxproj" />
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="Debug|ARM64" Project="false" />
+      <Build Solution="Debug|x64" Project="false" />
+      <Build Solution="NativeOnlyDebug|ARM64" Project="false" />
+      <Build Solution="NativeOnlyDebug|x64" Project="false" />
+      <Build Solution="NativeOnlyRelease|ARM64" Project="false" />
+      <Build Solution="NativeOnlyRelease|x64" Project="false" />
+      <Build Solution="Release|ARM64" Project="false" />
+      <Build Solution="Release|x64" Project="false" />
+    </Project>
+    <Project Path="tests/libfuzzer/netebpfext_fuzzer/netebpfext_fuzzer.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="FuzzerDebug" />
+      <BuildType Solution="MinSizeRel|x64" Project="FuzzerDebug" />
+      <BuildType Solution="MinSizeRel|x86" Project="NativeOnlyDebug" />
+      <BuildType Solution="NativeOnlyDebug|ARM64" Project="Debug" />
+      <BuildType Solution="NativeOnlyDebug|x64" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|ARM64" Project="Release" />
+      <BuildType Solution="NativeOnlyRelease|x64" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="Debug|ARM64" Project="false" />
+      <Build Solution="Debug|x64" Project="false" />
+      <Build Solution="NativeOnlyDebug|ARM64" Project="false" />
+      <Build Solution="NativeOnlyDebug|x64" Project="false" />
+      <Build Solution="NativeOnlyRelease|ARM64" Project="false" />
+      <Build Solution="NativeOnlyRelease|x64" Project="false" />
+      <Build Solution="Release|ARM64" Project="false" />
+      <Build Solution="Release|x64" Project="false" />
+    </Project>
+    <Project Path="tests/libfuzzer/verifier_fuzzer/verifier_fuzzer.vcxproj">
+      <BuildDependency Project="libs/service/service.vcxproj" />
+      <BuildDependency Project="libs/ubpf/user/ubpf_user.vcxproj" />
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="Debug|ARM64" Project="false" />
+      <Build Solution="Debug|x64" Project="false" />
+      <Build Solution="NativeOnlyDebug|ARM64" Project="false" />
+      <Build Solution="NativeOnlyDebug|x64" Project="false" />
+      <Build Solution="NativeOnlyRelease|ARM64" Project="false" />
+      <Build Solution="NativeOnlyRelease|x64" Project="false" />
+      <Build Solution="Release|ARM64" Project="false" />
+      <Build Solution="Release|x64" Project="false" />
+    </Project>
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="scripts/setup_build/setup_build.vcxproj">
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+    <Project Path="tools/bpf2c/bpf2c.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+    <Project Path="tools/bpftool/bpftool.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="FuzzerDebug|ARM64" Project="Debug" />
+      <BuildType Solution="FuzzerDebug|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="FuzzerDebug" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+    </Project>
+    <Project Path="tools/dnsflood/dnsflood.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="NativeOnlyDebug" />
+      <BuildType Solution="NativeOnlyDebug|ARM64" Project="Debug" />
+      <BuildType Solution="NativeOnlyDebug|x64" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|ARM64" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|x64" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+      <Build Solution="NativeOnlyDebug|ARM64" Project="false" />
+      <Build Solution="NativeOnlyDebug|x64" Project="false" />
+      <Build Solution="NativeOnlyRelease|ARM64" Project="false" />
+      <Build Solution="NativeOnlyRelease|x64" Project="false" />
+    </Project>
+    <Project Path="tools/driver-test/driver-test.vcxproj">
+      <BuildDependency Project="installer/ebpf-for-windows.wixproj" />
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildDependency Project="tests/api_test/api_test.vcxproj" />
+      <BuildDependency Project="tests/bpftool_tests/bpftool_tests.vcxproj" />
+      <BuildDependency Project="tests/connect_redirect/connect_redirect_tests.vcxproj" />
+      <BuildDependency Project="tests/performance/performance.vcxproj" />
+      <BuildDependency Project="tests/sample/ext/app/sample_ext_app.vcxproj" />
+      <BuildDependency Project="tests/sample/sample.vcxproj" />
+      <BuildDependency Project="tests/socket/socket_tests.vcxproj" />
+      <BuildDependency Project="tests/stress/km/ebpf_stress_tests_km.vcxproj" />
+      <BuildDependency Project="tests/stress/restart_test_controller/ebpf_restart_test_controller.vcxproj" />
+      <BuildDependency Project="tests/stress/restart_test_helper/ebpf_restart_test_helper.vcxproj" />
+      <BuildDependency Project="tests/tcp_udp_listener/tcp_udp_listener.vcxproj" />
+      <BuildDependency Project="undocked/tests/sample/ext/drv/sample_ext.vcxproj" />
+      <BuildType Solution="FuzzerDebug|ARM64" Project="Debug" />
+      <BuildType Solution="FuzzerDebug|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="NativeOnlyRelease" />
+      <BuildType Solution="MinSizeRel|x64" Project="NativeOnlyRelease" />
+      <BuildType Solution="MinSizeRel|x86" Project="FuzzerDebug" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+    <Project Path="tools/export_program_info/export_program_info.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+    <Project Path="tools/nuget/nuget.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildDependency Project="tools/export_program_info/export_program_info.vcxproj" />
+      <BuildType Solution="FuzzerDebug|ARM64" Project="Debug" />
+      <BuildType Solution="FuzzerDebug|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="FuzzerDebug" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+    </Project>
+    <Project Path="tools/onebranch/onebranch.vcxproj">
+      <BuildDependency Project="ebpfapi/ebpfapi.vcxproj" />
+      <BuildDependency Project="ebpfcore/EbpfCore.vcxproj" />
+      <BuildDependency Project="ebpfsvc/eBPFSvc.vcxproj" />
+      <BuildDependency Project="external/usersim/src/usersim.vcxproj" />
+      <BuildDependency Project="netebpfext/sys/netebpfext.vcxproj" />
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildDependency Project="tests/api_test/api_test.vcxproj" />
+      <BuildDependency Project="tests/connect_redirect/connect_redirect_tests.vcxproj" />
+      <BuildDependency Project="tests/socket/socket_tests.vcxproj" />
+      <BuildDependency Project="tests/stress/km/ebpf_stress_tests_km.vcxproj" />
+      <BuildDependency Project="tests/tcp_udp_listener/tcp_udp_listener.vcxproj" />
+      <BuildDependency Project="tools/bpf2c/bpf2c.vcxproj" />
+      <BuildDependency Project="tools/bpftool/bpftool.vcxproj" />
+      <BuildDependency Project="tools/export_program_info/export_program_info.vcxproj" />
+      <BuildDependency Project="tools/netsh/ebpfnetsh.vcxproj" />
+      <BuildDependency Project="undocked/tools/export_program_info_sample/export_program_info_sample.vcxproj" />
+      <BuildType Solution="FuzzerDebug|ARM64" Project="Debug" />
+      <BuildType Solution="FuzzerDebug|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="NativeOnlyRelease" />
+      <BuildType Solution="MinSizeRel|x64" Project="NativeOnlyRelease" />
+      <BuildType Solution="MinSizeRel|x86" Project="FuzzerDebug" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+    <Project Path="tools/port_leak/port_leak.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="FuzzerDebug|ARM64" Project="Debug" />
+      <BuildType Solution="FuzzerDebug|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="FuzzerDebug" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+    </Project>
+    <Project Path="tools/port_quota/port_quota.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="FuzzerDebug|ARM64" Project="Debug" />
+      <BuildType Solution="FuzzerDebug|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="FuzzerDebug" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+    </Project>
+    <Project Path="tools/production/production.vcxproj">
+      <BuildDependency Project="ebpfapi/ebpfapi.vcxproj" />
+      <BuildDependency Project="ebpfcore/EbpfCore.vcxproj" />
+      <BuildDependency Project="ebpfsvc/eBPFSvc.vcxproj" />
+      <BuildDependency Project="installer/ebpf-for-windows.wixproj" />
+      <BuildDependency Project="netebpfext/sys/netebpfext.vcxproj" />
+      <BuildDependency Project="tools/netsh/ebpfnetsh.vcxproj" />
+      <BuildDependency Project="tools/nuget/nuget.vcxproj" />
+      <BuildDependency Project="tools/sample-package/sample-package.vcxproj" />
+      <BuildType Solution="FuzzerDebug|ARM64" Project="Debug" />
+      <BuildType Solution="FuzzerDebug|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="NativeOnlyRelease" />
+      <BuildType Solution="MinSizeRel|x64" Project="NativeOnlyRelease" />
+      <BuildType Solution="MinSizeRel|x86" Project="FuzzerDebug" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+    </Project>
+    <Project Path="tools/redist-package/redist-package.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="FuzzerDebug|ARM64" Project="Debug" />
+      <BuildType Solution="FuzzerDebug|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="FuzzerDebug" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="Debug|ARM64" Project="false" />
+      <Build Solution="Debug|x64" Project="false" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+    </Project>
+    <Project Path="tools/sample-package/sample-package.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildType Solution="FuzzerDebug|ARM64" Project="Debug" />
+      <BuildType Solution="FuzzerDebug|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="FuzzerDebug" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="Debug|ARM64" Project="false" />
+      <Build Solution="Debug|x64" Project="false" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+    </Project>
+  </Folder>
+  <Folder Name="/ubpf_fuzzer/">
+    <Project Path="external/ubpf/build_fuzzer/external/ebpf-verifier/libbtf/libbtf/libbtf.vcxproj">
+      <BuildType Solution="FuzzerDebug|x64" Project="RelWithDebInfo" />
+      <BuildType Solution="NativeOnlyDebug|*" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="Debug|x64" Project="false" />
+      <Build Solution="NativeOnlyDebug|*" Project="false" />
+      <Build Solution="NativeOnlyRelease|*" Project="false" />
+      <Build Solution="Release|x64" Project="false" />
+    </Project>
+    <Project Path="external/ubpf/build_fuzzer/external/ebpf-verifier/prevail.vcxproj">
+      <BuildType Solution="FuzzerDebug|x64" Project="RelWithDebInfo" />
+      <BuildType Solution="NativeOnlyDebug|*" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="Debug|x64" Project="false" />
+      <Build Solution="NativeOnlyDebug|*" Project="false" />
+      <Build Solution="NativeOnlyRelease|*" Project="false" />
+      <Build Solution="Release|x64" Project="false" />
+    </Project>
+    <Project Path="external/ubpf/build_fuzzer/libfuzzer/ubpf_fuzzer.vcxproj">
+      <BuildDependency Project="external/ubpf/build_fuzzer/external/ebpf-verifier/prevail.vcxproj" />
+      <BuildDependency Project="external/ubpf/build_fuzzer/vm/ubpf.vcxproj" />
+      <BuildType Solution="FuzzerDebug|x64" Project="RelWithDebInfo" />
+      <BuildType Solution="NativeOnlyDebug|*" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="Debug|x64" Project="false" />
+      <Build Solution="NativeOnlyDebug|*" Project="false" />
+      <Build Solution="NativeOnlyRelease|*" Project="false" />
+      <Build Solution="Release|x64" Project="false" />
+    </Project>
+    <Project Path="external/ubpf/build_fuzzer/vm/compat/libraries/win-c/win-c.vcxproj">
+      <BuildType Solution="FuzzerDebug|x64" Project="RelWithDebInfo" />
+      <BuildType Solution="NativeOnlyDebug|*" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="Debug|x64" Project="false" />
+      <Build Solution="NativeOnlyDebug|*" Project="false" />
+      <Build Solution="NativeOnlyRelease|*" Project="false" />
+      <Build Solution="Release|x64" Project="false" />
+    </Project>
+    <Project Path="external/ubpf/build_fuzzer/vm/ubpf.vcxproj">
+      <BuildType Solution="FuzzerDebug|x64" Project="RelWithDebInfo" />
+      <BuildType Solution="NativeOnlyDebug|*" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="Debug|x64" Project="false" />
+      <Build Solution="NativeOnlyDebug|*" Project="false" />
+      <Build Solution="NativeOnlyRelease|*" Project="false" />
+      <Build Solution="Release|x64" Project="false" />
+    </Project>
+    <Project Path="scripts/ubpf_fuzzer_post_build/ubpf_fuzzer_post_build.vcxproj">
+      <BuildDependency Project="external/ubpf/build_fuzzer/libfuzzer/ubpf_fuzzer.vcxproj" />
+      <BuildType Solution="FuzzerDebug|ARM64" Project="Debug" />
+      <BuildType Solution="FuzzerDebug|x86" Project="Debug" />
+      <BuildType Solution="MinSizeRel|*" Project="Debug" />
+      <BuildType Solution="NativeOnlyDebug|*" Project="Debug" />
+      <BuildType Solution="NativeOnlyRelease|*" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Build Solution="Debug|x64" Project="false" />
+      <Build Solution="NativeOnlyDebug|*" Project="false" />
+      <Build Solution="NativeOnlyRelease|*" Project="false" />
+      <Build Solution="Release|x64" Project="false" />
+    </Project>
+  </Folder>
+  <Folder Name="/undocked/" />
+  <Folder Name="/undocked/drivers/">
+    <Project Path="undocked/tests/sample/ext/drv/sample_ext.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildDependency Project="tools/nuget/nuget.vcxproj" />
+      <BuildType Solution="FuzzerDebug|ARM64" Project="Debug" />
+      <BuildType Solution="FuzzerDebug|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="NativeOnlyRelease" />
+      <BuildType Solution="MinSizeRel|x64" Project="NativeOnlyRelease" />
+      <BuildType Solution="MinSizeRel|x86" Project="FuzzerDebug" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+      <Deploy Solution="Debug|ARM64" />
+      <Deploy Solution="Debug|x64" />
+      <Deploy Solution="MinSizeRel|ARM64" />
+      <Deploy Solution="MinSizeRel|x64" />
+      <Deploy Solution="NativeOnlyDebug|ARM64" />
+      <Deploy Solution="NativeOnlyDebug|x64" />
+      <Deploy Solution="NativeOnlyRelease|ARM64" />
+      <Deploy Solution="NativeOnlyRelease|x64" />
+      <Deploy Solution="Release|ARM64" />
+      <Deploy Solution="Release|x64" />
+      <Deploy Solution="RelWithDebInfo|ARM64" />
+      <Deploy Solution="RelWithDebInfo|x64" />
+    </Project>
+  </Folder>
+  <Folder Name="/undocked/tools/">
+    <Project Path="undocked/tools/export_program_info_sample/export_program_info_sample.vcxproj">
+      <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
+      <BuildDependency Project="tools/nuget/nuget.vcxproj" />
+      <BuildType Solution="MinSizeRel|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|x86" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+      <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
+    </Project>
+  </Folder>
+  <Project Path="external/ebpf-extension-common/sys/ebpf_extension_common_km.vcxproj">
+    <BuildType Solution="FuzzerDebug|*" Project="Debug" />
+    <BuildType Solution="MinSizeRel|ARM64" Project="Release" />
+    <BuildType Solution="MinSizeRel|x64" Project="Release" />
+    <BuildType Solution="MinSizeRel|x86" Project="NativeOnlyRelease" />
+    <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+    <Platform Solution="*|x86" Project="x64" />
+  </Project>
+  <Project Path="external/ebpf-extension-common/user/ebpf_extension_common_um.vcxproj">
+    <BuildType Solution="MinSizeRel|*" Project="Release" />
+    <BuildType Solution="NativeOnlyDebug|*" Project="Debug" />
+    <BuildType Solution="NativeOnlyRelease|*" Project="Release" />
+    <BuildType Solution="RelWithDebInfo|*" Project="Release" />
+    <Platform Solution="*|x86" Project="x64" />
+  </Project>
+</Solution>

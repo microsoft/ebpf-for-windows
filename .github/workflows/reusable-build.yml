@@ -52,7 +52,7 @@ on:
       solution_file:
         required: false
         type: string
-        default: 'ebpf-for-windows.sln'
+        default: 'ebpf-for-windows.slnx'
       architecture:
         required: false
         type: string
