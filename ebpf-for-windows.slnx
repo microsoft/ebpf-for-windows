@@ -654,7 +654,11 @@
       <Build Solution="FuzzerDebug|x64" Project="false" />
     </Project>
     <Project Path="tests/stress/km/net_ebpf_stress_tests_km/net_ebpf_stress_tests_km.vcxproj" Id="4f082524-9496-44fa-8cba-4bc0bdc62568">
+      <BuildType Solution="FuzzerDebug|*" Project="Debug" />
+      <BuildType Solution="MinSizeRel|*" Project="Release" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
       <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|*" Project="false" />
     </Project>
     <Project Path="tests/stress/restart_test_controller/ebpf_restart_test_controller.vcxproj" Id="e3f9a8b4-5678-4abc-9def-123456789abc">
       <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
