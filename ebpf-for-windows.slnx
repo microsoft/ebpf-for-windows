@@ -658,6 +658,8 @@
       <BuildType Solution="MinSizeRel|*" Project="Release" />
       <BuildType Solution="RelWithDebInfo|*" Project="Release" />
       <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="*|x86" Project="false" />
+      <Build Solution="Debug|x86" />
       <Build Solution="FuzzerDebug|*" Project="false" />
     </Project>
     <Project Path="tests/stress/restart_test_controller/ebpf_restart_test_controller.vcxproj" Id="e3f9a8b4-5678-4abc-9def-123456789abc">
