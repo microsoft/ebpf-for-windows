@@ -37,11 +37,15 @@ jobs:
                               -H "Accept: application/vnd.github+json" \
                               "https://api.github.com/repos/${{ github.repository }}/pulls/${{ inputs.pr_number }}")
             HEAD_REPO=$(echo "$PR_DATA" | jq -r .head.repo.full_name)
+            PR_AUTHOR=$(echo "$PR_DATA" | jq -r .user.login)
           else
             HEAD_REPO="${{ github.event.pull_request.head.repo.full_name }}"
+            PR_AUTHOR="${{ github.event.pull_request.user.login }}"
           fi
 
           echo "Head repo: $HEAD_REPO"
+          echo "PR author: $PR_AUTHOR"
+          echo "pr_author=$PR_AUTHOR" >> "$GITHUB_OUTPUT"
 
           if [ "$HEAD_REPO" != "${{ github.repository }}" ]; then
             echo "is_fork=true" >> "$GITHUB_OUTPUT"
@@ -54,9 +58,16 @@ jobs:
         run: |
           IS_FORK="${{ steps.check-fork.outputs.is_fork }}"
           RUN_ON_FORK="${{ inputs.run_on_fork }}"
+          PR_AUTHOR="${{ steps.check-fork.outputs.pr_author }}"
 
           echo "This PR is from a fork: $IS_FORK"
           echo "This job is configured to run on fork: $RUN_ON_FORK"
+
+          if [ "$PR_AUTHOR" = "dependabot[bot]" ] || [ "$PR_AUTHOR" = "renovate[bot]" ]; then
+            echo "run_checks=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping: dependency bot PRs do not require issue references."
+            exit 0
+          fi
 
           if [ "$IS_FORK" != "$RUN_ON_FORK" ]; then
             echo "run_checks=false" >> "$GITHUB_OUTPUT"
