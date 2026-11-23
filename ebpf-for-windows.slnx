@@ -576,7 +576,12 @@
       <Platform Solution="*|x86" Project="x64" />
     </Project>
     <Project Path="tests/netebpfext_load_test/netebpfext_load_test.vcxproj" Id="c5e6f5c2-2e72-49e7-875b-1cf4b39358a3">
+      <BuildType Solution="FuzzerDebug|ARM64" Project="Debug" />
+      <BuildType Solution="MinSizeRel|*" Project="NativeOnlyRelease" />
+      <BuildType Solution="RelWithDebInfo|*" Project="Release" />
       <Platform Solution="*|x86" Project="x64" />
+      <Build Solution="FuzzerDebug|ARM64" Project="false" />
+      <Build Solution="FuzzerDebug|x64" Project="false" />
     </Project>
     <Project Path="tests/netebpfext_unit/netebpfext_unit.vcxproj" Id="e619b985-44b3-4292-a585-5cd0c4315ed3">
       <BuildDependency Project="scripts/setup_build/setup_build.vcxproj" />
