@@ -4054,12 +4054,8 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
     bpf_program* connect4_program = bpf_object__find_program_by_name(object, "authorize_connect4");
     SAFE_REQUIRE(connect4_program != nullptr);
 
-    int result = bpf_prog_attach(
-        bpf_program__fd(const_cast<const bpf_program*>(connect4_program)),
-        UNSPECIFIED_COMPARTMENT_ID,
-        BPF_CGROUP_INET4_CONNECT,
-        0);
-    SAFE_REQUIRE(result == 0);
+    _program_attach_guard connect4_guard;
+    connect4_guard.attach(connect4_program, UNSPECIFIED_COMPARTMENT_ID, BPF_CGROUP_INET4_CONNECT);
 
     ZeroMemory(&program_info, program_info_size);
     SAFE_REQUIRE(
@@ -4068,8 +4064,9 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
     SAFE_REQUIRE(program_info.link_count == 1);
     SAFE_REQUIRE(program_info.map_ids == 0);
 
-    result = bpf_prog_detach(UNSPECIFIED_COMPARTMENT_ID, BPF_CGROUP_INET4_CONNECT);
+    int result = bpf_prog_detach(UNSPECIFIED_COMPARTMENT_ID, BPF_CGROUP_INET4_CONNECT);
     SAFE_REQUIRE(result == 0);
+    connect4_guard.attached = false;
 
     ZeroMemory(&program_info, program_info_size);
     SAFE_REQUIRE(
@@ -4080,12 +4077,8 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
     bpf_program* recv_accept4_program = bpf_object__find_program_by_name(object, "authorize_recv_accept4");
     SAFE_REQUIRE(recv_accept4_program != nullptr);
 
-    result = bpf_prog_attach(
-        bpf_program__fd(const_cast<const bpf_program*>(recv_accept4_program)),
-        UNSPECIFIED_COMPARTMENT_ID,
-        BPF_CGROUP_INET4_RECV_ACCEPT,
-        0);
-    SAFE_REQUIRE(result == 0);
+    _program_attach_guard recv_accept4_guard;
+    recv_accept4_guard.attach(recv_accept4_program, UNSPECIFIED_COMPARTMENT_ID, BPF_CGROUP_INET4_RECV_ACCEPT);
 
     SAFE_REQUIRE(
         bpf_obj_get_info_by_fd(
@@ -4099,6 +4092,7 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
         UNSPECIFIED_COMPARTMENT_ID,
         BPF_CGROUP_INET4_RECV_ACCEPT);
     SAFE_REQUIRE(result == 0);
+    recv_accept4_guard.attached = false;
 
     SAFE_REQUIRE(
         bpf_obj_get_info_by_fd(
