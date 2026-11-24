@@ -313,6 +313,10 @@ identity. The enrollment program uses the `sock_ops` context and existing helper
 - `bpf_get_current_logon_id(context)` reports the captured initiating token's `AuthenticationId`; and
 - `bpf_is_current_admin(context)` evaluates the captured initiating token.
 
+During enrollment, `protocol` determines how `bpf_sock_ops_t.local_port` and `remote_port` are interpreted. TCP and UDP
+use local and remote ports; ICMP and ICMPv6 use type and code, respectively. All use the existing network-byte-order
+representation.
+
 Unavailable identity uses the existing helper failure values. Tracking copies the same captured values and validity
 into the flow's stable metadata, so map selection and later classification use one identity snapshot.
 
@@ -831,7 +835,7 @@ deletes it.
 - natural flow deletion, explicit context removal, attachment removal, and map deletion cleanup;
 - process/logon/admin identity validity and stability;
 - direction reporting and program-side filtering;
-- UDP and ICMP/ICMPv6 payload boundaries and metadata;
+- UDP and ICMP/ICMPv6 enrollment metadata, payload boundaries, and per-message metadata;
 - USO/URO logical-datagram ordering, membership changes within a batch, and unchanged synchronous pass-through;
 - whole-indication `BLOCK` and `PEND`, and fail-closed inbound-URO `PEND`;
 - self-injected datagram bypass and third-party datagram reinjection behavior;
