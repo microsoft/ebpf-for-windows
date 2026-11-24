@@ -112,12 +112,15 @@ The design reuses `EBPF_PROGRAM_TYPE_SOCK_OPS` for enrollment and adds these lib
 | Stream attach type | `BPF_ATTACH_TYPE_STREAM_FLOW_CLASSIFY` | `EBPF_ATTACH_TYPE_STREAM_FLOW_CLASSIFY` |
 | Datagram attach type | `BPF_ATTACH_TYPE_DATAGRAM_FLOW_CLASSIFY` | `EBPF_ATTACH_TYPE_DATAGRAM_FLOW_CLASSIFY` |
 
-Flow-classify programs use these ELF section names:
+These ELF section names automatically select the program and expected attach type:
 
 - `flow_classify/stream` for `BPF_ATTACH_TYPE_STREAM_FLOW_CLASSIFY`, mapped to
   `EBPF_ATTACH_TYPE_STREAM_FLOW_CLASSIFY`; and
 - `flow_classify/datagram` for `BPF_ATTACH_TYPE_DATAGRAM_FLOW_CLASSIFY`, mapped to
   `EBPF_ATTACH_TYPE_DATAGRAM_FLOW_CLASSIFY`.
+
+The names are optional. The program type can be supplied explicitly, and attachment can select either attach type.
+Native generation preserves the selected expected attach type in the program metadata.
 
 The context and flow-map value contain fields used by both stream and datagram classification. Datagram data-path
 values and ICMP-specific metadata are produced only for datagram classification.
@@ -251,31 +254,48 @@ membership fails when the limit is reached.
 
 ### Program attachment
 
-A flow-classify program attaches to a flow-map FD through a link-returning API:
+Flow-classify programs attach to a flow-map FD. The link-returning API is:
 
 ```c
 /**
- * @brief Attaches a flow-classify program to a flow map.
+ * @brief Configures flow-classify attachment.
+ */
+struct bpf_flow_classify_attach_opts
+{
+    size_t sz;                        /**< Size of this structure. */
+    enum bpf_attach_type attach_type; /**< Attach type, or BPF_ATTACH_TYPE_UNSPEC to use the program's expected type. */
+};
+
+/**
+ * @brief Attaches a flow-classify program to a flow map and returns a link.
  *
  * @param[in] program Flow-classify program to attach.
  * @param[in] flow_map_fd File descriptor for the target flow map.
+ * @param[in] opts Optional attachment options.
  * @return A link that owns the attachment, or NULL with errno set on failure.
  */
 struct bpf_link*
-bpf_program__attach_flow_classify(const struct bpf_program* program, int flow_map_fd);
+bpf_program__attach_flow_classify(
+    const struct bpf_program* program, int flow_map_fd, const struct bpf_flow_classify_attach_opts* opts);
 ```
 
-The API derives the stream or datagram attach type from the program's expected attach type and rejects any other type.
-The returned link owns the attachment and retains the flow map. The caller retains or pins the link for the desired
-attachment lifetime.
+`opts == NULL` or `BPF_ATTACH_TYPE_UNSPEC` uses the program's expected attach type. An explicit stream or datagram type
+selects that slot even when it differs from the expected type; any other type is rejected.
+
+The same program can attach through `bpf_prog_attach()` using the flow-map FD, an explicit stream or datagram attach
+type, and zero flags. `bpf_prog_detach2()` removes the matching attachment.
+
+A returned link retains the program and flow map until the link is detached or destroyed. An attachment created by
+`bpf_prog_attach()` is owned by the map and retains the program until detached or the map is destroyed.
 
 A flow map supports:
 
 - zero or one stream classifier; and
 - zero or one datagram classifier.
 
-A second program for an occupied attach type is rejected. Multiple classifiers of the same type use separate flow
-maps. Applicable classifiers run in successful attachment order; reattaching places the new link at the end.
+A second attachment for an occupied attach type is rejected, regardless of API. Multiple classifiers of the same type
+use separate flow maps. Applicable classifiers run in successful attachment order; reattaching places the new
+attachment at the end.
 
 A classifier must be attached before a flow can be tracked for its protocol. No dormant memberships exist. A
 classifier can run concurrently for different flows tracked in its map. Detaching it prevents new invocations, waits
@@ -350,13 +370,13 @@ Tracking fails without creating a membership when the context is not an establis
 classifier, the membership limit is reached, resources cannot be allocated, required protocol metadata is unavailable,
 or the arguments or flags are invalid.
 
-A successful call reserves the required resources and retains the selected classifier link. The prepared membership
-remains inactive until the enrollment program returns. A failed call creates no membership and does not affect earlier
-successful calls.
+A successful call reserves the required resources and retains the selected classifier attachment. The prepared
+membership remains inactive until the enrollment program returns. A failed call creates no membership and does not
+affect earlier successful calls.
 
 After enrollment returns, the extension activates all prepared memberships together and arms payload inspection.
-Activation cannot fail. A racing link detach discards that link's prepared memberships, and a replacement attachment
-does not inherit them. Otherwise, the first payload includes every successfully tracked membership.
+Activation cannot fail. Racing attachment removal discards that attachment's prepared memberships, and a replacement
+attachment does not inherit them. Otherwise, the first payload includes every successfully tracked membership.
 
 ### Classification context
 
@@ -603,11 +623,11 @@ until natural deletion.
 WFP does not expose a UDP "conversation ended" event. Connectionless cleanup occurs when WFP deletes the associated
 flow context, such as after endpoint closure or implementation-defined flow timeout.
 
-### Link or map deletion
+### Attachment or map deletion
 
-Deleting a classifier link prevents new tracking and payload invocations, discards its prepared memberships, drains
-in-flight invocations, and cleans its active memberships. Reattachment does not inherit the removed memberships.
-Other classifier maps are unaffected.
+Removing a classifier attachment prevents new tracking and payload invocations, discards its prepared memberships,
+drains in-flight invocations, and cleans its active memberships. Reattachment does not inherit the removed
+memberships. Other classifier maps are unaffected.
 
 A flow map remains valid while file descriptors, pins, links, memberships, or pending operations reference it.
 
@@ -692,9 +712,9 @@ completion principles in [Asynchronous Processing](AsyncProcessing.md).
 - Only the current `sock_ops` context can authorize tracking its flow.
 - The fixed map key is the context-derived WFP flow ID.
 - Flow metadata and identity are extension-owned and read-only.
-- A flow-map handle grants metadata observation and classifier-attachment authority; link handles control detach.
+- A flow-map handle grants metadata observation and classifier-attachment authority.
 - eBPF programs cannot use standard map CRUD on flow maps.
-- Classifier attachments retain their maps and scope membership ownership.
+- Link attachments retain their maps; every attachment retains its program and owns its memberships.
 - Token-derived identity is captured before enrollment, used by the enrollment helpers, and copied into stable flow
   metadata; no raw token pointer is exposed or retained.
 - `max_entries` bounds map membership. Allocation, system flow state, payload linearization, and pending retention
@@ -784,15 +804,16 @@ Offloaded indications follow the behavior described in [Pending flows](#pending-
 ### Teardown
 
 WFP invokes `flowDeleteFn` when an associated flow ends. The extension stops new classifier invocations, drains
-in-flight calls, sends final deletion events, removes memberships, and releases the flow context. Link deletion removes
-only that link's memberships. A blocked flow retains enough state to reject later payload until WFP deletes it.
+in-flight calls, sends final deletion events, removes memberships, and releases the flow context. Attachment removal
+removes only that attachment's memberships. A blocked flow retains enough state to reject later payload until WFP
+deletes it.
 
 ## Validation
 
 ### Local
 
 - custom-map creation, lookup/enumeration, rejected mutation, and program-type association;
-- BPF-to-GUID program and attach-type mappings, map-target attach, map/link lifetime, and
+- BPF-to-GUID mappings, automatic and explicit attach-type selection, both attachment APIs, their lifetimes, and
   one-program-per-attach-type enforcement;
 - enrollment helper validation, captured flow-owner identity, idempotency, unsupported flags, and capacity limits;
 - atomic activation, per-call failure, and detach races before the first payload;
@@ -807,7 +828,7 @@ only that link's memberships. A blocked flow retains enough state to reject late
 - stream-gap reporting and WFP waterfall visibility with an additional modifying callout;
 - concurrent invocation without holding a lock across eBPF execution;
 - persistent whole-flow blocking for stream and datagram traffic;
-- natural flow deletion, explicit context removal, link detach, and map deletion cleanup;
+- natural flow deletion, explicit context removal, attachment removal, and map deletion cleanup;
 - process/logon/admin identity validity and stability;
 - direction reporting and program-side filtering;
 - UDP and ICMP/ICMPv6 payload boundaries and metadata;
