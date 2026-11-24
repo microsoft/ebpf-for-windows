@@ -41,6 +41,6 @@ extern "C" int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     UNREFERENCED_PARAMETER(size);
 
     __fastfail(0);
-    return 0;
+    __assume(0);
 }
 #endif
