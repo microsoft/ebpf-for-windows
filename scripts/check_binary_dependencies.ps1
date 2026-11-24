@@ -44,6 +44,13 @@ function Test-CppBinaryDependencies {
 
     # Read the list of expected binaries from the text file
     $ExpectedBinaries = Get-Content $TextFilePath
+    if ($BuildArtifact -eq "Build-x64-native-only_NativeOnlyRelease" -and (Split-Path -Leaf $FilePath) -ieq "ebpfapi.dll") {
+        $ToolsetVersion = [version](Split-Path -Leaf $VsToolsPath.TrimEnd('\'))
+        if ($ToolsetVersion -ge [version]"14.52") {
+            # MSVC 14.52's static runtime imports IsProcessorFeaturePresent during processor-feature initialization.
+            $ExpectedBinaries += "api-ms-win-core-processthreads-l1-1-1.dll"
+        }
+    }
     Write-Host "Expected dependency list:" -ForegroundColor Red
     Write-Host $ExpectedBinaries
 
