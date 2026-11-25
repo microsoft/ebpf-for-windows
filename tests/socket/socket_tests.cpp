@@ -66,7 +66,7 @@ struct _program_attach_guard
     operator=(const _program_attach_guard&) = delete;
 
     void
-    attach(bpf_program* new_program, uint32_t new_compartment_id, bpf_attach_type new_attach_type)
+    attach(_In_ bpf_program* new_program, uint32_t new_compartment_id, bpf_attach_type new_attach_type)
     {
         SAFE_REQUIRE(!attached);
         SAFE_REQUIRE(bpf_prog_attach(bpf_program__fd(new_program), new_compartment_id, new_attach_type, 0) == 0);
