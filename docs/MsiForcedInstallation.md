@@ -14,7 +14,10 @@ With `FORCE=1` and an existing eBPFCore registration, the MSI:
 2. Stops NetEbpfExt, eBPFSvc, and then eBPFCore.
 3. Records an existing backup name for each Windows binary, then removes each canonical name and creates its hard link directly to the new MSI binary.
 4. Saves the HKLM eBPF store, then populates HKLM and the installing user's HKCU with the MSI's metadata.
-5. Configures and starts the drivers, and configures and requests startup of eBPFSvc.
+5. Starts the drivers and requests startup of eBPFSvc without reconfiguring existing services.
+
+Forced installation assumes all three inbox services already exist with compatible configuration
+and canonical System32 binary paths; it does not validate or rewrite those settings.
 
 On final uninstall, the saved original service state, binary hard links, and HKLM store are used
 to restore the machine-wide eBPF stack to its pre-MSI state. HKCU has no backups: failed forced
@@ -77,16 +80,13 @@ flowchart TD
         NetshAdd["eBPF_netsh_helper_install"]
         CoreExists{"eBPFCore existed before install?"}
         CoreCreate["eBPFCore_Driver_install<br/>R: eBPFCore_Driver_uninstall_rollback"]
-        CoreConfigure["Force_eBPFCore_Driver_configure"]
         CoreStart["eBPFCore_Driver_start<br/>R: eBPFCore_Driver_stop_rollback"]
         NetExists{"NetEbpfExt existed before install?"}
-        NetConfigure["Force_NetEbpfExt_Driver_configure"]
-        NetForced{"Forced stack replacement?"}
         NetCreate["NetEbpfExt_Driver_install<br/>R: NetEbpfExt_Driver_uninstall_rollback"]
-        NetForceCreate["Force_NetEbpfExt_Driver_install<br/>R: NetEbpfExt_Driver_uninstall_rollback"]
         NetStart["NetEbpfExt_Driver_start<br/>R: NetEbpfExt_Driver_stop_rollback"]
         Environment["WriteEnvironmentStrings"]
-        SvcConfigure["Force_eBPFSvc_configure<br/>R: eBPFSvc_uninstall_rollback [eBPFSvc absent]<br/>R: Force_eBPFSvc_stop_rollback [forced stack replacement]"]
+        SvcExists{"eBPFSvc existed before install?<br/>R: Force_eBPFSvc_stop_rollback [forced stack replacement]"}
+        SvcConfigure["Force_eBPFSvc_configure<br/>R: eBPFSvc_uninstall_rollback"]
         SvcStart["StartServices"]
         Publish["RegisterUser<br/>RegisterProduct<br/>PublishFeatures<br/>PublishProduct"]
         NormalSuccess["Normal installation succeeded"]
@@ -100,13 +100,14 @@ flowchart TD
         ClearMachine --> SetupMachine --> ClearUser --> SetupUser
         SetupUser --> NetshDelete --> NetshAdd --> CoreExists
         CoreExists -->|No| CoreCreate --> CoreStart
-        CoreExists -->|Yes: FORCE=1 required| CoreConfigure --> CoreStart
+        CoreExists -->|Yes: configuration preserved| CoreStart
         CoreStart --> NetExists
-        NetExists -->|Yes: FORCE=1 and core required| NetConfigure --> NetStart
-        NetExists -->|No| NetForced
-        NetForced -->|No| NetCreate --> NetStart
-        NetForced -->|Yes| NetForceCreate --> NetStart
-        NetStart --> Environment --> SvcConfigure --> SvcStart --> Publish --> NormalSuccess
+        NetExists -->|Yes: configuration preserved| NetStart
+        NetExists -->|No: ordinary installation| NetCreate --> NetStart
+        NetStart --> Environment --> SvcExists
+        SvcExists -->|No: ordinary installation| SvcConfigure --> SvcStart
+        SvcExists -->|Yes: configuration preserved| SvcStart
+        SvcStart --> Publish --> NormalSuccess
     Allowed -->|Yes| Stop
 
     NormalSuccess --> Finished["InstallFinalize completes successfully"]
