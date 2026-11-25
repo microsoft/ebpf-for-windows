@@ -25,10 +25,8 @@ param(
         "PrepareRestoreStore",
         "RestoreStore",
         "RollbackRestoreStore",
-        "CommitRestoreStore",
         "CommitRestoreAll",
-        "PrepareUserStore",
-        "RollbackUserStore",
+        "RemoveUserStore",
         "ClearStore",
         "PopulateStore",
         "RestoreLinks",
@@ -41,14 +39,9 @@ param(
 
     [string]$SystemRootPath = $env:SystemRoot,
 
-    [ValidateSet("HKLM", "HKCU")]
-    [string]$Scope,
-
     [string]$StateRoot = (Join-Path ([Environment]::GetFolderPath("ProgramFiles")) "ebpf-for-windows\MsiBackup"),
 
     [string]$StoreRegistryPath,
-
-    [string]$InstallingUserSid,
 
     [string[]]$ServiceNames = @("eBPFCore", "NetEbpfExt", "eBPFSvc")
 )
@@ -153,17 +146,6 @@ namespace EbpfMsi
         private static extern bool SetFileSecurity(
             string fileName, uint securityInformation, byte[] securityDescriptor);
 
-        [StructLayout(LayoutKind.Sequential)]
-        private struct SecurityAttributes
-        {
-            public int Length;
-            public IntPtr Descriptor;
-            public int InheritHandle;
-        }
-
-        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        private static extern bool CreateDirectory(string path, ref SecurityAttributes attributes);
-
         [DllImport("advapi32.dll")]
         private static extern uint GetSecurityInfo(
             IntPtr handle, int objectType, uint information, out IntPtr owner, out IntPtr group,
@@ -182,9 +164,7 @@ namespace EbpfMsi
         }
 
         // Rejects untrusted ownership or permissions that let ordinary users tamper with protected backup paths.
-        // HKCU checks allow the recorded user limited directory access and access to their own backup files.
-        private static void CheckBackupAcl(
-            IntPtr handle, string path, bool ancestor, bool directory, string userSid = null)
+        private static void CheckBackupAcl(IntPtr handle, string path, bool ancestor, bool directory)
         {
             IntPtr owner, group, dacl, sacl, descriptor;
             uint error = GetSecurityInfo(
@@ -197,9 +177,7 @@ namespace EbpfMsi
                 byte[] bytes = new byte[GetSecurityDescriptorLength(descriptor)];
                 Marshal.Copy(descriptor, bytes, 0, bytes.Length);
                 RawSecurityDescriptor security = new RawSecurityDescriptor(bytes, 0);
-                bool userOwnedFile = !directory && userSid != null && security.Owner != null &&
-                    security.Owner.Value == userSid;
-                if ((!IsTrustedSid(security.Owner) && !userOwnedFile) || security.DiscretionaryAcl == null) {
+                if (!IsTrustedSid(security.Owner) || security.DiscretionaryAcl == null) {
                     throw new System.IO.IOException("Untrusted backup owner or missing DACL: " + path);
                 }
                 // DELETE, WRITE_DAC, WRITE_OWNER, FILE_DELETE_CHILD, and GENERIC_ALL:
@@ -226,14 +204,6 @@ namespace EbpfMsi
                         ace.SecurityIdentifier.IsWellKnown(System.Security.Principal.WellKnownSidType.CreatorOwnerSid)) {
                         continue;
                     }
-                    if (userSid != null && ace.SecurityIdentifier.Value == userSid) {
-                        // The user can create files, but cannot delete, re-ACL, or redirect the directory.
-                        if (directory && (ace.AceFlags & AceFlags.InheritOnly) == 0 &&
-                            ((uint)ace.AccessMask & (forbidden & ~0x2u)) != 0) {
-                            throw new System.IO.IOException("Unsafe HKCU directory permissions: " + path);
-                        }
-                        continue;
-                    }
                     if (((uint)ace.AccessMask & forbidden) != 0) {
                         throw new System.IO.IOException("Unprivileged write access to backup path: " + path);
                     }
@@ -245,7 +215,7 @@ namespace EbpfMsi
 
         // Opens and validates a backup path, rejecting redirection, hard-linked files, and unsafe permissions.
         // Returns a handle that the caller must close after use.
-        private static IntPtr OpenBackupPath(string path, bool directory, bool ancestor, string userSid = null)
+        private static IntPtr OpenBackupPath(string path, bool directory, bool ancestor)
         {
             IntPtr handle = CreateFile(
                 path, 0x00020080, directory ? FILE_SHARE_READ : FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -264,7 +234,7 @@ namespace EbpfMsi
                     (!directory && information.NumberOfLinks != 1)) {
                     throw new System.IO.IOException("Backup path is a reparse point, hard link, or wrong type: " + path);
                 }
-                CheckBackupAcl(handle, path, ancestor, directory, userSid);
+                CheckBackupAcl(handle, path, ancestor, directory);
                 return handle;
             } catch {
                 CloseHandle(handle);
@@ -272,47 +242,8 @@ namespace EbpfMsi
             }
         }
 
-        // Creates the user backup directory with the supplied permissions applied at creation.
-        // An existing directory is left unchanged for separate validation.
-        public static void CreateUserStore(string path, string sddl)
-        {
-            RawSecurityDescriptor descriptor = new RawSecurityDescriptor(sddl);
-            byte[] bytes = new byte[descriptor.BinaryLength];
-            descriptor.GetBinaryForm(bytes, 0);
-            GCHandle pinned = GCHandle.Alloc(bytes, GCHandleType.Pinned);
-            try {
-                SecurityAttributes attributes = new SecurityAttributes {
-                    Length = Marshal.SizeOf(typeof(SecurityAttributes)),
-                    Descriptor = pinned.AddrOfPinnedObject()
-                };
-                if (!CreateDirectory(path, ref attributes)) {
-                    int error = Marshal.GetLastWin32Error();
-                    if (error != 183) {
-                        throw new Win32Exception(error, "Cannot create protected backup directory: " + path);
-                    }
-                }
-            } finally {
-                pinned.Free();
-            }
-        }
-
-        private sealed class BackupDirectoryLock : IDisposable
-        {
-            public readonly System.Collections.Generic.List<IntPtr> Handles =
-                new System.Collections.Generic.List<IntPtr>();
-
-            public void Dispose()
-            {
-                for (int index = Handles.Count - 1; index >= 0; index--) {
-                    CloseHandle(Handles[index]);
-                }
-                Handles.Clear();
-            }
-        }
-
-        // Checks the backup folder and its ancestors; machine actions also create managed folders and check backup files.
-        // User actions require existing folders, and UserStore contents are checked separately.
-        public static void ValidateBackupDirectory(string path, bool userAction = false)
+        // Checks the protected backup folder, its ancestors, and its files.
+        public static void ValidateBackupDirectory(string path)
         {
             path = System.IO.Path.GetFullPath(path).TrimEnd('\\');
             string parent = System.IO.Path.GetDirectoryName(path);
@@ -331,97 +262,14 @@ namespace EbpfMsi
             directories.Reverse();
             foreach (string directory in directories) {
                 bool managed = directory == parent || directory == path;
-                if (managed && !userAction) {
+                if (managed) {
                     System.IO.Directory.CreateDirectory(directory);
                 }
                 IntPtr handle = OpenBackupPath(directory, true, !managed);
                 CloseHandle(handle);
             }
-            string userStore = System.IO.Path.Combine(path, "UserStore");
-            if (!userAction) {
-                foreach (string file in System.IO.Directory.GetFileSystemEntries(path)) {
-                    if (String.Equals(file, userStore, StringComparison.OrdinalIgnoreCase)) {
-                        continue;
-                    }
-                    IntPtr handle = OpenBackupPath(file, false, false);
-                    CloseHandle(handle);
-                }
-            }
-        }
-
-        // Validates the user backup directory and its files, keeping the directory locked against replacement.
-        // The caller must dispose the returned lock when the action finishes.
-        public static IDisposable LockUserStore(string path, string userSid = null)
-        {
-            BackupDirectoryLock guard = new BackupDirectoryLock();
-            try {
-                guard.Handles.Add(OpenBackupPath(path, true, false, userSid));
-                foreach (string file in System.IO.Directory.GetFileSystemEntries(path)) {
-                    IntPtr handle = OpenBackupPath(file, false, false, userSid);
-                    CloseHandle(handle);
-                }
-                return guard;
-            } catch {
-                guard.Dispose();
-                throw;
-            }
-        }
-
-        public static void ValidateProtectedFile(string path)
-        {
-            IntPtr handle = OpenBackupPath(path, false, false);
-            CloseHandle(handle);
-        }
-
-        public static void ValidateUserStoreDirectory(string path, string userSid)
-        {
-            IntPtr handle = OpenBackupPath(path, true, false, userSid);
-            CloseHandle(handle);
-        }
-
-        public static void SetBackupAccess(string path, string sddl)
-        {
-            RawSecurityDescriptor descriptor = new RawSecurityDescriptor(sddl);
-            byte[] bytes = new byte[descriptor.BinaryLength];
-            descriptor.GetBinaryForm(bytes, 0);
-            RestoreFileAcl(path, bytes);
-        }
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool SetFileInformationByHandle(
-            IntPtr handle, int informationClass, ref int information, uint size);
-
-        public static bool DeleteEmptyUserStore(string path, string userSid)
-        {
-            IntPtr handle = CreateFile(
-                path, 0x00030080, FILE_SHARE_READ | FILE_SHARE_WRITE, IntPtr.Zero, OPEN_EXISTING,
-                FILE_FLAG_BACKUP_SEMANTICS | 0x00200000, IntPtr.Zero);
-            if (handle == new IntPtr(-1)) {
-                int error = Marshal.GetLastWin32Error();
-                if (error == 2 || error == 3) {
-                    return true;
-                }
-                throw new Win32Exception(error, "Cannot open HKCU backup directory for cleanup.");
-            }
-            try {
-                ByHandleFileInformation information;
-                if (!GetFileInformationByHandle(handle, out information)) {
-                    throw new Win32Exception(Marshal.GetLastWin32Error());
-                }
-                if ((information.FileAttributes & 0x410) != 0x10) {
-                    throw new System.IO.IOException("HKCU backup directory is a reparse point or wrong type.");
-                }
-                CheckBackupAcl(handle, path, false, true, userSid);
-                int delete = 1;
-                if (!SetFileInformationByHandle(handle, 4, ref delete, 4)) {
-                    int error = Marshal.GetLastWin32Error();
-                    if (error == 145) {
-                        return false;
-                    }
-                    throw new Win32Exception(error, "Cannot remove empty HKCU backup directory.");
-                }
-                return true;
-            } finally {
+            foreach (string file in System.IO.Directory.GetFileSystemEntries(path)) {
+                IntPtr handle = OpenBackupPath(file, false, false);
                 CloseHandle(handle);
             }
         }
@@ -1012,81 +860,19 @@ function Rollback-Repair
     Remove-RepairFiles
 }
 
-function Get-UserStoreOwner
-{
-    $ownerFile = Join-Path $StateRoot "hkcu-owner.sid"
-    if (-not (Test-Path -LiteralPath $ownerFile -PathType Leaf)) {
-        return $null
-    }
-    [EbpfMsi.NativeSecurity]::ValidateProtectedFile($ownerFile)
-    return [System.Security.Principal.SecurityIdentifier]::new(
-        (Get-Content -LiteralPath $ownerFile -Raw).Trim()).Value
-}
-
-# Creates or validates the HKCU backup directory and grants the installing user access to its backup files.
-function Prepare-UserStore
-{
-    $userSid = [System.Security.Principal.SecurityIdentifier]::new($InstallingUserSid).Value
-    $userStore = Join-Path $StateRoot "UserStore"
-    $owner = Get-UserStoreOwner
-    if ($null -ne $owner) {
-        # Once user access is granted, SYSTEM must not consume or re-ACL the files inside.
-        [EbpfMsi.NativeSecurity]::ValidateUserStoreDirectory($userStore, $owner)
-        return
-    }
-
-    [EbpfMsi.NativeSecurity]::CreateUserStore(
-        $userStore, "O:BAG:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)")
-    $userStoreLock = [EbpfMsi.NativeSecurity]::LockUserStore($userStore)
-    try {
-        $ownerFile = Join-Path $StateRoot "hkcu-owner.sid"
-        $temporaryOwnerFile = $ownerFile + ".new"
-        Set-Content -LiteralPath $temporaryOwnerFile -Value $userSid -Encoding ASCII
-        [EbpfMsi.NativeSecurity]::SetBackupAccess(
-            $temporaryOwnerFile, "O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FR;;;BU)")
-        foreach ($file in @(Get-ChildItem -LiteralPath $userStore -File -Force)) {
-            [EbpfMsi.NativeSecurity]::SetBackupAccess(
-                $file.FullName, "O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;0x1301bf;;;$userSid)")
-        }
-        [EbpfMsi.NativeSecurity]::SetBackupAccess(
-            $userStore, "O:BAG:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;;0x1200ab;;;$userSid)(A;OIIO;0x1301bf;;;$userSid)")
-        Move-Item -LiteralPath $temporaryOwnerFile -Destination $ownerFile
-    } finally {
-        $userStoreLock.Dispose()
-    }
-}
-
-# Removes the HKCU backup directory and owner marker only when the directory is empty.
-function Remove-EmptyUserStore
-{
-    $owner = Get-UserStoreOwner
-    if ($null -eq $owner) {
-        return
-    }
-    if ([EbpfMsi.NativeSecurity]::DeleteEmptyUserStore((Join-Path $StateRoot "UserStore"), $owner)) {
-        Remove-Item -LiteralPath (Join-Path $StateRoot "hkcu-owner.sid") -Force
-    } else {
-        Write-Warning "Retaining the nonempty HKCU backup directory and its owner marker."
-    }
-}
-
 function Get-StorePaths
 {
-    param([Parameter(Mandatory = $true)][string]$StoreScope)
-
-    $scopeName = $StoreScope.ToLowerInvariant()
-    $storeRoot = if ($StoreScope -eq "HKCU") { Join-Path $StateRoot "UserStore" } else { $StateRoot }
     return @{
         RegistryPath =
             if ([string]::IsNullOrWhiteSpace($StoreRegistryPath)) {
-                "$StoreScope\Software\eBPF"
+                "HKLM\Software\eBPF"
             } else {
                 $StoreRegistryPath
             }
-        RegistryFile = Join-Path $storeRoot "ebpf-store-$scopeName.reg"
-        StateFile = Join-Path $storeRoot "ebpf-store-$scopeName.json"
-        UninstallStateFile = Join-Path $storeRoot "ebpf-store-$scopeName.uninstall.json"
-        UninstallRegistryFile = Join-Path $storeRoot "ebpf-store-$scopeName.uninstall.reg"
+        RegistryFile = Join-Path $StateRoot "ebpf-store-hklm.reg"
+        StateFile = Join-Path $StateRoot "ebpf-store-hklm.json"
+        UninstallStateFile = Join-Path $StateRoot "ebpf-store-hklm.uninstall.json"
+        UninstallRegistryFile = Join-Path $StateRoot "ebpf-store-hklm.uninstall.reg"
     }
 }
 
@@ -1775,11 +1561,6 @@ function Rollback-ServiceRestore
     Remove-Item -LiteralPath $paths.UninstallRollbackFile -Force
 }
 
-function Get-CurrentUserSid
-{
-    return [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-}
-
 function Assert-StoreRegistryPath
 {
     param(
@@ -1787,8 +1568,8 @@ function Assert-StoreRegistryPath
         [Parameter(Mandatory = $true)][hashtable]$Paths)
 
     if ($RegistryPath -ine $Paths.RegistryPath -or
-        -not $RegistryPath.StartsWith("$Scope\Software\", [System.StringComparison]::OrdinalIgnoreCase)) {
-        throw "The saved $Scope registry destination is invalid: '$RegistryPath'."
+        -not $RegistryPath.StartsWith("HKLM\Software\", [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "The saved HKLM registry destination is invalid: '$RegistryPath'."
     }
 }
 
@@ -1798,9 +1579,7 @@ function Import-StoreRegistryFile
         [Parameter(Mandatory = $true)][string]$Path,
         [Parameter(Mandatory = $true)][string]$RegistryPath)
 
-    $logicalRoot =
-        if ($Scope -eq "HKCU") { "HKEY_CURRENT_USER" } else { "HKEY_LOCAL_MACHINE" }
-    $logicalPath = $logicalRoot + $RegistryPath.Substring(4)
+    $logicalPath = "HKEY_LOCAL_MACHINE" + $RegistryPath.Substring(4)
     $lines = @(Get-Content -LiteralPath $Path)
     for ($index = 0; $index -lt $lines.Count; $index++) {
         $line = $lines[$index].TrimStart()
@@ -1811,7 +1590,7 @@ function Import-StoreRegistryFile
             $key = $line.Substring(1, $line.Length - 2)
             if ($key -ine $logicalPath -and
                 -not $key.StartsWith($logicalPath + "\", [System.StringComparison]::OrdinalIgnoreCase)) {
-                throw "Registry export '$Path' contains a key outside the saved $Scope store."
+                throw "Registry export '$Path' contains a key outside the saved HKLM store."
             }
         }
     }
@@ -1822,7 +1601,7 @@ function Import-StoreRegistryFile
         Invoke-NativeCommand `
             -FilePath (Join-Path $env:SystemRoot "System32\reg.exe") `
             -ArgumentList @("import", $importFile) `
-            -FailureMessage "Failed to restore the $Scope eBPF store"
+            -FailureMessage "Failed to restore the HKLM eBPF store"
     } finally {
         if (Test-Path -LiteralPath $importFile) {
             Remove-Item -LiteralPath $importFile -Force
@@ -1830,16 +1609,12 @@ function Import-StoreRegistryFile
     }
 }
 
-# Saves the selected original eBPF registry store, recording its prior existence and HKCU owner.
+# Saves the original machine-wide eBPF registry store and records its prior existence.
 function Backup-Store
 {
-    if ([string]::IsNullOrWhiteSpace($Scope)) {
-        throw "Scope is required for BackupStore."
-    }
-
-    $paths = Get-StorePaths -StoreScope $Scope
-    if (@(Get-ChildItem -LiteralPath (Split-Path $paths.StateFile) -Filter "ebpf-store-$Scope.*" -Force).Count -ne 0) {
-        throw "Existing $Scope eBPF store backup requires recovery before installation: '$StateRoot'."
+    $paths = Get-StorePaths
+    if (@(Get-ChildItem -LiteralPath $StateRoot -Filter "ebpf-store-hklm.*" -Force).Count -ne 0) {
+        throw "Existing HKLM eBPF store backup requires recovery before installation: '$StateRoot'."
     }
 
     $providerPath = Get-RegistryProviderPath -RegistryPath $paths.RegistryPath
@@ -1849,15 +1624,14 @@ function Backup-Store
             Invoke-NativeCommand `
                 -FilePath (Join-Path $env:SystemRoot "System32\reg.exe") `
                 -ArgumentList @("export", $paths.RegistryPath, $paths.RegistryFile, "/y") `
-                -FailureMessage "Failed to save the original $Scope eBPF store"
+                -FailureMessage "Failed to save the original HKLM eBPF store"
         }
 
         $state = [PSCustomObject]@{
             SchemaVersion = 1
-            Scope = $Scope
+            Scope = "HKLM"
             RegistryPath = $paths.RegistryPath
             StoreExisted = $storeExisted
-            UserSid = if ($Scope -eq "HKCU") { Get-CurrentUserSid } else { $null }
             Created = (Get-Date).ToUniversalTime().ToString("o")
         }
         $state | ConvertTo-Json | Set-Content -LiteralPath $paths.StateFile -Encoding UTF8
@@ -1873,50 +1647,25 @@ function Read-StoreState
     param([Parameter(Mandatory = $true)][hashtable]$Paths)
 
     if (-not (Test-Path -LiteralPath $Paths.StateFile -PathType Leaf)) {
-        if ($Scope -eq "HKCU" -and
-            (Test-Path -LiteralPath (Get-ServicePaths).StateFile -PathType Leaf)) {
-            throw "The original HKCU eBPF store snapshot is missing: $($Paths.StateFile)"
-        }
         return $null
     }
     $state = Get-Content -LiteralPath $Paths.StateFile -Raw | ConvertFrom-Json
     if ([int]$state.SchemaVersion -ne 1) {
         throw "Unsupported eBPF store backup schema version '$($state.SchemaVersion)'."
     }
-    if ([string]$state.Scope -ne $Scope) {
-        throw "The eBPF store backup scope does not match '$Scope'."
+    if ([string]$state.Scope -ne "HKLM") {
+        throw "The eBPF store backup scope does not match 'HKLM'."
     }
     Assert-StoreRegistryPath -RegistryPath ([string]$state.RegistryPath) -Paths $Paths
     return $state
 }
 
-function Test-StoreRestoreUser
-{
-    param([AllowNull()][object]$State)
-
-    if ($Scope -ne "HKCU") {
-        return $true
-    }
-    if ($null -eq $State) {
-        return (Get-UserStoreOwner) -eq (Get-CurrentUserSid)
-    }
-    if ([string]$State.UserSid -ne (Get-CurrentUserSid)) {
-        Write-Warning "Skipping HKCU restoration: backup belongs to '$($State.UserSid)', not the current user. Retaining the backup."
-        return $false
-    }
-    return $true
-}
-
-# Restores the selected original eBPF registry store after a failed install and removes its backup.
+# Restores the original machine-wide eBPF registry store after a failed install and removes its backup.
 function Rollback-StoreTransaction
 {
-    if ([string]::IsNullOrWhiteSpace($Scope)) {
-        throw "Scope is required for store rollback."
-    }
-
-    $paths = Get-StorePaths -StoreScope $Scope
+    $paths = Get-StorePaths
     $state = Read-StoreState -Paths $paths
-    if ($null -eq $state -or -not (Test-StoreRestoreUser -State $state)) {
+    if ($null -eq $state) {
         return
     }
 
@@ -1925,58 +1674,32 @@ function Rollback-StoreTransaction
     Remove-Item -LiteralPath $paths.StateFile -Force
 }
 
-# Restores the selected original registry store or clears MSI metadata, skipping HKCU owned by another user.
+# Restores the original machine-wide registry store or clears MSI metadata.
 function Restore-Store
 {
-    if ([string]::IsNullOrWhiteSpace($Scope)) {
-        throw "Scope is required for store restoration."
-    }
-
-    $paths = Get-StorePaths -StoreScope $Scope
+    $paths = Get-StorePaths
     $state = Read-StoreState -Paths $paths
-    if (-not (Test-StoreRestoreUser -State $state)) {
-        return
-    }
-    $uninstallState = $null
-    if ($Scope -eq "HKCU" -and (Test-Path -LiteralPath $paths.UninstallStateFile -PathType Leaf)) {
-        $uninstallState = Get-Content -LiteralPath $paths.UninstallStateFile -Raw | ConvertFrom-Json
-        if (-not (Test-StoreRestoreUser -State $uninstallState)) {
-            return
-        }
-    }
     if ($null -eq $state) {
         Invoke-NativeCommand -FilePath (Join-Path $InstallRoot "export_program_info.exe") `
             -ArgumentList @("--clear") `
             -FailureMessage "Failed to remove MSI-owned eBPF metadata"
     } elseif ([bool]$state.StoreExisted) {
         if (-not (Test-Path -LiteralPath $paths.RegistryFile -PathType Leaf)) {
-            throw "The saved $Scope eBPF store file is missing: $($paths.RegistryFile)"
+            throw "The saved HKLM eBPF store file is missing: $($paths.RegistryFile)"
         }
         Import-StoreRegistryFile -Path $paths.RegistryFile -RegistryPath ([string]$state.RegistryPath)
     } else {
         Remove-RegistryTreeIfPresent -RegistryPath ([string]$state.RegistryPath)
     }
-
-    if ($null -ne $uninstallState) {
-        $uninstallState | Add-Member -NotePropertyName RestoreCompleted -NotePropertyValue $true -Force
-        $uninstallState | ConvertTo-Json | Set-Content -LiteralPath $paths.UninstallStateFile -Encoding UTF8
-    }
 }
 
-# Saves the selected current eBPF registry store so uninstall restoration can be rolled back.
+# Saves the current machine-wide eBPF registry store so uninstall restoration can be rolled back.
 function Prepare-StoreRestore
 {
-    if ([string]::IsNullOrWhiteSpace($Scope)) {
-        throw "Scope is required for store restoration preparation."
-    }
-
-    $paths = Get-StorePaths -StoreScope $Scope
+    $paths = Get-StorePaths
     if ((Test-Path -LiteralPath $paths.UninstallStateFile) -or
         (Test-Path -LiteralPath $paths.UninstallRegistryFile)) {
-        throw "Incomplete $Scope eBPF store uninstall transaction exists in '$StateRoot'."
-    }
-    if ($Scope -eq "HKCU" -and -not (Test-StoreRestoreUser -State (Read-StoreState -Paths $paths))) {
-        return
+        throw "Incomplete HKLM eBPF store uninstall transaction exists in '$StateRoot'."
     }
 
     $providerPath = Get-RegistryProviderPath -RegistryPath $paths.RegistryPath
@@ -1986,16 +1709,14 @@ function Prepare-StoreRestore
             Invoke-NativeCommand `
                 -FilePath (Join-Path $env:SystemRoot "System32\reg.exe") `
                 -ArgumentList @("export", $paths.RegistryPath, $paths.UninstallRegistryFile, "/y") `
-                -FailureMessage "Failed to save the current $Scope eBPF store for uninstall rollback"
+                -FailureMessage "Failed to save the current HKLM eBPF store for uninstall rollback"
         }
 
         [PSCustomObject]@{
             SchemaVersion = 1
-            Scope = $Scope
+            Scope = "HKLM"
             RegistryPath = $paths.RegistryPath
             StoreExisted = $storeExisted
-            UserSid = if ($Scope -eq "HKCU") { Get-CurrentUserSid } else { $null }
-            RestoreCompleted = $false
         } | ConvertTo-Json | Set-Content -LiteralPath $paths.UninstallStateFile -Encoding UTF8
     } catch {
         Remove-BackupFileIfPresent -Path $paths.UninstallRegistryFile
@@ -2004,30 +1725,23 @@ function Prepare-StoreRestore
     }
 }
 
-# Restores the selected pre-uninstall registry store when uninstall fails, honoring HKCU ownership.
+# Restores the machine-wide pre-uninstall registry store when uninstall fails.
 function Rollback-StoreRestore
 {
-    if ([string]::IsNullOrWhiteSpace($Scope)) {
-        throw "Scope is required for store restoration rollback."
-    }
-
-    $paths = Get-StorePaths -StoreScope $Scope
+    $paths = Get-StorePaths
     if (-not (Test-Path -LiteralPath $paths.UninstallStateFile -PathType Leaf)) {
         return
     }
 
     $state = Get-Content -LiteralPath $paths.UninstallStateFile -Raw | ConvertFrom-Json
-    if ([int]$state.SchemaVersion -ne 1 -or [string]$state.Scope -ne $Scope) {
-        throw "Invalid pending $Scope eBPF store uninstall transaction."
-    }
-    if (-not (Test-StoreRestoreUser -State $state)) {
-        return
+    if ([int]$state.SchemaVersion -ne 1 -or [string]$state.Scope -ne "HKLM") {
+        throw "Invalid pending HKLM eBPF store uninstall transaction."
     }
 
     Assert-StoreRegistryPath -RegistryPath ([string]$state.RegistryPath) -Paths $paths
     if ([bool]$state.StoreExisted) {
         if (-not (Test-Path -LiteralPath $paths.UninstallRegistryFile -PathType Leaf)) {
-            throw "The $Scope eBPF uninstall rollback store file is missing: $($paths.UninstallRegistryFile)"
+            throw "The HKLM eBPF uninstall rollback store file is missing: $($paths.UninstallRegistryFile)"
         }
         Import-StoreRegistryFile -Path $paths.UninstallRegistryFile -RegistryPath ([string]$state.RegistryPath)
     } else {
@@ -2038,30 +1752,10 @@ function Rollback-StoreRestore
     Remove-Item -LiteralPath $paths.UninstallStateFile -Force
 }
 
-# Deletes completed store-restoration backups while retaining original HKCU backups if restoration was skipped.
+# Deletes completed machine-store restoration backups.
 function Commit-StoreRestore
 {
-    if ([string]::IsNullOrWhiteSpace($Scope)) {
-        throw "Scope is required for store restoration commit."
-    }
-
-    $paths = Get-StorePaths -StoreScope $Scope
-    if ($Scope -eq "HKCU") {
-        $uninstallState =
-            if (Test-Path -LiteralPath $paths.UninstallStateFile -PathType Leaf) {
-                Get-Content -LiteralPath $paths.UninstallStateFile -Raw | ConvertFrom-Json
-            } else {
-                $null
-            }
-        if ($null -eq $uninstallState -or
-            $null -eq $uninstallState.PSObject.Properties["RestoreCompleted"] -or
-            -not [bool]$uninstallState.RestoreCompleted) {
-            Write-Warning "HKCU restoration was not completed; retaining the original HKCU backup."
-            Remove-BackupFileIfPresent -Path $paths.UninstallRegistryFile
-            Remove-BackupFileIfPresent -Path $paths.UninstallStateFile
-            return
-        }
-    }
+    $paths = Get-StorePaths
     foreach ($path in @(
         $paths.RegistryFile, $paths.StateFile,
         $paths.UninstallRegistryFile, $paths.UninstallStateFile)) {
@@ -2069,189 +1763,164 @@ function Commit-StoreRestore
     }
 }
 
-$userStoreLock = $null
-try {
-    if ($Action -match "(Services|Store|Repair)$" -or $Action -eq "CommitRestoreAll" -or
-        $Action -in @("BackupLinks", "Install", "Rollback", "RestoreLinks", "RollbackRestoreLinks")) {
-        $StateRoot = [System.IO.Path]::GetFullPath($StateRoot)
-        $userStoreAction = $Scope -eq "HKCU"
-        [EbpfMsi.NativeSecurity]::ValidateBackupDirectory($StateRoot, $userStoreAction)
-        if ($userStoreAction) {
-            $owner = Get-UserStoreOwner
-            if ($null -eq $owner -or $owner -ne (Get-CurrentUserSid)) {
-                Write-Warning "Skipping HKCU action '$Action': the current user does not own the installer's HKCU backup area."
-                return
-            }
-            $userStoreLock = [EbpfMsi.NativeSecurity]::LockUserStore((Join-Path $StateRoot "UserStore"), $owner)
-        }
+if (($Action -match "(Services|Store|Repair)$" -and
+        $Action -notin @("ClearStore", "PopulateStore", "RemoveUserStore")) -or $Action -eq "CommitRestoreAll" -or
+    $Action -in @("BackupLinks", "Install", "Rollback", "RestoreLinks", "RollbackRestoreLinks")) {
+    $StateRoot = [System.IO.Path]::GetFullPath($StateRoot)
+    [EbpfMsi.NativeSecurity]::ValidateBackupDirectory($StateRoot)
+}
+switch ($Action) {
+    "PrepareRepair" {
+        Prepare-Repair
     }
-    switch ($Action) {
-        "PrepareRepair" {
-            Prepare-Repair
+    "Repair" {
+        Repair-Stack
+    }
+    "RollbackRepair" {
+        Rollback-Repair
+    }
+    "CommitRepair" {
+        Remove-RepairFiles
+    }
+    "BackupLinks" {
+        Backup-OriginalLinks
+    }
+
+    # Replaces canonical Windows binary paths with hard links to the installed MSI files.
+    "Install" {
+        $originalLinks = Get-OriginalLinks
+        if ($originalLinks.Count -eq 0) {
+            throw "The original eBPF hard-link record is missing."
         }
-        "Repair" {
-            Repair-Stack
-        }
-        "RollbackRepair" {
-            Rollback-Repair
-        }
-        "CommitRepair" {
-            Remove-RepairFiles
-        }
-        "BackupLinks" {
-            Backup-OriginalLinks
+        foreach ($mapping in $mappings) {
+            if (-not (Test-Path -LiteralPath $mapping.Source -PathType Leaf)) {
+                throw "Installed eBPF binary is missing: $($mapping.Source)"
+            }
+            if (-not (Test-SameFile -FirstPath $originalLinks[$mapping.Link] -SecondPath $mapping.Link)) {
+                throw "The canonical eBPF binary changed after backup: $($mapping.Link)"
+            }
         }
 
-        # Replaces canonical Windows binary paths with hard links to the installed MSI files.
-        "Install" {
-            $originalLinks = Get-OriginalLinks
-            if ($originalLinks.Count -eq 0) {
-                throw "The original eBPF hard-link record is missing."
-            }
+        try {
             foreach ($mapping in $mappings) {
-                if (-not (Test-Path -LiteralPath $mapping.Source -PathType Leaf)) {
-                    throw "Installed eBPF binary is missing: $($mapping.Source)"
-                }
-                if (-not (Test-SameFile -FirstPath $originalLinks[$mapping.Link] -SecondPath $mapping.Link)) {
-                    throw "The canonical eBPF binary changed after backup: $($mapping.Link)"
-                }
+                Set-BinaryLink -Mapping $mapping -Original $originalLinks[$mapping.Link] -Target $mapping.Source
             }
-
+        } catch {
+            $installError = $_
             try {
-                foreach ($mapping in $mappings) {
-                    Set-BinaryLink -Mapping $mapping -Original $originalLinks[$mapping.Link] -Target $mapping.Source
-                }
+                Rollback-InstalledLinks
             } catch {
-                $installError = $_
-                try {
-                    Rollback-InstalledLinks
-                } catch {
-                    throw "$($installError.Exception.Message)`nLink restoration failure: $($_.Exception.Message)"
-                }
-                throw $installError
+                throw "$($installError.Exception.Message)`nLink restoration failure: $($_.Exception.Message)"
             }
-        }
-
-        "Rollback" {
-            Rollback-InstalledLinks
-        }
-
-        "InstallEbpfSvc" {
-            Install-MsiEbpfService
-        }
-
-        "BackupServices" {
-            Backup-Services
-        }
-
-        "RollbackServices" {
-            Rollback-ServiceTransaction
-        }
-
-        "PrepareRestoreServices" {
-            Prepare-ServiceRestore
-        }
-
-        "RemoveServices" {
-            Remove-MsiServices
-        }
-
-        "RestoreServices" {
-            Restore-Services
-        }
-
-        # Stops the eBPF stack before uninstall rollback restores its pre-uninstall state.
-        "StopServices" {
-            $failures = @()
-            for ($index = $ServiceNames.Count - 1; $index -ge 0; $index--) {
-                try {
-                    Stop-ServiceIfPresent -Name $ServiceNames[$index]
-                } catch {
-                    $failures += "$($ServiceNames[$index]): $($_.Exception.Message)"
-                }
-            }
-            if ($failures.Count -ne 0) {
-                throw ($failures -join [Environment]::NewLine)
-            }
-        }
-
-        "RollbackRestoreServices" {
-            Rollback-ServiceRestore
-        }
-
-        "BackupStore" {
-            Backup-Store
-        }
-
-        "PrepareUserStore" {
-            Prepare-UserStore
-        }
-
-        "RollbackUserStore" {
-            Remove-EmptyUserStore
-        }
-
-        # Clears the calling user's eBPF registry metadata before populating it from the MSI.
-        "ClearStore" {
-            Invoke-NativeCommand -FilePath (Join-Path $InstallRoot "export_program_info.exe") `
-                -ArgumentList @("--clear") -FailureMessage "Failed to clear the user eBPF store"
-        }
-
-        # Populates the calling user's eBPF registry store using the installed metadata exporter.
-        "PopulateStore" {
-            & (Join-Path $InstallRoot "export_program_info.exe")
-            if ($LASTEXITCODE -ne 0) {
-                throw "Failed to populate the user eBPF store (exit code $LASTEXITCODE)."
-            }
-        }
-
-        "RollbackStore" {
-            Rollback-StoreTransaction
-        }
-
-        "RestoreStore" {
-            Restore-Store
-        }
-
-        "PrepareRestoreStore" {
-            Prepare-StoreRestore
-        }
-
-        "RollbackRestoreStore" {
-            Rollback-StoreRestore
-        }
-
-        "CommitRestoreStore" {
-            Commit-StoreRestore
-        }
-
-        # Cleans up HKLM and service backups, an empty HKCU backup directory, and the retained cleanup script.
-        "CommitRestoreAll" {
-            $Scope = "HKLM"
-            Commit-StoreRestore
-            $paths = Get-ServicePaths
-            Remove-ServiceStateFiles -FileSuffix "original"
-            Remove-ServiceStateFiles -FileSuffix "uninstall-rollback"
-            foreach ($path in @($paths.StateFile, $paths.UninstallRollbackFile)) {
-                if (Test-Path -LiteralPath $path) {
-                    Remove-Item -LiteralPath $path -Force
-                }
-            }
-            Remove-BackupFileIfPresent -Path (Join-Path $StateRoot "ebpf-binary-links.original.json")
-            Remove-EmptyUserStore
-            Remove-Item -LiteralPath (Join-Path $StateRoot "ForceEbpfStack.cleanup.ps1") -Force
-        }
-
-        "RestoreLinks" {
-            Restore-OriginalLinks
-        }
-
-        "RollbackRestoreLinks" {
-            Restore-MsiLinks
+            throw $installError
         }
     }
-} finally {
-    if ($null -ne $userStoreLock) {
-        $userStoreLock.Dispose()
+
+    "Rollback" {
+        Rollback-InstalledLinks
+    }
+
+    "InstallEbpfSvc" {
+        Install-MsiEbpfService
+    }
+
+    "BackupServices" {
+        Backup-Services
+    }
+
+    "RollbackServices" {
+        Rollback-ServiceTransaction
+    }
+
+    "PrepareRestoreServices" {
+        Prepare-ServiceRestore
+    }
+
+    "RemoveServices" {
+        Remove-MsiServices
+    }
+
+    "RestoreServices" {
+        Restore-Services
+    }
+
+    # Stops the eBPF stack before uninstall rollback restores its pre-uninstall state.
+    "StopServices" {
+        $failures = @()
+        for ($index = $ServiceNames.Count - 1; $index -ge 0; $index--) {
+            try {
+                Stop-ServiceIfPresent -Name $ServiceNames[$index]
+            } catch {
+                $failures += "$($ServiceNames[$index]): $($_.Exception.Message)"
+            }
+        }
+        if ($failures.Count -ne 0) {
+            throw ($failures -join [Environment]::NewLine)
+        }
+    }
+
+    "RollbackRestoreServices" {
+        Rollback-ServiceRestore
+    }
+
+    "BackupStore" {
+        Backup-Store
+    }
+
+    "RemoveUserStore" {
+        Remove-RegistryTreeIfPresent -RegistryPath "HKCU\Software\eBPF"
+    }
+
+    # Clears the calling user's eBPF registry metadata before populating it from the MSI.
+    "ClearStore" {
+        Invoke-NativeCommand -FilePath (Join-Path $InstallRoot "export_program_info.exe") `
+            -ArgumentList @("--clear") -FailureMessage "Failed to clear the user eBPF store"
+    }
+
+    # Populates the calling user's eBPF registry store using the installed metadata exporter.
+    "PopulateStore" {
+        & (Join-Path $InstallRoot "export_program_info.exe")
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to populate the user eBPF store (exit code $LASTEXITCODE)."
+        }
+    }
+
+    "RollbackStore" {
+        Rollback-StoreTransaction
+    }
+
+    "RestoreStore" {
+        Restore-Store
+    }
+
+    "PrepareRestoreStore" {
+        Prepare-StoreRestore
+    }
+
+    "RollbackRestoreStore" {
+        Rollback-StoreRestore
+    }
+
+    # Cleans up HKLM and service backups and the retained cleanup script.
+    "CommitRestoreAll" {
+        Commit-StoreRestore
+        $paths = Get-ServicePaths
+        Remove-ServiceStateFiles -FileSuffix "original"
+        Remove-ServiceStateFiles -FileSuffix "uninstall-rollback"
+        foreach ($path in @($paths.StateFile, $paths.UninstallRollbackFile)) {
+            if (Test-Path -LiteralPath $path) {
+                Remove-Item -LiteralPath $path -Force
+            }
+        }
+        Remove-BackupFileIfPresent -Path (Join-Path $StateRoot "ebpf-binary-links.original.json")
+        Remove-Item -LiteralPath (Join-Path $StateRoot "ForceEbpfStack.cleanup.ps1") -Force
+    }
+
+    "RestoreLinks" {
+        Restore-OriginalLinks
+    }
+
+    "RollbackRestoreLinks" {
+        Restore-MsiLinks
     }
 }

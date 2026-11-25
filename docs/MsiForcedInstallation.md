@@ -5,18 +5,23 @@
 For a new installation, if the registry search detects an existing eBPFCore service `ImagePath`,
 the MSI stops unless `FORCE=1` is supplied.
 
+Forced installation also rejects an existing `HKCU\Software\eBPF` key before installing files or
+stopping services. HKCU checks, writes, and cleanup run as the installing user, not as SYSTEM.
+
 With `FORCE=1` and an existing eBPFCore registration, the MSI:
 
 1. Saves the current configuration and running state of eBPFCore, NetEbpfExt, and eBPFSvc.
 2. Stops NetEbpfExt, eBPFSvc, and then eBPFCore.
 3. Records an existing backup name for each Windows binary, then removes each canonical name and creates its hard link directly to the new MSI binary.
-4. Saves the HKLM and installing user's HKCU eBPF stores, then replaces their metadata with the MSI's version.
+4. Saves the HKLM eBPF store, then populates HKLM and the installing user's HKCU with the MSI's metadata.
 5. Configures and starts the drivers, and configures and requests startup of eBPFSvc.
 
 On final uninstall, the saved original service state, binary hard links, and HKLM store are used
-to restore the machine-wide eBPF stack to its pre-MSI state. HKCU restoration is best effort by identity:
-only the saved installing user restores their HKCU store. Another user or SYSTEM skips that restoration
-with a warning, leaves the caller's HKCU unchanged, and retains the original HKCU backup.
+to restore the machine-wide eBPF stack to its pre-MSI state. HKCU has no backups: failed forced
+installation removes the newly created user store, and successful final uninstall deletes
+`HKCU\Software\eBPF` during commit. HKCU cleanup is deferred until successful uninstall commit,
+so no uninstall snapshot is needed.
+Installation and uninstallation must run as the same user; there is no cross-user cleanup or ownership marker.
 
 Known limitation: if eBPFSvc was running when uninstall began, Restart Manager may stop it before
 the rollback snapshot. If uninstall subsequently fails, rollback may leave eBPFSvc stopped rather than
@@ -24,8 +29,8 @@ restore its running state. Start it manually if needed.
 
 | Purpose | Filenames |
 |---|---|
-| Original store | `ebpf-store-<scope>.json`<br/>`ebpf-store-<scope>.reg` |
-| Uninstall store undo | `ebpf-store-<scope>.uninstall.json`<br/>`ebpf-store-<scope>.uninstall.reg` |
+| Original machine store | `ebpf-store-hklm.json`<br/>`ebpf-store-hklm.reg` |
+| Uninstall machine store undo | `ebpf-store-hklm.uninstall.json`<br/>`ebpf-store-hklm.uninstall.reg` |
 | Original services | `ebpf-services.original.json`<br/>`<service>.original.reg` |
 | Uninstall service undo | `ebpf-services.uninstall-rollback.json`<br/>`<service>.uninstall-rollback.reg` |
 | Repair undo | `ebpf-repair.json`<br/>`<service>.repair.reg` |
@@ -35,11 +40,7 @@ restore its running state. Start it manually if needed.
 ### Backup directory protection
 
 Machine backups inherit Program Files permissions: ordinary users can read but not modify them.
-Only `UserStore` and its protected owner marker receive custom ACLs. The installing user can create,
-modify, and delete backup files, but cannot rename, delete, or change permissions on `UserStore` itself
-or create subdirectories. SYSTEM stages the owner marker, grants user access, then finalizes
-`hkcu-owner.sid`. HKCU actions run as that user; other identities skip them without loading another
-profile.
+No per-user backup directory, SID file, or custom user-backup ACLs are created.
 
 ## 1. Install execution flow
 
@@ -51,7 +52,7 @@ before that step in sequence order, since the previous executed step.
 
 ```mermaid
 flowchart TD
-    Prep["Immediate preparation"]
+    Prep["Immediate preparation<br/>Validate_existing_eBPF_stack [forced replacement]"]
     Allowed{"Launch conditions pass?"}
     Reject["Launch-condition failure"]
     Prep --> Allowed
@@ -60,7 +61,6 @@ flowchart TD
         Stop{"Forced stack replacement?"}
         StandardStop["StopServices"]
         Files["CreateFolders<br/>InstallFiles"]
-        UserAccess["Prepare_eBPF_user_store<br/>R: Rollback_eBPF_user_store"]
         Forced{"Existing eBPFCore and FORCE=1?"}
         Backup["Force_eBPF_services_backup"]
         NetStop["Force_NetEbpfExt_Driver_stop<br/>R: Force_eBPF_services_rollback"]
@@ -69,8 +69,7 @@ flowchart TD
         BinaryBackup["Force_eBPF_binaries_backup"]
         Links["Force_eBPF_binaries_hardlink<br/>R: Force_eBPF_binaries_restore"]
         MachineBackup["Force_eBPF_store_backup_HKLM"]
-        UserBackup["Force_eBPF_store_backup_HKCU<br/>R: Force_eBPF_store_rollback_HKLM"]
-        ClearMachine["Clear_eBPF_store_HKLM<br/>R: Force_eBPF_store_rollback_HKCU [forced replacement]"]
+        ClearMachine["Clear_eBPF_store_HKLM<br/>R: Force_eBPF_store_rollback_HKLM [forced replacement]<br/>R: Rollback_eBPF_store_HKCU [forced replacement]"]
         SetupMachine["Setup_eBPF_store_HKLM"]
         ClearUser["Clear_eBPF_store_HKCU"]
         SetupUser["Setup_eBPF_store_HKCU"]
@@ -94,9 +93,9 @@ flowchart TD
 
         Stop -->|No| StandardStop --> Files
         Stop -->|Yes: standard StopServices skipped| Files
-        Files --> UserAccess --> Forced
+        Files --> Forced
         Forced -->|Yes| Backup --> NetStop --> SvcStop --> CoreStop
-        CoreStop --> BinaryBackup --> Links --> MachineBackup --> UserBackup --> ClearMachine
+        CoreStop --> BinaryBackup --> Links --> MachineBackup --> ClearMachine
         Forced -->|No| ClearMachine
         ClearMachine --> SetupMachine --> ClearUser --> SetupUser
         SetupUser --> NetshDelete --> NetshAdd --> CoreExists
@@ -117,8 +116,7 @@ flowchart TD
 If normal work reports a fatal error, MSI runs the rollback work accumulated so far, using the
 original backups. No success-only install cleanup is needed: successful installation keeps those
 backups for uninstall.
-After HKCU rollback, SYSTEM removes an empty `UserStore` and its owner marker, including pre-existing
-empty metadata. If backup files remain, both the directory and marker are retained for recovery.
+HKCU rollback simply removes the user store created by the failed forced installation.
 
 ## 2. Uninstall execution flow
 
@@ -132,29 +130,26 @@ removing registrations. The separate driver-stop actions apply only to upgrade r
 flowchart TD
     Prep["Immediate preparation"]
 
-        UserAccess["Prepare_eBPF_user_store_uninstall"]
         ServiceSnapshot["Force_eBPF_services_uninstall_prepare"]
         MachineSnapshot["Force_eBPF_store_uninstall_prepare_HKLM<br/>R: Force_eBPF_services_uninstall_rollback"]
-        UserSnapshot["Force_eBPF_store_uninstall_prepare_HKCU<br/>R: Force_eBPF_store_uninstall_rollback_HKLM"]
-        Netsh["eBPF_netsh_helper_uninstall<br/>R: Force_eBPF_store_uninstall_rollback_HKCU"]
+        Netsh["eBPF_netsh_helper_uninstall<br/>R: Force_eBPF_store_uninstall_rollback_HKLM"]
         ServiceRemove["Force_eBPF_services_uninstall_remove"]
         Components["ProcessComponents<br/>UnpublishFeatures"]
         StandardStop["StopServices"]
         Environment["RemoveEnvironmentStrings"]
         MachineRestore["Force_eBPF_store_restore_HKLM<br/>R: Force_eBPF_binaries_uninstall_rollback"]
-        UserRestore["Force_eBPF_store_restore_HKCU"]
         BinaryRestore["Force_eBPF_binaries_uninstall_restore"]
         ServiceRestore["Force_eBPF_services_uninstall_restore<br/>R: Force_eBPF_services_uninstall_stop_rollback"]
         Files["RemoveFiles"]
         Folders["RemoveFolders"]
         NormalSuccess["Normal uninstall succeeded"]
 
-        UserAccess --> ServiceSnapshot --> MachineSnapshot --> UserSnapshot --> Netsh
+        ServiceSnapshot --> MachineSnapshot --> Netsh
         Netsh --> ServiceRemove --> Components
         Components --> StandardStop --> Environment --> MachineRestore
-        MachineRestore --> UserRestore --> BinaryRestore --> ServiceRestore --> Files
+        MachineRestore --> BinaryRestore --> ServiceRestore --> Files
         Files --> Folders --> NormalSuccess
-    Prep --> UserAccess
+    Prep --> ServiceSnapshot
 
     subgraph Commit["Success-only commit actions"]
         UserCleanup["Force_eBPF_store_uninstall_commit_HKCU"]
@@ -173,8 +168,7 @@ cleanup path. Recovery is not expanded here; it restores the pre-uninstall state
 accumulated so far.
 
 The impersonated HKCU commit runs before the SYSTEM service/HKLM commit, only after normal removal
-succeeds. It deletes restored original-state backups and temporary uninstall recovery files;
-skipped HKCU backups remain.
+succeeds. It deletes the current user's eBPF registry store directly, without creating or restoring a backup.
 
 ## 3. Repair execution flow
 
