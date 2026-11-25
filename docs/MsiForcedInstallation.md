@@ -9,8 +9,7 @@ With `FORCE=1` and an existing eBPFCore registration, the MSI:
 
 1. Saves the current configuration and running state of eBPFCore, NetEbpfExt, and eBPFSvc.
 2. Stops NetEbpfExt, eBPFSvc, and then eBPFCore.
-3. Preserves the existing Windows binaries through backup hard links and replaces their canonical
-   Windows paths with hard links to the new MSI binaries.
+3. Records an existing backup name for each Windows binary, then removes each canonical name and creates its hard link directly to the new MSI binary.
 4. Saves the HKLM and installing user's HKCU eBPF stores, then replaces their metadata with the MSI's version.
 5. Configures and starts the drivers, and configures and requests startup of eBPFSvc.
 
@@ -23,15 +22,6 @@ Known limitation: if eBPFSvc was running when uninstall began, Restart Manager m
 the rollback snapshot. If uninstall subsequently fails, rollback may leave eBPFSvc stopped rather than
 restore its running state. Start it manually if needed.
 
-### Backup filenames
-
-Machine metadata lives in native `%ProgramFiles%\ebpf-for-windows\MsiBackup`, regardless of
-`INSTALLFOLDER`; HKCU metadata lives in `UserStore` beneath it. Binary links sit beside the canonical
-Windows binaries. Below, `<scope>` is `hklm` or `hkcu`, `<service>` is eBPFCore, NetEbpfExt, or eBPFSvc,
-and `<binary>` is the canonical binary filename. Registry exports exist only for keys that were present.
-Uninstall preparation requires either no service snapshot and no binary backups, or a valid service
-snapshot and all six binary backups. Mismatches are rejected without deleting remaining backups.
-
 | Purpose | Filenames |
 |---|---|
 | Original store | `ebpf-store-<scope>.json`<br/>`ebpf-store-<scope>.reg` |
@@ -39,8 +29,7 @@ snapshot and all six binary backups. Mismatches are rejected without deleting re
 | Original services | `ebpf-services.original.json`<br/>`<service>.original.reg` |
 | Uninstall service undo | `ebpf-services.uninstall-rollback.json`<br/>`<service>.uninstall-rollback.reg` |
 | Repair undo | `ebpf-repair.json`<br/>`<service>.repair.reg` |
-| Original binary | `<binary>.ebpf-msi-backup` |
-| Staged replacement | `<binary>.ebpf-msi-new` |
+| Original binary backup names | `ebpf-binary-links.original.json` |
 | Binary repair undo | `<binary>.ebpf-msi-repair` |
 
 ### Backup directory protection

@@ -660,83 +660,111 @@ function Test-SameFile
     return [EbpfMsi.NativeSecurity]::AreSameFile($FirstPath, $SecondPath)
 }
 
-function Get-BackupCount
+function Get-OriginalLinks
 {
-    return @(
-        $mappings |
-            Where-Object { Test-Path -LiteralPath ($_.Link + ".ebpf-msi-backup") -PathType Leaf }
-    ).Count
+    $path = Join-Path $StateRoot "ebpf-binary-links.original.json"
+    $links = @{}
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        return $links
+    }
+
+    $entries = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+    if (@($entries).Count -ne $mappings.Count) {
+        throw "The original eBPF binary link record is incomplete: $path"
+    }
+    $replacedPaths = @($mappings.Link) + @($mappings.Source)
+    foreach ($mapping in $mappings) {
+        $entry = @($entries | Where-Object { $_.Canonical -eq $mapping.Link })
+        if ($entry.Count -ne 1 -or [string]::IsNullOrWhiteSpace($entry[0].Original) -or
+            $entry[0].Original -in $replacedPaths) {
+            throw "Invalid original hard-link record for: $($mapping.Link)"
+        }
+        $original = [string]$entry[0].Original
+        if (-not (Test-Path -LiteralPath $original -PathType Leaf)) {
+            throw "The original eBPF hard link is missing: $original"
+        }
+        $links[$mapping.Link] = $original
+    }
+    return $links
 }
 
-# Restores the original Windows binary paths and removes staged links after a failed forced install.
-function Rollback-InstalledLinks
+# Changes only the canonical name; both original and MSI binaries retain their permissions.
+function Set-BinaryLink
 {
-    Invoke-ForAllMappings {
-        param($mapping)
+    param(
+        [Parameter(Mandatory = $true)]$Mapping,
+        [Parameter(Mandatory = $true)][string]$Original,
+        [Parameter(Mandatory = $true)][string]$Target)
 
-        $backup = $mapping.Link + ".ebpf-msi-backup"
-        $replacement = $mapping.Link + ".ebpf-msi-new"
-        if (Test-Path -LiteralPath $backup -PathType Leaf) {
-            $originalAcl = Get-RestorableFileAcl -Path $backup
+    if (-not (Test-Path -LiteralPath $Target -PathType Leaf)) {
+        throw "The eBPF hard-link target is missing: $Target"
+    }
+    $current = $null
+    if (Test-Path -LiteralPath $Mapping.Link -PathType Leaf) {
+        if (Test-SameFile -FirstPath $Mapping.Link -SecondPath $Target) {
+            return
+        }
+        $current = if ($Target -eq $Original) { $Mapping.Source } else { $Original }
+        if (-not (Test-SameFile -FirstPath $Mapping.Link -SecondPath $current)) {
+            throw "The canonical eBPF binary points to neither the original nor the MSI file: $($Mapping.Link)"
+        }
+    }
+    $acls = @{}
+    if ($Target -eq $Original) {
+        $acls[$Original] = Get-RestorableFileAcl -Path $Original
+    }
+    if ($null -ne $current) {
+        $acls[$current] = Get-RestorableFileAcl -Path $current
+    }
+    $failures = @()
+    try {
+        if ($Target -eq $Original) {
+            Enable-SystemFileAccess -Path $Original
+        }
+        if ($null -ne $current) {
+            Enable-SystemFileAccess -Path $Mapping.Link
+            Remove-Item -LiteralPath $Mapping.Link -Force
+        }
+        New-Item -ItemType HardLink -Path $Mapping.Link -Target $Target | Out-Null
+    } catch {
+        $failures += $_.Exception.Message
+    } finally {
+        foreach ($path in $acls.Keys) {
             try {
-                Enable-SystemFileAccess -Path $backup
-                if (Test-Path -LiteralPath $mapping.Link) {
-                    Enable-SystemFileAccess -Path $mapping.Link
-                    Remove-Item -LiteralPath $mapping.Link -Force
-                }
-                Move-Item -LiteralPath $backup -Destination $mapping.Link
-            } finally {
-                $aclPath =
-                    if (Test-Path -LiteralPath $backup -PathType Leaf) {
-                        $backup
-                    } elseif (Test-Path -LiteralPath $mapping.Link -PathType Leaf) {
-                        $mapping.Link
-                    } else {
-                        $null
-                    }
-                if ($null -ne $aclPath) {
-                    Restore-FileAcl -Path $aclPath -Acl $originalAcl
-                }
+                Restore-FileAcl -Path $path -Acl $acls[$path]
+            } catch {
+                $failures += "$path`: $($_.Exception.Message)"
             }
         }
-        if (Test-Path -LiteralPath $replacement) {
-            Remove-Item -LiteralPath $replacement -Force
-        }
     }
-}
-
-function Restore-OriginalFileAcls
-{
-    param([Parameter(Mandatory = $true)][hashtable]$OriginalAcls)
-
-    $failures = @()
-    foreach ($mapping in $mappings) {
-        if (-not $OriginalAcls.ContainsKey($mapping.Link)) {
-            continue
-        }
-
-        $candidates = @(($mapping.Link + ".ebpf-msi-backup"), $mapping.Link)
-        $aclPath = $candidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
-        if ($null -eq $aclPath) {
-            $failures += "$($mapping.Link): original file path is unavailable"
-            continue
-        }
-
-        try {
-            Restore-FileAcl -Path $aclPath -Acl $OriginalAcls[$mapping.Link]
-        } catch {
-            $failures += "$($mapping.Link): $($_.Exception.Message)"
-        }
-    }
-
     if ($failures.Count -ne 0) {
         throw ($failures -join [Environment]::NewLine)
     }
 }
 
-# Preserves the original Windows binaries as backup hard links before forced replacement.
+# Restores the original links and discards the record only after every restoration succeeds.
+function Rollback-InstalledLinks
+{
+    $originalLinks = Get-OriginalLinks
+    if ($originalLinks.Count -eq 0) {
+        return
+    }
+    Invoke-ForAllMappings {
+        param($mapping)
+        Set-BinaryLink -Mapping $mapping -Original $originalLinks[$mapping.Link] -Target $originalLinks[$mapping.Link]
+    }
+    Remove-BackupFileIfPresent -Path (Join-Path $StateRoot "ebpf-binary-links.original.json")
+}
+
+# Records existing hard-link names without changing the original Windows binaries.
 function Backup-OriginalLinks
 {
+    $path = Join-Path $StateRoot "ebpf-binary-links.original.json"
+    if (Test-Path -LiteralPath $path) {
+        throw "An original eBPF binary link record already exists: $path"
+    }
+    $entries = @()
+    $replacedPaths = @($mappings.Link) + @($mappings.Source)
     foreach ($mapping in $mappings) {
         if (-not (Test-Path -LiteralPath $mapping.Source -PathType Leaf)) {
             throw "Installed eBPF binary is missing: $($mapping.Source)"
@@ -747,117 +775,54 @@ function Backup-OriginalLinks
         if (@(Get-ChildItem -Path ($mapping.Link + ".ebpf-msi-*") -Force).Count -ne 0) {
             throw "Existing eBPF backup or staging file requires recovery before installation: $($mapping.Link)"
         }
+        $file = Get-Item -LiteralPath $mapping.Link -Force
+        if ($file.LinkType -ne "HardLink") {
+            throw "Cannot force-install: $($mapping.Link) must have an existing hard link."
+        }
+        $original = @($file.Target | Where-Object { $_ -notin $replacedPaths } |
+                Select-Object -First 1)
+        if ($original.Count -eq 0 -or
+            -not (Test-SameFile -FirstPath $mapping.Link -SecondPath $original[0])) {
+            throw "No existing original hard-link name is available for: $($mapping.Link)"
+        }
+        $entries += [PSCustomObject]@{ Canonical = $mapping.Link; Original = $original[0] }
     }
-
-    $originalAcls = @{}
     try {
-        foreach ($mapping in $mappings) {
-            $originalAcls[$mapping.Link] = Get-RestorableFileAcl -Path $mapping.Link
-            try {
-                Enable-SystemFileAccess -Path $mapping.Link
-                New-Item -ItemType HardLink -Path ($mapping.Link + ".ebpf-msi-backup") -Target $mapping.Link |
-                    Out-Null
-            } finally {
-                Restore-FileAcl -Path $mapping.Link -Acl $originalAcls[$mapping.Link]
-            }
-        }
+        $entries | ConvertTo-Json | Set-Content -LiteralPath $path -Encoding UTF8
     } catch {
-        $backupError = $_
-        # No canonical paths have changed; discard only links created by this attempt.
-        Invoke-ForAllMappings {
-            param($mapping)
-
-            $backup = $mapping.Link + ".ebpf-msi-backup"
-            if (Test-Path -LiteralPath $backup -PathType Leaf) {
-                try {
-                    Enable-SystemFileAccess -Path $backup
-                    Remove-Item -LiteralPath $backup -Force
-                } finally {
-                    Restore-FileAcl -Path $mapping.Link -Acl $originalAcls[$mapping.Link]
-                }
-            }
-        }
-        throw $backupError
+        Remove-BackupFileIfPresent -Path $path
+        throw
     }
 }
 
-# Restores the original Windows binary paths from backup hard links during uninstall.
+# Restores the original Windows binary paths from recorded existing hard links during uninstall.
 function Restore-OriginalLinks
 {
-    $backupCount = Get-BackupCount
-    if ($backupCount -eq 0) {
-        Write-Output "No forced-install eBPF hard-link backups were found."
+    $originalLinks = Get-OriginalLinks
+    if ($originalLinks.Count -eq 0) {
+        Write-Output "No forced-install eBPF original link record was found."
         return
     }
-    if ($backupCount -ne $mappings.Count) {
-        throw "Only $backupCount of $($mappings.Count) eBPF hard-link backups exist."
-    }
-
-    $originalAcls = @{}
-    $msiAcls = @{}
-    foreach ($mapping in $mappings) {
-        $backup = $mapping.Link + ".ebpf-msi-backup"
-        if (-not (Test-Path -LiteralPath $mapping.Source -PathType Leaf)) {
-            throw "Installed eBPF binary is missing: $($mapping.Source)"
-        }
-        if (-not (Test-Path -LiteralPath $mapping.Link -PathType Leaf)) {
-            throw "Canonical eBPF binary is missing: $($mapping.Link)"
-        }
-        if (-not (Test-SameFile -FirstPath $mapping.Link -SecondPath $mapping.Source)) {
-            throw "Canonical eBPF binary no longer points to the MSI file: $($mapping.Link)"
-        }
-        if (Test-SameFile -FirstPath $backup -SecondPath $mapping.Link) {
-            throw "The backup and canonical eBPF paths unexpectedly point to the same file: $($mapping.Link)"
-        }
-        $originalAcls[$mapping.Link] = Get-RestorableFileAcl -Path $backup
-        $msiAcls[$mapping.Link] = Get-RestorableFileAcl -Path $mapping.Link
-    }
-
     try {
         foreach ($mapping in $mappings) {
-            Enable-SystemFileAccess -Path $mapping.Link
-            Enable-SystemFileAccess -Path ($mapping.Link + ".ebpf-msi-backup")
-        }
-        foreach ($mapping in $mappings) {
-            Remove-Item -LiteralPath $mapping.Link -Force
-            Move-Item -LiteralPath ($mapping.Link + ".ebpf-msi-backup") -Destination $mapping.Link
-            Restore-FileAcl -Path $mapping.Link -Acl $originalAcls[$mapping.Link]
-            Restore-FileAcl -Path $mapping.Source -Acl $msiAcls[$mapping.Link]
+            Set-BinaryLink -Mapping $mapping -Original $originalLinks[$mapping.Link] -Target $originalLinks[$mapping.Link]
         }
     } catch {
         $restoreError = $_
-        $rollbackFailures = @()
         try {
             Restore-MsiLinks
         } catch {
-            $rollbackFailures += $_.Exception.Message
-        }
-        try {
-            Invoke-ForAllMappings {
-                param($mapping)
-
-                $backup = $mapping.Link + ".ebpf-msi-backup"
-                if (Test-Path -LiteralPath $backup -PathType Leaf) {
-                    Restore-FileAcl -Path $backup -Acl $originalAcls[$mapping.Link]
-                }
-                if (Test-Path -LiteralPath $mapping.Source -PathType Leaf) {
-                    Restore-FileAcl -Path $mapping.Source -Acl $msiAcls[$mapping.Link]
-                }
-            }
-        } catch {
-            $rollbackFailures += $_.Exception.Message
-        }
-        if ($rollbackFailures.Count -ne 0) {
-            throw "$($restoreError.Exception.Message)$([Environment]::NewLine)Failed to roll back link restoration: $($rollbackFailures -join [Environment]::NewLine)"
+            throw "$($restoreError.Exception.Message)`nFailed to roll back link restoration: $($_.Exception.Message)"
         }
         throw $restoreError
     }
 }
 
-# Reinstates the MSI binary links and preserves the original backups when uninstall rolls back.
+# Reinstates the MSI binary links without changing the recorded original links when uninstall rolls back.
 function Restore-MsiLinks
 {
-    if ((Get-BackupCount) -eq 0 -and
+    $originalLinks = Get-OriginalLinks
+    if ($originalLinks.Count -eq 0 -and
         -not (Test-Path -LiteralPath (Get-ServicePaths).StateFile -PathType Leaf)) {
         return
     }
@@ -865,45 +830,10 @@ function Restore-MsiLinks
     Invoke-ForAllMappings {
         param($mapping)
 
-        $backup = $mapping.Link + ".ebpf-msi-backup"
-        if (-not (Test-Path -LiteralPath $mapping.Source -PathType Leaf)) {
-            throw "Installed eBPF binary is missing during uninstall rollback: $($mapping.Source)"
+        if (-not $originalLinks.ContainsKey($mapping.Link)) {
+            throw "The original hard-link record is missing for: $($mapping.Link)"
         }
-        if (-not (Test-Path -LiteralPath $mapping.Link -PathType Leaf)) {
-            if (-not (Test-Path -LiteralPath $backup -PathType Leaf)) {
-                throw "Both the canonical eBPF binary and its backup are missing: $($mapping.Link)"
-            }
-            New-Item -ItemType HardLink -Path $mapping.Link -Target $mapping.Source | Out-Null
-            Remove-BackupFileIfPresent -Path ($mapping.Link + ".ebpf-msi-new")
-            return
-        }
-        if (Test-Path -LiteralPath $backup -PathType Leaf) {
-            if (Test-SameFile -FirstPath $mapping.Link -SecondPath $mapping.Source) {
-                return
-            }
-            if (-not (Test-SameFile -FirstPath $mapping.Link -SecondPath $backup)) {
-                throw "The canonical eBPF binary points to neither the backup nor the MSI file: $($mapping.Link)"
-            }
-        } elseif (Test-SameFile -FirstPath $mapping.Link -SecondPath $mapping.Source) {
-            throw "The canonical eBPF binary points to the MSI file but its backup is missing: $($mapping.Link)"
-        }
-        $originalAcl = Get-RestorableFileAcl -Path $mapping.Link
-        $replacement = $mapping.Link + ".ebpf-msi-new"
-        try {
-            Enable-SystemFileAccess -Path $mapping.Link
-            Remove-BackupFileIfPresent -Path $replacement
-            New-Item -ItemType HardLink -Path $replacement -Target $mapping.Source |
-                Out-Null
-            if (-not (Test-Path -LiteralPath $backup -PathType Leaf)) {
-                New-Item -ItemType HardLink -Path $backup -Target $mapping.Link |
-                    Out-Null
-            }
-            Remove-Item -LiteralPath $mapping.Link -Force
-            Move-Item -LiteralPath $replacement -Destination $mapping.Link
-        } finally {
-            $originalPath = if (Test-Path -LiteralPath $backup -PathType Leaf) { $backup } else { $mapping.Link }
-            Restore-FileAcl -Path $originalPath -Acl $originalAcl
-        }
+        Set-BinaryLink -Mapping $mapping -Original $originalLinks[$mapping.Link] -Target $mapping.Source
     }
 }
 
@@ -938,6 +868,7 @@ function Remove-RepairFiles
 # Saves current service state and surviving forced-install binary links so repair can be rolled back.
 function Prepare-Repair
 {
+    $originalLinks = Get-OriginalLinks
     $journal = Join-Path $StateRoot "ebpf-repair.json"
     $stale = @(Get-ChildItem -LiteralPath $StateRoot -Filter "*.repair.reg")
     if ((Test-Path -LiteralPath $journal) -or $stale.Count -ne 0 -or
@@ -945,11 +876,11 @@ function Prepare-Repair
         throw "An incomplete eBPF repair requires recovery before retrying."
     }
     $forced = Test-Path -LiteralPath (Get-ServicePaths).StateFile
-    if ($forced -and (Get-BackupCount) -ne $mappings.Count) {
-        throw "Repair requires a complete original binary backup set."
+    if ($forced -and $originalLinks.Count -ne $mappings.Count) {
+        throw "Repair requires a complete original binary link record."
     }
-    if (-not $forced -and (Get-BackupCount) -ne 0) {
-        throw "Binary backups exist without the original service snapshot."
+    if (-not $forced -and $originalLinks.Count -ne 0) {
+        throw "An original binary link record exists without the original service snapshot."
     }
     $present = @()
     try {
@@ -959,13 +890,10 @@ function Prepare-Repair
                 if (-not (Test-Path -LiteralPath $mapping.Source -PathType Leaf)) {
                     throw "Repaired MSI binary is missing: $($mapping.Source)"
                 }
-                if (Test-Path -LiteralPath ($mapping.Link + ".ebpf-msi-new")) {
-                    throw "Stale binary staging data requires recovery: $($mapping.Link)"
-                }
                 $exists = Test-Path -LiteralPath $mapping.Link -PathType Leaf
                 $present += $exists
                 if ($exists) {
-                    if (Test-SameFile -FirstPath $mapping.Link -SecondPath ($mapping.Link + ".ebpf-msi-backup")) {
+                    if (Test-SameFile -FirstPath $mapping.Link -SecondPath $originalLinks[$mapping.Link]) {
                         throw "The original binary has already been restored: $($mapping.Link)"
                     }
                     $acl = Get-RestorableFileAcl -Path $mapping.Link
@@ -1006,16 +934,14 @@ function Repair-Stack
                 (Test-SameFile -FirstPath $mapping.Link -SecondPath $mapping.Source)) {
                 continue
             }
-            $replacement = $mapping.Link + ".ebpf-msi-new"
             $saved = $mapping.Link + ".ebpf-msi-repair"
             $acl = if (Test-Path -LiteralPath $saved) { Get-RestorableFileAcl -Path $saved } else { $null }
             try {
-                New-Item -ItemType HardLink -Path $replacement -Target $mapping.Source | Out-Null
                 if (Test-Path -LiteralPath $mapping.Link) {
                     Enable-SystemFileAccess -Path $mapping.Link
                     Remove-Item -LiteralPath $mapping.Link -Force
                 }
-                Move-Item -LiteralPath $replacement -Destination $mapping.Link
+                New-Item -ItemType HardLink -Path $mapping.Link -Target $mapping.Source | Out-Null
             } finally {
                 if ($null -ne $acl) {
                     Restore-FileAcl -Path $saved -Acl $acl
@@ -1073,7 +999,6 @@ function Rollback-Repair
             } else {
                 Remove-BackupFileIfPresent -Path $mapping.Link
             }
-            Remove-BackupFileIfPresent -Path ($mapping.Link + ".ebpf-msi-new")
         }
     }
     # Existing service configuration is never changed by repair; only undo a newly created service.
@@ -1794,12 +1719,12 @@ function Prepare-ServiceRestore
 {
     $paths = Get-ServicePaths
     $state = Read-ServiceState -Path $paths.StateFile
-    $backupCount = Get-BackupCount
+    $backupCount = (Get-OriginalLinks).Count
     if ($null -eq $state -and $backupCount -ne 0) {
-        throw "Original eBPF binary backups exist but the service snapshot is missing: $($paths.StateFile)"
+        throw "An original eBPF binary link record exists but the service snapshot is missing: $($paths.StateFile)"
     }
     if ($null -ne $state -and $backupCount -ne $mappings.Count) {
-        throw "The original eBPF service snapshot exists but only $backupCount of $($mappings.Count) binary backups exist."
+        throw "The original eBPF service snapshot exists but only $backupCount of $($mappings.Count) original binary links are recorded."
     }
 
     New-Item -ItemType Directory -Path $StateRoot -Force | Out-Null
@@ -2146,7 +2071,8 @@ function Commit-StoreRestore
 
 $userStoreLock = $null
 try {
-    if ($Action -match "(Services|Store|Repair)$" -or $Action -eq "CommitRestoreAll") {
+    if ($Action -match "(Services|Store|Repair)$" -or $Action -eq "CommitRestoreAll" -or
+        $Action -in @("BackupLinks", "Install", "Rollback", "RestoreLinks", "RollbackRestoreLinks")) {
         $StateRoot = [System.IO.Path]::GetFullPath($StateRoot)
         $userStoreAction = $Scope -eq "HKCU"
         [EbpfMsi.NativeSecurity]::ValidateBackupDirectory($StateRoot, $userStoreAction)
@@ -2178,66 +2104,31 @@ try {
 
         # Replaces canonical Windows binary paths with hard links to the installed MSI files.
         "Install" {
-            $originalAcls = @{}
-            $backupCount = Get-BackupCount
-            if ($backupCount -ne $mappings.Count) {
-                throw "Only $backupCount of $($mappings.Count) eBPF hard-link backups exist."
+            $originalLinks = Get-OriginalLinks
+            if ($originalLinks.Count -eq 0) {
+                throw "The original eBPF hard-link record is missing."
             }
             foreach ($mapping in $mappings) {
-                $backup = $mapping.Link + ".ebpf-msi-backup"
-                $replacement = $mapping.Link + ".ebpf-msi-new"
                 if (-not (Test-Path -LiteralPath $mapping.Source -PathType Leaf)) {
                     throw "Installed eBPF binary is missing: $($mapping.Source)"
                 }
-                if (-not (Test-Path -LiteralPath $mapping.Link -PathType Leaf)) {
-                    throw "Canonical eBPF binary is missing: $($mapping.Link)"
-                }
-                if (Test-Path -LiteralPath $replacement) {
-                    throw "Stale eBPF hard-link staging file exists for: $($mapping.Link)"
-                }
-                $originalAcls[$mapping.Link] = Get-RestorableFileAcl -Path $backup
-                if (-not (Test-SameFile -FirstPath $backup -SecondPath $mapping.Link)) {
+                if (-not (Test-SameFile -FirstPath $originalLinks[$mapping.Link] -SecondPath $mapping.Link)) {
                     throw "The canonical eBPF binary changed after backup: $($mapping.Link)"
                 }
             }
 
             try {
                 foreach ($mapping in $mappings) {
-                    Write-Output "Staging hard links for $($mapping.Link)"
-                    New-Item -ItemType HardLink -Path ($mapping.Link + ".ebpf-msi-new") -Target $mapping.Source |
-                        Out-Null
-                }
-
-                foreach ($mapping in $mappings) {
-                    Enable-SystemFileAccess -Path $mapping.Link
-                    Remove-Item -LiteralPath $mapping.Link -Force
-                    Move-Item -LiteralPath ($mapping.Link + ".ebpf-msi-new") -Destination $mapping.Link
-                    Restore-FileAcl `
-                        -Path ($mapping.Link + ".ebpf-msi-backup") `
-                        -Acl $originalAcls[$mapping.Link]
+                    Set-BinaryLink -Mapping $mapping -Original $originalLinks[$mapping.Link] -Target $mapping.Source
                 }
             } catch {
                 $installError = $_
-                $rollbackError = $null
-                $aclError = $null
                 try {
                     Rollback-InstalledLinks
                 } catch {
-                    $rollbackError = $_
+                    throw "$($installError.Exception.Message)`nLink restoration failure: $($_.Exception.Message)"
                 }
-                try {
-                    Restore-OriginalFileAcls -OriginalAcls $originalAcls
-                } catch {
-                    $aclError = $_
-                }
-                $failureMessages = @($installError.Exception.Message)
-                if ($null -ne $rollbackError) {
-                    $failureMessages += "Link restoration failure: $($rollbackError.Exception.Message)"
-                }
-                if ($null -ne $aclError) {
-                    $failureMessages += "ACL restoration failure: $($aclError.Exception.Message)"
-                }
-                throw ($failureMessages -join [Environment]::NewLine)
+                throw $installError
             }
         }
 
@@ -2346,6 +2237,7 @@ try {
                     Remove-Item -LiteralPath $path -Force
                 }
             }
+            Remove-BackupFileIfPresent -Path (Join-Path $StateRoot "ebpf-binary-links.original.json")
             Remove-EmptyUserStore
             Remove-Item -LiteralPath (Join-Path $StateRoot "ForceEbpfStack.cleanup.ps1") -Force
         }

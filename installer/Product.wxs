@@ -62,6 +62,7 @@ SPDX-License-Identifier: MIT
 		</SetProperty>
 
 		<InstallExecuteSequence>
+			<Custom Action="Validate_existing_eBPF_hardlinks" Before="LaunchConditions">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
 			<!-- Forced installs back up running state before stopping services in the custom chain. -->
 			<StopServices>VersionNT AND NOT (NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1")</StopServices>
 
@@ -219,6 +220,10 @@ SPDX-License-Identifier: MIT
 				<File Id="EXPORT_PROGRAM_INFO.PDB" Name="export_program_info.pdb" KeyPath="yes" Source="$(var.export_program_info.TargetDir)export_program_info.pdb" />
 			</Component>
 		</ComponentGroup>
+
+		<!-- Validate after AppSearch, before installation changes or backup directory creation. -->
+		<SetProperty Id="WixQuietExec64CmdLine" Action="Set_validate_existing_eBPF_hardlinks" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;$ErrorActionPreference = 'Stop'; foreach ($name in @('bpftool.exe', 'ebpfapi.dll', 'ebpfnetsh.dll', 'ebpfsvc.exe', 'drivers\eBPFCore.sys', 'drivers\NetEbpfExt.sys')) { $path = Join-Path $env:SystemRoot ('System32\' + $name); $file = Get-Item -LiteralPath $path -Force; if ($file.LinkType -ne 'HardLink') { throw ('Cannot force-install: ' + $path + ' must have an existing hard link.') } }&quot;" Before="Validate_existing_eBPF_hardlinks" Sequence="execute">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</SetProperty>
+		<CustomAction Id="Validate_existing_eBPF_hardlinks" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="immediate" Return="check"/>
 
 		<!--Repair service registration and forced-install canonical links-->
 		<SetProperty Id="Prepare_eBPF_repair" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action PrepareRepair" Before="Prepare_eBPF_repair" Sequence="execute"/>
