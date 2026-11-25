@@ -179,6 +179,156 @@ failure cases and regressions.
 Unit tests do not replace real-driver validation. Detailed scenarios and
 failure-injection cases remain in the separate implementation test plan.
 
+## Design Details
+
+This section describes how the driver manages file contexts, tracks namespace
+selection, propagates it to the kernel, and applies it to IOCTL calls.
+
+### WDF file object configuration
+
+The driver registers `EvtDeviceFileCreate` and `EvtFileClose` callbacks and
+associates a per-file context type (`ebpf_file_context_t`) with every WDF file
+object:
+
+```c
+WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&attributes, ebpf_file_context_t);
+WDF_FILEOBJECT_CONFIG_INIT(&config, _ebpf_driver_file_create,
+                           _ebpf_driver_file_close, WDF_NO_EVENT_CALLBACK);
+config.FileObjectClass = WdfFileObjectWdfCannotUseFsContexts;
+```
+
+`WdfFileObjectWdfCannotUseFsContexts` tells WDF not to store its framework
+pointer in the kernel `FILE_OBJECT`'s `FsContext` or `FsContext2` fields. This
+is necessary because ebpfcore already uses `FsContext2` to store a direct
+pointer to a BPF object when creating object handles (`ebpf_handle_create`
+calls `ZwCreateFile` on the device and stores the object in
+`file_object->FsContext2`). WDF uses an internal lookup table instead, which
+adds a minor per-request lookup cost but avoids field conflicts.
+
+### File context creation (CreateFile)
+
+When user mode calls `CreateFile` on `\\.\EbpfIoDevice`:
+
+```text
+1. I/O Manager creates a kernel FILE_OBJECT and sends IRP_MJ_CREATE
+2. WDF creates a WDFFILEOBJECT and allocates ebpf_file_context_t alongside it
+     (automatic — configured by WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE above)
+3. WDF calls EvtDeviceFileCreate (_ebpf_driver_file_create):
+     → initializes the spinlock and sets namespace_id to GUID_NULL
+     → sets initialized = true
+     → completes the create request with STATUS_SUCCESS
+4. CreateFile returns a HANDLE to user mode
+```
+
+Each thread's synchronous device handle in `ebpfapi.dll` is a separate
+`CreateFile` call, so each gets its own `FILE_OBJECT` → `WDFFILEOBJECT` →
+`ebpf_file_context_t` → independent namespace GUID.
+
+The `initialized` flag guards `EvtFileClose`: WDF can call close even if
+create was never delivered or failed, so close only destroys the namespace
+state if `initialized` is true.
+
+### Control files vs. object files
+
+The same device has two kinds of file objects:
+
+| Kind | Opened by | `FsContext2` | Has namespace state |
+|------|-----------|-------------|---------------------|
+| Control file | User-mode `CreateFile` for IOCTLs | NULL | Yes |
+| Object file | Kernel `ebpf_handle_create` for BPF objects | BPF object pointer | No |
+
+The IOCTL dispatch path checks `FsContext2 == NULL` to identify control files.
+Only control files carry namespace state; object files are internal handles
+to maps, programs, and links.
+
+### Namespace state storage
+
+Namespace state is tracked at two layers:
+
+**User mode (`ebpfapi.dll`):** Each thread has a thread-local `_thread_namespace`
+GUID variable and a corresponding per-thread synchronous device handle
+(`_sync_device_handle`). The DLL records the logical namespace selection after
+each successful kernel round-trip. New threads start with `GUID_NULL`.
+
+**Kernel mode (`ebpfcore.sys`):** Each control file object has a WDF file
+context containing an `ebpf_namespace_state_t`:
+
+```text
+ebpf_file_context_t
+├── ebpf_namespace_state_t
+│   ├── lock           (serializes reads and writes)
+│   └── namespace_id   (the GUID currently selected on this file)
+└── initialized
+```
+
+The spinlock protects against concurrent reads and writes on a shared file
+object (e.g., if user mode calls `DuplicateHandle` and two threads use the
+same underlying `FILE_OBJECT`). For the normal per-thread sync handle pattern,
+the lock is uncontended. Benchmarking shows the spinlock adds approximately
+70–100 ns (~3–5%) to each IOCTL, within measurement noise relative to the
+~2200 ns per-IOCTL round-trip cost.
+
+### Updating a thread's namespace
+
+The sequence for `ebpf_set_thread_namespace(&A)`:
+
+```text
+1.  User calls ebpf_set_thread_namespace(&A)
+2.  SDK obtains the calling thread's sync device handle
+      (opens one if needed — triggers file context creation above)
+3.  SDK sends SET_NAMESPACE IOCTL with GUID A through
+      that handle
+4.  Driver validates privileges (SeAccessCheck)
+5.  Driver updates the file context's namespace_id to A
+      under the spinlock
+6.  IOCTL succeeds
+7.  SDK records A in the thread-local _thread_namespace
+8.  Returns EBPF_SUCCESS
+```
+
+SET_NAMESPACE is handled directly at the driver layer before the protocol
+handler framework, because the protocol handlers receive only a captured GUID
+snapshot (`ebpf_request_context_t`) with no write-back pointer to the file
+state. Only the driver has access to the file context.
+
+If the IOCTL fails at step 4–5, the thread-local selection is **not** updated
+(step 7 is skipped), preserving the previous committed selection. The kernel
+file context also remains unchanged on failure.
+
+If a cached sync handle is closed and later recreated (e.g., after a verifier-
+cache cleanup), the SDK checks the thread-local GUID. For non-default GUIDs,
+it sends an internal SET on the new handle before using it, so the replacement
+file context matches the thread's logical selection.
+
+### Namespace propagation during IOCTL dispatch
+
+When the driver receives a synchronous IOCTL, it captures the file's current
+GUID into a stack-local `ebpf_request_context_t` before calling the protocol
+handler:
+
+```text
+IOCTL arrives
+  → driver retrieves WDF file object
+  → checks FsContext2 == NULL (control file, not object file)
+  → reads file_context->namespace_state.namespace_id
+      under the spinlock (ebpf_namespace_state_capture)
+  → copies the GUID into a local ebpf_request_context_t
+  → passes that context to ebpf_core_invoke_protocol_handler
+```
+
+`ebpf_request_context_t` contains only the captured `namespace_id` GUID. Each
+protocol handler receives this as a `const` pointer. Handlers that create
+objects, enumerate IDs, or manage pins use the captured GUID to scope their
+operations. Handlers that operate on existing handles (map data access,
+program test-run, etc.) ignore the GUID.
+
+The capture is a snapshot: if another thread changes the same file's namespace
+concurrently, only that thread's subsequent IOCTLs see the new value. The
+captured value for the current request is immutable.
+
+Asynchronous operations are namespace-neutral — they operate on already-held
+object handles and do not use the captured GUID.
+
 ## Security Considerations
 
 - Namespaces provide **logical isolation**, not security isolation. Existing ACLs and privilege checks still apply.
