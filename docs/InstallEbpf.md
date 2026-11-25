@@ -30,11 +30,23 @@ An **command line install/uninstall** is also supported, through the direct use 
 
   * `eBPF_Runtime_Components` (**mandatory**): runtime components (installed in `[Installation folder]\*`, `[Installation folder]\drivers`).
   * `eBPF_Runtime_Components_JIT` (optional): JIT compiler service (installed in `[Installation folder]\JIT`).
+    Normal installations register `eBPFSvc` using this installed executable. Only forced replacement
+    of an existing `eBPFCore` uses the canonical `%SystemRoot%\System32\ebpfsvc.exe` hard link.
 
     e.g., (full featured):
 
     ```bash
     ADDLOCAL=eBPF_Runtime_Components,eBPF_Runtime_Components_JIT
+    ```
+
+* For a new installation, an existing `eBPFCore` registration blocks installation unless `FORCE=1` is supplied.
+  Forced installation preserves the original eBPF stack for restoration on final uninstall.
+  `INSTALLFOLDER` must support NTFS hard links on the same volume as Windows.
+  See [MSI forced installation and restoration](MsiForcedInstallation.md)
+  for requirements, backup files, rollback behavior, and execution flows.
+
+    ```bash
+    C:\Windows\system32\msiexec.exe /i eBPF-for-Windows.x.x.x.msi FORCE=1
     ```
 
 Below are some examples of CLI installations/uninstallation, using "`C:\Program Files\ebpf-for-windows`" as the installation folder:
