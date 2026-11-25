@@ -284,13 +284,13 @@ SPDX-License-Identifier: MIT
 				<File Id="eBPFCore.pdb" Name="eBPFCore.pdb" Source="$(var.EbpfCore.TargetDir)eBPFCore.pdb" KeyPath="yes" />
 			</Component>
 		</ComponentGroup>
-		<SetProperty Id="Force_eBPFSvc_stop" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;&amp; { $service = Get-Service -Name eBPFSvc -ErrorAction SilentlyContinue; if ($null -ne $service -and $service.Status -ne 'Stopped') { Stop-Service -Name eBPFSvc -ErrorAction Stop; for ($i = 0; $i -lt 30 -and (Get-Service -Name eBPFSvc).Status -ne 'Stopped'; $i++) { Start-Sleep -Seconds 1 }; if ((Get-Service -Name eBPFSvc).Status -ne 'Stopped') { throw 'eBPFSvc did not stop' } } }&quot;" Before="Force_eBPFSvc_stop" Sequence="execute"/>
+		<SetProperty Id="Force_eBPFSvc_stop" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action StopService -ServiceName eBPFSvc" Before="Force_eBPFSvc_stop" Sequence="execute"/>
 		<CustomAction Id="Force_eBPFSvc_stop" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
-		<SetProperty Id="Force_eBPFSvc_stop_rollback" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;&amp; { $service = Get-Service -Name eBPFSvc -ErrorAction SilentlyContinue; if ($null -ne $service -and $service.Status -ne 'Stopped') { Stop-Service -Name eBPFSvc -ErrorAction SilentlyContinue } }&quot;" Before="Force_eBPFSvc_stop_rollback" Sequence="execute"/>
+		<SetProperty Id="Force_eBPFSvc_stop_rollback" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action StopService -ServiceName eBPFSvc" Before="Force_eBPFSvc_stop_rollback" Sequence="execute"/>
 		<CustomAction Id="Force_eBPFSvc_stop_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
-		<SetProperty Id="Force_NetEbpfExt_Driver_stop" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;&amp; { $service = Get-Service -Name NetEbpfExt -ErrorAction SilentlyContinue; if ($null -ne $service -and $service.Status -ne 'Stopped') { Stop-Service -Name NetEbpfExt -ErrorAction Stop; for ($i = 0; $i -lt 30 -and (Get-Service -Name NetEbpfExt).Status -ne 'Stopped'; $i++) { Start-Sleep -Seconds 1 }; if ((Get-Service -Name NetEbpfExt).Status -ne 'Stopped') { throw 'NetEbpfExt did not stop' } } }&quot;" Before="Force_NetEbpfExt_Driver_stop" Sequence="execute"/>
+		<SetProperty Id="Force_NetEbpfExt_Driver_stop" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action StopService -ServiceName NetEbpfExt" Before="Force_NetEbpfExt_Driver_stop" Sequence="execute"/>
 		<CustomAction Id="Force_NetEbpfExt_Driver_stop" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
-		<SetProperty Id="Force_eBPFCore_Driver_stop" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;&amp; { $service = Get-Service -Name eBPFCore -ErrorAction Stop; if ($service.Status -ne 'Stopped') { Stop-Service -Name eBPFCore -ErrorAction Stop; for ($i = 0; $i -lt 30 -and (Get-Service -Name eBPFCore).Status -ne 'Stopped'; $i++) { Start-Sleep -Seconds 1 }; if ((Get-Service -Name eBPFCore).Status -ne 'Stopped') { throw 'eBPFCore did not stop' } } }&quot;" Before="Force_eBPFCore_Driver_stop" Sequence="execute"/>
+		<SetProperty Id="Force_eBPFCore_Driver_stop" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action StopService -ServiceName eBPFCore" Before="Force_eBPFCore_Driver_stop" Sequence="execute"/>
 		<CustomAction Id="Force_eBPFCore_Driver_stop" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
 		<SetProperty Id="Force_eBPF_binaries_backup" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action BackupLinks" Before="Force_eBPF_binaries_backup" Sequence="execute"/>
 		<CustomAction Id="Force_eBPF_binaries_backup" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
@@ -320,12 +320,12 @@ SPDX-License-Identifier: MIT
 		<CustomAction Id="Force_eBPF_services_uninstall_commit" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="commit" Return="ignore" Impersonate="no"/>
 		<SetProperty Id="eBPFCore_Driver_install" Value='"sc.exe" create eBPFCore type=kernel start=auto binpath="[#eBPFCore.sys]"' Before="eBPFCore_Driver_install" Sequence="execute"/>
 		<CustomAction Id="eBPFCore_Driver_install" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
-		<Property Id="eBPFCore_Driver_start" Value='"net.exe" start eBPFCore' />
+		<SetProperty Id="eBPFCore_Driver_start" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action StartService -ServiceName eBPFCore" Before="eBPFCore_Driver_start" Sequence="execute"/>
 		<CustomAction Id="eBPFCore_Driver_start" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
-		<Property Id="eBPFCore_Driver_stop" Value='"net.exe" stop eBPFCore' />
+		<SetProperty Id="eBPFCore_Driver_stop" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action StopService -ServiceName eBPFCore" Before="eBPFCore_Driver_stop" Sequence="execute"/>
 		<CustomAction Id="eBPFCore_Driver_stop" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
 		<CustomAction Id="eBPFCore_Driver_uninstall_flush" Directory="ProgramFiles64Folder" ExeCommand ='"sc.exe" query eBPFCore' Execute ="immediate" Return ="asyncNoWait"/>
-		<Property Id="eBPFCore_Driver_stop_rollback" Value='"net.exe" stop eBPFCore' />
+		<SetProperty Id="eBPFCore_Driver_stop_rollback" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action StopService -ServiceName eBPFCore" Before="eBPFCore_Driver_stop_rollback" Sequence="execute"/>
 		<CustomAction Id="eBPFCore_Driver_stop_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
 		<Property Id="eBPFCore_Driver_uninstall_rollback" Value='"sc.exe" delete eBPFCore' />
 		<CustomAction Id="eBPFCore_Driver_uninstall_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
@@ -345,11 +345,11 @@ SPDX-License-Identifier: MIT
 		</ComponentGroup>
 		<SetProperty Id="NetEbpfExt_Driver_install" Value='"sc.exe" create NetEbpfExt type=kernel start=auto binpath="[#NetEbpfExt.sys]"' Before="NetEbpfExt_Driver_install" Sequence="execute"/>
 		<CustomAction Id="NetEbpfExt_Driver_install" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
-		<Property Id="NetEbpfExt_Driver_start" Value='"net.exe" start NetEbpfExt' />
+		<SetProperty Id="NetEbpfExt_Driver_start" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action StartService -ServiceName NetEbpfExt" Before="NetEbpfExt_Driver_start" Sequence="execute"/>
 		<CustomAction Id="NetEbpfExt_Driver_start" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
-		<Property Id="NetEbpfExt_Driver_stop" Value='"net.exe" stop NetEbpfExt' />
+		<SetProperty Id="NetEbpfExt_Driver_stop" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action StopService -ServiceName NetEbpfExt" Before="NetEbpfExt_Driver_stop" Sequence="execute"/>
 		<CustomAction Id="NetEbpfExt_Driver_stop" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
-		<Property Id="NetEbpfExt_Driver_stop_rollback" Value='"net.exe" stop NetEbpfExt' />
+		<SetProperty Id="NetEbpfExt_Driver_stop_rollback" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action StopService -ServiceName NetEbpfExt" Before="NetEbpfExt_Driver_stop_rollback" Sequence="execute"/>
 		<CustomAction Id="NetEbpfExt_Driver_stop_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
 		<Property Id="NetEbpfExt_Driver_uninstall_rollback" Value='"sc.exe" delete NetEbpfExt' />
 		<CustomAction Id="NetEbpfExt_Driver_uninstall_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>

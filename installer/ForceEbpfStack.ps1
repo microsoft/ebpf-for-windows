@@ -19,6 +19,8 @@ param(
         "RemoveServices",
         "RestoreServices",
         "StopServices",
+        "StopService",
+        "StartService",
         "RollbackRestoreServices",
         "BackupStore",
         "RollbackStore",
@@ -34,6 +36,8 @@ param(
     [string]$Action,
 
     [string]$InstallRoot,
+
+    [string]$ServiceName,
 
     [switch]$UseCanonicalServicePath,
 
@@ -804,7 +808,7 @@ function Repair-Stack
     if ([bool]$state.Forced) {
         foreach ($service in @($state.Services)) {
             if ([bool]$service.WasRunning) {
-                Start-Service -Name $service.Name
+                Start-ServiceWithTimeout -Name $service.Name
             }
         }
     }
@@ -854,7 +858,7 @@ function Rollback-Repair
         if ($service.Name -eq "eBPFSvc" -and -not [bool]$service.Existed) {
             Remove-ServiceIfPresent -Name $service.Name
         } elseif ([bool]$state.Forced -and [bool]$service.WasRunning) {
-            Start-Service -Name $service.Name
+            Start-ServiceWithTimeout -Name $service.Name
         }
     }
     Remove-RepairFiles
@@ -1057,12 +1061,61 @@ function Stop-ServiceIfPresent
     param([Parameter(Mandatory = $true)][string]$Name)
 
     $service = Get-Service -Name $Name -ErrorAction SilentlyContinue
-    if ($null -ne $service -and
-        $service.Status -ne [System.ServiceProcess.ServiceControllerStatus]::Stopped) {
-        Stop-Service -Name $Name -Force
+    if ($null -eq $service) {
+        return
+    }
+    try {
+        if ($service.Status -eq [System.ServiceProcess.ServiceControllerStatus]::Stopped) {
+            return
+        }
+        foreach ($dependent in $service.DependentServices) {
+            try {
+                Stop-ServiceIfPresent -Name $dependent.ServiceName
+            } finally {
+                $dependent.Dispose()
+            }
+        }
+        $service.Refresh()
+        if ($service.Status -eq [System.ServiceProcess.ServiceControllerStatus]::StartPending) {
+            $service.WaitForStatus(
+                [System.ServiceProcess.ServiceControllerStatus]::Running,
+                [TimeSpan]::FromSeconds(60))
+        }
+        if ($service.Status -notin @(
+                [System.ServiceProcess.ServiceControllerStatus]::Stopped,
+                [System.ServiceProcess.ServiceControllerStatus]::StopPending)) {
+            # Dependents are already stopped, so Stop() does not perform its own dependent-service waits.
+            $service.Stop()
+        }
         $service.WaitForStatus(
             [System.ServiceProcess.ServiceControllerStatus]::Stopped,
             [TimeSpan]::FromSeconds(60))
+    } finally {
+        $service.Dispose()
+    }
+}
+
+function Start-ServiceWithTimeout
+{
+    param([Parameter(Mandatory = $true)][string]$Name)
+
+    $service = Get-Service -Name $Name -ErrorAction Stop
+    try {
+        if ($service.Status -eq [System.ServiceProcess.ServiceControllerStatus]::StopPending) {
+            $service.WaitForStatus(
+                [System.ServiceProcess.ServiceControllerStatus]::Stopped,
+                [TimeSpan]::FromSeconds(60))
+        }
+        if ($service.Status -notin @(
+                [System.ServiceProcess.ServiceControllerStatus]::Running,
+                [System.ServiceProcess.ServiceControllerStatus]::StartPending)) {
+            $service.Start()
+        }
+        $service.WaitForStatus(
+            [System.ServiceProcess.ServiceControllerStatus]::Running,
+            [TimeSpan]::FromSeconds(60))
+    } finally {
+        $service.Dispose()
     }
 }
 
@@ -1233,10 +1286,7 @@ function Set-ServiceFromState
                 -FailureMessage "Failed to temporarily enable the $name service for restoration"
         }
         try {
-            Start-Service -Name $name
-            (Get-Service -Name $name).WaitForStatus(
-                [System.ServiceProcess.ServiceControllerStatus]::Running,
-                [TimeSpan]::FromSeconds(60))
+            Start-ServiceWithTimeout -Name $name
         } finally {
             if ($restoreDisabled) {
                 Invoke-NativeCommand `
@@ -1770,6 +1820,12 @@ if (($Action -match "(Services|Store|Repair)$" -and
     [EbpfMsi.NativeSecurity]::ValidateBackupDirectory($StateRoot)
 }
 switch ($Action) {
+    "StopService" {
+        Stop-ServiceIfPresent -Name $ServiceName
+    }
+    "StartService" {
+        Start-ServiceWithTimeout -Name $ServiceName
+    }
     "PrepareRepair" {
         Prepare-Repair
     }
