@@ -5,15 +5,16 @@
 For a new installation, if the registry search detects an existing eBPFCore service `ImagePath`,
 the MSI stops unless `FORCE=1` is supplied.
 
-Forced installation also rejects an existing `HKCU\Software\eBPF` key before installing files or
-stopping services. HKCU checks, writes, and cleanup run as the installing user, not as SYSTEM.
+Forced installation also rejects an existing `HKCU\Software\eBPF` key for either the installing
+user or SYSTEM before installing files or stopping services. SYSTEM's store is checked explicitly
+at `HKEY_USERS\S-1-5-18\Software\eBPF` and checked again by the elevated service-backup action.
 
 With `FORCE=1` and an existing eBPFCore registration, the MSI:
 
 1. Saves the current configuration and running state of eBPFCore, NetEbpfExt, and eBPFSvc.
 2. Stops NetEbpfExt, eBPFSvc, and then eBPFCore.
 3. Records an existing backup name for each Windows binary, then removes each canonical name and creates its hard link directly to the new MSI binary.
-4. Saves the HKLM eBPF store, then populates HKLM and the installing user's HKCU with the MSI's metadata.
+4. Saves the HKLM eBPF store, then populates HKLM, SYSTEM's HKCU, and the installing user's HKCU with the MSI's metadata.
 5. Starts the drivers and requests startup of eBPFSvc without reconfiguring existing services.
 
 Forced installation assumes all three inbox services already exist with compatible configuration
@@ -21,9 +22,12 @@ and canonical System32 binary paths; it does not validate or rewrite those setti
 
 On final uninstall, the saved original service state, binary hard links, and HKLM store are used
 to restore the machine-wide eBPF stack to its pre-MSI state. HKCU has no backups: failed forced
-installation removes the newly created user store, and successful final uninstall deletes
-`HKCU\Software\eBPF` during commit. HKCU cleanup is deferred until successful uninstall commit,
-so no uninstall snapshot is needed.
+installation removes both newly created user stores, with SYSTEM cleanup after HKLM rollback, and successful final
+uninstall of a forced installation deletes both stores during commit. SYSTEM processes then fall
+back to the restored HKLM metadata. Ordinary uninstall instead runs the
+exporter's scoped cleanup as the uninstalling user before removing files, preserving unrelated
+extension metadata. The existing original-service backup identifies forced installations; no new
+ownership marker or HKCU snapshot is needed.
 Installation and uninstallation must run as the same user; there is no cross-user cleanup or ownership marker.
 
 Known limitation: if eBPFSvc was running when uninstall began, Restart Manager may stop it before
@@ -72,7 +76,7 @@ flowchart TD
         BinaryBackup["Force_eBPF_binaries_backup"]
         Links["Force_eBPF_binaries_hardlink<br/>R: Force_eBPF_binaries_restore"]
         MachineBackup["Force_eBPF_store_backup_HKLM"]
-        ClearMachine["Clear_eBPF_store_HKLM<br/>R: Force_eBPF_store_rollback_HKLM [forced replacement]<br/>R: Rollback_eBPF_store_HKCU [forced replacement]"]
+        ClearMachine["Clear_eBPF_store_HKLM<br/>R: Rollback_eBPF_store_SYSTEM [forced replacement]<br/>R: Force_eBPF_store_rollback_HKLM [forced replacement]<br/>R: Rollback_eBPF_store_HKCU [forced replacement]"]
         SetupMachine["Setup_eBPF_store_HKLM"]
         ClearUser["Clear_eBPF_store_HKCU"]
         SetupUser["Setup_eBPF_store_HKCU"]
@@ -117,7 +121,8 @@ flowchart TD
 If normal work reports a fatal error, MSI runs the rollback work accumulated so far, using the
 original backups. No success-only install cleanup is needed: successful installation keeps those
 backups for uninstall.
-HKCU rollback simply removes the user store created by the failed forced installation.
+HKCU rollback removes the installing user's store and, after HKLM restoration, SYSTEM's store
+created by the failed forced installation. No SYSTEM-user registry backup is created.
 
 ## 2. Uninstall execution flow
 
@@ -141,6 +146,7 @@ flowchart TD
         MachineRestore["Force_eBPF_store_restore_HKLM<br/>R: Force_eBPF_binaries_uninstall_rollback"]
         BinaryRestore["Force_eBPF_binaries_uninstall_restore"]
         ServiceRestore["Force_eBPF_services_uninstall_restore<br/>R: Force_eBPF_services_uninstall_stop_rollback"]
+        OrdinaryUserCleanup["Clear_eBPF_store_uninstall_HKCU [ordinary installation]"]
         Files["RemoveFiles"]
         Folders["RemoveFolders"]
         NormalSuccess["Normal uninstall succeeded"]
@@ -148,15 +154,16 @@ flowchart TD
         ServiceSnapshot --> MachineSnapshot --> Netsh
         Netsh --> ServiceRemove --> Components
         Components --> StandardStop --> Environment --> MachineRestore
-        MachineRestore --> BinaryRestore --> ServiceRestore --> Files
+        MachineRestore --> BinaryRestore --> ServiceRestore --> OrdinaryUserCleanup --> Files
         Files --> Folders --> NormalSuccess
     Prep --> ServiceSnapshot
 
     subgraph Commit["Success-only commit actions"]
-        UserCleanup["Force_eBPF_store_uninstall_commit_HKCU"]
+        UserCleanup["Force_eBPF_store_uninstall_commit_HKCU [forced installation]"]
+        SystemCleanup["Force_eBPF_store_uninstall_commit_SYSTEM [forced installation]"]
         ServiceCleanup["Force_eBPF_services_uninstall_commit"]
         Finished["InstallFinalize completes successfully"]
-        UserCleanup --> ServiceCleanup --> Finished
+        UserCleanup --> SystemCleanup --> ServiceCleanup --> Finished
     end
 
     NormalSuccess --> UserCleanup
@@ -168,13 +175,18 @@ If normal uninstall work reports a fatal error, MSI follows recovery rather than
 cleanup path. Recovery is not expanded here; it restores the pre-uninstall state using the rollback work
 accumulated so far.
 
-The impersonated HKCU commit runs before the SYSTEM service/HKLM commit, only after normal removal
-succeeds. It deletes the current user's eBPF registry store directly, without creating or restoring a backup.
+For forced installations, the impersonated HKCU commit and non-impersonated SYSTEM-store commit
+run before backup cleanup, only after normal removal succeeds. They delete the two user stores
+directly, without creating or restoring backups. Failed uninstall retains SYSTEM's MSI metadata.
+Ordinary installations use scoped HKCU cleanup before
+`RemoveFiles`, while the exporter and helper are still installed.
 
 ## 3. Repair execution flow
 
 Repair actions run only for an installed product with `REINSTALL` set and no `REMOVE` property.
 The installed helper is available before repair preparation, even if it was initially missing.
+Repair and repair rollback temporarily enable a previously running but disabled service to restart
+it, then restore its disabled startup setting even if startup fails.
 
 ```mermaid
 flowchart TD

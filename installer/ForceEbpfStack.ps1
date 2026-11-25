@@ -29,6 +29,7 @@ param(
         "RollbackRestoreStore",
         "CommitRestoreAll",
         "RemoveUserStore",
+        "RemoveSystemStore",
         "ClearStore",
         "PopulateStore",
         "RestoreLinks",
@@ -808,7 +809,7 @@ function Repair-Stack
     if ([bool]$state.Forced) {
         foreach ($service in @($state.Services)) {
             if ([bool]$service.WasRunning) {
-                Start-ServiceWithTimeout -Name $service.Name
+                Restore-ServiceRunningState -ServiceState $service
             }
         }
     }
@@ -858,7 +859,7 @@ function Rollback-Repair
         if ($service.Name -eq "eBPFSvc" -and -not [bool]$service.Existed) {
             Remove-ServiceIfPresent -Name $service.Name
         } elseif ([bool]$state.Forced -and [bool]$service.WasRunning) {
-            Start-ServiceWithTimeout -Name $service.Name
+            Restore-ServiceRunningState -ServiceState $service
         }
     }
     Remove-RepairFiles
@@ -889,6 +890,9 @@ function Get-RegistryProviderPath
     }
     if ($RegistryPath.StartsWith("HKCU\", [System.StringComparison]::OrdinalIgnoreCase)) {
         return "Registry::HKEY_CURRENT_USER\" + $RegistryPath.Substring(5)
+    }
+    if ($RegistryPath.StartsWith("HKU\", [System.StringComparison]::OrdinalIgnoreCase)) {
+        return "Registry::HKEY_USERS\" + $RegistryPath.Substring(4)
     }
     throw "Unsupported registry path '$RegistryPath'."
 }
@@ -1276,24 +1280,32 @@ function Set-ServiceFromState
             -FailureMessage "Failed to restore the $name service security descriptor"
     }
     if ($StartIfPreviouslyRunning -and [bool]$ServiceState.WasRunning) {
-        # Disabling startup does not stop a running service. Temporarily allow startup to restore
-        # a saved Running + Disabled state, then restore Disabled even if starting fails.
-        $restoreDisabled = [int]$ServiceState.Start -eq 4
+        Restore-ServiceRunningState -ServiceState $ServiceState
+    }
+}
+
+function Restore-ServiceRunningState
+{
+    param([Parameter(Mandatory = $true)][object]$ServiceState)
+
+    $name = [string]$ServiceState.Name
+    # Disabling startup does not stop a running service. Restore Running + Disabled without
+    # leaving startup enabled if the start request or bounded wait fails.
+    $restoreDisabled = [int]$ServiceState.Start -eq 4
+    if ($restoreDisabled) {
+        Invoke-NativeCommand `
+            -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
+            -ArgumentList @("config", $name, "start=", "demand") `
+            -FailureMessage "Failed to temporarily enable the $name service for restoration"
+    }
+    try {
+        Start-ServiceWithTimeout -Name $name
+    } finally {
         if ($restoreDisabled) {
             Invoke-NativeCommand `
                 -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
-                -ArgumentList @("config", $name, "start=", "demand") `
-                -FailureMessage "Failed to temporarily enable the $name service for restoration"
-        }
-        try {
-            Start-ServiceWithTimeout -Name $name
-        } finally {
-            if ($restoreDisabled) {
-                Invoke-NativeCommand `
-                    -FilePath (Join-Path $env:SystemRoot "System32\sc.exe") `
-                    -ArgumentList @("config", $name, "start=", "disabled") `
-                    -FailureMessage "Failed to restore the $name service's disabled startup configuration"
-            }
+                -ArgumentList @("config", $name, "start=", "disabled") `
+                -FailureMessage "Failed to restore the $name service's disabled startup configuration"
         }
     }
 }
@@ -1494,6 +1506,9 @@ function Remove-BackupFileIfPresent
 # Saves the original service configuration, running state, and netsh helper registration before forced replacement.
 function Backup-Services
 {
+    if (Test-Path -LiteralPath "Registry::HKEY_USERS\S-1-5-18\Software\eBPF") {
+        throw "Cannot force-install: SYSTEM's HKCU\Software\eBPF already exists."
+    }
     $paths = Get-ServicePaths
     $existingFiles = @(Get-ChildItem -LiteralPath $StateRoot -Filter "ebpf-services.*" -Force)
     foreach ($name in $ServiceNames) {
@@ -1814,7 +1829,8 @@ function Commit-StoreRestore
 }
 
 if (($Action -match "(Services|Store|Repair)$" -and
-        $Action -notin @("ClearStore", "PopulateStore", "RemoveUserStore")) -or $Action -eq "CommitRestoreAll" -or
+        $Action -notin @("ClearStore", "PopulateStore", "RemoveUserStore", "RemoveSystemStore")) -or
+    $Action -eq "CommitRestoreAll" -or
     $Action -in @("BackupLinks", "Install", "Rollback", "RestoreLinks", "RollbackRestoreLinks")) {
     $StateRoot = [System.IO.Path]::GetFullPath($StateRoot)
     [EbpfMsi.NativeSecurity]::ValidateBackupDirectory($StateRoot)
@@ -1927,7 +1943,11 @@ switch ($Action) {
         Remove-RegistryTreeIfPresent -RegistryPath "HKCU\Software\eBPF"
     }
 
-    # Clears the calling user's eBPF registry metadata before populating it from the MSI.
+    "RemoveSystemStore" {
+        Remove-RegistryTreeIfPresent -RegistryPath "HKU\S-1-5-18\Software\eBPF"
+    }
+
+    # Removes known MSI metadata without deleting unrelated extension records.
     "ClearStore" {
         Invoke-NativeCommand -FilePath (Join-Path $InstallRoot "export_program_info.exe") `
             -ArgumentList @("--clear") -FailureMessage "Failed to clear the user eBPF store"

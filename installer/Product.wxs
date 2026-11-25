@@ -98,7 +98,8 @@ SPDX-License-Identifier: MIT
 			<Custom Action="Force_eBPF_binaries_restore" After="Force_eBPF_binaries_backup">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
 			<Custom Action="Force_eBPF_binaries_hardlink" After="Force_eBPF_binaries_restore">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
 			<Custom Action="Force_eBPF_store_backup_HKLM" After="Force_eBPF_binaries_hardlink">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
-			<Custom Action="Force_eBPF_store_rollback_HKLM" After="Force_eBPF_store_backup_HKLM">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
+			<Custom Action="Rollback_eBPF_store_SYSTEM" After="Force_eBPF_store_backup_HKLM">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
+			<Custom Action="Force_eBPF_store_rollback_HKLM" After="Rollback_eBPF_store_SYSTEM">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</Custom>
 			<Custom Action="Clear_eBPF_store_HKLM" After="Force_eBPF_store_rollback_HKLM">NOT Installed</Custom>
 			<Custom Action="Setup_eBPF_store_HKLM" After="Clear_eBPF_store_HKLM">NOT Installed</Custom>
 			<Custom Action="Clear_eBPF_store_HKCU" After="Setup_eBPF_store_HKLM">NOT Installed</Custom>
@@ -126,8 +127,10 @@ SPDX-License-Identifier: MIT
 
 			<Custom Action="Force_eBPF_store_restore_HKLM" Before="Force_eBPF_binaries_uninstall_restore">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
 			<Custom Action="Force_eBPF_binaries_uninstall_restore" Before="Force_eBPF_services_uninstall_stop_rollback">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
-			<Custom Action="Force_eBPF_services_uninstall_restore" Before="RemoveFiles">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
-			<Custom Action="Force_eBPF_store_uninstall_commit_HKCU" Before="Force_eBPF_services_uninstall_commit">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
+			<Custom Action="Force_eBPF_services_uninstall_restore" Before="Clear_eBPF_store_uninstall_HKCU">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
+			<Custom Action="Clear_eBPF_store_uninstall_HKCU" Before="RemoveFiles">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE AND NOT EBPF_ORIGINAL_SERVICE_BACKUP</Custom>
+			<Custom Action="Force_eBPF_store_uninstall_commit_HKCU" Before="Force_eBPF_store_uninstall_commit_SYSTEM">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE AND EBPF_ORIGINAL_SERVICE_BACKUP</Custom>
+			<Custom Action="Force_eBPF_store_uninstall_commit_SYSTEM" Before="Force_eBPF_services_uninstall_commit">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE AND EBPF_ORIGINAL_SERVICE_BACKUP</Custom>
 			<Custom Action="Force_eBPF_services_uninstall_commit" Before="InstallFinalize">REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
 			<Custom Action="eBPFCore_Driver_uninstall_flush" After="InstallFinalize">REMOVE="ALL"</Custom>
 		</InstallExecuteSequence>
@@ -210,7 +213,7 @@ SPDX-License-Identifier: MIT
 		</ComponentGroup>
 
 		<!-- Validate after AppSearch, before installation changes or backup directory creation. -->
-		<SetProperty Id="WixQuietExec64CmdLine" Action="Set_validate_existing_eBPF_stack" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;$ErrorActionPreference = 'Stop'; if (Test-Path -LiteralPath 'Registry::HKEY_CURRENT_USER\Software\eBPF') { throw 'Cannot force-install: HKCU\Software\eBPF already exists. Remove the user store before continuing.' }; foreach ($name in @('bpftool.exe', 'ebpfapi.dll', 'ebpfnetsh.dll', 'ebpfsvc.exe', 'drivers\eBPFCore.sys', 'drivers\NetEbpfExt.sys')) { $path = Join-Path $env:SystemRoot ('System32\' + $name); $file = Get-Item -LiteralPath $path -Force; if ($file.LinkType -ne 'HardLink') { throw ('Cannot force-install: ' + $path + ' must have an existing hard link.') } }&quot;" Before="Validate_existing_eBPF_stack" Sequence="execute">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</SetProperty>
+		<SetProperty Id="WixQuietExec64CmdLine" Action="Set_validate_existing_eBPF_stack" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;$ErrorActionPreference = 'Stop'; if (Test-Path -LiteralPath 'Registry::HKEY_CURRENT_USER\Software\eBPF') { throw 'Cannot force-install: HKCU\Software\eBPF already exists. Remove the user store before continuing.' }; if (Test-Path -LiteralPath 'Registry::HKEY_USERS\S-1-5-18\Software\eBPF') { throw 'Cannot force-install: SYSTEM HKCU\Software\eBPF already exists.' }; foreach ($name in @('bpftool.exe', 'ebpfapi.dll', 'ebpfnetsh.dll', 'ebpfsvc.exe', 'drivers\eBPFCore.sys', 'drivers\NetEbpfExt.sys')) { $path = Join-Path $env:SystemRoot ('System32\' + $name); $file = Get-Item -LiteralPath $path -Force; if ($file.LinkType -ne 'HardLink') { throw ('Cannot force-install: ' + $path + ' must have an existing hard link.') } }&quot;" Before="Validate_existing_eBPF_stack" Sequence="execute">NOT Installed AND EXISTING_EBPFCORE AND FORCE = "1"</SetProperty>
 		<CustomAction Id="Validate_existing_eBPF_stack" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="immediate" Return="check"/>
 
 		<!--Repair service registration and forced-install canonical links-->
@@ -225,6 +228,8 @@ SPDX-License-Identifier: MIT
 		<!--Clear/Setup the eBPF store-->
 		<SetProperty Id="Rollback_eBPF_store_HKCU" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action RemoveUserStore" Before="Rollback_eBPF_store_HKCU" Sequence="execute"/>
 		<CustomAction Id="Rollback_eBPF_store_HKCU" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="check" Impersonate="yes"/>
+		<SetProperty Id="Rollback_eBPF_store_SYSTEM" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action RemoveSystemStore" Before="Rollback_eBPF_store_SYSTEM" Sequence="execute"/>
+		<CustomAction Id="Rollback_eBPF_store_SYSTEM" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="check" Impersonate="no"/>
 		<CustomAction Id="Clear_eBPF_store_HKLM" ExeCommand='"[#EXPORT_PROGRAM_INFO.EXE]" --clear' Directory="INSTALLFOLDER" Execute="deferred" Return="check" Impersonate="no"/>
 		<SetProperty Id="Clear_eBPF_store_HKCU" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action ClearStore" Before="Clear_eBPF_store_HKCU" Sequence="execute"/>
 		<CustomAction Id="Clear_eBPF_store_HKCU" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="yes"/>
@@ -244,6 +249,10 @@ SPDX-License-Identifier: MIT
 		<CustomAction Id="Force_eBPF_store_uninstall_rollback_HKLM" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="check" Impersonate="no"/>
 		<SetProperty Id="Force_eBPF_store_uninstall_commit_HKCU" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[ProgramFiles64Folder]ebpf-for-windows\MsiBackup\ForceEbpfStack.cleanup.ps1&quot; -Action RemoveUserStore" Before="Force_eBPF_store_uninstall_commit_HKCU" Sequence="execute"/>
 		<CustomAction Id="Force_eBPF_store_uninstall_commit_HKCU" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="commit" Return="ignore" Impersonate="yes"/>
+		<SetProperty Id="Force_eBPF_store_uninstall_commit_SYSTEM" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[ProgramFiles64Folder]ebpf-for-windows\MsiBackup\ForceEbpfStack.cleanup.ps1&quot; -Action RemoveSystemStore" Before="Force_eBPF_store_uninstall_commit_SYSTEM" Sequence="execute"/>
+		<CustomAction Id="Force_eBPF_store_uninstall_commit_SYSTEM" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="commit" Return="ignore" Impersonate="no"/>
+		<SetProperty Id="Clear_eBPF_store_uninstall_HKCU" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;[#FORCE_EBPF_STACK.PS1]&quot; -Action ClearStore" Before="Clear_eBPF_store_uninstall_HKCU" Sequence="execute"/>
+		<CustomAction Id="Clear_eBPF_store_uninstall_HKCU" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="yes"/>
 
 		<!--Install/Uninstall the netsh helper-->
 		<!--qtexec does not currently support a working directory (ref. https://github.com/wixtoolset/issues/issues/1265)-->
