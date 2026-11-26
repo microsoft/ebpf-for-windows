@@ -66,6 +66,10 @@ typedef struct _test_globals
     bool attach_v6_program = false;
     bool attach_authorization_programs = false;
     bpf_object_ptr bpf_object;
+    std::unique_ptr<bpf_link, decltype(&bpf_link__destroy)> connect_redirect_v4_link{nullptr, bpf_link__destroy};
+    std::unique_ptr<bpf_link, decltype(&bpf_link__destroy)> connect_redirect_v6_link{nullptr, bpf_link__destroy};
+    std::unique_ptr<bpf_link, decltype(&bpf_link__destroy)> connect_authorization_v4_link{nullptr, bpf_link__destroy};
+    std::unique_ptr<bpf_link, decltype(&bpf_link__destroy)> connect_authorization_v6_link{nullptr, bpf_link__destroy};
 } test_globals_t;
 
 static test_globals_t _globals;
@@ -185,7 +189,6 @@ _initialize_test_globals()
         return;
     }
 
-    int result;
     ADDRESS_FAMILY family;
     uint32_t v4_addresses = 0;
     uint32_t v6_addresses = 0;
@@ -261,9 +264,8 @@ _initialize_test_globals()
             bpf_object__find_program_by_name(_globals.bpf_object.get(), "connect_redirect4");
         SAFE_REQUIRE(connect_program_v4 != nullptr);
 
-        result = bpf_prog_attach(
-            bpf_program__fd(const_cast<const bpf_program*>(connect_program_v4)), 0, BPF_CGROUP_INET4_CONNECT, 0);
-        SAFE_REQUIRE(result == 0);
+        _globals.connect_redirect_v4_link.reset(bpf_program__attach(connect_program_v4));
+        SAFE_REQUIRE(_globals.connect_redirect_v4_link != nullptr);
     }
     if (_globals.attach_v6_program) {
         printf("Attaching IPv6 program\n");
@@ -271,9 +273,8 @@ _initialize_test_globals()
             bpf_object__find_program_by_name(_globals.bpf_object.get(), "connect_redirect6");
         SAFE_REQUIRE(connect_program_v6 != nullptr);
 
-        result = bpf_prog_attach(
-            bpf_program__fd(const_cast<const bpf_program*>(connect_program_v6)), 0, BPF_CGROUP_INET6_CONNECT, 0);
-        SAFE_REQUIRE(result == 0);
+        _globals.connect_redirect_v6_link.reset(bpf_program__attach(connect_program_v6));
+        SAFE_REQUIRE(_globals.connect_redirect_v6_link != nullptr);
     }
 
     printf("Done initializing globals.\n");
@@ -838,28 +839,19 @@ DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP(
         /* Attach authorization programs if not already attached. */                                                 \
         if (!_globals.attach_authorization_programs) {                                                               \
             _globals.attach_authorization_programs = true;                                                           \
-            int result;                                                                                              \
             if (_globals.attach_v4_program) {                                                                        \
                 bpf_program* auth_v4 =                                                                               \
                     bpf_object__find_program_by_name(_globals.bpf_object.get(), "connect_authorization4");           \
                 SAFE_REQUIRE(auth_v4 != nullptr);                                                                    \
-                result = bpf_prog_attach(                                                                            \
-                    bpf_program__fd(const_cast<const bpf_program*>(auth_v4)),                                        \
-                    0,                                                                                               \
-                    BPF_CGROUP_INET4_CONNECT_AUTHORIZATION,                                                          \
-                    0);                                                                                              \
-                SAFE_REQUIRE(result == 0);                                                                           \
+                _globals.connect_authorization_v4_link.reset(bpf_program__attach(auth_v4));                          \
+                SAFE_REQUIRE(_globals.connect_authorization_v4_link != nullptr);                                     \
             }                                                                                                        \
             if (_globals.attach_v6_program) {                                                                        \
                 bpf_program* auth_v6 =                                                                               \
                     bpf_object__find_program_by_name(_globals.bpf_object.get(), "connect_authorization6");           \
                 SAFE_REQUIRE(auth_v6 != nullptr);                                                                    \
-                result = bpf_prog_attach(                                                                            \
-                    bpf_program__fd(const_cast<const bpf_program*>(auth_v6)),                                        \
-                    0,                                                                                               \
-                    BPF_CGROUP_INET6_CONNECT_AUTHORIZATION,                                                          \
-                    0);                                                                                              \
-                SAFE_REQUIRE(result == 0);                                                                           \
+                _globals.connect_authorization_v6_link.reset(bpf_program__attach(auth_v6));                          \
+                SAFE_REQUIRE(_globals.connect_authorization_v6_link != nullptr);                                     \
             }                                                                                                        \
         }                                                                                                            \
         printf("COMBINED REDIRECT+AUTH: " #destination " -> " #proxy " | reject after redirect\n");                  \
