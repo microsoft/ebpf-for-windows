@@ -609,6 +609,15 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
     result = helper.test_cgroup_inet6_connect(&parameters);
     REQUIRE(result == FWP_ACTION_BLOCK);
 
+    // Test invalid verdict normalization for recv_accept.
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_INVALID;
+
+    result = helper.test_cgroup_inet4_recv_accept(&parameters);
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
+    result = helper.test_cgroup_inet6_recv_accept(&parameters);
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
     // Test reauthorization flag.
     // Classify operations that should be allowed.
     client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT_SOFT;
