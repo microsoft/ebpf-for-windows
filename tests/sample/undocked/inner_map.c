@@ -72,7 +72,7 @@ SEC("sample_ext") int lookup_update(sample_program_context_t* ctx)
     inner_map2 = bpf_map_lookup_elem(&outer_map2, &outer_key2);
     if (inner_map2) {
         uint32_t inner_key = 0;
-        uint32_t* inner_value = (uint32_t*)bpf_map_lookup_elem(inner_map, &inner_key);
+        uint32_t* inner_value = (uint32_t*)bpf_map_lookup_elem(inner_map2, &inner_key);
         if (inner_value) {
             // Update value in inner map.
             *inner_value = 1;
