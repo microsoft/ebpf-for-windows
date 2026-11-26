@@ -89,7 +89,7 @@ jobs:
       build_nuget: true
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
       build_options: /p:BuildOneBranch='True' /t:tools\onebranch /t:installer\ebpf-for-windows
-      solution_file: "ebpf-for-windows.sln"
+      solution_file: "ebpf-for-windows.slnx"
       architecture: ${{ matrix.Architecture }}
       # windows-11-arm now resolves to the VS 2026 ARM64 image, so both
       # architectures must request the VS 2026 toolchain.

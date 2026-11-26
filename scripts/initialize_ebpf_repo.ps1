@@ -135,7 +135,7 @@ if (!$SkipHostToolBootstrap -and $Architecture -ieq "ARM64" -and $hostArchitectu
     }
 
     foreach ($configuration in @("Debug", "Release", "NativeOnlyDebug", "NativeOnlyRelease")) {
-        Invoke-MSBuild -Arguments "/m", "ebpf-for-windows.sln", "/t:tools\bpf2c", "/p:Configuration=$configuration", "/p:Platform=x64", "/p:HostPlatform=x64"
+        Invoke-MSBuild -Arguments "/m", "ebpf-for-windows.slnx", "/t:tools\bpf2c", "/p:Configuration=$configuration", "/p:Platform=x64", "/p:HostPlatform=x64"
     }
 
     # Native conversion reads program metadata from the host store. Run the exporters explicitly because a cached
@@ -147,7 +147,7 @@ if (!$SkipHostToolBootstrap -and $Architecture -ieq "ARM64" -and $hostArchitectu
         @{Target = "undocked\tools\export_program_info_sample"; Executable = "export_program_info_sample.exe"})
 
     foreach ($exporter in $hostProgramInfoExporters) {
-        Invoke-MSBuild -Arguments "/m", "ebpf-for-windows.sln", "/t:$($exporter.Target)", "/p:Configuration=$hostExporterConfiguration", "/p:Platform=x64", "/p:HostPlatform=x64"
+        Invoke-MSBuild -Arguments "/m", "ebpf-for-windows.slnx", "/t:$($exporter.Target)", "/p:Configuration=$hostExporterConfiguration", "/p:Platform=x64", "/p:HostPlatform=x64"
     }
 
     foreach ($exporter in $hostProgramInfoExporters) {
@@ -160,12 +160,6 @@ if (!$SkipHostToolBootstrap -and $Architecture -ieq "ARM64" -and $hostArchitectu
 
 # Define the commands to run
 $cmakeCommonArgs = "-G `"$cmakeGenerator`" -A $Architecture"
-$msbuildDir = if ($msbuildPath -and (Test-Path $msbuildPath)) { Split-Path -Parent $msbuildPath } else { $null }
-$nugetRestoreCommand = if ($msbuildDir) {
-    "nuget restore ebpf-for-windows.sln -MSBuildPath `"$msbuildDir`""
-} else {
-    "nuget restore ebpf-for-windows.sln"
-}
 $commands = @(
     "git submodule update --init --recursive",
     "cmake $cmakeCommonArgs -S external\ebpf-verifier -B external\ebpf-verifier\build -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>$<$<CONFIG:FuzzerDebug>:Debug>",
@@ -208,7 +202,7 @@ foreach ($command in $commands) {
 $previousWdkTargetPlatform = $env:_EbpfWdkTargetPlatform
 try {
     $env:_EbpfWdkTargetPlatform = $Architecture
-    Invoke-NativeCommand -Command $nugetRestoreCommand
+    Invoke-MSBuild -Arguments "/m", "ebpf-for-windows.slnx", "/t:restore", "/p:Platform=$Architecture"
 }
 finally {
     if ($null -eq $previousWdkTargetPlatform) {
@@ -220,6 +214,6 @@ finally {
 Invoke-MSBuild -Arguments "/t:restore", "external\usersim\src\usersim.vcxproj", "/p:Platform=$Architecture"
 Invoke-MSBuild -Arguments "/t:restore", "external\usersim\usersim_dll_skeleton\usersim_dll_skeleton.vcxproj", "/p:Platform=$Architecture"
 Invoke-MSBuild -Arguments "/t:restore", "external\usersim\cxplat\src\cxplat_winkernel\cxplat_winkernel.vcxproj", "/p:Platform=$Architecture"
-Invoke-MSBuild -Arguments "/m", "ebpf-for-windows.sln", "/t:idl\rpc_interface:Rebuild", "/p:Configuration=Release", "/p:Platform=$Architecture", "/p:HostPlatform=$hostArchitecture"
+Invoke-MSBuild -Arguments "/m", "ebpf-for-windows.slnx", "/t:idl\rpc_interface:Rebuild", "/p:Configuration=Release", "/p:Platform=$Architecture", "/p:HostPlatform=$hostArchitecture"
 
 Write-Host "All commands succeeded."

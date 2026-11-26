@@ -110,13 +110,13 @@ $RequiredFiles = [ordered]@{
     "vm_run_tests.psm1"                = "scripts\setup_build\setup_build.vcxproj"
 }
 
-$SolutionFile = Join-Path $RepoRoot "ebpf-for-windows.sln"
+$SolutionFile = Join-Path $RepoRoot "ebpf-for-windows.slnx"
 $RootProject = "tools\driver-test\driver-test.vcxproj"
 
 function Write-Remediation {
     Write-Host ""
     Write-Host "Add the project that produces each missing file to $RootProject (and to the" -ForegroundColor Yellow
-    Write-Host "driver-test ProjectDependencies section of ebpf-for-windows.sln), or update the" -ForegroundColor Yellow
+    Write-Host "driver-test dependencies in $(Split-Path -Leaf $SolutionFile)), or update the" -ForegroundColor Yellow
     Write-Host "required-file list in scripts\check_driver_test_closure.ps1 if it is no longer needed." -ForegroundColor Yellow
 }
 
@@ -149,33 +149,55 @@ if (-not (Test-Path -Path $SolutionFile)) {
     throw "Solution file '$SolutionFile' not found. Pass -RepoRoot to point at the repository root."
 }
 
-$NormalizedRepoRoot = ([System.IO.Path]::GetFullPath($RepoRoot)).TrimEnd('\') + '\'
+$NormalizedRepoRoot = ([System.IO.Path]::GetFullPath($RepoRoot)).TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
 $SolutionText = Get-Content -Path $SolutionFile -Raw
 
-# GUID -> project path, and project path -> solution-declared dependency GUIDs.
-$GuidToPath = @{}
-$PathToDependencyGuids = @{}
-
-$ProjectPattern = '(?ms)^Project\("\{[0-9A-Fa-f\-]+\}"\)\s*=\s*"[^"]*",\s*"([^"]+)",\s*"\{([0-9A-Fa-f\-]+)\}"(.*?)^EndProject'
-foreach ($match in [regex]::Matches($SolutionText, $ProjectPattern)) {
-    $projectPath = $match.Groups[1].Value
-    $projectGuid = $match.Groups[2].Value.ToUpperInvariant()
-
-    # Skip solution folders, which have no project file on disk.
-    if (-not (Test-Path -Path (Join-Path $RepoRoot $projectPath))) {
-        continue
+# Project path -> solution-declared dependency paths.
+$PathToDependencies = @{}
+if ([System.IO.Path]::GetExtension($SolutionFile) -eq ".slnx") {
+    [xml] $solutionXml = $SolutionText
+    foreach ($project in $solutionXml.SelectNodes('//Project[@Path]')) {
+        $projectPath = $project.GetAttribute("Path").Replace('/', '\')
+        $PathToDependencies[$projectPath] = @(
+            foreach ($dependency in $project.SelectNodes('BuildDependency[@Project]')) {
+                $dependency.GetAttribute("Project").Replace('/', '\')
+            }
+        )
     }
+} else {
+    # GUID -> project path, and project path -> solution-declared dependency GUIDs.
+    $GuidToPath = @{}
+    $PathToDependencyGuids = @{}
+    $ProjectPattern = '(?ms)^Project\("\{[0-9A-Fa-f\-]+\}"\)\s*=\s*"[^"]*",\s*"([^"]+)",\s*"\{([0-9A-Fa-f\-]+)\}"(.*?)^EndProject'
+    foreach ($match in [regex]::Matches($SolutionText, $ProjectPattern)) {
+        $projectPath = $match.Groups[1].Value
+        $projectGuid = $match.Groups[2].Value.ToUpperInvariant()
 
-    $GuidToPath[$projectGuid] = $projectPath
-
-    $dependencyGuids = @()
-    $sectionMatch = [regex]::Match($match.Groups[3].Value, '(?ms)ProjectSection\(ProjectDependencies\)\s*=\s*postProject(.*?)EndProjectSection')
-    if ($sectionMatch.Success) {
-        foreach ($dependency in [regex]::Matches($sectionMatch.Groups[1].Value, '\{([0-9A-Fa-f\-]+)\}\s*=')) {
-            $dependencyGuids += $dependency.Groups[1].Value.ToUpperInvariant()
+        # Skip solution folders, which have no project file on disk.
+        if (-not (Test-Path -Path (Join-Path $RepoRoot $projectPath))) {
+            continue
         }
+
+        $GuidToPath[$projectGuid] = $projectPath
+
+        $dependencyGuids = @()
+        $sectionMatch = [regex]::Match($match.Groups[3].Value, '(?ms)ProjectSection\(ProjectDependencies\)\s*=\s*postProject(.*?)EndProjectSection')
+        if ($sectionMatch.Success) {
+            foreach ($dependency in [regex]::Matches($sectionMatch.Groups[1].Value, '\{([0-9A-Fa-f\-]+)\}\s*=')) {
+                $dependencyGuids += $dependency.Groups[1].Value.ToUpperInvariant()
+            }
+        }
+        $PathToDependencyGuids[$projectPath] = $dependencyGuids
     }
-    $PathToDependencyGuids[$projectPath] = $dependencyGuids
+    foreach ($projectPath in $PathToDependencyGuids.Keys) {
+        $PathToDependencies[$projectPath] = @(
+            foreach ($guid in $PathToDependencyGuids[$projectPath]) {
+                if ($GuidToPath.ContainsKey($guid)) {
+                    $GuidToPath[$guid]
+                }
+            }
+        )
+    }
 }
 
 function Get-ProjectReference {
@@ -205,7 +227,7 @@ function Get-ProjectReference {
         }
         if ($resolved.StartsWith($NormalizedRepoRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
             # Normalize to a repo-relative path so it can be compared with solution entries.
-            $references += $resolved.Substring($NormalizedRepoRoot.Length)
+            $references += $resolved.Substring($NormalizedRepoRoot.Length).Replace('/', '\')
         }
     }
     return $references
@@ -223,12 +245,8 @@ while ($Queue.Count -gt 0) {
     }
 
     $neighbors = @(Get-ProjectReference -ProjectPath $current)
-    if ($PathToDependencyGuids.ContainsKey($current)) {
-        foreach ($guid in $PathToDependencyGuids[$current]) {
-            if ($GuidToPath.ContainsKey($guid)) {
-                $neighbors += $GuidToPath[$guid]
-            }
-        }
+    if ($PathToDependencies.ContainsKey($current)) {
+        $neighbors += $PathToDependencies[$current]
     }
 
     foreach ($neighbor in $neighbors) {

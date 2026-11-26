@@ -19,7 +19,7 @@ The following must be installed in order to build this project:
    - [Download Visual Studio Professional 2026](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Professional&rel=18)
    - [Download Visual Studio Enterprise 2026](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Enterprise&rel=18)
 
-   >**Note**: **Visual Studio 2022** (v17.4.2 or later) is also still supported, and is validated by a
+   >**Note**: **Visual Studio 2022** (v17.13 or later) is also still supported, and is validated by a
     dedicated CI build. The project selects the platform toolset and Windows Driver Kit version from the
     Visual Studio version you build with: VS 2026 uses toolset `v145` with WDK `10.0.28000`, and VS 2022
     uses toolset `v143` with WDK `10.0.26100`. See [wdk.props](../wdk.props). Support for VS 2022 will be
@@ -117,7 +117,7 @@ The following steps need to be executed *once* before the first build on a new c
 1. Change directory to where the project is cloned (e.g. `cd ebpf-for-windows`), and run the following command:
 
    ```cmd
-   msbuild /m /p:Configuration=Debug /p:Platform=x64 ebpf-for-windows.sln
+   msbuild /m /p:Configuration=Debug /p:Platform=x64 ebpf-for-windows.slnx
    ```
 
 ##### Setting compile time options when building from Developer Command Prompt
@@ -131,7 +131,7 @@ Both options are set when compiling with the "NativeOnlyDebug" or "NativeOnlyRel
 
 #### Building using Visual Studio IDE
 
-1. Open the `ebpf-for-windows.sln` solution.
+1. Open the `ebpf-for-windows.slnx` solution.
 1. Switch the configuration to "`Debug`|`x64`".  To build with the JIT and Interpreter disabled, switch the configuration to "`NativeOnlyDebug`|`x64`" instead.
 1. Rebuild the solution.
 
@@ -149,7 +149,7 @@ To build with the specific compile time options for disabling JIT compiler and/o
       >*Note for Linux users*: this option is similar to the `CONFIG_BPF_JIT_ALWAYS_ON` which, as documented
 [here](https://googleprojectzero.blogspot.com/2018/01/reading-privileged-memory-with-side.html), is used to disable support for the interpreter.
 
->Note: do the above steps for the following projects within the `ebpf-for-windows.sln` solution:
+>Note: do the above steps for the following projects within the `ebpf-for-windows.slnx` solution:
 >- `api_test`
 >- `execution_context_kernel`
 >- `sample_ext_app`

@@ -9,6 +9,7 @@
 .*\.proj$
 .*\.rc$
 .*\.sln$
+.*\.slnx$
 .*\.vsdx$
 
 # Directories with files that don't support embedding license info
